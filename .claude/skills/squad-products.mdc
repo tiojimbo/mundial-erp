@@ -1,0 +1,120 @@
+# Squad Products
+
+## Dominio
+
+Catalogo de produtos com wizard 4 etapas obrigatorias, formulas de producao, imagens, marcas, unidades de medida, departamentos de produto, tabelas de preco. Processo BPM: Compras > Gestao de Produtos.
+
+**Fonte de verdade:** PLANO.md secoes 1.5b (Product model completo — 4 etapas, classificacao, EAN-13, formulas), 2.6 (endpoints), Atividades 6-7 (secao 3.3)
+**Fase PLANO:** F4B (construcao) + ownership continuo
+
+---
+
+## Entidades/Recursos sob responsabilidade
+
+| Entidade | Secao PLANO | Descricao |
+|---|---|---|
+| Product (4 etapas) | 1.5b | Wizard: Identificacao → Especificacao → Fiscal → Precificacao+Formula |
+| ProductImage | 1.5b | url, sortOrder |
+| UnitMeasure | 1.5b | name, proFinancasId |
+| Brand | 1.5b | name, proFinancasId |
+| ProductDepartment | 1.5b | name, proFinancasId |
+| PriceTable | 1.5b | name, isDefault, proFinancasId |
+| PriceTableItem | 1.5b | priceTableId + productId, priceInCents |
+| ProductionFormula | 1.8 | productId, name, yieldQuantity |
+| ProductionFormulaIngredient | 1.8 | formulaId, ingredientId, quantity, unitMeasureId |
+| ProductClassification enum | 1.5b | FABRICACAO_PROPRIA, REVENDA, MATERIA_PRIMA, INSUMO |
+| ProductStatus enum | 1.5b | DRAFT, ACTIVE, INACTIVE |
+| Geracao de codigo | 1.5b | [PREFIXO]-[NNNN] automatico via ProductType |
+| Geracao de EAN-13 | 1.5b | 2[DDDD][SSSSS][C] interno |
+| Eventos product.* (EventEmitter2) | 2.13 | product.created, product.updated, product.deleted para indexacao Search |
+
+### Regras de Negocio Criticas (PLANO 1.5b — Renato e dono)
+
+Estas regras DEVEM ser implementadas no service. Consultar PLANO secao 1.5b para detalhes completos:
+
+| Regra | Descricao | Secao |
+|---|---|---|
+| **Wizard 4 etapas obrigatorias** | Produto so fica ACTIVE quando steps 1-4 estao TODOS completos (step1Complete, step2Complete, step3Complete, step4Complete = true) | 1.5b |
+| **Codigo imutavel** | Campo `code` ([PREFIXO]-[NNNN]) e gerado automaticamente na criacao e NUNCA muda. Se desativado, codigo e "aposentado" | 1.5b |
+| **EAN-13 imutavel** | Campo `barcode` e gerado automaticamente e nunca muda | 1.5b |
+| **Formato validado** | Codigo aceita APENAS [2 letras]-[4 digitos]. Rejeitar qualquer outro formato | 1.5b |
+| **minStock obrigatorio** | minStock != 0 e obrigatorio para classificacao FABRICACAO_PROPRIA e MATERIA_PRIMA | 1.5b |
+| **Formula obrigatoria** | Se classificacao = FABRICACAO_PROPRIA, formulaId e obrigatorio. Bloqueia ativacao sem formula | 1.5b |
+| **Etapa 3 antes de 4** | Nada avanca para etapa 4 sem tributacao configurada na etapa 3 (ncmCode obrigatorio) | 1.5b |
+| **Unidade vs Conjunto** | boxUnitMeasureId + unitsPerBox definem conversao UN↔CX. Estoque sempre na unidade base | 1.5b |
+| **Seed ProductTypes** | Os 10 ProductTypes da Mundial Telhas (TT, TG, PT, PF, AC, AX, MP, IN, IM, OT) sao responsabilidade do Squad Reference Data. Este squad CONSOME, nao cria | 1.5b |
+
+---
+
+## Composicao do Time
+
+| Membro | Recursos (dono vertical) | Papel extra |
+|---|---|---|
+| **Renato Farias** (Senior) | Product model (4 etapas), geracao de codigo, EAN-13 | Tech Lead, dono da logica de wizard |
+| **Priscila Gomes** (Pleno) | UnitMeasure, Brand, ProductDepartment, ProductImage | Dona das entidades auxiliares |
+| **Leandro Cunha** (Pleno) | PriceTable, PriceTableItem | Dono da precificacao |
+| **Tatiana Reis** (Pleno) | ProductionFormula, ProductionFormulaIngredient | Dona das formulas (aba inline do produto) |
+| **Otavio Mendes** (Senior) | Barcode endpoint, testes, seed, validacao | QA + dono do GET /products/barcode/:ean |
+
+---
+
+## Ordem de Execucao
+
+### Etapa 1 — Golden Path (Renato): Product com etapa 1 (Identificacao) + geracao de codigo + EAN-13
+### Etapa 2 — Paralelo
+
+```
+Renato:   Etapas 2, 3, 4 do produto + status DRAFT→ACTIVE
+Priscila: UnitMeasure, Brand, ProductDepartment, ProductImage (CRUDs)
+Leandro:  PriceTable + PriceTableItem (CRUD + endpoints)
+Tatiana:  ProductionFormula + Ingredients (CRUD inline do produto)
+```
+
+### Etapa 3 — QA (Otavio): Barcode endpoint, testes, seed, validacao wizard completo
+
+---
+
+## Manutencao
+
+| Quando... | Procure... |
+|---|---|
+| Mudanca no Product model ou wizard | Renato Farias |
+| Mudanca em unidades, marcas, departamentos ou imagens | Priscila Gomes |
+| Mudanca em tabelas de preco | Leandro Cunha |
+| Mudanca em formulas de producao | Tatiana Reis |
+| Mudanca no barcode ou testes | Otavio Mendes |
+
+---
+
+## Interface com Outros Squads
+
+### Quem depende de nos
+
+| Squad | O que consome |
+|---|---|
+| Squad Orders | FK productId em OrderItem, classificacao para split automatico |
+| Squad Production | ProductionFormula para consumo de materia-prima |
+| Squad Requisitions | GET /products/barcode/:ean para scanner |
+| Squad Reference Data | FK productTypeId |
+| Squad Search | Evento product.* para indexacao |
+
+### De quem dependemos
+
+| Squad | O que consumimos |
+|---|---|
+| Squad Reference Data | ProductType (prefix, eanDeptCode, sequential) |
+| Squad Infra, Auth | Base |
+
+---
+
+## Contexto para Agentes
+
+```
+REFERENCIAS:
+- Model completo: .claude/plan/PLANO.md secao 1.5b (Product — todas as 4 etapas)
+- Enums: .claude/plan/PLANO.md secao 1.5b (ProductClassification, ProductStatus)
+- Formulas: .claude/plan/PLANO.md secao 1.8 (ProductionFormula)
+- Endpoints: .claude/plan/PLANO.md secao 2.6
+- Atividades BPM: .claude/plan/PLANO.md secao 3.3 Atividades 6-7
+- Stories: .claude/plan/PLANO.md Fase 4B stories F4B-1, F4B-2
+```

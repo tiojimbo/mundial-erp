@@ -1,0 +1,36 @@
+# Squad FE Products
+
+## Dominio
+
+Catalogo de produtos no browser: tabela filtravel, wizard 4 etapas, detalhe com tabs (Dados, Especificacao, Fiscal, Precos, Formula inline, Imagens, Estoque). Feature: `src/features/products/`.
+
+**Fonte de verdade:** PLANO.md Rotas /compras/produtos/**, Fase 7C story F7C-1
+**Fase PLANO:** F7C (construcao) + ownership continuo
+
+---
+
+## Composicao do Time
+
+| Membro | Recursos (dono vertical) | Papel extra |
+|---|---|---|
+| **Leonardo Ramos** (Senior) | Wizard 4 etapas (Step Indicator), logica DRAFT→ACTIVE | Tech Lead |
+| **Nathalia Pires** (Pleno) | Catalogo (Table + Filter por classificacao/dept/status) | Dona da listagem |
+| **Pedro Almeida** (Pleno) | Detalhe com Tab Menu (7 tabs) | Dono do detalhe |
+| **Luana Costa** (Pleno) | Formula inline (aba dentro do produto), imagens upload | Dona de formulas e imagens |
+| **Fabiano Lopes** (Senior) | Validacao Figma, testes | QA |
+
+---
+
+## Interface com Outros Squads
+
+De quem depende: Squad FE Shell (layout), Squad Products (backend API /products/**).
+
+---
+
+## Contexto para Agentes
+
+```
+REFERENCIAS:
+- Rotas: .claude/plan/PLANO.md secao 5 (/compras/produtos/**)
+- Stories: .claude/plan/PLANO.md Fase 7C story F7C-1
+```

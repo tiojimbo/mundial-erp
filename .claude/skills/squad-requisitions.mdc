@@ -1,0 +1,79 @@
+# Squad Requisitions
+
+## Dominio
+
+Requisicoes internas de estoque: criacao (VENDA/INTERNO), impressao PDF com barcode Code-128, processamento via leitor de codigo de barras (scan EAN-13 produto + scan Code-128 requisicao), baixa de estoque.
+
+**Fonte de verdade:** PLANO.md secoes 1.8b (models + fluxo completo), 2.8b (endpoints)
+**Fase PLANO:** F4C (construcao) + ownership continuo
+
+---
+
+## Entidades/Recursos sob responsabilidade
+
+| Entidade | Secao PLANO |
+|---|---|
+| StockRequisition | 1.8b |
+| StockRequisitionItem | 1.8b |
+| StockRequisitionType enum | 1.8b (VENDA, INTERNO) |
+| StockRequisitionStatus enum | 1.8b (PENDING, APPROVED, PROCESSED, CANCELLED) |
+| PDF com barcode Code-128 (bwip-js) | 1.8b |
+| Processamento por item (scan EAN → UN/CX → baixa) | 1.8b |
+
+---
+
+## Composicao do Time
+
+| Membro | Recursos (dono vertical) | Papel extra |
+|---|---|---|
+| **Flavio Ramos** (Senior) | StockRequisition, fluxo completo, status machine | Tech Lead |
+| **Carla Mendes** (Pleno) | StockRequisitionItem, logica UN/CX, calculo baixa | Dona dos itens e conversao de unidades |
+| **Renan Tavares** (Pleno) | PDF com barcode Code-128 (bwip-js + PDFKit) | Dono da geracao de documentos |
+| **Viviane Cruz** (Pleno) | Endpoints de processamento via scanner | Dona do fluxo de scan |
+| **Nilton Gomes** (Senior) | Testes, seed, validacao do fluxo fisico→digital | QA |
+
+---
+
+## Ordem de Execucao
+
+### Etapa 1 — Golden Path (Flavio): StockRequisition CRUD + status machine
+### Etapa 2 — Paralelo: Carla (items + UN/CX), Renan (PDF barcode), Viviane (endpoints processamento)
+### Etapa 3 — QA (Nilton): Fluxo E2E criar → PDF → processar item → finalizar
+
+---
+
+## Manutencao
+
+| Quando... | Procure... |
+|---|---|
+| Mudanca no fluxo de requisicao | Flavio Ramos |
+| Mudanca na logica de itens ou conversao UN/CX | Carla Mendes |
+| Mudanca no PDF ou barcode | Renan Tavares |
+| Mudanca no processamento via scanner | Viviane Cruz |
+
+---
+
+## Interface com Outros Squads
+
+### Quem depende de nos
+
+| Squad | O que consome |
+|---|---|
+| Squad FE Requisitions | Endpoints /stock-requisitions/** |
+
+### De quem dependemos
+
+| Squad | O que consumimos |
+|---|---|
+| Squad Products | GET /products/barcode/:ean (identificacao por scan) |
+
+---
+
+## Contexto para Agentes
+
+```
+REFERENCIAS:
+- Models e fluxo completo: .claude/plan/PLANO.md secao 1.8b (inclui fluxo fisico detalhado)
+- Endpoints: .claude/plan/PLANO.md secao 2.8b
+- Stories: .claude/plan/PLANO.md Fase 4C story F4C-3
+```

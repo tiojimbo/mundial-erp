@@ -1,0 +1,81 @@
+# Squad Search
+
+## Dominio
+
+Busca global full-text via Elasticsearch: indexacao near real-time, busca unificada, reindexacao via fila, fallback PostgreSQL. Alimenta o Command Menu (Cmd+K) do frontend.
+
+**Fonte de verdade:** PLANO.md secao 2.13 (Search completo — indices, arquitetura, padroes)
+**Fase PLANO:** F4B (construcao) + ownership continuo
+
+---
+
+## Entidades/Recursos sob responsabilidade
+
+| Recurso | Secao PLANO |
+|---|---|
+| SearchModule | 2.13 |
+| SearchService (busca + fallback PG) | 2.13 |
+| SearchRepository (client @elastic/elasticsearch) | 2.13 |
+| SearchIndexerService (listener EventEmitter2) | 2.13 |
+| SearchReindexProcessor (BullMQ worker) | 2.13 |
+| 5 indices ES: mundial_clients, mundial_products, mundial_orders, mundial_invoices, mundial_suppliers | 2.13 |
+| Endpoints: GET /search, POST /search/reindex, GET /search/health | 2.13 |
+
+---
+
+## Composicao do Time
+
+| Membro | Recursos (dono vertical) | Papel extra |
+|---|---|---|
+| **Paulo Henrique** (Senior) | SearchService, fallback PostgreSQL, circuit breaker | Tech Lead |
+| **Raquel Cardoso** (Pleno) | SearchIndexerService (listeners EventEmitter2) | Dona da indexacao near real-time |
+| **Jorge Fonseca** (Pleno) | SearchRepository (client ES, mappings, indices) | Dono da camada Elasticsearch |
+| **Monica Araujo** (Pleno) | SearchReindexProcessor (BullMQ worker) | Dona da reindexacao completa |
+| **Danilo Soares** (Senior) | Controller, DTOs, testes, validacao | QA |
+
+---
+
+## Ordem de Execucao
+
+### Etapa 1 — Golden Path (Paulo): SearchService com 1 indice (mundial_products) + fallback
+### Etapa 2 — Paralelo: Raquel (indexer listeners), Jorge (5 indices + mappings), Monica (reindex worker)
+### Etapa 3 — QA (Danilo): Controller, DTOs, testes, validacao contra PLANO 2.13
+
+---
+
+## Manutencao
+
+| Quando... | Procure... |
+|---|---|
+| Logica de busca ou fallback | Paulo Henrique |
+| Novo evento de indexacao | Raquel Cardoso |
+| Mapping de indice ou config ES | Jorge Fonseca |
+| Reindexacao ou fila | Monica Araujo |
+
+---
+
+## Interface com Outros Squads
+
+### Quem depende de nos
+
+| Squad | O que consome |
+|---|---|
+| Squad FE Shell | GET /search (Command Menu Cmd+K) |
+
+### De quem dependemos
+
+| Squad | O que consumimos |
+|---|---|
+| Squad Infra | ElasticsearchModule, BullMQ |
+| Squads Clients, Products, Orders, Suppliers | Eventos *.created/updated/deleted via EventEmitter2 |
+
+---
+
+## Contexto para Agentes
+
+```
+REFERENCIAS:
+- Arquitetura completa: .claude/plan/PLANO.md secao 2.13
+- Estrutura de pastas do modulo: .claude/plan/PLANO.md secao 2.13 (src/modules/search/)
+- Stories: .claude/plan/PLANO.md Fase 4B story F4B-5
+```

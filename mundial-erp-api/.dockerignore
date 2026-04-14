@@ -1,0 +1,13 @@
+node_modules
+dist
+.git
+.env
+.env.*
+*.md
+.vscode
+.cursor
+.claude
+coverage
+test
+*.spec.ts
+*.e2e-spec.ts

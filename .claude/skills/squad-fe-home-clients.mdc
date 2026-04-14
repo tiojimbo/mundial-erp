@@ -1,0 +1,70 @@
+# Squad FE Home + Clients
+
+## Dominio
+
+Tela inicial personalizada (saudacao + atividades do dia + handoffs) e CRUD completo de clientes no browser. Features: `src/features/home/` e `src/features/clients/`.
+
+**Fonte de verdade:** PLANO.md Tela Inicio, Tela Clientes, Rotas /inicio e /comercial/clientes/**, Fase 7A
+**Fase PLANO:** F7A (construcao) + ownership continuo
+
+---
+
+## Recursos sob responsabilidade
+
+| Recurso | Secao PLANO |
+|---|---|
+| /inicio — Saudacao dinamica (bom dia/tarde/noite + nome) | Tela Inicio |
+| /inicio — Atividades do dia: ActivityInstance onde assignedUserId = currentUser AND (dueAt hoje OR status IN_PROGRESS). Card: nome atividade, processo, pedido, SLA restante, progresso checklist | Tela Inicio |
+| /inicio — Handoffs pendentes: HandoffInstance com status PENDING onde departamento destino = departamento do usuario. Clicar abre dossie do pedido | Tela Inicio |
+| /inicio — Acao rapida: clicar em atividade abre dossie do pedido na aba da atividade | Tela Inicio |
+| /comercial/clientes (tabela paginada + busca) | Rotas Frontend |
+| /comercial/clientes/novo (formulario cadastro) | Rotas Frontend |
+| /comercial/clientes/[id] (detalhe: tabs Dados, Pedidos, Financeiro) | Rotas Frontend |
+| /comercial/clientes/[id]/editar | Rotas Frontend |
+| src/features/home/ | Organizacao por Feature |
+| src/features/clients/ | Organizacao por Feature |
+
+---
+
+## Composicao do Time
+
+| Membro | Recursos (dono vertical) | Papel extra |
+|---|---|---|
+| **Victor Lemos** (Senior) | Tela Inicio (saudacao, activity cards, handoffs) | Tech Lead |
+| **Sabrina Costa** (Pleno) | Lista de clientes (Table, Pagination, Filter, search) | Dona da listagem |
+| **Diego Martins** (Pleno) | Formulario cadastro/edicao (React Hook Form + Zod) | Dono dos formularios |
+| **Paula Rezende** (Pleno) | Detalhe do cliente (Tab Menu: Dados, Pedidos, Financeiro) | Dona do detalhe |
+| **Gustavo Lira** (Senior) | Validacao Figma, testes, review de componentes | QA visual |
+
+---
+
+## Ordem de Execucao
+
+### Etapa 1 — Golden Path (Victor): Tela Inicio com saudacao + 1 activity card funcional
+### Etapa 2 — Paralelo: Sabrina (lista), Diego (formulario), Paula (detalhe com tabs)
+### Etapa 3 — QA (Gustavo): Validacao Figma, testes, review
+
+---
+
+## Interface com Outros Squads
+
+### De quem dependemos
+
+| Squad | O que consumimos |
+|---|---|
+| Squad FE Shell | Layout, sidebar, providers, stores |
+| Squad Clients (backend) | API /clients/** |
+| Squad BPM (backend) | API /activity-instances, /handoff-instances |
+
+---
+
+## Contexto para Agentes
+
+```
+REFERENCIAS:
+- Tela Inicio: .claude/plan/PLANO.md Tela Inicio
+- Rotas: .claude/plan/PLANO.md secao 5 (Rotas Frontend /comercial/clientes/**)
+- Features: .claude/plan/PLANO.md Organizacao por Feature
+- Stories: .claude/plan/PLANO.md Fase 7A
+- Design System: .claude/references/FIGMA.md
+```

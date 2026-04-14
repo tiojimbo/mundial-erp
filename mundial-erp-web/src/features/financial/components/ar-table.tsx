@@ -1,0 +1,258 @@
+'use client';
+
+import { useState, useEffect } from 'react';
+import Link from 'next/link';
+import { useRouter } from 'next/navigation';
+import {
+  RiSearchLine,
+  RiArrowLeftSLine,
+  RiArrowRightSLine,
+  RiEyeLine,
+  RiFilterLine,
+} from '@remixicon/react';
+
+import * as Table from '@/components/ui/table';
+import * as Input from '@/components/ui/input';
+import * as Button from '@/components/ui/button';
+import * as Select from '@/components/ui/select';
+import * as Pagination from '@/components/ui/pagination';
+import { useDebounce } from '@/hooks/use-debounce';
+import { formatCents, formatDate } from '@/lib/formatters';
+import { useAccountsReceivable } from '../hooks/use-financial';
+import { PaymentStatusBadge } from './payment-status-badge';
+import type { ARFilters, PaymentStatus } from '../types/financial.types';
+
+const STATUS_OPTIONS: { value: string; label: string }[] = [
+  { value: '', label: 'Todos os status' },
+  { value: 'PENDING', label: 'Pendente' },
+  { value: 'PARTIAL', label: 'Parcial' },
+  { value: 'PAID', label: 'Pago' },
+  { value: 'OVERDUE', label: 'Vencido' },
+  { value: 'CANCELLED', label: 'Cancelado' },
+];
+
+export function ARTable() {
+  const router = useRouter();
+  const [filters, setFilters] = useState<ARFilters>({
+    page: 1,
+    limit: 20,
+    search: '',
+  });
+  const [searchInput, setSearchInput] = useState('');
+  const [statusFilter, setStatusFilter] = useState('');
+  const debouncedSearch = useDebounce(searchInput, 300);
+  const { data, isLoading } = useAccountsReceivable(filters);
+
+  const items = data?.data ?? [];
+  const pagination = data?.meta?.pagination;
+
+  useEffect(() => {
+    setFilters((prev) => ({ ...prev, page: 1, search: debouncedSearch }));
+  }, [debouncedSearch]);
+
+  useEffect(() => {
+    setFilters((prev) => ({
+      ...prev,
+      page: 1,
+      status: (statusFilter || undefined) as PaymentStatus | undefined,
+    }));
+  }, [statusFilter]);
+
+  function handlePageChange(page: number) {
+    setFilters((prev) => ({ ...prev, page }));
+  }
+
+  return (
+    <div className='space-y-4'>
+      {/* Header */}
+      <div className='flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between'>
+        <div>
+          <h1 className='text-title-h5 text-text-strong-950'>
+            Contas a Receber
+          </h1>
+          <p className='text-paragraph-sm text-text-sub-600'>
+            Gerencie os recebíveis e registre pagamentos.
+          </p>
+        </div>
+      </div>
+
+      {/* Filters */}
+      <div className='flex flex-col gap-3 sm:flex-row'>
+        <div className='flex-1'>
+          <Input.Root size='medium'>
+            <Input.Wrapper>
+              <Input.Icon as={RiSearchLine} />
+              <Input.Input
+                placeholder='Buscar por descrição, cliente...'
+                value={searchInput}
+                onChange={(e) => setSearchInput(e.target.value)}
+              />
+            </Input.Wrapper>
+          </Input.Root>
+        </div>
+        <Select.Root value={statusFilter} onValueChange={setStatusFilter}>
+          <Select.Trigger className='w-full sm:w-48'>
+            <RiFilterLine className='size-4 text-text-soft-400' />
+            <Select.Value placeholder='Status' />
+          </Select.Trigger>
+          <Select.Content>
+            {STATUS_OPTIONS.map((opt) => (
+              <Select.Item key={opt.value} value={opt.value}>
+                {opt.label}
+              </Select.Item>
+            ))}
+          </Select.Content>
+        </Select.Root>
+      </div>
+
+      {/* Table */}
+        <Table.Root>
+          <Table.Header>
+            <Table.Row>
+              <Table.Head>Descrição</Table.Head>
+              <Table.Head>Cliente</Table.Head>
+              <Table.Head>Pedido</Table.Head>
+              <Table.Head className='text-right'>Valor</Table.Head>
+              <Table.Head className='text-right'>Pago</Table.Head>
+              <Table.Head>Vencimento</Table.Head>
+              <Table.Head>Status</Table.Head>
+              <Table.Head className='text-right'>Ações</Table.Head>
+            </Table.Row>
+          </Table.Header>
+          <Table.Body>
+            {isLoading ? (
+              Array.from({ length: 5 }).map((_, i) => (
+                <Table.Row key={i}>
+                  {Array.from({ length: 8 }).map((__, j) => (
+                    <Table.Cell key={j}>
+                      <div className='h-4 w-24 animate-pulse rounded bg-bg-weak-50' />
+                    </Table.Cell>
+                  ))}
+                </Table.Row>
+              ))
+            ) : items.length === 0 ? (
+              <Table.Row>
+                <Table.Cell colSpan={8} className='text-center'>
+                  <p className='py-8 text-paragraph-sm text-text-soft-400'>
+                    {filters.search
+                      ? 'Nenhuma conta a receber encontrada para esta busca.'
+                      : 'Nenhuma conta a receber registrada.'}
+                  </p>
+                </Table.Cell>
+              </Table.Row>
+            ) : (
+              items.map((ar) => (
+                <Table.Row key={ar.id}>
+                  <Table.Cell>
+                    <button
+                      onClick={() =>
+                        router.push(`/financeiro/contas-a-receber/${ar.id}`)
+                      }
+                      className='text-left text-label-sm text-text-strong-950 transition hover:text-primary-base'
+                    >
+                      {ar.description}
+                    </button>
+                  </Table.Cell>
+                  <Table.Cell>
+                    <span className='text-paragraph-sm text-text-sub-600'>
+                      {ar.client?.name ?? '—'}
+                    </span>
+                  </Table.Cell>
+                  <Table.Cell>
+                    {ar.order ? (
+                      <Link
+                        href={`/comercial/pedidos/${ar.orderId}`}
+                        className='text-paragraph-sm text-primary-base hover:underline'
+                      >
+                        #{ar.order.orderNumber}
+                      </Link>
+                    ) : (
+                      <span className='text-paragraph-sm text-text-soft-400'>
+                        —
+                      </span>
+                    )}
+                  </Table.Cell>
+                  <Table.Cell className='text-right font-medium'>
+                    {formatCents(ar.amountCents)}
+                  </Table.Cell>
+                  <Table.Cell className='text-right'>
+                    {formatCents(ar.paidAmountCents)}
+                  </Table.Cell>
+                  <Table.Cell>
+                    <span className='text-paragraph-sm text-text-sub-600'>
+                      {formatDate(ar.dueDate)}
+                    </span>
+                  </Table.Cell>
+                  <Table.Cell>
+                    <PaymentStatusBadge status={ar.status} />
+                  </Table.Cell>
+                  <Table.Cell className='text-right'>
+                    <Button.Root
+                      asChild
+                      variant='neutral'
+                      mode='ghost'
+                      size='xxsmall'
+                    >
+                      <Link href={`/financeiro/contas-a-receber/${ar.id}`}>
+                        <Button.Icon as={RiEyeLine} />
+                      </Link>
+                    </Button.Root>
+                  </Table.Cell>
+                </Table.Row>
+              ))
+            )}
+          </Table.Body>
+        </Table.Root>
+
+      {/* Pagination */}
+      {pagination && pagination.totalPages > 1 && (
+        <div className='flex items-center justify-between'>
+          <p className='text-paragraph-sm text-text-sub-600'>
+            {pagination.total} registro{pagination.total !== 1 ? 's' : ''} no
+            total
+          </p>
+          <Pagination.Root variant='basic'>
+            <Pagination.NavButton
+              disabled={pagination.page <= 1}
+              onClick={() => handlePageChange(pagination.page - 1)}
+            >
+              <Pagination.NavIcon as={RiArrowLeftSLine} />
+            </Pagination.NavButton>
+            {Array.from({ length: pagination.totalPages }, (_, i) => i + 1)
+              .filter((p) => {
+                const current = pagination.page;
+                return (
+                  p === 1 ||
+                  p === pagination.totalPages ||
+                  Math.abs(p - current) <= 1
+                );
+              })
+              .map((p, idx, arr) => {
+                const prev = arr[idx - 1];
+                const showEllipsis = prev !== undefined && p - prev > 1;
+                return (
+                  <span key={p} className='contents'>
+                    {showEllipsis && (
+                      <Pagination.Item disabled>...</Pagination.Item>
+                    )}
+                    <Pagination.Item
+                      current={p === pagination.page}
+                      onClick={() => handlePageChange(p)}
+                    >
+                      {p}
+                    </Pagination.Item>
+                  </span>
+                );
+              })}
+            <Pagination.NavButton
+              disabled={pagination.page >= pagination.totalPages}
+              onClick={() => handlePageChange(pagination.page + 1)}
+            >
+              <Pagination.NavIcon as={RiArrowRightSLine} />
+            </Pagination.NavButton>
+          </Pagination.Root>
+        </div>
+      )}
+    </div>
+  );
+}

@@ -1,0 +1,88 @@
+# Squad Production
+
+## Dominio
+
+Producao de pedidos: ordens de producao (itens FABRICACAO_PROPRIA), ordens de separacao (itens REVENDA/INSUMO), consumo de materia-prima, produto acabado, perdas, ajuste de estoque. Processo BPM: Producao > Producao do Pedido.
+
+**Fonte de verdade:** PLANO.md secoes 1.8 (models producao + separacao), 2.9 (endpoints), Atividades 10-12 (secao 3.3)
+**Fase PLANO:** F4C (construcao) + ownership continuo
+
+---
+
+## Entidades/Recursos sob responsabilidade
+
+| Entidade | Secao PLANO |
+|---|---|
+| ProductionOrder | 1.8 |
+| ProductionOrderItem | 1.8 |
+| ProductionConsumption | 1.8 |
+| ProductionOutput | 1.8 |
+| ProductionLoss | 1.8 |
+| SeparationOrder | 1.8 |
+| SeparationOrderItem | 1.8 |
+| SeparationOrderStatus enum | 1.8 |
+| Split automatico no FATURADO | 1.8 (regra) |
+| PDF Ficha OP | 4.2d (compartilhado com Squad Orders) |
+
+---
+
+## Composicao do Time
+
+| Membro | Recursos (dono vertical) | Papel extra |
+|---|---|---|
+| **Wagner Costa** (Senior) | ProductionOrder, ProductionOrderItem, split automatico | Tech Lead, dono da logica de split |
+| **Elaine Moreira** (Pleno) | ProductionConsumption, ProductionOutput | Dona do consumo e saida |
+| **Matheus Duarte** (Pleno) | ProductionLoss, ajuste de estoque | Dono de perdas e movimentacao |
+| **Larissa Prado** (Pleno) | SeparationOrder, SeparationOrderItem | Dona da separacao (isSeparated, isChecked) |
+| **Cesar Machado** (Senior) | Testes, validacao guard EM_PRODUCAO→PRODUZIDO | QA + dono do guard critico (PLANO 3.4) |
+
+---
+
+## Ordem de Execucao
+
+### Etapa 1 — Golden Path (Wagner): ProductionOrder CRUD + split automatico (PLANO 1.8 regra)
+### Etapa 2 — Paralelo: Elaine (consumptions/outputs), Matheus (losses/estoque), Larissa (separation)
+### Etapa 3 — QA (Cesar): Guard EM_PRODUCAO→PRODUZIDO (todas POs COMPLETED + SO CHECKED + supplies READY), testes E2E
+
+---
+
+## Manutencao
+
+| Quando... | Procure... |
+|---|---|
+| Mudanca na ProductionOrder ou split | Wagner Costa |
+| Mudanca em consumo ou produto acabado | Elaine Moreira |
+| Mudanca em perdas ou estoque | Matheus Duarte |
+| Mudanca em separacao | Larissa Prado |
+| Mudanca no guard critico | Cesar Machado |
+
+---
+
+## Interface com Outros Squads
+
+### Quem depende de nos
+
+| Squad | O que consome |
+|---|---|
+| Squad FE Production | Endpoints /production-orders/**, /separation-orders/** |
+
+### De quem dependemos
+
+| Squad | O que consome |
+|---|---|
+| Squad Orders | PO/SO criados por OrderFaturadoListener |
+| Squad Products | ProductionFormula para calculo de materia-prima |
+
+---
+
+## Contexto para Agentes
+
+```
+REFERENCIAS:
+- Models: .claude/plan/PLANO.md secao 1.8
+- Endpoints: .claude/plan/PLANO.md secao 2.9
+- Split automatico: .claude/plan/PLANO.md secao 1.8 (regra no FATURADO)
+- Guard critico: .claude/plan/PLANO.md secao 3.4 (EM_PRODUCAO→PRODUZIDO)
+- Atividades BPM: .claude/plan/PLANO.md secao 3.3 Atividades 10-12
+- Stories: .claude/plan/PLANO.md Fase 4C story F4C-2
+```

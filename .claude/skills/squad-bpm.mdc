@@ -1,0 +1,157 @@
+# Squad BPM
+
+## Dominio
+
+Motor BPM (Business Process Model): definicao de processos (template) e runtime (execucao por pedido). Departamentos, setores, processos, atividades, tarefas, handoffs. Maquina de estados do pedido.
+
+**Fonte de verdade:** PLANO.md secoes 1.3-1.4 (schema BPM), 2.4 (endpoints), 3.1-3.5 (motor completo), Departamentos/Setores/Processos (tabela inicial)
+**Fase PLANO:** F3 (construcao) + ownership continuo
+
+---
+
+## Entidades/Recursos sob responsabilidade
+
+### Camada de Definicao (template)
+
+| Entidade | Secao PLANO |
+|---|---|
+| Department | 1.3 |
+| Sector | 1.3 |
+| Process | 1.3 |
+| Activity (7 campos obrigatorios) | 1.3, 3.3 |
+| Task | 1.3 |
+| Handoff | 1.3 |
+
+### Camada de Runtime (por pedido)
+
+| Entidade | Secao PLANO |
+|---|---|
+| ProcessInstance | 1.4 |
+| ActivityInstance | 1.4 |
+| TaskInstance | 1.4 |
+| HandoffInstance | 1.4 |
+
+### Servicos
+
+| Servico | Secao PLANO |
+|---|---|
+| BpmEngineService (EventEmitter2) | 3.4 |
+| OrderStatusMachine (guards + transicoes) | 3.1, 3.2 |
+| Seed script (4 departamentos, processos, 18 atividades, handoffs) | 3.3 |
+
+### 7 Campos Obrigatorios de Activity (secao 3.3)
+
+Cada atividade mapeada no PLANO segue esta estrutura — Felipe Andrade e dono:
+
+| # | Campo | Descricao | Exemplo (Atividade 1) |
+|---|---|---|---|
+| 1 | **Nome** | Verbo infinitivo + objeto | "Criar pedido e montar proposta" |
+| 2 | **Dono (ownerRole)** | Role responsavel | OPERATOR (Vendedor) |
+| 3 | **Entrada (inputDescription)** | O que recebe para iniciar | "Cliente identificado + demanda verbalizada" |
+| 4 | **Checklist (tasks[])** | Itens obrigatorios para completar | 8 itens detalhados no PLANO |
+| 5 | **Saida (outputDescription)** | O que entrega ao concluir | "Pedido com status EM_ORCAMENTO" |
+| 6 | **SLA (slaMinutes)** | Tempo maximo em minutos | 120 (2 horas) |
+| 7 | **Excecoes (exceptions)** | O que fazer quando algo da errado | "Cliente sem cadastro → handoff" |
+
+**Fonte:** PLANO.md secao 3.3 — 18 atividades mapeadas com esses 7 campos.
+
+### Maquina de Estados — Guards de Transicao (secao 3.2)
+
+Bruno Carvalho deve implementar a tabela COMPLETA de guards conforme PLANO 3.2:
+
+| De | Para | Guard (validacao obrigatoria) | Secao |
+|---|---|---|---|
+| EM_ORCAMENTO | FATURAR | Cliente valido, >=1 item, precos preenchidos, paidAmountCents >= 50% total, paymentProofUrl anexado | 3.2 |
+| FATURAR | FATURADO | Conciliacao bancaria confirmada pelo Financeiro | 3.2 |
+| FATURADO | PRODUZIR | Pedido com faturamento conciliado | 3.2 |
+| PRODUZIR | EM_PRODUCAO | Coordenador inicia producao | 3.2 |
+| EM_PRODUCAO | PRODUZIDO | Todas ProductionOrders COMPLETED + SeparationOrder CHECKED (se existir) + todos supplies READY | 3.2, 3.4 |
+| PRODUZIDO | ENTREGUE | Conferencia OK + 50% restante pago | 3.2 |
+| EM_ORCAMENTO/FATURAR/FATURADO | CANCELADO | Motivo obrigatorio. Cancelamento so possivel ate FATURADO | 3.2 |
+
+**Regra critica:** Transicao invalida (status nao permitido, guard nao atendido) DEVE lancar `BadRequestException` com mensagem explicando qual guard falhou. Conforme PLANO F3-4 AC.
+
+**Regra critica:** Apos PRODUZIR, cancelamento NAO e possivel pelo fluxo padrao (PLANO 3.2 nota).
+
+---
+
+## Composicao do Time
+
+| Membro | Recursos (dono vertical) | Papel extra |
+|---|---|---|
+| **Bruno Carvalho** (Senior) | BpmEngineService, OrderStatusMachine, EventEmitter2 | Tech Lead, dono da logica de orquestracao |
+| **Marina Silva** (Pleno) | Department, Sector, Process (CRUD definicao) | Dona da hierarquia organizacional |
+| **Felipe Andrade** (Pleno) | Activity, Task (CRUD definicao) | Dono dos 7 campos obrigatorios e checklists |
+| **Carolina Dias** (Pleno) | ProcessInstance, ActivityInstance, TaskInstance, HandoffInstance (runtime) | Dona do ciclo de vida das instancias |
+| **Gustavo Peixoto** (Senior) | Handoff (definicao + instancia), seed BPM, testes | QA + dono do mapeamento de handoffs |
+
+---
+
+## Ordem de Execucao
+
+### Etapa 1 — Golden Path (Bruno, solo)
+
+Constroi BpmEngineService + OrderStatusMachine:
+- Maquina de estados conforme PLANO 3.1 (EM_ORCAMENTO → ... → ENTREGUE)
+- Guards de transicao conforme PLANO 3.2 (tabela completa)
+- EventEmitter2 com evento `order.status.changed` conforme PLANO 3.4
+
+### Etapa 2 — Paralelo
+
+```
+Marina:   Department, Sector, Process — CRUD definicao (PLANO 1.3, 2.4)
+Felipe:   Activity (7 campos), Task — CRUD definicao (PLANO 1.3, 3.3)
+Carolina: Runtime instances — CRUD + complete/toggle/accept/reject (PLANO 1.4, 2.4)
+```
+
+### Etapa 3 — Integracao (Gustavo + Bruno)
+
+- Gustavo: Handoff definicao + instancia, seed script completo (PLANO 3.3), testes
+- Bruno: Integrar engine com runtime, validar fluxo programatico (PLANO 3.4)
+
+---
+
+## Manutencao
+
+| Quando... | Procure... |
+|---|---|
+| Mudanca na logica de orquestracao ou status machine | Bruno Carvalho |
+| Mudanca em departamentos, setores ou processos | Marina Silva |
+| Mudanca em atividades ou checklists | Felipe Andrade |
+| Mudanca no runtime de instancias | Carolina Dias |
+| Mudanca em handoffs, seeds ou testes BPM | Gustavo Peixoto |
+| Squad Orders precisa de novo guard de transicao | Bruno Carvalho |
+| Squad FE precisa entender como UI adapta por etapa | Carolina Dias (PLANO 3.5) |
+
+---
+
+## Interface com Outros Squads
+
+### Quem depende de nos
+
+| Squad | O que consome |
+|---|---|
+| Squad Orders | OrderStatusMachine (guards), BpmEngineService (event listener) |
+| Squad FE Orders | Endpoints de runtime (/process-instances, /activity-instances) |
+| Squad FE Home | ActivityInstance.assignedUserId para atividades do dia |
+
+### De quem dependemos
+
+| Squad | O que consumimos |
+|---|---|
+| Squad Infra (F1) | PrismaService, EventEmitter2 setup |
+| Squad Auth (F2) | Guards, @Roles, Role enum |
+
+---
+
+## Contexto para Agentes
+
+```
+REFERENCIAS:
+- Schema definicao: .claude/plan/PLANO.md secao 1.3
+- Schema runtime: .claude/plan/PLANO.md secao 1.4
+- Endpoints: .claude/plan/PLANO.md secao 2.4
+- Motor completo: .claude/plan/PLANO.md secoes 3.1-3.5
+- Mapeamento de atividades: .claude/plan/PLANO.md secao 3.3 (18 atividades)
+- Stories e DoD: .claude/plan/PLANO.md Fase 3
+```

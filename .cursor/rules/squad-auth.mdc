@@ -1,0 +1,99 @@
+# Squad Auth
+
+## Dominio
+
+Autenticacao, autorizacao e gestao de usuarios. JWT com access/refresh tokens, RBAC, guards globais, rate limiting em endpoints criticos.
+
+**Fonte de verdade:** PLANO.md secoes 1.2 (Auth e Organizacao), 2.2 (Auth endpoints), 2.3 (Users CRUD)
+**Standards:** .claude/standards/07-autenticacao.md
+**Fase PLANO:** F2 (construcao) + ownership continuo
+
+---
+
+## Entidades/Recursos sob responsabilidade
+
+| Recurso | Secao PLANO | Descricao |
+|---|---|---|
+| User model | 1.2 | id, email, name, passwordHash, refreshToken, role, isActive, departmentId |
+| Permission model | 1.2 | action, resource, description |
+| RolePermission | 1.2 | role + permissionId (pivot) |
+| Auth endpoints | 2.2 | register, login, refresh, logout, me |
+| Users CRUD | 2.3 | CRUD padrao com RBAC |
+| JWT strategies | F2 stories | Access 15min + refresh 7d com rotation |
+| Guards globais | F2 stories | JwtAuthGuard + RolesGuard como APP_GUARD |
+| Decorators | F2 stories | @CurrentUser, @Roles, @Public |
+| Rate limiting | F2 stories | Restritivo em /auth/login e /auth/register |
+
+---
+
+## Composicao do Time
+
+| Membro | Recursos (dono vertical) | Papel extra |
+|---|---|---|
+| **Gabriel Souza** (Senior) | JWT strategies, guards globais, auth.service | Tech Lead, security review |
+| **Isabela Martins** (Pleno) | Auth endpoints (register, login, refresh, logout, me) | Dona do fluxo de auth completo |
+| **Ricardo Nunes** (Pleno) | Users CRUD, Permission, RolePermission | Dono de gestao de usuarios e RBAC |
+| **Patricia Rocha** (Pleno) | Decorators (@CurrentUser, @Roles, @Public), rate limiting | Dona dos cross-cutting de auth |
+| **Eduardo Santos** (Senior) | Testes unitarios, e2e, seed de usuarios | QA & validacao de seguranca |
+
+---
+
+## Ordem de Execucao
+
+### Etapa 1 — Golden Path (Gabriel, solo)
+
+Constroi o modulo auth completo como referencia:
+- JWT strategy (access 15min + refresh 7d) conforme PLANO F2-1
+- Auth service (register com bcrypt 12 rounds, login, refresh com rotation, logout)
+- Guards (JwtAuthGuard + RolesGuard como APP_GUARD)
+
+### Etapa 2 — Paralelo
+
+```
+Isabela:  Auth controller (5 endpoints conforme PLANO 2.2) + DTOs
+Ricardo:  Users module completo (CRUD conforme PLANO 2.3) + Permission seed
+Patricia: Decorators + rate limiting restritivo
+```
+
+### Etapa 3 — QA (Eduardo)
+
+- Testes unitarios: auth.service.spec.ts, users.service.spec.ts
+- Teste e2e: register → login → refresh → me → logout → 401 (conforme PLANO DoD F2)
+- Seed de usuarios (admin, manager, operator, viewer)
+
+---
+
+## Manutencao
+
+| Quando... | Procure... |
+|---|---|
+| Mudanca em JWT strategy ou security | Gabriel Souza |
+| Mudanca em endpoints auth | Isabela Martins |
+| Mudanca em users/permissions/RBAC | Ricardo Nunes |
+| Mudanca em decorators ou rate limiting | Patricia Rocha |
+| Testes de auth ou seed de usuarios | Eduardo Santos |
+
+---
+
+## Interface com Outros Squads
+
+### Quem depende de nos
+
+Todos os squads backend — usam JwtAuthGuard, @Roles, @CurrentUser, Role enum.
+
+### De quem dependemos
+
+Squad Infra (F1) — PrismaService, CommonModule base, ConfigModule.
+
+---
+
+## Contexto para Agentes
+
+```
+REFERENCIAS:
+- Models: .claude/plan/PLANO.md secao 1.2
+- Endpoints: .claude/plan/PLANO.md secoes 2.2, 2.3
+- Stories e DoD: .claude/plan/PLANO.md Fase 2
+- Security: .claude/standards/07-autenticacao.md
+- Padrao backend: .claude/standards/04-backend.md
+```

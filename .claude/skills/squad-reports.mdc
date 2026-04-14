@@ -1,0 +1,58 @@
+# Squad Reports
+
+## Dominio
+
+Relatorios cross-departamento: DRE, vendas, fluxo de caixa. Reutiliza a query engine do Squad Dashboards quando possivel.
+
+**Fonte de verdade:** PLANO.md secao 2.11 (endpoints)
+**Fase PLANO:** F4C (construcao) + ownership continuo
+
+---
+
+## Entidades/Recursos sob responsabilidade
+
+| Recurso | Secao PLANO |
+|---|---|
+| KPI summary | 2.11 |
+| Sales chart | 2.11 |
+| Cashflow | 2.11 |
+| DRE | 2.11 |
+| Sales report | 2.11 |
+
+---
+
+## Composicao do Time
+
+| Membro | Recursos (dono vertical) | Papel extra |
+|---|---|---|
+| **Ivan Teixeira** (Senior) | DRE, arquitetura de relatorios | Tech Lead |
+| **Sandra Oliveira** (Pleno) | Sales report, sales chart | Dona de relatorios de vendas |
+| **Marcio Braga** (Pleno) | Cashflow, KPI summary | Dono de relatorios financeiros |
+| **Elisa Nunes** (Pleno) | DTOs, formatacao, exportacao | Dona dos contratos de saida |
+| **Joao Victor** (Senior) | Testes, validacao de calculos, seed de dados | QA |
+
+---
+
+## Ordem de Execucao
+
+### Etapa 1 — Golden Path (Ivan): Estrutura de relatorio + DRE
+### Etapa 2 — Paralelo: Sandra (vendas), Marcio (cashflow + KPI), Elisa (DTOs)
+### Etapa 3 — QA (Joao Victor): Validacao de calculos com dados reais
+
+---
+
+## Interface com Outros Squads
+
+### De quem dependemos
+
+Squad Dashboards (query engine reutilizavel), Squad Financial (dados AR/AP), Squad Orders (dados de vendas).
+
+---
+
+## Contexto para Agentes
+
+```
+REFERENCIAS:
+- Endpoints: .claude/plan/PLANO.md secao 2.11
+- Stories: .claude/plan/PLANO.md Fase 4C story F4C-5
+```

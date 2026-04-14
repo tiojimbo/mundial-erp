@@ -1,0 +1,36 @@
+# Squad FE Financial
+
+## Dominio
+
+Modulo financeiro no browser: contas a receber, contas a pagar, NF-e, caixa, analise financeira. Feature: `src/features/financial/`.
+
+**Fonte de verdade:** PLANO.md Rotas /financeiro/**, Fase 7C story F7C-4
+**Fase PLANO:** F7C (construcao) + ownership continuo
+
+---
+
+## Composicao do Time
+
+| Membro | Recursos (dono vertical) | Papel extra |
+|---|---|---|
+| **Anderson Lima** (Senior) | AR (lista + registrar pagamento) | Tech Lead |
+| **Priscila Torres** (Pleno) | AP (lista + pagamento) | Dona do AP |
+| **Fabio Mendes** (Pleno) | NF-e (detalhe + PDF + XML) | Dono da NF-e |
+| **Caroline Braga** (Pleno) | Caixa (abrir/fechar) + Analise (resumo) | Dona de caixa |
+| **Diego Nunes** (Senior) | Validacao Figma, testes | QA |
+
+---
+
+## Interface com Outros Squads
+
+De quem depende: Squad FE Shell, Squad Financial (backend API /financial/**).
+
+---
+
+## Contexto para Agentes
+
+```
+REFERENCIAS:
+- Rotas: .claude/plan/PLANO.md secao 5 (/financeiro/**)
+- Stories: .claude/plan/PLANO.md Fase 7C story F7C-4
+```

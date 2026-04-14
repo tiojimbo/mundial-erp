@@ -1,0 +1,150 @@
+# Squad Orders
+
+## Dominio
+
+Modulo central do sistema. Pedidos de venda: CRUD, maquina de estados (EM_ORCAMENTO → ENTREGUE), integracao BPM, timeline, PDFs (proposta, etiquetas, ficha OP), OrderItemSupply (checklist de insumos). O pedido E o orcamento (nao existe processo separado).
+
+**Fonte de verdade:** PLANO.md secoes 1.6 (Order, OrderItem, OrderItemSupply, OrderStatusHistory, OrderSequence), 2.7 (endpoints), 3.1-3.2 (status machine + guards), 4.1-4.3 (PDFs)
+**Fase PLANO:** F4B (construcao) + ownership continuo — **este e o squad mais critico do projeto**
+
+---
+
+## Entidades/Recursos sob responsabilidade
+
+| Entidade | Secao PLANO |
+|---|---|
+| Order | 1.6 |
+| OrderItem | 1.6 |
+| OrderItemSupply | 1.6 |
+| OrderStatusHistory | 1.6 |
+| OrderSequence | 1.6 |
+| OrderDocument | 5.8 |
+| Status machine (guards + transicoes) | 3.1, 3.2 |
+| Side-effect listeners (EventEmitter2) | 3.4 |
+| PDF Proposta de Venda | 4.1, 4.2 |
+| PDF Etiqueta Producao | 4.2b |
+| PDF Etiqueta Separacao | 4.2c |
+| PDF Ficha OP | 4.2d |
+| Endpoints | 2.7 |
+| Eventos order.* (EventEmitter2) | 2.13 | order.created, order.updated, order.deleted para indexacao Search |
+
+### Guards de Transicao por Status (PLANO 3.2 — Marcelo e dono)
+
+Cada transicao de status TEM guards obrigatorios. Consultar PLANO secao 3.2 para detalhes completos. Resumo:
+
+| De | Para | Guard (O QUE VALIDAR) | Efeito Automatico (side-effect) |
+|---|---|---|---|
+| EM_ORCAMENTO | FATURAR | Cliente valido, >=1 item, precos preenchidos, paidAmountCents >= 50% total, paymentProofUrl anexado | Cria AR 2 parcelas (50% pago + 50% pendente). Notifica Financeiro |
+| FATURAR | FATURADO | Conciliacao bancaria confirmada | Registra pagamento 1a parcela AR. Notifica Producao |
+| FATURADO | PRODUZIR | Faturamento conciliado | Split automatico: cria ProductionOrder (FABRICACAO_PROPRIA) + SeparationOrder (REVENDA/INSUMO se houver). Gera etiquetas |
+| PRODUZIR | EM_PRODUCAO | Coordenador inicia | Registra startedAt nas ProductionOrders |
+| EM_PRODUCAO | PRODUZIDO | TODAS POs COMPLETED + SO CHECKED (se existir) + TODOS supplies READY | Baixa insumos estoque, entrada produto acabado. Notifica conferencia |
+| PRODUZIDO | ENTREGUE | Conferencia OK + 50% restante pago | Registra 2a parcela AR. Encerra ProcessInstances |
+| EM_ORCAMENTO/FATURAR/FATURADO | CANCELADO | Motivo obrigatorio | Estorna AR, cancela POs pendentes |
+
+**Regra critica:** Cancelamento so e possivel ate FATURADO. Apos PRODUZIR, requer tratamento especial fora do fluxo padrao.
+**Regra critica:** Transicao invalida → BadRequestException com mensagem explicando qual guard falhou.
+
+### Side-Effect Listeners (PLANO 3.4 — Alexandre e dono)
+
+Listeners desacoplados via EventEmitter2. Escutam `order.status.changed` e executam efeitos:
+
+| Listener | Trigger | O que faz | Secao |
+|---|---|---|---|
+| **OrderFaturarListener** | Status → FATURAR | Cria AccountReceivable com 2 parcelas (50% PAID + 50% PENDING) | 3.4 |
+| **OrderFaturadoListener** | Status → FATURADO | Split automatico: filtra itens por classificationSnapshot, cria ProductionOrder (FABRICACAO_PROPRIA) + SeparationOrder (REVENDA/INSUMO se houver) | 3.4 |
+| **ProductionCompletedListener** | POs COMPLETED | Baixa estoque insumos, entrada produto acabado | 3.4 |
+| **OrderEntregueListener** | Status → ENTREGUE | Registra 2a parcela AR como PAID, encerra ProcessInstances | 3.4 |
+| **OrderCanceladoListener** | Status → CANCELADO | Estorna AR, cancela POs pendentes | 3.2 (implicito) |
+| **SearchIndexListener** | Qualquer mudanca | Emite order.created/updated/deleted para Squad Search indexar | 2.13 |
+
+### Interface Sync — Pedidos Migrados (PLANO 5.5, 5.7)
+
+- Pedidos migrados do PF mantem o orderNumber original (ex: "207", "7058") — UNICA excecao
+- OrderItems migrados podem ter productId = null (produto nao migrado) → usa productName
+- Apos migracao, OrderSequence.lastNumber = MAX(numeros migrados) para evitar colisao
+- Documentos (PDF, etiquetas, NF-e) NAO sao gerados para pedidos migrados (proFinancasId != null)
+
+---
+
+## Composicao do Time
+
+| Membro | Recursos (dono vertical) | Papel extra |
+|---|---|---|
+| **Marcelo Augusto** (Senior) | Order model, OrderSequence (geracao atomica), status machine, side-effect listeners | Tech Lead, dono da orquestracao central |
+| **Vanessa Torres** (Pleno) | OrderItem, OrderItemSupply (checklist insumos) | Dona dos itens e supplies |
+| **Roberto Melo** (Pleno) | OrderStatusHistory, timeline endpoint | Dono do historico e rastreabilidade |
+| **Cristiane Duarte** (Pleno) | PDFs: ProposalPdfService, LabelPdfService, ProductionOrderPdfService | Dona de toda geracao de documentos |
+| **Alexandre Braga** (Senior) | Side-effects (OrderFaturarListener, OrderFaturadoListener, etc), testes E2E | QA + dono dos listeners desacoplados |
+
+---
+
+## Ordem de Execucao
+
+### Etapa 1 — Golden Path (Marcelo)
+
+Order CRUD + OrderSequence (geracao atomica conforme PLANO 1.6) + status machine (integra com BpmEngineService do Squad BPM). Este e o modulo mais complexo — golden path inclui o fluxo minimo: criar pedido → avancar status.
+
+### Etapa 2 — Paralelo
+
+```
+Marcelo:   Refina status machine com TODOS os guards (PLANO 3.2)
+Vanessa:   OrderItem + OrderItemSupply (checklist toggle PENDING/READY) (PLANO 1.6)
+Roberto:   OrderStatusHistory + timeline endpoint (PLANO 2.7)
+Cristiane: 4 PDFs (proposta, etiqueta producao, etiqueta separacao, ficha OP) (PLANO 4.1-4.3)
+```
+
+### Etapa 3 — Integracao (Alexandre + Marcelo)
+
+- Side-effect listeners conforme PLANO 3.4 (OrderFaturarListener cria AR, OrderFaturadoListener cria PO+SO, etc)
+- Teste E2E completo: EM_ORCAMENTO → ENTREGUE com todos os side-effects
+- Interface sync para pedidos migrados (PLANO 5.5 — orderNumber mantem formato PF)
+
+---
+
+## Manutencao
+
+| Quando... | Procure... |
+|---|---|
+| Mudanca na logica do pedido ou status machine | Marcelo Augusto |
+| Mudanca nos itens ou checklist de insumos | Vanessa Torres |
+| Mudanca no historico ou timeline | Roberto Melo |
+| Mudanca nos PDFs | Cristiane Duarte |
+| Mudanca nos listeners de side-effect | Alexandre Braga |
+
+---
+
+## Interface com Outros Squads
+
+### Quem depende de nos
+
+| Squad | O que consome |
+|---|---|
+| Squad Financial | AR criado automaticamente (OrderFaturarListener) |
+| Squad Production | PO/SO criados automaticamente (OrderFaturadoListener) |
+| Squad Search | Evento order.* para indexacao |
+| Squad FE Orders | Todos os endpoints /orders/** |
+
+### De quem dependemos
+
+| Squad | O que consumimos |
+|---|---|
+| Squad BPM | BpmEngineService, OrderStatusMachine, EventEmitter2 |
+| Squad Clients | FK clientId |
+| Squad Products | FK productId nos itens, classificacao para split |
+| Squad Reference Data | FK companyId, carrierId, paymentMethodId, orderTypeId, orderFlowId, orderModelId |
+
+---
+
+## Contexto para Agentes
+
+```
+REFERENCIAS:
+- Models: .claude/plan/PLANO.md secao 1.6 (Order, OrderItem, OrderItemSupply, OrderStatusHistory, OrderSequence)
+- Endpoints: .claude/plan/PLANO.md secao 2.7
+- Status machine: .claude/plan/PLANO.md secoes 3.1, 3.2
+- Side-effects: .claude/plan/PLANO.md secao 3.4
+- PDFs: .claude/plan/PLANO.md secoes 4.1-4.3
+- Migracao: .claude/plan/PLANO.md secoes 5.5, 5.7
+- Stories: .claude/plan/PLANO.md Fase 4B story F4B-4
+```

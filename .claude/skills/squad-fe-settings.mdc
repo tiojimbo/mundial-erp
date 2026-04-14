@@ -1,0 +1,36 @@
+# Squad FE Sync + Settings
+
+## Dominio
+
+Monitoramento de sync com Pro Financas e configuracoes administrativas no browser. Features: `src/features/sync/`, `src/features/settings/`.
+
+**Fonte de verdade:** PLANO.md Rotas /integracao/** e /configuracoes/**, Fase 7D stories F7D-3, F7D-4
+**Fase PLANO:** F7D (construcao) + ownership continuo
+
+---
+
+## Composicao do Time
+
+| Membro | Recursos (dono vertical) | Papel extra |
+|---|---|---|
+| **Marcos Reis** (Senior) | Tela integracao (status sync, logs, trigger manual) | Tech Lead |
+| **Elisa Braga** (Pleno) | /configuracoes/usuarios (CRUD) | Dona de config usuarios |
+| **Joao Henrique** (Pleno) | /configuracoes/departamentos + /configuracoes/processos (BPM config) | Dono de config BPM |
+| **Camila Tavares** (Pleno) | /configuracoes/empresa (dados da empresa) | Dona de config empresa |
+| **Vinicius Almeida** (Senior) | Validacao Figma, testes | QA |
+
+---
+
+## Interface com Outros Squads
+
+De quem depende: Squad FE Shell, Squad Sync PF (backend API /sync/**), Squad Auth (backend API /users/**), Squad BPM (backend API /departments/**, /processes/**).
+
+---
+
+## Contexto para Agentes
+
+```
+REFERENCIAS:
+- Rotas: .claude/plan/PLANO.md secao 5 (/integracao/**, /configuracoes/**)
+- Stories: .claude/plan/PLANO.md Fase 7D stories F7D-3, F7D-4
+```

@@ -1,0 +1,237 @@
+# Squad Reference Data
+
+## Dominio
+
+Entidades fundacionais que sustentam todos os outros modulos do Mundial ERP.
+
+**Fonte de verdade:** PLANO.md secoes 1.5b (ProductType), 1.5c (Company, PaymentMethod, Carrier), 1.5 (ClientClassification, DeliveryRoute), 1.6 (OrderType, OrderFlow, OrderModel), 2.12 (States/Cities/Neighborhoods), 5.2-5.3 (sync PF)
+
+**Estrutura de pastas:** Padrao Bravy — cada entidade como modulo flat em `src/modules/` conforme standards/04-backend.md secao 4.2. NAO agrupar em pasta intermediaria.
+
+**Fase PLANO:** F4A (construcao) + ownership continuo (manutencao, evolucao, suporte)
+
+---
+
+## Entidades sob responsabilidade (11)
+
+Conforme PLANO.md — consultar secoes indicadas para specs completas de cada model.
+
+| Entidade | Secao PLANO | Sync PF (secao 5.3) | Complexidade |
+|---|---|---|---|
+| Company | 1.5c | Sim (ordem 1) | Alta — 12 campos, CNPJ unique |
+| Carrier | 1.5c | Sim (ordem 4) | Baixa |
+| PaymentMethod | 1.5c | Sim (ordem 4) | Baixa — tem isActive |
+| ClientClassification | 1.5 | Sim (ordem 3) | Baixa |
+| DeliveryRoute | 1.5 | Sim (ordem 3) | Baixa |
+| OrderType | 1.6 | Sim (ordem 5) | Baixa |
+| OrderFlow | 1.6 | Sim (ordem 5) | Baixa |
+| OrderModel | 1.6 | Sim (ordem 5) | Baixa |
+| ProductType | 1.5b | Nao | Media — prefix, EAN dept, sequential atomico |
+| State / City | 2.12 | Sim (ordem 2) | Media — hierarquia, sem soft-delete |
+| Neighborhood | 2.12 | Sim (ordem 2) | Baixa — depende de City |
+
+---
+
+## Composicao do Time (5 especialistas)
+
+### Filosofia de montagem
+
+**Pattern-first, then replicate.** Um senior define o padrao completo com 1 entidade de referencia. O time inteiro revisa e valida. Depois cada membro replica o padrao para suas entidades, trabalhando em todas as camadas (schema → repository → service → controller → DTOs → testes).
+
+Cada membro e dono VERTICAL de suas entidades — nao de uma camada horizontal. Isso garante que quando algo precisa mudar, ha uma unica pessoa responsavel que conhece o dominio de ponta a ponta.
+
+### Distribuicao por complexidade e afinidade
+
+```
+┌─────────────────────────────────────────────────────────────────────┐
+│                        SQUAD REFERENCE DATA                         │
+├─────────────────┬──────────────────────┬────────────────────────────┤
+│ Membro          │ Entidades (dono)     │ Papel adicional            │
+├─────────────────┼──────────────────────┼────────────────────────────┤
+│ Rafael Moreira  │ Company              │ Tech Lead                  │
+│ (Senior)        │ ProductType          │ Define o pattern de        │
+│                 │                      │ referencia (golden path)   │
+│                 │                      │ Review de todos os PRs     │
+│                 │                      │ Schema owner (todas as 11) │
+├─────────────────┼──────────────────────┼────────────────────────────┤
+│ Camila Santos   │ PaymentMethod        │ Dona da interface de sync  │
+│ (Pleno)         │ Carrier              │ upsertByProFinancasId()    │
+│                 │ OrderType            │ Garante que todas as       │
+│                 │                      │ entidades com pfId tem o   │
+│                 │                      │ metodo padronizado         │
+├─────────────────┼──────────────────────┼────────────────────────────┤
+│ Lucas Oliveira  │ ClientClassification │                            │
+│ (Pleno)         │ DeliveryRoute        │                            │
+│                 │ OrderFlow            │                            │
+│                 │ OrderModel           │                            │
+├─────────────────┼──────────────────────┼────────────────────────────┤
+│ Ana Beatriz     │ State                │ Dona da hierarquia         │
+│ Costa (Pleno)   │ City                 │ geografica e relacoes      │
+│                 │ Neighborhood         │ entre entidades geo        │
+├─────────────────┼──────────────────────┼────────────────────────────┤
+│ Thiago Ferreira │ (nenhuma exclusiva)  │ QA & Integration           │
+│ (Senior)        │                      │ Seed scripts (todas as 11) │
+│                 │                      │ Testes unitarios e e2e     │
+│                 │                      │ Swagger review             │
+│                 │                      │ Validacao contra PLANO     │
+└─────────────────┴──────────────────────┴────────────────────────────┘
+```
+
+### Por que essa distribuicao
+
+**Rafael** fica com Company (mais campos, CNPJ unique, muitas relacoes) e ProductType (sequential atomico, EAN dept code, prefix) porque sao as 2 entidades com logica de negocio real. Alem disso, como Tech Lead, ele define o golden path que todos seguem.
+
+**Camila** fica com 3 entidades simples MAS tem o papel adicional de padronizar a interface `upsertByProFinancasId()` que o Squad Sync PF (Fase 5) vai consumir. Ela garante que 10 das 11 entidades (todas exceto ProductType) tem esse metodo consistente.
+
+**Lucas** fica com 4 entidades simples (todas name + proFinancasId). Volume maior, complexidade menor — perfil ideal para pleno que executa rapido com padrao definido.
+
+**Ana Beatriz** fica com o subdominio geografico (State → City → Neighborhood). Sao 3 entidades com hierarquia e SEM soft-delete, diferente das demais. Agrupadas porque a pessoa precisa entender as relacoes entre elas.
+
+**Thiago** nao tem entidades exclusivas — e o integrador. Ele escreve seeds (precisa conhecer TODAS as entidades), testes (precisa validar TODAS), e garante que o que foi construido bate com o PLANO.md. E o "ultimo olho" antes de entregar.
+
+---
+
+## Ordem de Execucao
+
+### Etapa 1 — Golden Path (Rafael, solo)
+
+Rafael constroi UMA entidade completa como referencia: **Carrier** (a mais simples).
+
+Entrega:
+- Model no schema.prisma (conforme PLANO secao 1.5c)
+- `src/modules/carriers/carriers.module.ts`
+- `src/modules/carriers/carriers.repository.ts`
+- `src/modules/carriers/carriers.service.ts`
+- `src/modules/carriers/carriers.controller.ts`
+- `src/modules/carriers/dtos/create-carrier.dto.ts`
+- `src/modules/carriers/dtos/update-carrier.dto.ts`
+- `src/modules/carriers/dtos/carrier-response.dto.ts`
+- Teste unitario do service
+
+O time inteiro revisa esse codigo. Qualquer ajuste e feito ANTES de replicar.
+
+### Etapa 2 — Schema completo (Rafael, solo)
+
+Apos golden path aprovado, Rafael adiciona os 10 models restantes no schema.prisma conforme PLANO. Se models de outros squads (Client, Order, Product) ainda nao existem, cria placeholders com `// TODO: squad-clients`.
+
+Roda `prisma format` e `prisma migrate dev`.
+
+### Etapa 3 — Replicacao paralela (Rafael + Camila + Lucas + Ana Beatriz)
+
+Cada membro constroi suas entidades seguindo o golden path. Todas as camadas: module, repository, service, controller, DTOs.
+
+```
+Rafael:    Company, ProductType          (2 entidades — complexas)
+Camila:    PaymentMethod, Carrier*, OrderType   (2 novas + refina Carrier do golden path)
+Lucas:     ClientClassification, DeliveryRoute, OrderFlow, OrderModel   (4 entidades)
+Ana:       State, City, Neighborhood     (3 entidades — hierarquia geo)
+```
+
+*Carrier ja foi criado na etapa 1. Camila herda ownership e aplica eventuais ajustes.
+
+**Regra:** Todos consultam as secoes do PLANO indicadas na tabela de entidades acima. Ninguem inventa campos ou endpoints.
+
+### Etapa 4 — Integracao e QA (Thiago, com suporte de Rafael)
+
+Thiago entra apos a replicacao:
+- Escreve seed scripts (conforme PLANO: 10 ProductTypes secao 1.5b, estados BR)
+- Escreve testes unitarios para services que ainda nao tem
+- Escreve teste e2e do modulo
+- Valida que Swagger mostra todas as rotas
+- Compara entrega vs PLANO.md e reporta divergencias
+
+```
+Etapa 1 (Rafael solo)     → ~1 dia
+Etapa 2 (Rafael solo)     → ~0.5 dia
+Etapa 3 (4 em paralelo)   → ~2 dias
+Etapa 4 (Thiago + Rafael) → ~1 dia
+```
+
+---
+
+## Manutencao (pos-entrega)
+
+O squad continua existindo. Cada entidade tem um dono que responde quando:
+
+- Outro squad precisa de mudanca (novo campo, nova validacao)
+- Bug e encontrado
+- Sync PF precisa de ajuste na interface upsert
+- Seed precisa de novos dados
+
+### Quem procurar
+
+| Quando... | Procure... |
+|---|---|
+| Precisar mudar Company | Rafael Moreira |
+| Precisar mudar ProductType | Rafael Moreira |
+| Precisar mudar PaymentMethod ou Carrier | Camila Santos |
+| Precisar mudar OrderType | Camila Santos |
+| Precisar mudar ClientClassification ou DeliveryRoute | Lucas Oliveira |
+| Precisar mudar OrderFlow ou OrderModel | Lucas Oliveira |
+| Precisar mudar State, City ou Neighborhood | Ana Beatriz Costa |
+| Precisar ajustar interface upsertByProFinancasId | Camila Santos |
+| Precisar atualizar seeds | Thiago Ferreira |
+| Precisar mudar schema Prisma (qualquer entidade) | Rafael Moreira (aprova) + dono da entidade (implementa) |
+| Precisar adicionar nova entidade de referencia | Rafael Moreira (decide estrutura e atribui dono) |
+
+---
+
+## Interface com Outros Squads
+
+### Quem depende de nos
+
+| Squad | O que consome | Entidades |
+|---|---|---|
+| Squad Clients | FK: classificationId, deliveryRouteId, defaultPaymentMethodId | ClientClassification, DeliveryRoute, PaymentMethod |
+| Squad Orders | FK: companyId, carrierId, paymentMethodId, orderTypeId, orderFlowId, orderModelId | Company, Carrier, PaymentMethod, OrderType, OrderFlow, OrderModel |
+| Squad Products | FK: productTypeId | ProductType |
+| Squad Sync PF | Metodo upsertByProFinancasId() em 10 entidades | Todas exceto ProductType |
+| Squad FE (varios) | Endpoints GET para popular selects/dropdowns | Todas |
+
+### De quem dependemos
+
+| Squad | O que consumimos |
+|---|---|
+| Squad Infra (F1) | PrismaService, DatabaseModule, docker-compose, guards globais |
+| Squad Auth (F2) | JwtAuthGuard, RolesGuard, @Roles, @CurrentUser, Role enum |
+
+---
+
+## Contexto para Agentes
+
+Ao invocar subagentes para este squad, incluir no prompt:
+
+```
+REGRAS INVIOLAVEIS:
+1. O PLANO.md e a fonte de verdade. Consultar a secao indicada para specs da entidade.
+2. Standards em .claude/standards/ definem nomenclatura, estrutura e padroes. Seguir sem excecao.
+3. Estrutura de pastas: modulo flat em src/modules/{entidade}/ — NAO agrupar em pasta intermediaria.
+4. Named exports sempre. Nunca export default.
+5. ResponseDto.fromEntity() obrigatorio em todo endpoint.
+6. Soft delete com deletedAt (exceto State, City, Neighborhood — dados permanentes).
+7. Entidades com proFinancasId DEVEM ter metodo upsertByProFinancasId() no repository.
+
+REFERENCIAS:
+- Specs dos models: .claude/plan/PLANO.md (secao indicada na tabela de entidades)
+- Padrao backend: .claude/standards/04-backend.md
+- Nomenclatura: .claude/standards/03-nomenclatura-e-padroes.md
+- Banco de dados: .claude/standards/06-banco-de-dados.md
+- API REST: .claude/standards/08-api.md
+```
+
+### Prompt por membro
+
+**Rafael Moreira (Tech Lead):**
+> Voce e Rafael Moreira, Tech Lead do squad Reference Data do Mundial ERP. [Etapa 1] Construa o golden path: entidade Carrier completa (module, repository, service, controller, DTOs, teste) conforme PLANO.md secao 1.5c e standards/04-backend.md. [Etapa 2] Adicione no schema.prisma os 11 models do dominio reference data conforme secoes 1.5b, 1.5c, 1.6 e 2.12 do PLANO. [Etapa 3] Construa Company (secao 1.5c) e ProductType (secao 1.5b) — todas as camadas. ProductType tem incrementSequential atomico e getNextCode conforme PLANO.
+
+**Camila Santos:**
+> Voce e Camila Santos do squad Reference Data. Siga o golden path (src/modules/carriers/) como referencia. Construa PaymentMethod (PLANO 1.5c) e OrderType (PLANO 1.6) — todas as camadas: module, repository, service, controller, DTOs. Alem disso, garanta que Carrier, PaymentMethod e OrderType tenham o metodo upsertByProFinancasId() padronizado no repository conforme PLANO secao 5.1 (arquitetura sync). Refine o Carrier do golden path se necessario para adicionar esse metodo.
+
+**Lucas Oliveira:**
+> Voce e Lucas Oliveira do squad Reference Data. Siga o golden path (src/modules/carriers/) como referencia. Construa ClientClassification (PLANO 1.5), DeliveryRoute (PLANO 1.5), OrderFlow (PLANO 1.6) e OrderModel (PLANO 1.6) — todas as camadas. Todas com upsertByProFinancasId(). Sao entidades simples (name + proFinancasId) — mantenha consistencia entre elas.
+
+**Ana Beatriz Costa:**
+> Voce e Ana Beatriz Costa do squad Reference Data. Construa State, City e Neighborhood (PLANO 2.12) — todas as camadas. ATENCAO: estas entidades NAO tem soft-delete (dados geograficos sao permanentes). City depende de State (FK stateId). Neighborhood depende de City (FK cityId). Controllers extras: GET /states/:id/cities e GET /cities/:id/neighborhoods. Consulte PLANO secao 5.3 para ordem de sync.
+
+**Thiago Ferreira (QA & Integration):**
+> Voce e Thiago Ferreira, QA do squad Reference Data. Sua missao: (1) Criar prisma/seeds/reference-data.seed.ts com os 10 ProductTypes (PLANO secao 1.5b tabela de tipos), 27 estados BR, e empresa principal — idempotente (upsert). (2) Escrever testes unitarios (.spec.ts) para os services de Company, ProductType e pelo menos 1 entidade simples. (3) Escrever teste e2e (reference-data.e2e-spec.ts). (4) Validar que TODOS os endpoints existem no Swagger conforme PLANO secao 2.12. Reportar divergencias.

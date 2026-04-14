@@ -1,0 +1,91 @@
+# Squad Sync PF
+
+## Dominio
+
+Integracao com API Pro Financas: autenticacao, mappers de entidades, sync via filas BullMQ, deteccao de mudancas por checksum, migracao de clientes e pedidos.
+
+**Fonte de verdade:** PLANO.md secoes 5.1-5.9 (integracao completa), 2.10 (endpoints sync)
+**Arquivo auxiliar:** Pro Financas.md (regra de ouro), app-sales-force-api-v1.postman_collection.json (39 endpoints PF)
+**Fase PLANO:** F5 (construcao) + ownership continuo
+
+---
+
+## Entidades/Recursos sob responsabilidade
+
+| Recurso | Secao PLANO |
+|---|---|
+| ProFinancasClientService (Axios + auto-auth + retry + circuit breaker) | 5.1 |
+| EntityMappers (PF → Mundial ERP) | 5.1, 5.6 |
+| SyncService (BullMQ workers) | 5.1 |
+| SyncLog | 1.9 |
+| SyncMapping (proFinancasId + checksum) | 1.9 |
+| Endpoints sync | 2.10 |
+| Ordem de sync por dependencia | 5.3 |
+| Regras de conversao de dados | 5.6 |
+| Regra do numero do pedido migrado | 5.5 |
+| OrderItems sem produto vinculado | 5.7 |
+| Regra de conflito (PF = source of truth durante migracao) | 5.9 |
+
+---
+
+## Composicao do Time
+
+| Membro | Recursos (dono vertical) | Papel extra |
+|---|---|---|
+| **Carlos Eduardo** (Senior) | ProFinancasClientService (auth, retry, circuit breaker), arquitetura sync | Tech Lead, dono da resiliencia |
+| **Fernanda Braga** (Pleno) | EntityMappers: Client + Order + OrderItem | Dona dos mappers de entidades principais |
+| **Rogerio Alves** (Pleno) | EntityMappers: Company, Carrier, PaymentMethod, Classifications, Routes, Types/Flows/Models | Dono dos mappers de reference data |
+| **Juliana Reis** (Pleno) | SyncLog, SyncMapping, checksum, deteccao de mudancas | Dona do rastreamento e sync incremental |
+| **Anderson Peixoto** (Senior) | Endpoints sync, testes, validacao ordem de dependencia | QA + dono dos endpoints |
+
+---
+
+## Ordem de Execucao
+
+### Etapa 1 — Golden Path (Carlos Eduardo): ProFinancasClientService com auth + retry + circuit breaker
+### Etapa 2 — Paralelo: Fernanda (mappers Client/Order), Rogerio (mappers reference data), Juliana (SyncLog/Mapping/checksum)
+### Etapa 3 — QA (Anderson): Endpoints, testes, validacao sync completo na ordem correta (PLANO 5.3)
+
+---
+
+## Manutencao
+
+| Quando... | Procure... |
+|---|---|
+| API PF muda ou auth quebra | Carlos Eduardo |
+| Mapper de Client/Order precisa ajuste | Fernanda Braga |
+| Mapper de reference data precisa ajuste | Rogerio Alves |
+| Checksum ou sync incremental quebra | Juliana Reis |
+| Endpoints ou ordem de sync | Anderson Peixoto |
+
+---
+
+## Interface com Outros Squads
+
+### De quem dependemos
+
+TODOS os squads de entidade — usa `upsertByProFinancasId()` dos repositories de cada squad.
+
+Especificamente:
+- Squad Reference Data (Company, Carrier, PaymentMethod, etc)
+- Squad Clients (Client)
+- Squad Orders (Order, OrderItem)
+
+---
+
+## Contexto para Agentes
+
+```
+REFERENCIAS:
+- Arquitetura sync: .claude/plan/PLANO.md secao 5.1
+- Escopo migracao: .claude/plan/PLANO.md secao 5.2
+- Ordem dependencia: .claude/plan/PLANO.md secao 5.3
+- Checksum: .claude/plan/PLANO.md secao 5.4
+- Numero pedido migrado: .claude/plan/PLANO.md secao 5.5
+- Conversao dados: .claude/plan/PLANO.md secao 5.6
+- OrderItems sem produto: .claude/plan/PLANO.md secao 5.7
+- Conflito: .claude/plan/PLANO.md secao 5.9
+- Endpoints: .claude/plan/PLANO.md secao 2.10
+- API PF: Pro Financas.md + app-sales-force-api-v1.postman_collection.json
+- Stories: .claude/plan/PLANO.md Fase 5
+```

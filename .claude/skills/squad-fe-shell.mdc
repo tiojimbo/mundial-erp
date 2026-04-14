@@ -1,0 +1,103 @@
+# Squad Frontend Shell
+
+## Dominio
+
+Base do frontend: scaffold Next.js, Align UI configurado, login funcional, layout autenticado (sidebar por departamento, header, dark mode, ProcessContextBar), Command Menu (Cmd+K), providers, stores.
+
+**Fonte de verdade:** PLANO.md Fase 6 (conteudo tecnico completo), secao Design System, secao 5 (Rotas Frontend)
+**Design System:** FIGMA.md (.claude/references/FIGMA.md), Figma file key AjvK4iQOOs2wPcp53ZfIVr
+**Fase PLANO:** F6 (construcao) + ownership continuo
+
+---
+
+## Recursos sob responsabilidade
+
+| Recurso | Secao PLANO |
+|---|---|
+| Scaffold Next.js (App Router) | Fase 6 item 1-2 |
+| Reorganizacao para padrao Bravy | Fase 6 item 2 (estrutura src/) |
+| Tokens Design System (cores, tipografia, sombras, radius) | Fase 6 item 3-5 |
+| Login page (React Hook Form + Zod + Align UI) | Fase 6 item 12 |
+| Axios instance + interceptors (refresh em 401) | Fase 6 item 6 |
+| React Query provider | Fase 6 item 7 |
+| Auth provider | Fase 6 item 8 |
+| Zustand stores (auth, sidebar, process-context) | Fase 6 item 9 |
+| Layout base (Finance & Banking template 3911:35677) | Fase 6 item 10 |
+| Sidebar (navegacao por departamento) | Fase 6 item 10 |
+| Header (Avatar, Badge, dark mode toggle) | Fase 6 item 10 |
+| ProcessContextBar (Breadcrumbs + Step Indicator + Tag) | Fase 6 item 10 |
+| middleware.ts (redirect auth) | Fase 6 item 11 |
+| Command Menu Cmd+K (integra com GET /search) | Fase 6 DoD |
+
+---
+
+## Composicao do Time
+
+| Membro | Recursos (dono vertical) | Papel extra |
+|---|---|---|
+| **Lucas Gabriel** (Senior) | Scaffold, reorganizacao Bravy, tokens DS, layout base | Tech Lead, dono da arquitetura frontend |
+| **Beatriz Nogueira** (Pleno) | Login page, auth provider, middleware.ts, Axios interceptors | Dona do fluxo de autenticacao |
+| **Caio Henrique** (Pleno) | Sidebar, header, ProcessContextBar, dark mode | Dono do shell visual |
+| **Marina Ferraz** (Pleno) | React Query provider, Zustand stores, Command Menu | Dona do state management |
+| **Felipe Augusto** (Senior) | Validacao Figma (get_design_context), testes, review visual | QA visual + dono da fidelidade DS |
+
+---
+
+## Ordem de Execucao
+
+### Etapa 1 — Scaffold (Lucas Gabriel, solo)
+
+Clone starter, reorganiza para Bravy, configura tokens, valida imports.
+
+### Etapa 2 — Paralelo
+
+```
+Beatriz: Login + auth + middleware + Axios
+Caio:    Sidebar + header + ProcessContextBar + dark mode (Figma template 3911:35677)
+Marina:  Providers + stores + Command Menu
+```
+
+### Etapa 3 — QA visual (Felipe Augusto)
+
+Compara cada componente com Figma via `get_design_context` e `get_screenshot`. Light + dark mode.
+
+---
+
+## Manutencao
+
+| Quando... | Procure... |
+|---|---|
+| Estrutura de pastas ou config frontend | Lucas Gabriel |
+| Fluxo de auth, refresh, middleware | Beatriz Nogueira |
+| Sidebar, header, layout shell | Caio Henrique |
+| State management ou Command Menu | Marina Ferraz |
+| Fidelidade com Figma DS | Felipe Augusto |
+
+---
+
+## Interface com Outros Squads
+
+### Quem depende de nos
+
+Todos os squads frontend — usam o shell, providers, stores, componentes base.
+
+### De quem dependemos
+
+| Squad | O que consumimos |
+|---|---|
+| Squad Auth (F2) | API /auth/** para login |
+| Squad Search (F4B) | API /search para Command Menu |
+
+---
+
+## Contexto para Agentes
+
+```
+REFERENCIAS:
+- Conteudo tecnico completo: .claude/plan/PLANO.md Fase 6 (todos os 12 itens)
+- Rotas frontend: .claude/plan/PLANO.md secao 5 (Rotas Frontend)
+- Design System: .claude/references/FIGMA.md
+- Padrao frontend: .claude/standards/05-frontend.md
+- Nomenclatura: .claude/standards/03-nomenclatura-e-padroes.md
+- Template base: Figma Finance & Banking node 3911:35677
+```

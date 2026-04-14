@@ -1,0 +1,96 @@
+# Squad Quotations
+
+## Dominio
+
+Cotacao e compra de materia-prima: solicitacao de cotacao a fornecedores, recebimento de propostas, selecao de vencedora, efetivacao de compra (gera AP automaticamente). Processo BPM: Compras > Cotacao e Compra.
+
+**Fonte de verdade:** PLANO.md secoes 1.5b (PurchaseQuotation, PurchaseOrder), 2.6c (endpoints), Atividades 8-9 (secao 3.3)
+**Fase PLANO:** F4B (construcao) + ownership continuo
+
+---
+
+## Entidades/Recursos sob responsabilidade
+
+| Entidade | Secao PLANO |
+|---|---|
+| PurchaseQuotation | 1.5b |
+| PurchaseQuotationItem | 1.5b |
+| PurchaseOrder | 1.5b |
+| Handoff Compras → Financeiro | 3.3 (apos compra efetivada) |
+
+### Status Machines (PLANO 1.5b — Sergio e dono)
+
+| Entidade | Status possiveis | Transicoes |
+|---|---|---|
+| PurchaseQuotation | DRAFT → SENT → RECEIVED → SELECTED / REJECTED | DRAFT (criada) → SENT (enviada ao fornecedor) → RECEIVED (proposta recebida) → SELECTED (vencedora) ou REJECTED |
+| PurchaseOrder | PENDING → CONFIRMED → RECEIVED → CANCELLED | PENDING (criado) → CONFIRMED (fornecedor confirmou) → RECEIVED (material chegou) → ou CANCELLED |
+
+### Criacao Automatica de AP (Fabio e dono)
+
+Quando `POST /purchase-orders` efetiva uma compra (PLANO 2.6c):
+1. Cria PurchaseOrder com dados da cotacao vencedora
+2. Cria automaticamente um AccountPayable (FK supplierId, totalCents, expectedDeliveryDate)
+3. AP fica com status PENDING ate pagamento
+4. Handoff automatico: Compras → Financeiro (notifica Contas a Pagar)
+
+**Regra:** Sem cotacao SELECTED, nao e possivel criar PurchaseOrder (guard).
+
+---
+
+## Composicao do Time
+
+| Membro | Recursos (dono vertical) | Papel extra |
+|---|---|---|
+| **Sergio Lopes** (Senior) | PurchaseQuotation, fluxo completo cotacao→selecao | Tech Lead |
+| **Debora Nascimento** (Pleno) | PurchaseQuotationItem, comparacao de propostas | Dona dos itens e analise |
+| **Fabio Correia** (Pleno) | PurchaseOrder, efetivacao de compra (cria AP) | Dono do pedido de compra |
+| **Aline Braga** (Pleno) | DTOs, validacoes, status transitions | Dona dos contratos |
+| **Luciano Pinto** (Senior) | Testes, seed, validacao fluxo E2E | QA |
+
+---
+
+## Ordem de Execucao
+
+### Etapa 1 — Golden Path (Sergio): PurchaseQuotation CRUD + status machine
+### Etapa 2 — Paralelo: Debora (items), Fabio (PurchaseOrder + AP), Aline (DTOs completos)
+### Etapa 3 — QA (Luciano): Fluxo E2E cotacao → selecao → compra → AP criado
+
+---
+
+## Manutencao
+
+| Quando... | Procure... |
+|---|---|
+| Mudanca no fluxo de cotacao | Sergio Lopes |
+| Mudanca nos itens de cotacao | Debora Nascimento |
+| Mudanca no pedido de compra ou geracao de AP | Fabio Correia |
+
+---
+
+## Interface com Outros Squads
+
+### Quem depende de nos
+
+| Squad | O que consome |
+|---|---|
+| Squad Financial | AP criado automaticamente via PurchaseOrder |
+
+### De quem dependemos
+
+| Squad | O que consumimos |
+|---|---|
+| Squad Suppliers | FK supplierId |
+| Squad Products | FK productId nos itens |
+
+---
+
+## Contexto para Agentes
+
+```
+REFERENCIAS:
+- Models: .claude/plan/PLANO.md secao 1.5b (PurchaseQuotation, PurchaseOrder)
+- Endpoints: .claude/plan/PLANO.md secao 2.6c
+- Atividades BPM: .claude/plan/PLANO.md secao 3.3 Atividades 8-9
+- Handoff Compras→Financeiro: .claude/plan/PLANO.md secao 3.3
+- Stories: .claude/plan/PLANO.md Fase 4B story F4B-3
+```

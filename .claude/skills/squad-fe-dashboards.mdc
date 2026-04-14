@@ -1,0 +1,45 @@
+# Squad FE Dashboards + Reports
+
+## Dominio
+
+Dashboards configuraveis com drag-and-drop e relatorios cross-departamento no browser. Features: `src/features/dashboards/`, `src/features/reports/`.
+
+**Fonte de verdade:** PLANO.md Tela Paineis, Rotas /paineis/** e /relatorios/**, Fase 7D stories F7D-1, F7D-2
+**Fase PLANO:** F7D (construcao) + ownership continuo
+
+---
+
+## Composicao do Time
+
+| Membro | Recursos (dono vertical) | Papel extra |
+|---|---|---|
+| **Thales Augusto** (Senior) | Dashboard grid (drag-and-drop layout), card renderer | Tech Lead |
+| **Renata Lima** (Pleno) | Card editor (tipo, data source, filtros, eixos, cores) | Dona do editor |
+| **Iago Ferreira** (Pleno) | Filter bar (filtros globais), auto-refresh | Dono dos filtros |
+| **Sandra Monteiro** (Pleno) | Relatorios: DRE, vendas, fluxo de caixa | Dona dos relatorios |
+| **Hugo Cardoso** (Senior) | Validacao Figma, testes, review de graficos | QA |
+
+---
+
+## Nota tecnica
+
+- 8 tipos de card: KPI_NUMBER, BAR_CHART, LINE_CHART, PIE_CHART, DONUT, AREA_CHART, STACKED_BAR, TABLE
+- Layout grid com posicao (x, y) e dimensoes (w, h)
+- Cards fazem query nos dados existentes (Orders, AR, AP, etc) — nao armazenam dados proprios
+
+---
+
+## Interface com Outros Squads
+
+De quem depende: Squad FE Shell, Squad Dashboards (backend API /dashboards/**), Squad Reports (backend API /reports/**).
+
+---
+
+## Contexto para Agentes
+
+```
+REFERENCIAS:
+- Tela Paineis: .claude/plan/PLANO.md Tela Paineis
+- Rotas: .claude/plan/PLANO.md secao 5 (/paineis/**, /relatorios/**)
+- Stories: .claude/plan/PLANO.md Fase 7D stories F7D-1, F7D-2
+```

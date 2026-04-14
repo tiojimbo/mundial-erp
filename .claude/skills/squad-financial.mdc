@@ -1,0 +1,84 @@
+# Squad Financial
+
+## Dominio
+
+Controle financeiro completo: contas a receber (AR), contas a pagar (AP), notas fiscais (NF-e), caixa, categorias financeiras, resumo/dashboard financeiro. Idempotencia em operacoes criticas.
+
+**Fonte de verdade:** PLANO.md secoes 1.7 (models financeiros), 2.8 (endpoints), Atividades 14-18 (secao 3.3)
+**Fase PLANO:** F4C (construcao) + ownership continuo
+
+---
+
+## Entidades/Recursos sob responsabilidade
+
+| Entidade | Secao PLANO |
+|---|---|
+| AccountReceivable | 1.7 |
+| AccountPayable | 1.7 |
+| Invoice (NF-e) | 1.7 |
+| CashRegister | 1.7 |
+| FinancialCategory | 1.7 |
+| Idempotency-Key guard | 2.8 |
+| Summary/dashboard financeiro | 2.8 |
+
+---
+
+## Composicao do Time
+
+| Membro | Recursos (dono vertical) | Papel extra |
+|---|---|---|
+| **Adriano Leal** (Senior) | AccountReceivable, Idempotency-Key guard | Tech Lead, dono do AR (parcelas 50/50) |
+| **Simone Carvalho** (Pleno) | AccountPayable | Dona do AP (gerado por PurchaseOrder) |
+| **Tiago Rezende** (Pleno) | Invoice (NF-e) — CRUD, XML, PDF, chave acesso 44 dig | Dono da NF-e |
+| **Claudia Ferraz** (Pleno) | CashRegister, FinancialCategory | Dona de caixa e categorias |
+| **Rafael Diniz** (Senior) | Summary, testes, validacao de idempotencia | QA |
+
+---
+
+## Ordem de Execucao
+
+### Etapa 1 — Golden Path (Adriano): AR com Idempotency-Key + logica de 2 parcelas 50/50 (PLANO 3.2)
+### Etapa 2 — Paralelo: Simone (AP), Tiago (NF-e), Claudia (CashRegister + Categories)
+### Etapa 3 — QA (Rafael Diniz): Summary endpoint, testes idempotencia, validacao E2E
+
+---
+
+## Manutencao
+
+| Quando... | Procure... |
+|---|---|
+| Mudanca em AR ou idempotencia | Adriano Leal |
+| Mudanca em AP | Simone Carvalho |
+| Mudanca em NF-e | Tiago Rezende |
+| Mudanca em caixa ou categorias | Claudia Ferraz |
+
+---
+
+## Interface com Outros Squads
+
+### Quem depende de nos
+
+| Squad | O que consome |
+|---|---|
+| Squad FE Financial | Todos os endpoints /financial/** |
+| Squad Clients | GET /clients/:id/financials (dados AR) |
+
+### De quem dependemos
+
+| Squad | O que consome |
+|---|---|
+| Squad Orders | AR criado automaticamente (OrderFaturarListener) |
+| Squad Quotations | AP criado automaticamente (PurchaseOrder) |
+
+---
+
+## Contexto para Agentes
+
+```
+REFERENCIAS:
+- Models: .claude/plan/PLANO.md secao 1.7
+- Endpoints: .claude/plan/PLANO.md secao 2.8
+- Atividades BPM: .claude/plan/PLANO.md secao 3.3 Atividades 14-18
+- Idempotencia: .claude/plan/PLANO.md secao 2.8 (principio CTO)
+- Stories: .claude/plan/PLANO.md Fase 4C story F4C-1
+```

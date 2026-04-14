@@ -1,0 +1,113 @@
+# Mapa Geral de Squads — Mundial ERP
+
+## Principio
+
+Cada squad e um **time de especialistas donos de um dominio**. Nao sao executores descartaveis — sao responsaveis pela feature desde a construcao ate a manutencao.
+
+**Regra de ouro:** O PLANO.md (.claude/plan/PLANO.md) e a UNICA fonte de verdade sobre O QUE construir. Nenhum squad redefine specs, models, endpoints ou estrutura de pastas. O skill file do squad define QUEM faz, COMO se organiza e QUEM e dono de que.
+
+**Standards:** Todos os squads seguem os padroes em .claude/standards/ (nomenclatura, backend, frontend, banco, API, auth, seguranca). Nenhum squad inventa convencoes proprias.
+
+---
+
+## Squads por Fase
+
+### Backend Pipeline (sequencial: F1 → F2 → F3 → F4A → F4B → F4C → F5)
+
+| Squad | Fase | Dominio | Secoes PLANO | Skill File |
+|---|---|---|---|---|
+| **Squad Infra** | F1 | NestJS scaffold, Docker, Prisma schema, Redis, Elasticsearch, guards globais | 1.1-1.10 (schema), 2.1 (infra) | `squad-infra.mdc` |
+| **Squad Auth** | F2 | JWT, guards, RBAC, users CRUD, rate limiting | 1.2, 2.2-2.3 | `squad-auth.mdc` |
+| **Squad BPM** | F3 | Motor BPM, departamentos, processos, atividades, handoffs, seed, runtime | 1.3-1.4, 2.4, 3.1-3.5 | `squad-bpm.mdc` |
+| **Squad Reference Data** | F4A | Company, Carrier, PaymentMethod, Classifications, Routes, OrderType/Flow/Model, ProductType, States/Cities/Neighborhoods | 1.5b, 1.5c, 1.6 (parcial), 2.12 | `squad-reference-data.mdc` |
+| **Squad Clients** | F4A | Clients CRUD, search, classifications, financials do cliente | 1.5, 2.5 | `squad-clients.mdc` |
+| **Squad Suppliers** | F4A | Suppliers CRUD, historico compras | 1.5b (Supplier), 2.6b | `squad-suppliers.mdc` |
+| **Squad Products** | F4B | Products wizard 4 etapas, brands, units, departments, price tables, formulas | 1.5b (Product+), 2.6 | `squad-products.mdc` |
+| **Squad Quotations** | F4B | PurchaseQuotations, PurchaseOrders (gera AP) | 1.5b (Quotation+), 2.6c | `squad-quotations.mdc` |
+| **Squad Orders** | F4B | Pedidos CRUD, status machine, BPM integration, timeline, PDF, supplies | 1.6-1.7, 2.7, 3.2, 4.1-4.3 | `squad-orders.mdc` |
+| **Squad Search** | F4B | Elasticsearch, indexer, reindex, fallback PostgreSQL | 2.13 | `squad-search.mdc` |
+| **Squad Financial** | F4C | AR, AP, Invoices, CashRegister, Summary, Idempotency, Categories | 1.7, 2.8 | `squad-financial.mdc` |
+| **Squad Production** | F4C | Formulas, ProductionOrders, Consumptions, SeparationOrders, estoque | 1.8, 2.9 | `squad-production.mdc` |
+| **Squad Requisitions** | F4C | StockRequisitions, PDF barcode, processamento scanner | 1.8b, 2.8b | `squad-requisitions.mdc` |
+| **Squad Dashboards** | F4C | Dashboards CRUD, Cards, Query Engine, Filtros | 1.5d, 2.6d | `squad-dashboards.mdc` |
+| **Squad Reports** | F4C | DRE, vendas, fluxo de caixa | 2.11 | `squad-reports.mdc` |
+| **Squad Sync PF** | F5 | Integracao Pro Financas, mappers, filas, checksum | 5.1-5.9, 2.10 | `squad-sync.mdc` |
+
+### Frontend Pipeline (sequencial: F6 → F7A → F7B → F7C → F7D)
+
+| Squad | Fase | Dominio | Secoes PLANO | Skill File |
+|---|---|---|---|---|
+| **Squad Frontend Shell** | F6 | Next.js scaffold, Align UI, login, sidebar, header, dark mode, Command Menu | Secao 6 (Frontend base), Design System | `squad-fe-shell.mdc` |
+| **Squad FE Sidebar** | F6 | Sidebar completa: componente, navegacao, estado, responsivo, dark mode, a11y | Fase 6 item 10 (sidebar) | `squad-fe-sidebar.mdc` |
+| **Squad FE Home + Clients** | F7A | Tela inicial, clientes CRUD no browser | Tela Inicio, Tela Clientes | `squad-fe-home-clients.mdc` |
+| **Squad FE Orders** | F7B | Lista pedidos, criacao, dossie completo (stepper, tabs, acoes) — **MVP** | Tela Dossie do Pedido | `squad-fe-orders.mdc` |
+| **Squad FE Products** | F7C | Catalogo, wizard 4 etapas, detalhe com tabs | Rotas /compras/produtos/** | `squad-fe-products.mdc` |
+| **Squad FE Suppliers + Quotations** | F7C | Fornecedores, cotacoes, tabelas de preco | Rotas /compras/fornecedores/**, /compras/cotacoes/** | `squad-fe-suppliers.mdc` |
+| **Squad FE Requisitions** | F7C | Requisicoes estoque, scanner (onScan.js), PDF | Rotas /compras/requisicoes/** | `squad-fe-requisitions.mdc` |
+| **Squad FE Financial** | F7C | AR, AP, NF-e, caixa, analise | Rotas /financeiro/** | `squad-fe-financial.mdc` |
+| **Squad FE Production** | F7C | Kanban producao, dossie OP, consumo | Rotas /producao/** | `squad-fe-production.mdc` |
+| **Squad FE Dashboards + Reports** | F7D | Dashboards drag-and-drop, relatorios | Rotas /paineis/**, /relatorios/** | `squad-fe-dashboards.mdc` |
+| **Squad FE Sync + Settings** | F7D | Monitoramento sync, configuracoes admin | Rotas /integracao/**, /configuracoes/** | `squad-fe-settings.mdc` |
+
+### Finalizacao
+
+| Squad | Fase | Dominio | Secoes PLANO | Skill File |
+|---|---|---|---|---|
+| **Squad Polish & QA** | F8 | Error/loading states, Figma QA, seguranca, performance, Docker prod, CI/CD | Fase 8 completa | `squad-polish.mdc` |
+
+---
+
+## Grafo de Dependencias entre Squads
+
+```
+Squad Infra (F1)
+  └→ Squad Auth (F2)
+       ├→ Squad BPM (F3)
+       │    └→ Squad Reference Data (F4A) ←──┐
+       │    └→ Squad Clients (F4A) ←─────────┤ (usam reference data)
+       │    └→ Squad Suppliers (F4A) ←───────┘
+       │         └→ Squad Products (F4B)
+       │         └→ Squad Quotations (F4B)
+       │         └→ Squad Orders (F4B) ←── modulo central
+       │         └→ Squad Search (F4B)
+       │              └→ Squad Financial (F4C)
+       │              └→ Squad Production (F4C)
+       │              └→ Squad Requisitions (F4C)
+       │              └→ Squad Dashboards (F4C)
+       │              └→ Squad Reports (F4C)
+       │                   └→ Squad Sync PF (F5)
+       │
+       └→ Squad Frontend Shell (F6) ←── pode iniciar apos F2
+            ├→ Squad FE Sidebar (F6) ←── feature squad, dono da sidebar
+            └→ Squad FE Home + Clients (F7A)
+                 └→ Squad FE Orders (F7B) ←── MVP
+                      ├→ Squad FE Products (F7C)
+                      ├→ Squad FE Suppliers + Quotations (F7C)
+                      ├→ Squad FE Requisitions (F7C)
+                      ├→ Squad FE Financial (F7C)
+                      ├→ Squad FE Production (F7C)
+                      │    └→ Squad FE Dashboards + Reports (F7D)
+                      │    └→ Squad FE Sync + Settings (F7D)
+                      │         └→ Squad Polish & QA (F8)
+```
+
+---
+
+## Protocolo de Interacao entre Squads
+
+1. **Preciso de algo que pertence a outro squad:** Consulta o skill file do squad dono → identifica o membro responsavel → solicita via PR ou issue
+2. **Meu trabalho afeta outro squad:** Verifica no mapa de dependencias acima quais squads dependem do meu → comunica a mudanca antes de mergear
+3. **Conflito no schema Prisma:** Squad que adiciona o model e dono. Se dois squads precisam do mesmo model → quem tem mais campos e o dono, outro squad solicita adição
+4. **Duvida sobre spec:** Consulta PLANO.md. Se a resposta nao esta la → escala para o Product Owner
+
+---
+
+## Contagem
+
+| Tipo | Quantidade |
+|---|---|
+| Squads backend | 16 |
+| Squads frontend | 11 |
+| Squad finalizacao | 1 |
+| **Total** | **28 squads** |
+| Skill files a criar | 28 arquivos .mdc |

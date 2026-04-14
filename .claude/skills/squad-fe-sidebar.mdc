@@ -1,0 +1,201 @@
+# Squad Frontend Sidebar
+
+## Dominio
+
+Sidebar completa do ERP: componente principal, navegacao por departamento, estado (expand/collapse), comportamento responsivo (mobile overlay + desktop collapse), dark mode, animacoes, acessibilidade, tooltips e integracao com navigation config.
+
+**Fonte de verdade:** PLANO.md Fase 6 item 10 (layout base), Design System Align UI
+**Design System:** FIGMA.md (.claude/references/FIGMA.md), Figma file key AjvK4iQOOs2wPcp53ZfIVr
+**Template base:** Finance & Banking (node 3911:35677) — sidebar navigation
+**Fase PLANO:** F6 (construcao) + ownership continuo
+
+---
+
+## Recursos sob responsabilidade
+
+| Recurso | Arquivo(s) | Descricao |
+|---|---|---|
+| Sidebar component | `src/components/layout/sidebar.tsx` | Componente principal com desktop/mobile |
+| Sidebar store | `src/stores/sidebar.store.ts` | Zustand: expand/collapse, mobile open/close |
+| Navigation config | `src/config/navigation.ts` | Grupos, itens, icones, rotas, departmentLabels |
+| Hook useMediaQuery | `src/hooks/use-media-query.ts` | Deteccao responsiva desktop/mobile |
+| Sidebar subcomponentes | `src/components/layout/sidebar/` | Logo, NavGroup, NavItem, CollapseToggle, UserMenu |
+| Dark mode sidebar | Tokens + classes | Compatibilidade completa light/dark |
+| Sidebar animations | Transitions CSS | Expand/collapse suave, slide-over mobile |
+| Tooltips collapsed | `src/components/ui/tooltip` | Tooltips nos itens quando sidebar colapsada |
+
+---
+
+## Composicao do Time
+
+| Membro | Recursos (dono vertical) | Papel extra |
+|---|---|---|
+| **Rafael Monteiro** (Senior) | Arquitetura do componente Sidebar, decomposicao em subcomponentes, SidebarContent, layout desktop/mobile | Tech Lead, decisoes de arquitetura |
+| **Juliana Campos** (Pleno) | Navigation config, NavGroup, NavItem, active states, rotas, badges/contadores, submenus expansiveis | Dona da camada de navegacao |
+| **Andre Oliveira** (Pleno) | Sidebar store (Zustand), useMediaQuery, persistencia de estado (localStorage), comportamento responsivo, mobile overlay/backdrop | Dono do state management e responsividade |
+| **Larissa Duarte** (Pleno) | Fidelidade visual com Figma (Align UI), dark mode, tokens de cor, tipografia, sombras, animacoes/transicoes, Logo section, UserMenu | Dona do design system compliance |
+| **Thiago Ramos** (Junior) | Acessibilidade (ARIA labels, roles, keyboard nav), tooltips no modo colapsado, SearchTrigger (Cmd+K), testes de componente | Dono de a11y e QA funcional |
+
+---
+
+## Ordem de Execucao
+
+### Etapa 1 — Arquitetura e decomposicao (Rafael Monteiro, solo)
+
+Analisa o componente monolitico atual (`sidebar.tsx` — 229 linhas) e define a decomposicao em subcomponentes com interfaces tipadas. Define a estrutura de pasta `src/components/layout/sidebar/`.
+
+**Entregaveis:**
+- `sidebar/index.tsx` — Componente raiz (orquestra desktop vs mobile)
+- `sidebar/sidebar-content.tsx` — Container do conteudo
+- `sidebar/sidebar-logo.tsx` — Logo "M" + titulo
+- `sidebar/sidebar-search.tsx` — Trigger de busca Cmd+K
+- `sidebar/sidebar-nav.tsx` — Container de navegacao
+- `sidebar/sidebar-nav-group.tsx` — Grupo com label + itens
+- `sidebar/sidebar-nav-item.tsx` — Item individual com icone + tooltip
+- `sidebar/sidebar-toggle.tsx` — Botao expand/collapse
+- `sidebar/sidebar-user.tsx` — Area do usuario (futuro)
+- `sidebar/types.ts` — Tipos compartilhados
+
+### Etapa 2 — Paralelo (3 tracks simultaneos)
+
+```
+Juliana:  NavGroup + NavItem + active states + badges + submenus expansiveis
+          - Logica de isActive refinada (exact match vs startsWith)
+          - Suporte a subitens (items com children)
+          - Badge de contador (ex: pedidos pendentes)
+          - Animacao de expand/collapse de subgrupos
+
+Andre:    Store + responsividade + persistencia
+          - Refactor sidebar.store.ts com persist middleware (localStorage)
+          - Hook useMediaQuery robusto (SSR-safe)
+          - Auto-close mobile no route change (ja existe, validar)
+          - Keyboard shortcut para toggle sidebar (ex: Ctrl+B)
+          - Resize observer para breakpoints precisos
+
+Larissa:  Visual fidelity + dark mode + animacoes
+          - Consultar Figma Finance & Banking (node 3911:35677)
+          - Tokens: bg, border, text para light e dark
+          - Transicoes: width 200ms ease, opacity para labels
+          - Logo: validar contra Figma
+          - Hover/focus states conforme DS
+          - Scrollbar customizada na nav area
+```
+
+### Etapa 3 — Integracao (Thiago Ramos + review Rafael)
+
+```
+Thiago:   Acessibilidade + tooltips + testes
+          - role="navigation" no <nav>
+          - aria-label="Menu principal"
+          - aria-expanded nos grupos collapsiveis
+          - aria-current="page" no item ativo
+          - Keyboard: Tab/Arrow navigation entre itens
+          - Tooltips no modo colapsado (ja existe, refinar posicao)
+          - Focus trap no mobile overlay
+          - Testes: renderiza expanded/collapsed, active state, mobile toggle
+```
+
+### Etapa 4 — Review cruzado (todo o time)
+
+Rafael revisa arquitetura. Larissa compara pixel-a-pixel com Figma via `get_design_context` e `get_screenshot`. Andre valida performance (re-renders). Thiago roda testes a11y (axe-core).
+
+---
+
+## Padroes Tecnicos do Squad
+
+### Convenções de arquivo
+```
+src/components/layout/sidebar/
+  index.tsx              # Export principal
+  sidebar-content.tsx    # Conteudo compartilhado desktop/mobile
+  sidebar-logo.tsx       # Logo + titulo
+  sidebar-search.tsx     # Search trigger
+  sidebar-nav.tsx        # Container nav
+  sidebar-nav-group.tsx  # Grupo de navegacao
+  sidebar-nav-item.tsx   # Item individual
+  sidebar-toggle.tsx     # Botao collapse
+  sidebar-user.tsx       # Area usuario
+  types.ts               # Tipos compartilhados
+```
+
+### Tokens de cor (sidebar-specific)
+```
+Light: bg-bg-white-0, border-stroke-soft-200, text-text-sub-600, text-text-strong-950
+Dark:  bg-bg-dark-0, border-stroke-dark-200, text-text-dark-sub, text-text-dark-strong
+Active: bg-primary-alpha-10, text-primary-base
+Hover: bg-bg-weak-50
+```
+
+### Dimensoes (do Figma Grid System)
+```
+Sidebar expanded:  272px
+Sidebar collapsed: 68px
+Logo area height:  64px
+Nav item height:   40px (py-2 + content)
+Toggle area:       border-t + p-3
+Mobile breakpoint: < 1024px
+```
+
+---
+
+## Manutencao
+
+| Quando... | Procure... |
+|---|---|
+| Arquitetura de componentes, decomposicao | Rafael Monteiro |
+| Adicionar/remover itens de navegacao, rotas, badges | Juliana Campos |
+| Comportamento responsivo, store, persistencia | Andre Oliveira |
+| Visual, dark mode, animacoes, fidelidade Figma | Larissa Duarte |
+| Acessibilidade, tooltips, testes, keyboard nav | Thiago Ramos |
+
+---
+
+## Interface com Outros Squads
+
+### Quem depende de nos
+
+| Squad | O que consomem |
+|---|---|
+| Todos os squads frontend | Sidebar como parte do layout shell |
+| Squad FE Home + Clients (F7A) | Navegacao para /inicio, /comercial/clientes |
+| Squad FE Orders (F7B) | Navegacao para /comercial/pedidos |
+| Squad FE Products (F7C) | Navegacao para /compras/produtos |
+| Squad FE Financial (F7C) | Navegacao para /financeiro/** |
+| Squad FE Dashboards (F7D) | Navegacao para /paineis |
+
+### De quem dependemos
+
+| Squad | O que consumimos |
+|---|---|
+| Squad Frontend Shell (F6) | Layout base, providers, tokens DS |
+| Squad Auth (F2) | Info do usuario logado (para UserMenu futuro) |
+| Squad BPM (F3) | Departamentos para navegacao dinamica (futuro) |
+
+---
+
+## Regras do Squad
+
+1. **Nenhum componente de sidebar tem mais de 80 linhas.** Se ultrapassar, decomponha.
+2. **Todo item de nav vem do `navigation.ts`.** Nenhum link hardcoded no JSX.
+3. **Dark mode e obrigatorio.** Todo componente deve funcionar em light e dark.
+4. **Mobile-first no teste.** Testar mobile overlay antes de validar desktop.
+5. **Figma e referencia, nao copia.** Adaptar ao stack existente (Tailwind v4, Align UI tokens).
+
+---
+
+## Contexto para Agentes
+
+```
+REFERENCIAS:
+- Componente atual: mundial-erp-web/src/components/layout/sidebar.tsx
+- Store atual: mundial-erp-web/src/stores/sidebar.store.ts
+- Config navegacao: mundial-erp-web/src/config/navigation.ts
+- Hook responsivo: mundial-erp-web/src/hooks/use-media-query.ts
+- Tooltip UI: mundial-erp-web/src/components/ui/tooltip.tsx
+- Design System: .claude/references/FIGMA.md
+- Padrao frontend: .claude/standards/05-frontend.md
+- Nomenclatura: .claude/standards/03-nomenclatura-e-padroes.md
+- Template Figma: Finance & Banking node 3911:35677
+- Sidebar Figma grid: node 553:14958 (expanded/collapsed)
+- Squad pai: squad-fe-shell.mdc (Squad Frontend Shell)
+```

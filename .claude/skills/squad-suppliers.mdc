@@ -1,0 +1,75 @@
+# Squad Suppliers
+
+## Dominio
+
+Gestao de fornecedores: cadastro, busca, historico de compras. Processo BPM: Compras > Gestao de Fornecedores.
+
+**Fonte de verdade:** PLANO.md secoes 1.5b (Supplier model), 2.6b (endpoints)
+**Fase PLANO:** F4A (construcao) + ownership continuo
+
+---
+
+## Entidades/Recursos sob responsabilidade
+
+| Entidade | Secao PLANO | Descricao |
+|---|---|---|
+| Supplier | 1.5b | personType F/J, cpfCnpj, name, tradeName, ie, email, phone, address, city, state, zipCode, isActive, proFinancasId |
+| Suppliers endpoints | 2.6b | CRUD + search + /suppliers/:id/purchase-history |
+
+---
+
+## Composicao do Time
+
+| Membro | Recursos (dono vertical) | Papel extra |
+|---|---|---|
+| **Diego Almeida** (Senior) | Supplier model, validacao, search | Tech Lead |
+| **Natalia Pereira** (Pleno) | Supplier CRUD completo (todas as camadas) | Dona do fluxo de cadastro |
+| **Andre Monteiro** (Pleno) | GET /suppliers/:id/purchase-history | Dono do endpoint de historico |
+| **Bianca Teixeira** (Pleno) | Interface sync (upsertByProFinancasId) | Dona da integracao |
+| **Caio Barbosa** (Senior) | Testes, seed, validacao | QA |
+
+---
+
+## Ordem de Execucao
+
+### Etapa 1 — Golden Path (Diego): Supplier CRUD completo
+### Etapa 2 — Paralelo: Natalia (refina CRUD + DTOs), Andre (purchase-history), Bianca (sync interface)
+### Etapa 3 — QA (Caio): Testes, seed, validacao contra PLANO
+
+---
+
+## Manutencao
+
+| Quando... | Procure... |
+|---|---|
+| Mudanca no model Supplier | Diego Almeida |
+| Mudanca no CRUD/DTOs | Natalia Pereira |
+| Mudanca no historico de compras | Andre Monteiro |
+| Mudanca na interface sync | Bianca Teixeira |
+
+---
+
+## Interface com Outros Squads
+
+### Quem depende de nos
+
+| Squad | O que consome |
+|---|---|
+| Squad Quotations | FK supplierId em PurchaseQuotation/Order |
+| Squad Financial | FK supplierId em AccountPayable |
+| Squad Search | Evento supplier.* para indexacao |
+
+### De quem dependemos
+
+Squad Infra, Squad Auth.
+
+---
+
+## Contexto para Agentes
+
+```
+REFERENCIAS:
+- Model: .claude/plan/PLANO.md secao 1.5b (Supplier)
+- Endpoints: .claude/plan/PLANO.md secao 2.6b
+- Stories: .claude/plan/PLANO.md Fase 4A story F4A-3
+```

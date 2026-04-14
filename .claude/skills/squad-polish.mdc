@@ -1,0 +1,91 @@
+# Squad Polish & QA
+
+## Dominio
+
+Finalizacao para producao: error/loading/empty states, validacao visual contra Figma (36 componentes, light + dark), auditoria, security checklist Bravy, performance, Docker producao, CI/CD.
+
+**Fonte de verdade:** PLANO.md Fase 8 completa (stories F8-1 a F8-5, conteudo tecnico, DoD)
+**Fase PLANO:** F8 (construcao) + ownership continuo
+
+---
+
+## Recursos sob responsabilidade
+
+| Recurso | Story PLANO |
+|---|---|
+| Error/loading/empty states (skeleton loaders) | F8-1 |
+| Validacao visual contra Figma (light + dark) | F8-2 |
+| AuditLog (todas as mutacoes) | F8-3 |
+| Security checklist Bravy (11-seguranca.md) | F8-4 |
+| Docker producao (multi-stage) + Nginx + CI/CD | F8-5 |
+| Responsividade tablet | F8 DoD |
+| Performance (select vs include, N+1, query plans) | F8 DoD |
+| Seed data completo | F8 DoD |
+| Health checks para load balancer | F8 DoD |
+
+---
+
+## Composicao do Time
+
+| Membro | Recursos (dono vertical) | Papel extra |
+|---|---|---|
+| **Paulo Roberto** (Senior) | Security checklist, performance review, Docker producao | Tech Lead |
+| **Tatiana Fonseca** (Pleno) | Error/loading/empty states em todas as telas | Dona dos estados de UI |
+| **Marcelo Nunes** (Pleno) | Validacao visual Figma (36 componentes, get_screenshot) | Dono da fidelidade DS |
+| **Juliana Correia** (Pleno) | AuditLog (interceptor global de mutacoes) | Dona da auditoria |
+| **Andre Lopes** (Senior) | CI/CD (GitHub Actions), Nginx, health checks, teste E2E final | QA final |
+
+---
+
+## Ordem de Execucao
+
+### Etapa 1 — Paralelo (todos)
+
+```
+Tatiana:  Error/loading/empty states tela a tela
+Marcelo:  Figma QA componente a componente (get_design_context + get_screenshot)
+Juliana:  AuditLog interceptor (CREATE, UPDATE, DELETE, STATUS_CHANGE)
+Paulo:    Security review (checklist 11-seguranca.md) + performance (select, N+1, explain)
+```
+
+### Etapa 2 — Deploy (Paulo + Andre)
+
+- Docker multi-stage (NestJS + Next.js standalone)
+- Nginx (SSL, gzip, CORS)
+- GitHub Actions (lint → test → build → deploy)
+- Health checks configurados
+- Seed data completo com empresa demo
+
+### Etapa 3 — Teste E2E final (Andre)
+
+Conforme PLANO secao 8 item 8: pedido EM_ORCAMENTO → ENTREGUE no browser em producao.
+
+---
+
+## Manutencao
+
+| Quando... | Procure... |
+|---|---|
+| Seguranca ou performance | Paulo Roberto |
+| Estados de UI (skeleton, error, empty) | Tatiana Fonseca |
+| Fidelidade com Figma | Marcelo Nunes |
+| Auditoria | Juliana Correia |
+| CI/CD ou deploy | Andre Lopes |
+
+---
+
+## Interface com Outros Squads
+
+Depende de TODOS os squads — este e o ultimo squad, faz review e polish do trabalho de todos.
+
+---
+
+## Contexto para Agentes
+
+```
+REFERENCIAS:
+- Fase 8 completa: .claude/plan/PLANO.md Fase 8 (stories F8-1 a F8-5, conteudo tecnico, DoD)
+- Security: .claude/standards/11-seguranca.md
+- Verificacao: .claude/plan/PLANO.md secao 8 (como testar cada fase)
+- Design System: .claude/references/FIGMA.md
+```

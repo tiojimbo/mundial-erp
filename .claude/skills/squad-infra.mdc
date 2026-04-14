@@ -1,0 +1,104 @@
+# Squad Infra
+
+## Dominio
+
+Alicerce tecnico do backend: scaffold NestJS, Docker, schema Prisma completo, Redis, Elasticsearch, guards globais, interceptors, health checks.
+
+**Fonte de verdade:** PLANO.md secoes 1.1-1.10 (schema completo), 2.1 (infraestrutura), Stack, Portas Locais
+**Fase PLANO:** F1 (construcao) + ownership continuo
+
+---
+
+## Entidades/Recursos sob responsabilidade
+
+| Recurso | Secao PLANO | Descricao |
+|---|---|---|
+| docker-compose.yml | Stack, Portas Locais | PostgreSQL 16 + Redis 7 + Elasticsearch 8 |
+| Schema Prisma completo | 1.1-1.10 | Todos os enums + models + indices + relacoes |
+| DatabaseModule / PrismaService | 2.1 | Soft-delete middleware, @Global |
+| ConfigModule | 2.1 | Validacao de env vars (DATABASE_URL, JWT secrets, REDIS, ES, PF) |
+| CommonModule | 2.1 | Guards, Interceptors, Filters, Pipes, Decorators, PaginationDto |
+| main.ts | 2.1 | Helmet, CORS, ValidationPipe, Swagger, prefixo /api/v1 |
+| BullMQ + Redis | 2.1 | Filas: sync, reports, search-reindex |
+| Elasticsearch setup | 2.1, 2.13 | Container + ElasticsearchModule + health check |
+| Throttler | 2.1 | Rate limiting global |
+| RequestId | 2.1 | UUID por request, header X-Request-Id |
+| Health checks | F1 stories | GET /health, GET /health/ready |
+
+---
+
+## Composicao do Time
+
+| Membro | Recursos (dono vertical) | Papel extra |
+|---|---|---|
+| **Daniel Ribeiro** (Senior) | docker-compose, main.ts, app.module.ts | Tech Lead, define boilerplate |
+| **Fernanda Lima** (Pleno) | Schema Prisma completo (enums + models) | Schema owner inicial — transfere ownership dos models para squads de dominio conforme forem criados |
+| **Pedro Henrique** (Pleno) | CommonModule (guards, interceptors, filters, pipes, decorators) | Dono de toda infraestrutura cross-cutting |
+| **Juliana Alves** (Pleno) | ConfigModule, BullMQ, Elasticsearch setup | Dono de configuracao e servicos externos |
+| **Marcos Vieira** (Senior) | Health checks, Throttler, RequestId, testes | QA & observabilidade |
+
+---
+
+## Ordem de Execucao
+
+### Etapa 1 — Scaffold + Docker (Daniel, solo)
+
+- `nest new mundial-erp-api` (porta 3001)
+- docker-compose.yml com PostgreSQL 16, Redis 7, Elasticsearch 8 (conforme PLANO Stack)
+- .env com todas as variaveis (conforme PLANO 2.1)
+- Validar: `docker-compose up` sobe os 3 servicos
+
+### Etapa 2 — Paralelo (Fernanda + Pedro + Juliana)
+
+```
+Fernanda: Schema Prisma completo (secoes 1.1-1.10 do PLANO) + prisma migrate dev
+Pedro:    CommonModule completo (guards, interceptors, filters, pipes, decorators)
+Juliana:  ConfigModule + BullMQ setup + ElasticsearchModule
+```
+
+### Etapa 3 — Integracao (Daniel + Marcos)
+
+- Daniel: main.ts (Helmet, CORS, ValidationPipe, Swagger, prefixo /api/v1), app.module.ts imports
+- Marcos: Health checks (GET /health, GET /health/ready), Throttler, RequestId interceptor, testes
+
+---
+
+## Manutencao
+
+| Quando... | Procure... |
+|---|---|
+| Docker/infra quebra | Daniel Ribeiro |
+| Precisa de novo enum ou model base no schema | Fernanda Lima (se model pertence a outro squad, ela apenas aprova migration) |
+| Precisa de novo guard, interceptor ou pipe | Pedro Henrique |
+| Config de env, Redis ou Elasticsearch | Juliana Alves |
+| Health check ou observabilidade | Marcos Vieira |
+
+---
+
+## Interface com Outros Squads
+
+### Quem depende de nos
+
+Todos os squads backend dependem de:
+- PrismaService / DatabaseModule
+- CommonModule (guards, pagination, decorators)
+- ConfigModule
+- BullMQ (squads sync, search, reports)
+- Elasticsearch (squad search)
+
+### De quem dependemos
+
+Ninguem — somos o primeiro squad.
+
+---
+
+## Contexto para Agentes
+
+```
+REFERENCIAS:
+- Schema completo: .claude/plan/PLANO.md secoes 1.1-1.10
+- Infra: .claude/plan/PLANO.md secao 2.1
+- Stack e portas: .claude/plan/PLANO.md secao Stack
+- Padrao backend: .claude/standards/04-backend.md secao 4.2 (estrutura de pastas)
+- Banco: .claude/standards/06-banco-de-dados.md
+```

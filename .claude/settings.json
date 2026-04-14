@@ -1,0 +1,33 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(npx ts-node:*)",
+      "Bash(npm ls:*)",
+      "Bash(docker.exe compose:*)",
+      "Bash(\"/mnt/c/Program Files/Docker/Docker/resources/bin/docker.exe\" compose -f \"c:/Users/USER/Documents/vibecoding/mundial-erp/docker-compose.yml\" ps)",
+      "Bash(powershell.exe -Command \"docker compose -f 'c:\\\\Users\\\\USER\\\\Documents\\\\vibecoding\\\\mundial-erp\\\\docker-compose.yml' ps\")",
+      "Bash(powershell.exe -Command \"Get-Process -Name postgres -ErrorAction SilentlyContinue | Select-Object Id,ProcessName\")",
+      "Bash(powershell.exe -Command \"netstat -ano | Select-String ':5432'\")",
+      "Bash(powershell.exe -Command \"& 'C:\\\\Program Files\\\\PostgreSQL\\\\*\\\\bin\\\\psql.exe' -U postgres -c '\\\\l' 2>&1\")",
+      "Bash(psql -U postgres -c \"\\\\l\")",
+      "Bash(powershell.exe -Command \"Get-ChildItem 'C:\\\\Program Files\\\\PostgreSQL' -ErrorAction SilentlyContinue | Select-Object Name\")",
+      "Bash(\"/mnt/c/Program Files/PostgreSQL/16/bin/psql.exe\" -U postgres -h localhost -p 5432 -c \"SELECT 1\")",
+      "Bash(powershell.exe -Command \"& 'C:\\\\Program Files\\\\PostgreSQL\\\\16\\\\bin\\\\psql.exe' -U postgres -h localhost -p 5432 -c 'SELECT 1'\")",
+      "Bash(powershell.exe -NoProfile -Command \"Set-Item Env:PGPASSWORD '123456'; & 'C:\\\\Program Files\\\\PostgreSQL\\\\16\\\\bin\\\\psql.exe' -U postgres -h localhost -p 5432 -c 'SELECT version\\(\\)'\")",
+      "Bash(powershell.exe -NoProfile -Command \"Set-Item Env:PGPASSWORD 'postgres'; & 'C:\\\\Program Files\\\\PostgreSQL\\\\16\\\\bin\\\\psql.exe' -U postgres -h localhost -p 5432 -c 'SELECT version\\(\\)'\")",
+      "Bash(powershell.exe -NoProfile -Command \"Set-Item Env:PGPASSWORD '1234'; & 'C:\\\\Program Files\\\\PostgreSQL\\\\16\\\\bin\\\\psql.exe' -U postgres -h localhost -p 5432 -c 'SELECT version\\(\\)'\")",
+      "Bash(powershell.exe -NoProfile -Command \"Get-Content 'C:\\\\Program Files\\\\PostgreSQL\\\\16\\\\data\\\\pg_hba.conf' | Select-String -NotMatch '^#' | Select-String -NotMatch '^\\\\s*$'\")",
+      "Bash(powershell.exe -NoProfile -Command \"\\(Get-Content 'C:\\\\Program Files\\\\PostgreSQL\\\\16\\\\data\\\\pg_hba.conf'\\) -replace 'scram-sha-256','trust' | Set-Content 'C:\\\\Program Files\\\\PostgreSQL\\\\16\\\\data\\\\pg_hba.conf'\")",
+      "Bash(powershell.exe -NoProfile -Command \"Restart-Service postgresql-x64-16\")",
+      "Bash(powershell.exe -NoProfile -Command \"Start-Process powershell -Verb RunAs -ArgumentList '-NoProfile -Command Restart-Service postgresql-x64-16' -Wait\")",
+      "Bash(powershell.exe -NoProfile -Command \"& 'C:\\\\Program Files\\\\PostgreSQL\\\\16\\\\bin\\\\psql.exe' -U postgres -h localhost -p 5432 -c 'SELECT version\\(\\)'\")",
+      "Bash(powershell.exe -NoProfile -Command \"& 'C:\\\\Program Files\\\\PostgreSQL\\\\16\\\\bin\\\\psql.exe' -U postgres -h localhost -p 5432 -c \\\\\"CREATE ROLE mundial WITH LOGIN PASSWORD 'mundial123' CREATEDB\\\\\"\")",
+      "Bash(powershell.exe -NoProfile -Command \"& 'C:\\\\Program Files\\\\PostgreSQL\\\\16\\\\bin\\\\psql.exe' -U postgres -h localhost -p 5432 -c \\\\\"CREATE DATABASE mundial_erp OWNER mundial\\\\\"\")",
+      "Bash(powershell.exe -NoProfile -Command \"\\(Get-Content 'C:\\\\Program Files\\\\PostgreSQL\\\\16\\\\data\\\\pg_hba.conf'\\) -replace 'trust','scram-sha-256' | Set-Content 'C:\\\\Program Files\\\\PostgreSQL\\\\16\\\\data\\\\pg_hba.conf'\")",
+      "Bash(curl -s -X POST http://localhost:3001/api/v1/auth/login -H \"Content-Type: application/json\" -d '{\"email\":\"isamuelmacedo0@gmail.com\",\"password\":\"123456\"}')"
+    ],
+    "additionalDirectories": [
+      "c:\\Users\\USER\\Documents\\vibecoding\\mundial-erp\\mundial-erp-web\\src\\app\\(dashboard)\\paineis\\[id]"
+    ]
+  }
+}

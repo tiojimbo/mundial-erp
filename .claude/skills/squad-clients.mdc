@@ -1,0 +1,94 @@
+# Squad Clients
+
+## Dominio
+
+Gestao completa de clientes: cadastro (PF/PJ), busca, validacao CPF/CNPJ, pedidos do cliente, resumo financeiro. Processo BPM: Comercial > Cadastro e Manutencao de Clientes.
+
+**Fonte de verdade:** PLANO.md secoes 1.5 (Client model), 2.5 (endpoints), Atividade 5 (secao 3.3)
+**Fase PLANO:** F4A (construcao) + ownership continuo
+
+---
+
+## Entidades/Recursos sob responsabilidade
+
+| Entidade | Secao PLANO | Descricao |
+|---|---|---|
+| Client | 1.5 | personType F/J, cpfCnpj, name, tradeName, ie, rg, email, phone, address completo, classificationId, deliveryRouteId, defaultPriceTableId, defaultPaymentMethodId, proFinancasId |
+| Clients endpoints | 2.5 | CRUD + search + /clients/:id/orders + /clients/:id/financials |
+
+---
+
+## Composicao do Time
+
+| Membro | Recursos (dono vertical) | Papel extra |
+|---|---|---|
+| **Rodrigo Campos** (Senior) | Client model, validacao CPF/CNPJ, search | Tech Lead, dono da logica de validacao |
+| **Leticia Moura** (Pleno) | Client CRUD (repository, service, controller, DTOs) | Dona do fluxo de cadastro |
+| **Henrique Bastos** (Pleno) | GET /clients/:id/orders, GET /clients/:id/financials | Dono dos endpoints de relacionamento |
+| **Amanda Freitas** (Pleno) | Interface sync (upsertByProFinancasId), conversao PF→Mundial | Dona da integracao com dados migrados |
+| **Vinicius Costa** (Senior) | Testes, seed de clientes exemplo, validacao contra PLANO | QA |
+
+---
+
+## Ordem de Execucao
+
+### Etapa 1 — Golden Path (Rodrigo)
+
+Client model + CRUD completo + validacao CPF/CNPJ como referencia.
+
+### Etapa 2 — Paralelo
+
+```
+Leticia:  Refina CRUD, DTOs com todos os campos (PLANO 1.5), search por name/cpfCnpj
+Henrique: Endpoints de relacionamento (/orders, /financials)
+Amanda:   upsertByProFinancasId + regras de conversao (PLANO 5.6)
+```
+
+### Etapa 3 — QA (Vinicius)
+
+Testes unitarios, e2e, seed, validacao contra PLANO secao 2.5.
+
+---
+
+## Manutencao
+
+| Quando... | Procure... |
+|---|---|
+| Mudanca no model Client | Rodrigo Campos |
+| Mudanca no CRUD ou DTOs | Leticia Moura |
+| Mudanca nos endpoints de relacionamento | Henrique Bastos |
+| Mudanca na interface sync | Amanda Freitas |
+
+---
+
+## Interface com Outros Squads
+
+### Quem depende de nos
+
+| Squad | O que consome |
+|---|---|
+| Squad Orders | FK clientId nos pedidos |
+| Squad Financial | FK clientId em AR |
+| Squad Sync PF | upsertByProFinancasId() |
+| Squad Search | Evento client.created/updated para indexacao |
+
+### De quem dependemos
+
+| Squad | O que consumimos |
+|---|---|
+| Squad Reference Data | ClientClassification, DeliveryRoute, PaymentMethod |
+| Squad Infra | PrismaService |
+| Squad Auth | Guards, @Roles |
+
+---
+
+## Contexto para Agentes
+
+```
+REFERENCIAS:
+- Model: .claude/plan/PLANO.md secao 1.5
+- Endpoints: .claude/plan/PLANO.md secao 2.5
+- Atividade BPM: .claude/plan/PLANO.md secao 3.3 Atividade 5
+- Conversao sync: .claude/plan/PLANO.md secao 5.6
+- Stories: .claude/plan/PLANO.md Fase 4A story F4A-2
+```

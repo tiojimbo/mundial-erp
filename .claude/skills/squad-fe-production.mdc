@@ -1,0 +1,42 @@
+# Squad FE Production
+
+## Dominio
+
+Producao no browser: fila kanban por status, dossie da ordem de producao (itens, materia-prima, produto acabado, perdas, custos). Feature: `src/features/production/`.
+
+**Fonte de verdade:** PLANO.md Rotas /producao/**, Fase 7C story F7C-5
+**Fase PLANO:** F7C (construcao) + ownership continuo
+
+---
+
+## Composicao do Time
+
+| Membro | Recursos (dono vertical) | Papel extra |
+|---|---|---|
+| **Rodrigo Farias** (Senior) | Kanban por status (board drag-and-drop) | Tech Lead |
+| **Vanessa Lima** (Pleno) | Dossie OP: itens, formula/ingredientes | Dona do detalhe |
+| **Bruno Tavares** (Pleno) | Consumo, output, perdas, custos | Dono das tabs operacionais |
+| **Julia Monteiro** (Pleno) | Start/complete, acoes contextuais | Dona das transicoes |
+| **Nilton Ferreira** (Senior) | Validacao Figma, testes | QA |
+
+---
+
+## Nota
+
+Formulas NAO tem rota separada — sao aba dentro de /compras/produtos/[id] (pertence ao Squad FE Products).
+
+---
+
+## Interface com Outros Squads
+
+De quem depende: Squad FE Shell, Squad Production (backend API /production-orders/**, /separation-orders/**).
+
+---
+
+## Contexto para Agentes
+
+```
+REFERENCIAS:
+- Rotas: .claude/plan/PLANO.md secao 5 (/producao/**)
+- Stories: .claude/plan/PLANO.md Fase 7C story F7C-5
+```

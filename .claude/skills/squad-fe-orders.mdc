@@ -1,0 +1,99 @@
+# Squad FE Orders
+
+## Dominio
+
+Tela principal do sistema: lista de pedidos, criacao, e o DOSSIE COMPLETO do pedido (stepper, tabs, acoes contextuais, PDFs). Feature: `src/features/orders/`. **Este e o squad MVP — a entrega dele marca o sistema como utilizavel.**
+
+**Fonte de verdade:** PLANO.md Tela Dossie do Pedido (tabela detalhada), Rotas /comercial/pedidos/**, Fase 7B
+**Fase PLANO:** F7B (construcao — **MVP MILESTONE**) + ownership continuo
+
+---
+
+## Recursos sob responsabilidade
+
+| Recurso | Secao PLANO |
+|---|---|
+| /comercial/pedidos (lista com filtro por status) | Rotas Frontend, F7B-1 |
+| /comercial/pedidos/novo (criacao) | Rotas Frontend, F7B-2 |
+| /comercial/pedidos/[id] (DOSSIE — tela principal) | Tela Dossie do Pedido, F7B-3 |
+| Stepper horizontal (EM_ORCAMENTO → ENTREGUE) | Tela Dossie |
+| ProcessContextBar (departamento + atividade + SLA) | Tela Dossie |
+| Badge de pagamento (50% pago / aguardando / 100%) | Tela Dossie |
+| Tab Itens (com checklist supplies toggle) | Tela Dossie |
+| Tab Financeiro (AR parcelas) | Tela Dossie |
+| Tab Producao (PO + SO) | Tela Dossie |
+| Tab NF-e | Tela Dossie |
+| Tab Timeline (Activity Feed) | Tela Dossie |
+| Botoes contextuais (por status + role) | Tela Dossie, secao 3.5 |
+| Dropdown Acoes (PDFs) | Tela Dossie, F7B-4 |
+| src/features/orders/ | Organizacao por Feature |
+
+---
+
+## Composicao do Time
+
+| Membro | Recursos (dono vertical) | Papel extra |
+|---|---|---|
+| **Fernando Augusto** (Senior) | Dossie do pedido (orquestracao geral), stepper, botoes contextuais | Tech Lead, dono da tela mais critica |
+| **Camila Duarte** (Pleno) | Lista de pedidos (Table + Filter + status tabs), criacao | Dona da lista e formulario |
+| **Thiago Monteiro** (Pleno) | Tab Itens (com checklist supplies — optimistic update), Tab Producao | Dono das tabs operacionais |
+| **Isabela Farias** (Pleno) | Tab Financeiro, Tab NF-e, Tab Timeline, badge pagamento | Dona das tabs informacionais |
+| **Ricardo Cardoso** (Senior) | Dropdown Acoes (PDFs), validacao Figma, testes E2E | QA + dono da integracao com PDFs |
+
+---
+
+## Ordem de Execucao
+
+### Etapa 1 — Golden Path (Fernando): Dossie com stepper + 1 tab funcional (Itens)
+### Etapa 2 — Paralelo
+
+```
+Camila:   Lista com filtro + formulario criacao
+Thiago:   Tab Itens (supplies toggle) + Tab Producao
+Isabela:  Tab Financeiro + Tab NF-e + Tab Timeline + badge pagamento
+```
+
+### Etapa 3 — Integracao (Fernando + Ricardo)
+
+Fernando: Botoes contextuais (muda por status+role conforme PLANO 3.5)
+Ricardo: Dropdown Acoes, PDFs, validacao Figma, teste E2E completo
+
+---
+
+## Manutencao
+
+| Quando... | Procure... |
+|---|---|
+| Mudanca no dossie, stepper ou botoes contextuais | Fernando Augusto |
+| Mudanca na lista ou criacao | Camila Duarte |
+| Mudanca no tab Itens/Producao ou supplies | Thiago Monteiro |
+| Mudanca nos tabs Financeiro/NF-e/Timeline | Isabela Farias |
+| Mudanca nos PDFs ou acoes | Ricardo Cardoso |
+
+---
+
+## Interface com Outros Squads
+
+### De quem dependemos
+
+| Squad | O que consumimos |
+|---|---|
+| Squad FE Shell | Layout, sidebar, ProcessContextBar, providers |
+| Squad Orders (backend) | API /orders/** completa |
+| Squad Financial (backend) | API AR para tab Financeiro |
+| Squad Production (backend) | API PO/SO para tab Producao |
+| Squad BPM (backend) | API /process-instances, /activity-instances |
+
+---
+
+## Contexto para Agentes
+
+```
+REFERENCIAS:
+- Tela Dossie: .claude/plan/PLANO.md Tela Dossie do Pedido (tabela completa)
+- Rotas: .claude/plan/PLANO.md secao 5 (/comercial/pedidos/**)
+- UI por etapa: .claude/plan/PLANO.md secao 3.5
+- Stories: .claude/plan/PLANO.md Fase 7B (F7B-1 a F7B-4)
+- MVP: .claude/plan/PLANO.md Definicao de MVP
+- Design System: .claude/references/FIGMA.md
+```

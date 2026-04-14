@@ -1,0 +1,36 @@
+# Squad FE Suppliers + Quotations + Price Tables
+
+## Dominio
+
+Fornecedores, cotacoes e tabelas de preco no browser. Features: `src/features/suppliers/`, `src/features/quotations/`, `src/features/price-tables/` (se separada).
+
+**Fonte de verdade:** PLANO.md Rotas /compras/fornecedores/**, /compras/cotacoes/**, /compras/tabelas-preco/**, Fase 7C stories F7C-2, F7C-3 (parcial)
+**Fase PLANO:** F7C (construcao) + ownership continuo
+
+---
+
+## Composicao do Time
+
+| Membro | Recursos (dono vertical) | Papel extra |
+|---|---|---|
+| **Murilo Santos** (Senior) | Cotacoes (fluxo criar → receber → selecionar → efetivar) | Tech Lead |
+| **Raissa Teixeira** (Pleno) | Fornecedores CRUD + historico de compras | Dona de fornecedores |
+| **Bruno Almeida** (Pleno) | Dossie da cotacao (comparar propostas) | Dono do detalhe |
+| **Aline Vieira** (Pleno) | Tabelas de preco (edicao de precos por produto) | Dona das tabelas |
+| **Marcos Dantas** (Senior) | Validacao Figma, testes | QA |
+
+---
+
+## Interface com Outros Squads
+
+De quem depende: Squad FE Shell, Squad Suppliers (backend), Squad Quotations (backend), Squad Products (backend — tabelas de preco).
+
+---
+
+## Contexto para Agentes
+
+```
+REFERENCIAS:
+- Rotas: .claude/plan/PLANO.md secao 5 (/compras/fornecedores/**, /compras/cotacoes/**, /compras/tabelas-preco/**)
+- Stories: .claude/plan/PLANO.md Fase 7C stories F7C-2, F7C-3 (parcial)
+```

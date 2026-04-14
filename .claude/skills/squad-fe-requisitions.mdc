@@ -1,0 +1,46 @@
+# Squad FE Requisitions
+
+## Dominio
+
+Requisicoes de estoque no browser: criar (VENDA/INTERNO), imprimir PDF com barcode, processar via scanner (onScan.js). Feature: `src/features/requisitions/`.
+
+**Fonte de verdade:** PLANO.md Rotas /compras/requisicoes/**, Fase 7C story F7C-3 (parcial)
+**Fase PLANO:** F7C (construcao) + ownership continuo
+
+---
+
+## Composicao do Time
+
+| Membro | Recursos (dono vertical) | Papel extra |
+|---|---|---|
+| **Henrique Ramos** (Senior) | Tela processamento via scanner (onScan.js, fallback Ctrl+V) | Tech Lead, dono do scan |
+| **Jessica Oliveira** (Pleno) | Lista requisicoes (filtro type/status) + criar | Dona da listagem |
+| **Rafael Moraes** (Pleno) | Detalhe requisicao + imprimir PDF | Dono do detalhe |
+| **Tayane Souza** (Pleno) | Integracao onScan.js (config, scan EAN produto, scan Code-128 requisicao) | Dona da lib de scanner |
+| **Samuel Braga** (Senior) | Testes, validacao fluxo fisico→digital | QA |
+
+---
+
+## Nota tecnica (PLANO secao 1.8b)
+
+- onScan.js: `onScan.attachTo(document, { minLength: 8, suffixKeyCodes: [13], onScan: callback })`
+- Scanner envia chars em < 50ms → onScan detecta como scan
+- Fallback: campo de input aceita Ctrl+V para testes sem scanner fisico
+- Fluxo: scan EAN produto → seleciona UN/CX → quantidade → scan requisicao → finaliza
+
+---
+
+## Interface com Outros Squads
+
+De quem depende: Squad FE Shell, Squad Requisitions (backend).
+
+---
+
+## Contexto para Agentes
+
+```
+REFERENCIAS:
+- Rotas: .claude/plan/PLANO.md secao 5 (/compras/requisicoes/**)
+- Fluxo scanner: .claude/plan/PLANO.md secao 1.8b (implementacao tecnica detalhada)
+- Stories: .claude/plan/PLANO.md Fase 7C story F7C-3
+```

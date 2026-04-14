@@ -1,0 +1,64 @@
+# Squad Dashboards
+
+## Dominio
+
+Paineis configuraveis: dashboards com cards de graficos/KPIs, query engine dinamica por data source, filtros globais, layout grid drag-and-drop.
+
+**Fonte de verdade:** PLANO.md secoes 1.5d (models Dashboard, DashboardCard, DashboardFilter), 2.6d (endpoints), Tela Paineis
+**Fase PLANO:** F4C (construcao) + ownership continuo
+
+---
+
+## Entidades/Recursos sob responsabilidade
+
+| Entidade | Secao PLANO |
+|---|---|
+| Dashboard | 1.5d |
+| DashboardCard | 1.5d |
+| DashboardFilter | 1.5d |
+| CardType enum | 1.5d |
+| DashboardCardQueryService (query engine) | 2.6d (endpoint /cards/:cardId/data) |
+
+---
+
+## Composicao do Time
+
+| Membro | Recursos (dono vertical) | Papel extra |
+|---|---|---|
+| **Thales Rocha** (Senior) | DashboardCardQueryService (query engine — coracao dos paineis) | Tech Lead, dono da query engine |
+| **Debora Lima** (Pleno) | Dashboard CRUD, visibilidade (publico/privado) | Dona do dashboard |
+| **Iago Silveira** (Pleno) | DashboardCard CRUD, 8 tipos de grafico, layout grid | Dono dos cards |
+| **Renata Pires** (Pleno) | DashboardFilter, filtros globais batch | Dona dos filtros |
+| **Hugo Monteiro** (Senior) | Testes, seed de dashboard exemplo, validacao | QA |
+
+---
+
+## Ordem de Execucao
+
+### Etapa 1 — Golden Path (Thales): Query engine com 1 data source (Orders) + 1 tipo (KPI_NUMBER)
+### Etapa 2 — Paralelo: Debora (Dashboard CRUD), Iago (Cards + layout), Renata (Filters)
+### Etapa 3 — QA (Hugo): Testes, seed, todos os 8 tipos de card funcionando
+
+---
+
+## Interface com Outros Squads
+
+### Quem depende de nos
+
+Squad FE Dashboards (frontend).
+
+### De quem dependemos
+
+Todos os squads de entidades — a query engine faz queries nos dados de Orders, AR, AP, Products, etc.
+
+---
+
+## Contexto para Agentes
+
+```
+REFERENCIAS:
+- Models: .claude/plan/PLANO.md secao 1.5d
+- Endpoints: .claude/plan/PLANO.md secao 2.6d
+- Arquitetura query engine: .claude/plan/PLANO.md secao 2.6d (endpoint /cards/:cardId/data)
+- Stories: .claude/plan/PLANO.md Fase 4C story F4C-4
+```

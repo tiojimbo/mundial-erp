@@ -1,0 +1,1848 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+// ============================================================================
+// 1.1 — Enums
+// ============================================================================
+
+enum Role {
+  ADMIN
+  MANAGER
+  OPERATOR
+  VIEWER
+}
+
+enum ProcessStatus {
+  DRAFT
+  ACTIVE
+  SUSPENDED
+  COMPLETED
+  CANCELLED
+}
+
+enum ActivityStatus {
+  PENDING
+  IN_PROGRESS
+  BLOCKED
+  COMPLETED
+  SKIPPED
+}
+
+enum TaskStatus {
+  PENDING
+  DONE
+}
+
+enum HandoffStatus {
+  PENDING
+  ACCEPTED
+  REJECTED
+  TIMED_OUT
+}
+
+enum OrderStatus {
+  EM_ORCAMENTO
+  FATURAR
+  FATURADO
+  PRODUZIR
+  EM_PRODUCAO
+  PRODUZIDO
+  ENTREGUE
+  CANCELADO
+}
+
+enum PaymentStatus {
+  PENDING
+  PARTIAL
+  PAID
+  OVERDUE
+  CANCELLED
+}
+
+enum InvoiceDirection {
+  INBOUND
+  OUTBOUND
+}
+
+enum ProductionOrderStatus {
+  PENDING
+  IN_PROGRESS
+  COMPLETED
+  CANCELLED
+}
+
+enum OrderItemSupplyStatus {
+  PENDING
+  READY
+}
+
+enum SyncStatus {
+  PENDING
+  IN_PROGRESS
+  SUCCESS
+  FAILED
+}
+
+enum SyncEntity {
+  CLIENT
+  ORDER
+  COMPANY
+  CARRIER
+  PAYMENT_METHOD
+  CLIENT_CLASSIFICATION
+  DELIVERY_ROUTE
+  ORDER_TYPE
+  ORDER_FLOW
+  ORDER_MODEL
+}
+
+enum PersonType {
+  F
+  J
+}
+
+enum AuditAction {
+  CREATE
+  UPDATE
+  DELETE
+  STATUS_CHANGE
+  LOGIN
+  LOGOUT
+  SYNC
+}
+
+enum ProductClassification {
+  FABRICACAO_PROPRIA
+  REVENDA
+  MATERIA_PRIMA
+  INSUMO
+}
+
+enum ProductStatus {
+  DRAFT
+  ACTIVE
+  INACTIVE
+}
+
+enum SeparationOrderStatus {
+  PENDING
+  IN_PROGRESS
+  SEPARATED
+  CHECKED
+}
+
+enum StockRequisitionType {
+  VENDA
+  INTERNO
+}
+
+enum StockRequisitionStatus {
+  PENDING
+  APPROVED
+  PROCESSED
+  CANCELLED
+}
+
+// --- Reestruturação: Departamentos/Áreas/Processos dinâmicos ---
+
+enum ProcessType {
+  BPM
+  LIST
+}
+
+enum StatusCategory {
+  NOT_STARTED
+  ACTIVE
+  DONE
+  CLOSED
+}
+
+enum TaskPriority {
+  URGENT
+  HIGH
+  NORMAL
+  LOW
+  NONE
+}
+
+enum ViewType {
+  LIST
+  BOARD
+  CALENDAR
+  GANTT
+}
+
+enum WorkItemType {
+  TASK
+  MILESTONE
+}
+
+enum CardType {
+  BAR_CHART
+  LINE_CHART
+  PIE_CHART
+  KPI_NUMBER
+  TABLE
+  DONUT
+  AREA_CHART
+  STACKED_BAR
+}
+
+// --- Chat ---
+
+enum ChannelVisibility {
+  PUBLIC
+  PRIVATE
+}
+
+enum ChannelType {
+  CHANNEL
+  DIRECT_MESSAGE
+}
+
+enum ChatMessageType {
+  MESSAGE
+  POST
+}
+
+enum ContentFormat {
+  TEXT_MD
+  TEXT_PLAIN
+}
+
+enum ChannelMemberRole {
+  OWNER
+  ADMIN
+  MEMBER
+}
+
+// ============================================================================
+// 1.2 — Auth & Organization
+// ============================================================================
+
+model User {
+  id           String    @id @default(cuid())
+  email        String    @unique
+  name         String
+  passwordHash String    @map("password_hash")
+  refreshToken String?   @map("refresh_token")
+  role         Role      @default(OPERATOR)
+  isActive     Boolean   @default(true) @map("is_active")
+  departmentId String?   @map("department_id")
+  createdAt    DateTime  @default(now()) @map("created_at")
+  updatedAt    DateTime  @updatedAt @map("updated_at")
+  deletedAt    DateTime? @map("deleted_at")
+
+  department          Department?          @relation(fields: [departmentId], references: [id])
+  activityInstances   ActivityInstance[]
+  taskInstances       TaskInstance[]
+  createdOrders       Order[]              @relation("OrderCreatedBy")
+  assignedOrders      Order[]              @relation("OrderAssignedTo")
+  dashboards          Dashboard[]
+  cashRegistersOpened CashRegister[]       @relation("CashOpenedBy")
+  cashRegistersClosed CashRegister[]       @relation("CashClosedBy")
+  auditLogs           AuditLog[]
+  stockRequisitionsRequested StockRequisition[] @relation("RequisitionRequestedBy")
+  stockRequisitionsApproved  StockRequisition[] @relation("RequisitionApprovedBy")
+  orderItemSuppliesChecked   OrderItemSupply[]
+  productionOrdersAssigned   ProductionOrder[]
+
+  // --- WorkItems ---
+  workItemsAssigned WorkItem[] @relation("WorkItemAssignee")
+  workItemsCreated  WorkItem[] @relation("WorkItemCreator")
+
+  // --- Chat ---
+  chatChannelsCreated      ChatChannel[]         @relation("ChatChannelCreatedBy")
+  chatChannelMemberships   ChatChannelMember[]
+  chatMessages             ChatMessage[]         @relation("ChatMessageAuthor")
+  chatMessagesAssigned     ChatMessage[]         @relation("ChatMessageAssignee")
+  chatReactions            ChatReaction[]
+  chatMentions             ChatMention[]
+  chatMessageFollowerships ChatMessageFollower[]
+
+  @@map("users")
+}
+
+model Permission {
+  id          String @id @default(cuid())
+  action      String // e.g. "order:create"
+  resource    String
+  description String?
+
+  rolePermissions RolePermission[]
+
+  @@map("permissions")
+}
+
+model RolePermission {
+  role         Role
+  permissionId String @map("permission_id")
+
+  permission Permission @relation(fields: [permissionId], references: [id])
+
+  @@id([role, permissionId])
+  @@map("role_permissions")
+}
+
+// ============================================================================
+// 1.3 — BPM Definition Layer
+// ============================================================================
+
+model Department {
+  id          String    @id @default(cuid())
+  name        String
+  slug        String    @unique
+  description String?
+  icon        String?
+  color       String?
+  isPrivate   Boolean   @default(false) @map("is_private")
+  isDefault   Boolean   @default(false) @map("is_default")
+  isProtected Boolean   @default(false) @map("is_protected")
+  sortOrder   Int       @default(0) @map("sort_order")
+  createdAt   DateTime  @default(now()) @map("created_at")
+  updatedAt   DateTime  @updatedAt @map("updated_at")
+  deletedAt   DateTime? @map("deleted_at")
+
+  sectors  Sector[]
+  areas    Area[]
+  users    User[]
+  statuses WorkflowStatus[]
+  processes Process[] @relation("ProcessDepartment")
+
+  @@map("departments")
+}
+
+model Sector {
+  id           String    @id @default(cuid())
+  name         String
+  slug         String    @unique
+  departmentId String    @map("department_id")
+  createdAt    DateTime  @default(now()) @map("created_at")
+  updatedAt    DateTime  @updatedAt @map("updated_at")
+  deletedAt    DateTime? @map("deleted_at")
+
+  department Department @relation(fields: [departmentId], references: [id])
+  processes  Process[]  @relation("ProcessSector")
+
+  @@map("sectors")
+}
+
+model Area {
+  id           String    @id @default(cuid())
+  name         String
+  slug         String    @unique
+  departmentId String    @map("department_id")
+  sortOrder    Int       @default(0) @map("sort_order")
+  isDefault    Boolean   @default(false) @map("is_default")
+  createdAt    DateTime  @default(now()) @map("created_at")
+  updatedAt    DateTime  @updatedAt @map("updated_at")
+  deletedAt    DateTime? @map("deleted_at")
+
+  department Department @relation(fields: [departmentId], references: [id])
+  processes  Process[]  @relation("ProcessArea")
+
+  @@index([departmentId], name: "idx_areas_department")
+  @@map("areas")
+}
+
+model Process {
+  id           String        @id @default(cuid())
+  name         String
+  slug         String        @unique
+  sectorId     String?       @map("sector_id")
+  departmentId String?       @map("department_id")
+  areaId       String?       @map("area_id")
+  processType  ProcessType   @default(LIST) @map("process_type")
+  featureRoute String?       @map("feature_route")
+  isProtected  Boolean       @default(false) @map("is_protected")
+  status       ProcessStatus @default(DRAFT)
+  sortOrder    Int           @default(0) @map("sort_order")
+  createdAt    DateTime      @default(now()) @map("created_at")
+  updatedAt    DateTime      @updatedAt @map("updated_at")
+  deletedAt    DateTime?     @map("deleted_at")
+
+  sector            Sector?            @relation("ProcessSector", fields: [sectorId], references: [id])
+  department        Department?        @relation("ProcessDepartment", fields: [departmentId], references: [id])
+  area              Area?              @relation("ProcessArea", fields: [areaId], references: [id])
+  activities        Activity[]
+  handoffsFrom      Handoff[]          @relation("HandoffFrom")
+  handoffsTo        Handoff[]          @relation("HandoffTo")
+  processInstances  ProcessInstance[]
+  workItems         WorkItem[]
+  views             ProcessView[]
+
+  @@index([departmentId], name: "idx_processes_department")
+  @@index([areaId], name: "idx_processes_area")
+  @@map("processes")
+}
+
+model Activity {
+  id               String       @id @default(cuid())
+  name             String // verbo infinitivo + objeto
+  slug             String       @unique
+  processId        String       @map("process_id")
+  ownerRole        Role         @map("owner_role")
+  inputDescription String?      @map("input_description")
+  outputDescription String?     @map("output_description")
+  slaMinutes       Int?         @map("sla_minutes")
+  exceptions       String?
+  sortOrder        Int          @default(0) @map("sort_order")
+  isAutomatic      Boolean      @default(false) @map("is_automatic")
+  triggerOnStatus  OrderStatus? @map("trigger_on_status")
+  createdAt        DateTime     @default(now()) @map("created_at")
+  updatedAt        DateTime     @updatedAt @map("updated_at")
+  deletedAt        DateTime?    @map("deleted_at")
+
+  process           Process            @relation(fields: [processId], references: [id])
+  tasks             Task[]
+  activityInstances ActivityInstance[]
+
+  @@map("activities")
+}
+
+model Task {
+  id          String    @id @default(cuid())
+  activityId  String    @map("activity_id")
+  description String
+  sortOrder   Int       @default(0) @map("sort_order")
+  isMandatory Boolean   @default(true) @map("is_mandatory")
+  createdAt   DateTime  @default(now()) @map("created_at")
+  updatedAt   DateTime  @updatedAt @map("updated_at")
+  deletedAt   DateTime? @map("deleted_at")
+
+  activity      Activity       @relation(fields: [activityId], references: [id])
+  taskInstances TaskInstance[]
+
+  @@map("tasks")
+}
+
+model Handoff {
+  id              String       @id @default(cuid())
+  fromProcessId   String       @map("from_process_id")
+  toProcessId     String       @map("to_process_id")
+  triggerOnStatus OrderStatus? @map("trigger_on_status")
+  validationRules Json?        @map("validation_rules")
+  autoAdvance     Boolean      @default(false) @map("auto_advance")
+  createdAt       DateTime     @default(now()) @map("created_at")
+  updatedAt       DateTime     @updatedAt @map("updated_at")
+  deletedAt       DateTime?    @map("deleted_at")
+
+  fromProcess      Process           @relation("HandoffFrom", fields: [fromProcessId], references: [id])
+  toProcess        Process           @relation("HandoffTo", fields: [toProcessId], references: [id])
+  handoffInstances HandoffInstance[]
+
+  @@map("handoffs")
+}
+
+// ============================================================================
+// 1.4 — BPM Runtime Layer (per order)
+// ============================================================================
+
+model ProcessInstance {
+  id          String        @id @default(cuid())
+  processId   String        @map("process_id")
+  orderId     String        @map("order_id")
+  status      ProcessStatus @default(DRAFT)
+  startedAt   DateTime?     @map("started_at")
+  completedAt DateTime?     @map("completed_at")
+  createdAt   DateTime      @default(now()) @map("created_at")
+  updatedAt   DateTime      @updatedAt @map("updated_at")
+  deletedAt   DateTime?     @map("deleted_at")
+
+  process            Process              @relation(fields: [processId], references: [id])
+  order              Order                @relation(fields: [orderId], references: [id])
+  activityInstances  ActivityInstance[]
+  handoffInstancesFrom HandoffInstance[]  @relation("HandoffInstanceFrom")
+  handoffInstancesTo   HandoffInstance[]  @relation("HandoffInstanceTo")
+
+  @@map("process_instances")
+}
+
+model ActivityInstance {
+  id                String         @id @default(cuid())
+  activityId        String         @map("activity_id")
+  processInstanceId String         @map("process_instance_id")
+  assignedUserId    String?        @map("assigned_user_id")
+  status            ActivityStatus @default(PENDING)
+  startedAt         DateTime?      @map("started_at")
+  completedAt       DateTime?      @map("completed_at")
+  dueAt             DateTime?      @map("due_at")
+  notes             String?
+  createdAt         DateTime       @default(now()) @map("created_at")
+  updatedAt         DateTime       @updatedAt @map("updated_at")
+  deletedAt         DateTime?      @map("deleted_at")
+
+  activity        Activity        @relation(fields: [activityId], references: [id])
+  processInstance ProcessInstance @relation(fields: [processInstanceId], references: [id])
+  assignedUser    User?           @relation(fields: [assignedUserId], references: [id])
+  taskInstances   TaskInstance[]
+
+  @@index([assignedUserId, status], name: "idx_ai_user_status")
+  @@index([processInstanceId], name: "idx_ai_process_instance")
+  @@map("activity_instances")
+}
+
+model TaskInstance {
+  id                 String     @id @default(cuid())
+  taskId             String     @map("task_id")
+  activityInstanceId String     @map("activity_instance_id")
+  status             TaskStatus @default(PENDING)
+  completedByUserId  String?    @map("completed_by_user_id")
+  createdAt          DateTime   @default(now()) @map("created_at")
+  updatedAt          DateTime   @updatedAt @map("updated_at")
+  deletedAt          DateTime?  @map("deleted_at")
+
+  task             Task             @relation(fields: [taskId], references: [id])
+  activityInstance ActivityInstance @relation(fields: [activityInstanceId], references: [id])
+  completedBy      User?            @relation(fields: [completedByUserId], references: [id])
+
+  @@map("task_instances")
+}
+
+model HandoffInstance {
+  id                    String        @id @default(cuid())
+  handoffId             String        @map("handoff_id")
+  orderId               String        @map("order_id")
+  fromProcessInstanceId String        @map("from_process_instance_id")
+  toProcessInstanceId   String?       @map("to_process_instance_id")
+  status                HandoffStatus @default(PENDING)
+  rejectionReason       String?       @map("rejection_reason")
+  createdAt             DateTime      @default(now()) @map("created_at")
+  updatedAt             DateTime      @updatedAt @map("updated_at")
+  deletedAt             DateTime?     @map("deleted_at")
+
+  handoff             Handoff          @relation(fields: [handoffId], references: [id])
+  order               Order            @relation(fields: [orderId], references: [id])
+  fromProcessInstance ProcessInstance  @relation("HandoffInstanceFrom", fields: [fromProcessInstanceId], references: [id])
+  toProcessInstance   ProcessInstance? @relation("HandoffInstanceTo", fields: [toProcessInstanceId], references: [id])
+
+  @@map("handoff_instances")
+}
+
+// ============================================================================
+// 1.4b — Workflow Status System (per Department)
+// ============================================================================
+
+model WorkflowStatus {
+  id           String         @id @default(cuid())
+  name         String
+  category     StatusCategory
+  color        String
+  icon         String?
+  sortOrder    Int            @default(0) @map("sort_order")
+  departmentId String         @map("department_id")
+  isDefault    Boolean        @default(false) @map("is_default")
+  createdAt    DateTime       @default(now()) @map("created_at")
+  updatedAt    DateTime       @updatedAt @map("updated_at")
+  deletedAt    DateTime?      @map("deleted_at")
+
+  department Department @relation(fields: [departmentId], references: [id])
+  workItems  WorkItem[]
+
+  @@index([departmentId, sortOrder], name: "idx_wf_statuses_dept_sort")
+  @@map("workflow_statuses")
+}
+
+model StatusTemplate {
+  id        String               @id @default(cuid())
+  name      String
+  createdAt DateTime             @default(now()) @map("created_at")
+  updatedAt DateTime             @updatedAt @map("updated_at")
+
+  items StatusTemplateItem[]
+
+  @@map("status_templates")
+}
+
+model StatusTemplateItem {
+  id         String         @id @default(cuid())
+  templateId String         @map("template_id")
+  name       String
+  category   StatusCategory
+  color      String
+  icon       String?
+  sortOrder  Int            @default(0) @map("sort_order")
+
+  template StatusTemplate @relation(fields: [templateId], references: [id], onDelete: Cascade)
+
+  @@map("status_template_items")
+}
+
+// ============================================================================
+// 1.4c — WorkItems (generic items for LIST processes)
+// ============================================================================
+
+model WorkItem {
+  id               String        @id @default(cuid())
+  processId        String        @map("process_id")
+  title            String
+  description      String?       @db.Text
+  statusId         String        @map("status_id")
+  itemType         WorkItemType  @default(TASK) @map("item_type")
+  priority         TaskPriority  @default(NONE)
+  assigneeId       String?       @map("assignee_id")
+  creatorId        String        @map("creator_id")
+  parentId         String?       @map("parent_id")
+  startDate        DateTime?     @map("start_date")
+  dueDate          DateTime?     @map("due_date")
+  completedAt      DateTime?     @map("completed_at")
+  closedAt         DateTime?     @map("closed_at")
+  estimatedMinutes Int?          @map("estimated_minutes")
+  trackedMinutes   Int           @default(0) @map("tracked_minutes")
+  sortOrder        Int           @default(0) @map("sort_order")
+  createdAt        DateTime      @default(now()) @map("created_at")
+  updatedAt        DateTime      @updatedAt @map("updated_at")
+  deletedAt        DateTime?     @map("deleted_at")
+
+  process  Process         @relation(fields: [processId], references: [id])
+  status   WorkflowStatus  @relation(fields: [statusId], references: [id])
+  assignee User?           @relation("WorkItemAssignee", fields: [assigneeId], references: [id])
+  creator  User            @relation("WorkItemCreator", fields: [creatorId], references: [id])
+  parent   WorkItem?       @relation("Subtasks", fields: [parentId], references: [id])
+  children WorkItem[]      @relation("Subtasks")
+
+  @@index([processId, statusId], name: "idx_work_items_process_status")
+  @@index([assigneeId, statusId], name: "idx_work_items_assignee_status")
+  @@index([dueDate], name: "idx_work_items_due_date")
+  @@index([parentId], name: "idx_work_items_parent")
+  @@map("work_items")
+}
+
+// ============================================================================
+// 1.4d — Process Views (per Process)
+// ============================================================================
+
+model ProcessView {
+  id        String    @id @default(cuid())
+  processId String    @map("process_id")
+  name      String
+  viewType  ViewType  @map("view_type")
+  isPinned  Boolean   @default(false) @map("is_pinned")
+  config    Json      @default("{}")
+  sortOrder Int       @default(0) @map("sort_order")
+  createdAt DateTime  @default(now()) @map("created_at")
+  updatedAt DateTime  @updatedAt @map("updated_at")
+  deletedAt DateTime? @map("deleted_at")
+
+  process Process @relation(fields: [processId], references: [id])
+
+  @@index([processId], name: "idx_process_views_process")
+  @@map("process_views")
+}
+
+// ============================================================================
+// 1.5 — Business: Clients
+// ============================================================================
+
+model Client {
+  id                     String     @id @default(cuid())
+  personType             PersonType @map("person_type")
+  cpfCnpj                String     @unique @map("cpf_cnpj")
+  name                   String
+  tradeName              String?    @map("trade_name")
+  ie                     String?
+  rg                     String?
+  email                  String?
+  phone                  String?
+  address                String?
+  addressNumber          String?    @map("address_number")
+  neighborhood           String?
+  complement             String?
+  city                   String?
+  state                  String?
+  zipCode                String?    @map("zip_code")
+  classificationId       String?    @map("classification_id")
+  deliveryRouteId        String?    @map("delivery_route_id")
+  defaultPriceTableId    String?    @map("default_price_table_id")
+  defaultPaymentMethodId String?    @map("default_payment_method_id")
+  proFinancasId          Int?       @map("pro_financas_id")
+  createdAt              DateTime   @default(now()) @map("created_at")
+  updatedAt              DateTime   @updatedAt @map("updated_at")
+  deletedAt              DateTime?  @map("deleted_at")
+
+  classification       ClientClassification? @relation(fields: [classificationId], references: [id])
+  deliveryRoute        DeliveryRoute?        @relation(fields: [deliveryRouteId], references: [id])
+  defaultPriceTable    PriceTable?           @relation(fields: [defaultPriceTableId], references: [id])
+  defaultPaymentMethod PaymentMethod?        @relation(fields: [defaultPaymentMethodId], references: [id])
+  orders               Order[]
+  accountsReceivable   AccountReceivable[]
+  invoices             Invoice[]
+
+  @@index([name], name: "idx_clients_name")
+  @@index([cpfCnpj], name: "idx_clients_cpf_cnpj")
+  @@index([proFinancasId], name: "idx_clients_pf_id")
+  @@map("clients")
+}
+
+model ClientClassification {
+  id            String    @id @default(cuid())
+  name          String
+  proFinancasId Int?      @map("pro_financas_id")
+  createdAt     DateTime  @default(now()) @map("created_at")
+  updatedAt     DateTime  @updatedAt @map("updated_at")
+  deletedAt     DateTime? @map("deleted_at")
+
+  clients Client[]
+
+  @@map("client_classifications")
+}
+
+model DeliveryRoute {
+  id            String    @id @default(cuid())
+  name          String
+  proFinancasId Int?      @map("pro_financas_id")
+  createdAt     DateTime  @default(now()) @map("created_at")
+  updatedAt     DateTime  @updatedAt @map("updated_at")
+  deletedAt     DateTime? @map("deleted_at")
+
+  clients Client[]
+
+  @@map("delivery_routes")
+}
+
+// ============================================================================
+// 1.5b — Business: Products, Suppliers, Quotations
+// ============================================================================
+
+model Supplier {
+  id            String     @id @default(cuid())
+  personType    PersonType @map("person_type")
+  cpfCnpj       String     @unique @map("cpf_cnpj")
+  name          String
+  tradeName     String?    @map("trade_name")
+  ie            String?
+  email         String?
+  phone         String?
+  address       String?
+  city          String?
+  state         String?
+  zipCode       String?    @map("zip_code")
+  isActive      Boolean    @default(true) @map("is_active")
+  proFinancasId Int?       @map("pro_financas_id")
+  createdAt     DateTime   @default(now()) @map("created_at")
+  updatedAt     DateTime   @updatedAt @map("updated_at")
+  deletedAt     DateTime?  @map("deleted_at")
+
+  purchaseQuotations PurchaseQuotation[]
+  purchaseOrders     PurchaseOrder[]
+  accountsPayable    AccountPayable[]
+
+  @@map("suppliers")
+}
+
+model ProductType {
+  id             String    @id @default(cuid())
+  prefix         String    @unique // 2 chars, e.g. "TT"
+  name           String
+  eanDeptCode    String    @map("ean_dept_code") // 4 digits
+  lastSequential Int       @default(0) @map("last_sequential")
+  createdAt      DateTime  @default(now()) @map("created_at")
+  updatedAt      DateTime  @updatedAt @map("updated_at")
+  deletedAt      DateTime? @map("deleted_at")
+
+  products Product[]
+
+  @@map("product_types")
+}
+
+model Product {
+  id                   String                @id @default(cuid())
+  // Step 1 — Identification
+  productTypeId        String                @map("product_type_id")
+  code                 String                @unique
+  barcode              String?               @unique
+  name                 String
+  departmentCategoryId String?               @map("department_category_id")
+  brandId              String?               @map("brand_id")
+  unitMeasureId        String?               @map("unit_measure_id")
+  boxUnitMeasureId     String?               @map("box_unit_measure_id")
+  unitsPerBox          Int?                  @map("units_per_box")
+  step1Complete        Boolean               @default(false) @map("step1_complete")
+  // Step 2 — Technical Specification
+  weight               Float?
+  width                Float?
+  height               Float?
+  length               Float?
+  weightM3             Float?                @map("weight_m3")
+  productionCapacity   Float?                @map("production_capacity")
+  stockLocation        String?               @map("stock_location")
+  minStock             Float                 @default(0) @map("min_stock")
+  currentStock         Float                 @default(0) @map("current_stock")
+  piecesPerUnit        Float?                @map("pieces_per_unit")
+  size                 Float?
+  classification       ProductClassification?
+  loadCapacity         Float?                @map("load_capacity")
+  beta                 Float?
+  fckMpa               Float?                @map("fck_mpa")
+  step2Complete        Boolean               @default(false) @map("step2_complete")
+  // Step 3 — Fiscal & Tax
+  ncmCode              String?               @map("ncm_code")
+  nfeOriginId          String?               @map("nfe_origin_id")
+  cfopDefault          String?               @map("cfop_default")
+  ipiRate              Float?                @map("ipi_rate")
+  taxBasketId          String?               @map("tax_basket_id")
+  step3Complete        Boolean               @default(false) @map("step3_complete")
+  // Step 4 — Pricing & Formula
+  costPrice            Int                   @default(0) @map("cost_price")
+  salePrice            Int                   @default(0) @map("sale_price")
+  minSalePrice         Int                   @default(0) @map("min_sale_price")
+  defaultPriceTableId  String?               @map("default_price_table_id")
+  formulaId            String?               @unique @map("formula_id")
+  step4Complete        Boolean               @default(false) @map("step4_complete")
+  // Status
+  status               ProductStatus         @default(DRAFT)
+  proFinancasId        Int?                  @map("pro_financas_id")
+  createdAt            DateTime              @default(now()) @map("created_at")
+  updatedAt            DateTime              @updatedAt @map("updated_at")
+  deletedAt            DateTime?             @map("deleted_at")
+
+  productType         ProductType           @relation(fields: [productTypeId], references: [id])
+  departmentCategory  ProductDepartment?    @relation(fields: [departmentCategoryId], references: [id])
+  brand               Brand?                @relation(fields: [brandId], references: [id])
+  unitMeasure         UnitMeasure?          @relation("ProductUnit", fields: [unitMeasureId], references: [id])
+  boxUnitMeasure      UnitMeasure?          @relation("ProductBoxUnit", fields: [boxUnitMeasureId], references: [id])
+  defaultPriceTable   PriceTable?           @relation(fields: [defaultPriceTableId], references: [id])
+  formula             ProductionFormula?    @relation(fields: [formulaId], references: [id])
+  images              ProductImage[]
+  priceTableItems     PriceTableItem[]
+  orderItems          OrderItem[]
+  orderItemSupplies   OrderItemSupply[]
+  purchaseQuotationItems PurchaseQuotationItem[]
+  productionOrderItems   ProductionOrderItem[]
+  productionConsumptions ProductionConsumption[]
+  productionOutputs      ProductionOutput[]
+  separationOrderItems   SeparationOrderItem[]
+  stockRequisitionItems  StockRequisitionItem[]
+  formulaIngredients     ProductionFormulaIngredient[] @relation("FormulaIngredient")
+
+  @@index([name], name: "idx_products_name")
+  @@index([code], name: "idx_products_code")
+  @@index([proFinancasId], name: "idx_products_pf_id")
+  @@map("products")
+}
+
+model ProductImage {
+  id        String    @id @default(cuid())
+  productId String    @map("product_id")
+  url       String
+  sortOrder Int       @default(0) @map("sort_order")
+  createdAt DateTime  @default(now()) @map("created_at")
+  updatedAt DateTime  @updatedAt @map("updated_at")
+  deletedAt DateTime? @map("deleted_at")
+
+  product Product @relation(fields: [productId], references: [id])
+
+  @@map("product_images")
+}
+
+model UnitMeasure {
+  id            String    @id @default(cuid())
+  name          String
+  proFinancasId Int?      @map("pro_financas_id")
+  createdAt     DateTime  @default(now()) @map("created_at")
+  updatedAt     DateTime  @updatedAt @map("updated_at")
+  deletedAt     DateTime? @map("deleted_at")
+
+  productsAsUnit    Product[]                     @relation("ProductUnit")
+  productsAsBoxUnit Product[]                     @relation("ProductBoxUnit")
+  productionOrderItems  ProductionOrderItem[]
+  productionConsumptions ProductionConsumption[]
+  productionOutputs     ProductionOutput[]
+  formulaIngredients    ProductionFormulaIngredient[]
+
+  @@map("unit_measures")
+}
+
+model Brand {
+  id            String    @id @default(cuid())
+  name          String
+  proFinancasId Int?      @map("pro_financas_id")
+  createdAt     DateTime  @default(now()) @map("created_at")
+  updatedAt     DateTime  @updatedAt @map("updated_at")
+  deletedAt     DateTime? @map("deleted_at")
+
+  products Product[]
+
+  @@map("brands")
+}
+
+model ProductDepartment {
+  id            String    @id @default(cuid())
+  name          String
+  proFinancasId Int?      @map("pro_financas_id")
+  createdAt     DateTime  @default(now()) @map("created_at")
+  updatedAt     DateTime  @updatedAt @map("updated_at")
+  deletedAt     DateTime? @map("deleted_at")
+
+  products Product[]
+
+  @@map("product_departments")
+}
+
+model PriceTable {
+  id            String    @id @default(cuid())
+  name          String
+  isDefault     Boolean   @default(false) @map("is_default")
+  proFinancasId Int?      @map("pro_financas_id")
+  createdAt     DateTime  @default(now()) @map("created_at")
+  updatedAt     DateTime  @updatedAt @map("updated_at")
+  deletedAt     DateTime? @map("deleted_at")
+
+  items            PriceTableItem[]
+  clientsDefault   Client[]
+  productsDefault  Product[]
+  orders           Order[]
+
+  @@map("price_tables")
+}
+
+model PriceTableItem {
+  id           String    @id @default(cuid())
+  priceTableId String    @map("price_table_id")
+  productId    String    @map("product_id")
+  priceInCents Int       @map("price_in_cents")
+  createdAt    DateTime  @default(now()) @map("created_at")
+  updatedAt    DateTime  @updatedAt @map("updated_at")
+  deletedAt    DateTime? @map("deleted_at")
+
+  priceTable PriceTable @relation(fields: [priceTableId], references: [id])
+  product    Product    @relation(fields: [productId], references: [id])
+
+  @@unique([priceTableId, productId])
+  @@map("price_table_items")
+}
+
+model PurchaseQuotation {
+  id         String    @id @default(cuid())
+  supplierId String    @map("supplier_id")
+  status     String    @default("DRAFT") // DRAFT, SENT, RECEIVED, SELECTED, REJECTED, ORDERED
+  requestedAt DateTime? @map("requested_at")
+  receivedAt  DateTime? @map("received_at")
+  totalCents  Int       @default(0) @map("total_cents")
+  notes       String?
+  createdAt   DateTime  @default(now()) @map("created_at")
+  updatedAt   DateTime  @updatedAt @map("updated_at")
+  deletedAt   DateTime? @map("deleted_at")
+
+  supplier Supplier                @relation(fields: [supplierId], references: [id])
+  items    PurchaseQuotationItem[]
+
+  @@map("purchase_quotations")
+}
+
+model PurchaseQuotationItem {
+  id            String    @id @default(cuid())
+  quotationId   String    @map("quotation_id")
+  productId     String    @map("product_id")
+  quantity      Float
+  unitPriceCents Int      @map("unit_price_cents")
+  createdAt     DateTime  @default(now()) @map("created_at")
+  updatedAt     DateTime  @updatedAt @map("updated_at")
+  deletedAt     DateTime? @map("deleted_at")
+
+  quotation PurchaseQuotation @relation(fields: [quotationId], references: [id])
+  product   Product           @relation(fields: [productId], references: [id])
+
+  @@map("purchase_quotation_items")
+}
+
+model PurchaseOrder {
+  id                   String    @id @default(cuid())
+  supplierId           String    @map("supplier_id")
+  quotationId          String?   @map("quotation_id")
+  status               String    @default("PENDING") // PENDING, CONFIRMED, RECEIVED, CANCELLED
+  totalCents           Int       @default(0) @map("total_cents")
+  expectedDeliveryDate DateTime? @map("expected_delivery_date")
+  notes                String?
+  createdAt            DateTime  @default(now()) @map("created_at")
+  updatedAt            DateTime  @updatedAt @map("updated_at")
+  deletedAt            DateTime? @map("deleted_at")
+
+  supplier       Supplier        @relation(fields: [supplierId], references: [id])
+  accountPayable AccountPayable?
+
+  @@map("purchase_orders")
+}
+
+// ============================================================================
+// 1.5c — Business: Reference Data
+// ============================================================================
+
+model Company {
+  id            String    @id @default(cuid())
+  name          String
+  tradeName     String?   @map("trade_name")
+  cnpj          String?   @unique
+  ie            String?
+  phone         String?
+  email         String?
+  logoUrl       String?   @map("logo_url")
+  address       String?
+  city          String?
+  state         String?
+  zipCode       String?   @map("zip_code")
+  proFinancasId Int?      @map("pro_financas_id")
+  createdAt     DateTime  @default(now()) @map("created_at")
+  updatedAt     DateTime  @updatedAt @map("updated_at")
+  deletedAt     DateTime? @map("deleted_at")
+
+  orders        Order[]
+  invoices      Invoice[]
+  cashRegisters CashRegister[]
+
+  @@map("companies")
+}
+
+model PaymentMethod {
+  id            String    @id @default(cuid())
+  name          String
+  isActive      Boolean   @default(true) @map("is_active")
+  proFinancasId Int?      @map("pro_financas_id")
+  createdAt     DateTime  @default(now()) @map("created_at")
+  updatedAt     DateTime  @updatedAt @map("updated_at")
+  deletedAt     DateTime? @map("deleted_at")
+
+  clients Client[]
+  orders  Order[]
+
+  @@map("payment_methods")
+}
+
+model Carrier {
+  id            String    @id @default(cuid())
+  name          String
+  proFinancasId Int?      @map("pro_financas_id")
+  createdAt     DateTime  @default(now()) @map("created_at")
+  updatedAt     DateTime  @updatedAt @map("updated_at")
+  deletedAt     DateTime? @map("deleted_at")
+
+  orders Order[]
+
+  @@map("carriers")
+}
+
+// ============================================================================
+// 1.5d — Dashboards
+// ============================================================================
+
+model Dashboard {
+  id                 String    @id @default(cuid())
+  name               String
+  description        String?
+  ownerId            String    @map("owner_id")
+  isPublic           Boolean   @default(false) @map("is_public")
+  autoRefreshSeconds Int?      @map("auto_refresh_seconds")
+  sortOrder          Int       @default(0) @map("sort_order")
+  createdAt          DateTime  @default(now()) @map("created_at")
+  updatedAt          DateTime  @updatedAt @map("updated_at")
+  deletedAt          DateTime? @map("deleted_at")
+
+  owner   User              @relation(fields: [ownerId], references: [id])
+  cards   DashboardCard[]
+  filters DashboardFilter[]
+
+  @@map("dashboards")
+}
+
+model DashboardCard {
+  id          String   @id @default(cuid())
+  dashboardId String   @map("dashboard_id")
+  type        CardType
+  title       String
+  dataSource  Json     @map("data_source")
+  filters     Json?
+  axisConfig  Json?    @map("axis_config")
+  layoutX     Int      @map("layout_x")
+  layoutY     Int      @map("layout_y")
+  layoutW     Int      @map("layout_w")
+  layoutH     Int      @map("layout_h")
+  config      Json?
+  sortOrder   Int      @default(0) @map("sort_order")
+  createdAt   DateTime @default(now()) @map("created_at")
+  updatedAt   DateTime @updatedAt @map("updated_at")
+
+  dashboard Dashboard @relation(fields: [dashboardId], references: [id])
+
+  @@map("dashboard_cards")
+}
+
+model DashboardFilter {
+  id          String   @id @default(cuid())
+  dashboardId String   @map("dashboard_id")
+  field       String
+  operator    String // EQUALS, NOT_EQUALS, GREATER, LESS, BETWEEN, IN
+  value       Json
+  label       String?
+  createdAt   DateTime @default(now()) @map("created_at")
+  updatedAt   DateTime @updatedAt @map("updated_at")
+
+  dashboard Dashboard @relation(fields: [dashboardId], references: [id])
+
+  @@map("dashboard_filters")
+}
+
+// ============================================================================
+// 1.6 — Order (central entity)
+// ============================================================================
+
+model Order {
+  id                      String      @id @default(cuid())
+  orderNumber             String      @unique @map("order_number")
+  title                   String?
+  status                  OrderStatus @default(EM_ORCAMENTO)
+  clientId                String      @map("client_id")
+  companyId               String?     @map("company_id")
+  paymentMethodId         String?     @map("payment_method_id")
+  carrierId               String?     @map("carrier_id")
+  priceTableId            String?     @map("price_table_id")
+  createdByUserId         String      @map("created_by_user_id")
+  assignedUserId          String?     @map("assigned_user_id")
+  issueDate               DateTime?   @map("issue_date")
+  deliveryDeadline        DateTime?   @map("delivery_deadline")
+  proposalValidityDays    Int         @default(7) @map("proposal_validity_days")
+  deliveryAddress         String?     @map("delivery_address")
+  deliveryNeighborhood    String?     @map("delivery_neighborhood")
+  deliveryCity            String?     @map("delivery_city")
+  deliveryState           String?     @map("delivery_state")
+  deliveryCep             String?     @map("delivery_cep")
+  deliveryReferencePoint  String?     @map("delivery_reference_point")
+  contactName             String?     @map("contact_name")
+  subtotalCents           Int         @default(0) @map("subtotal_cents")
+  freightCents            Int         @default(0) @map("freight_cents")
+  discountCents           Int         @default(0) @map("discount_cents")
+  taxSubstitutionCents    Int         @default(0) @map("tax_substitution_cents")
+  totalCents              Int         @default(0) @map("total_cents")
+  paidAmountCents         Int         @default(0) @map("paid_amount_cents")
+  paymentProofUrl         String?     @map("payment_proof_url")
+  shouldProduce           Boolean     @default(false) @map("should_produce")
+  isResale                Boolean     @default(false) @map("is_resale")
+  hasTaxSubstitution      Boolean     @default(false) @map("has_tax_substitution")
+  notes                   String?
+  proFinancasId           Int?        @map("pro_financas_id")
+  orderTypeId             String?     @map("order_type_id")
+  orderFlowId             String?     @map("order_flow_id")
+  orderModelId            String?     @map("order_model_id")
+  createdAt               DateTime    @default(now()) @map("created_at")
+  updatedAt               DateTime    @updatedAt @map("updated_at")
+  deletedAt               DateTime?   @map("deleted_at")
+
+  client            Client          @relation(fields: [clientId], references: [id])
+  company           Company?        @relation(fields: [companyId], references: [id])
+  paymentMethod     PaymentMethod?  @relation(fields: [paymentMethodId], references: [id])
+  carrier           Carrier?        @relation(fields: [carrierId], references: [id])
+  priceTable        PriceTable?     @relation(fields: [priceTableId], references: [id])
+  createdBy         User            @relation("OrderCreatedBy", fields: [createdByUserId], references: [id])
+  assignedTo        User?           @relation("OrderAssignedTo", fields: [assignedUserId], references: [id])
+  orderType         OrderType?      @relation(fields: [orderTypeId], references: [id])
+  orderFlow         OrderFlow?      @relation(fields: [orderFlowId], references: [id])
+  orderModel        OrderModel?     @relation(fields: [orderModelId], references: [id])
+  items             OrderItem[]
+  statusHistory     OrderStatusHistory[]
+  processInstances  ProcessInstance[]
+  handoffInstances  HandoffInstance[]
+  invoices          Invoice[]
+  productionOrders  ProductionOrder[]
+  separationOrders  SeparationOrder[]
+  accountsReceivable AccountReceivable[]
+  stockRequisitions  StockRequisition[]
+
+  @@index([clientId, status], name: "idx_orders_client_status")
+  @@index([status, createdAt], name: "idx_orders_status_created")
+  @@index([createdByUserId], name: "idx_orders_created_by")
+  @@index([proFinancasId], name: "idx_orders_pf_id")
+  @@map("orders")
+}
+
+model OrderItem {
+  id                     String                 @id @default(cuid())
+  orderId                String                 @map("order_id")
+  productId              String?                @map("product_id")
+  productName            String?                @map("product_name")
+  quantity               Float
+  unitPriceCents         Int                    @map("unit_price_cents")
+  discountCents          Int                    @default(0) @map("discount_cents")
+  totalCents             Int                    @default(0) @map("total_cents")
+  sortOrder              Int                    @default(0) @map("sort_order")
+  pieces                 Float?
+  size                   Float?
+  classificationSnapshot ProductClassification? @map("classification_snapshot")
+  createdAt              DateTime               @default(now()) @map("created_at")
+  updatedAt              DateTime               @updatedAt @map("updated_at")
+  deletedAt              DateTime?              @map("deleted_at")
+
+  order                Order                @relation(fields: [orderId], references: [id])
+  product              Product?             @relation(fields: [productId], references: [id])
+  supplies             OrderItemSupply[]
+  productionOrderItems ProductionOrderItem[]
+  separationOrderItems SeparationOrderItem[]
+
+  @@map("order_items")
+}
+
+model OrderItemSupply {
+  id                    String               @id @default(cuid())
+  orderItemId           String               @map("order_item_id")
+  productId             String?              @map("product_id")
+  name                  String
+  quantity              Int                  @default(1)
+  status                OrderItemSupplyStatus @default(PENDING)
+  readyAt               DateTime?            @map("ready_at")
+  checkedByUserId       String?              @map("checked_by_user_id")
+  separationOrderItemId String?              @map("separation_order_item_id")
+  createdAt             DateTime             @default(now()) @map("created_at")
+  updatedAt             DateTime             @updatedAt @map("updated_at")
+  deletedAt             DateTime?            @map("deleted_at")
+
+  orderItem          OrderItem           @relation(fields: [orderItemId], references: [id])
+  product            Product?            @relation(fields: [productId], references: [id])
+  checkedBy          User?               @relation(fields: [checkedByUserId], references: [id])
+  separationOrderItem SeparationOrderItem? @relation(fields: [separationOrderItemId], references: [id])
+
+  @@map("order_item_supplies")
+}
+
+model OrderStatusHistory {
+  id              String      @id @default(cuid())
+  orderId         String      @map("order_id")
+  fromStatus      OrderStatus @map("from_status")
+  toStatus        OrderStatus @map("to_status")
+  changedByUserId String      @map("changed_by_user_id")
+  reason          String?
+  metadata        Json?
+  createdAt       DateTime    @default(now()) @map("created_at")
+
+  order Order @relation(fields: [orderId], references: [id])
+
+  @@map("order_status_history")
+}
+
+model OrderType {
+  id            String    @id @default(cuid())
+  name          String
+  proFinancasId Int?      @map("pro_financas_id")
+  createdAt     DateTime  @default(now()) @map("created_at")
+  updatedAt     DateTime  @updatedAt @map("updated_at")
+  deletedAt     DateTime? @map("deleted_at")
+
+  orders Order[]
+
+  @@map("order_types")
+}
+
+model OrderFlow {
+  id            String    @id @default(cuid())
+  name          String
+  proFinancasId Int?      @map("pro_financas_id")
+  createdAt     DateTime  @default(now()) @map("created_at")
+  updatedAt     DateTime  @updatedAt @map("updated_at")
+  deletedAt     DateTime? @map("deleted_at")
+
+  orders Order[]
+
+  @@map("order_flows")
+}
+
+model OrderModel {
+  id            String    @id @default(cuid())
+  name          String
+  proFinancasId Int?      @map("pro_financas_id")
+  createdAt     DateTime  @default(now()) @map("created_at")
+  updatedAt     DateTime  @updatedAt @map("updated_at")
+  deletedAt     DateTime? @map("deleted_at")
+
+  orders Order[]
+
+  @@map("order_models")
+}
+
+model OrderSequence {
+  id         String @id @default("singleton")
+  lastNumber Int    @default(0) @map("last_number")
+
+  @@map("order_sequences")
+}
+
+// ============================================================================
+// 1.7 — Financial
+// ============================================================================
+
+model AccountReceivable {
+  id              String        @id @default(cuid())
+  orderId         String?       @map("order_id")
+  clientId        String        @map("client_id")
+  description     String?
+  amountCents     Int           @map("amount_cents")
+  paidAmountCents Int           @default(0) @map("paid_amount_cents")
+  dueDate         DateTime      @map("due_date")
+  paidDate        DateTime?     @map("paid_date")
+  status          PaymentStatus @default(PENDING)
+  invoiceId       String?       @map("invoice_id")
+  createdAt       DateTime      @default(now()) @map("created_at")
+  updatedAt       DateTime      @updatedAt @map("updated_at")
+  deletedAt       DateTime?     @map("deleted_at")
+
+  order   Order?   @relation(fields: [orderId], references: [id])
+  client  Client   @relation(fields: [clientId], references: [id])
+  invoice Invoice? @relation(fields: [invoiceId], references: [id])
+
+  @@index([clientId, status], name: "idx_ar_client_status")
+  @@index([dueDate, status], name: "idx_ar_due_status")
+  @@map("accounts_receivable")
+}
+
+model AccountPayable {
+  id              String        @id @default(cuid())
+  supplierId      String?       @map("supplier_id")
+  purchaseOrderId String?       @unique @map("purchase_order_id")
+  description     String?
+  amountCents     Int           @map("amount_cents")
+  paidAmountCents Int           @default(0) @map("paid_amount_cents")
+  dueDate         DateTime      @map("due_date")
+  paidDate        DateTime?     @map("paid_date")
+  status          PaymentStatus @default(PENDING)
+  categoryId      String?       @map("category_id")
+  createdAt       DateTime      @default(now()) @map("created_at")
+  updatedAt       DateTime      @updatedAt @map("updated_at")
+  deletedAt       DateTime?     @map("deleted_at")
+
+  supplier      Supplier?          @relation(fields: [supplierId], references: [id])
+  purchaseOrder PurchaseOrder?     @relation(fields: [purchaseOrderId], references: [id])
+  category      FinancialCategory? @relation(fields: [categoryId], references: [id])
+
+  @@index([dueDate, status], name: "idx_ap_due_status")
+  @@map("accounts_payable")
+}
+
+model FinancialCategory {
+  id        String    @id @default(cuid())
+  name      String
+  type      String // RECEITA or DESPESA
+  parentId  String?   @map("parent_id")
+  createdAt DateTime  @default(now()) @map("created_at")
+  updatedAt DateTime  @updatedAt @map("updated_at")
+  deletedAt DateTime? @map("deleted_at")
+
+  parent   FinancialCategory?  @relation("CategoryHierarchy", fields: [parentId], references: [id])
+  children FinancialCategory[] @relation("CategoryHierarchy")
+  accountsPayable AccountPayable[]
+
+  @@map("financial_categories")
+}
+
+model Invoice {
+  id            String           @id @default(cuid())
+  invoiceNumber String?          @map("invoice_number")
+  direction     InvoiceDirection
+  orderId       String?          @map("order_id")
+  clientId      String?          @map("client_id")
+  companyId     String?          @map("company_id")
+  totalCents    Int              @default(0) @map("total_cents")
+  issuedAt      DateTime?        @map("issued_at")
+  cancelledAt   DateTime?        @map("cancelled_at")
+  xmlContent    String?          @map("xml_content")
+  pdfUrl        String?          @map("pdf_url")
+  accessKey     String?          @map("access_key") // 44 digits
+  proFinancasId Int?             @map("pro_financas_id")
+  createdAt     DateTime         @default(now()) @map("created_at")
+  updatedAt     DateTime         @updatedAt @map("updated_at")
+  deletedAt     DateTime?        @map("deleted_at")
+
+  order              Order?              @relation(fields: [orderId], references: [id])
+  client             Client?             @relation(fields: [clientId], references: [id])
+  company            Company?            @relation(fields: [companyId], references: [id])
+  accountsReceivable AccountReceivable[]
+
+  @@map("invoices")
+}
+
+model CashRegister {
+  id                  String    @id @default(cuid())
+  companyId           String    @map("company_id")
+  openedByUserId      String    @map("opened_by_user_id")
+  closedByUserId      String?   @map("closed_by_user_id")
+  openedAt            DateTime  @map("opened_at")
+  closedAt            DateTime? @map("closed_at")
+  openingBalanceCents Int       @map("opening_balance_cents")
+  closingBalanceCents Int?      @map("closing_balance_cents")
+  proFinancasId       Int?      @map("pro_financas_id")
+  createdAt           DateTime  @default(now()) @map("created_at")
+  updatedAt           DateTime  @updatedAt @map("updated_at")
+  deletedAt           DateTime? @map("deleted_at")
+
+  company  Company @relation(fields: [companyId], references: [id])
+  openedBy User    @relation("CashOpenedBy", fields: [openedByUserId], references: [id])
+  closedBy User?   @relation("CashClosedBy", fields: [closedByUserId], references: [id])
+
+  @@map("cash_registers")
+}
+
+model IdempotencyRecord {
+  id         String   @id @default(cuid())
+  key        String   @unique
+  route      String
+  statusCode Int      @map("status_code")
+  body       String?  @db.Text
+  createdAt  DateTime @default(now()) @map("created_at")
+
+  @@index([key], name: "idx_idempotency_key")
+  @@map("idempotency_records")
+}
+
+// ============================================================================
+// 1.8 — Production & Separation
+// ============================================================================
+
+model ProductionFormula {
+  id            String    @id @default(cuid())
+  name          String
+  yieldQuantity Float     @map("yield_quantity")
+  createdAt     DateTime  @default(now()) @map("created_at")
+  updatedAt     DateTime  @updatedAt @map("updated_at")
+  deletedAt     DateTime? @map("deleted_at")
+
+  product     Product?
+  ingredients ProductionFormulaIngredient[]
+
+  @@map("production_formulas")
+}
+
+model ProductionFormulaIngredient {
+  id            String    @id @default(cuid())
+  formulaId     String    @map("formula_id")
+  ingredientId  String    @map("ingredient_id")
+  quantity      Float
+  unitMeasureId String?   @map("unit_measure_id")
+  createdAt     DateTime  @default(now()) @map("created_at")
+  updatedAt     DateTime  @updatedAt @map("updated_at")
+  deletedAt     DateTime? @map("deleted_at")
+
+  formula     ProductionFormula @relation(fields: [formulaId], references: [id])
+  ingredient  Product           @relation("FormulaIngredient", fields: [ingredientId], references: [id])
+  unitMeasure UnitMeasure?      @relation(fields: [unitMeasureId], references: [id])
+
+  @@map("production_formula_ingredients")
+}
+
+model ProductionOrder {
+  id             String                @id @default(cuid())
+  orderId        String                @map("order_id")
+  code           String                @unique
+  status         ProductionOrderStatus @default(PENDING)
+  type           String?               // "SIM" / "NAO"
+  machineId      String?               @map("machine_id")
+  batch          String?
+  scheduledDate  DateTime?             @map("scheduled_date")
+  completedDate  DateTime?             @map("completed_date")
+  assignedUserId String?               @map("assigned_user_id")
+  notes          String?
+  createdAt      DateTime              @default(now()) @map("created_at")
+  updatedAt      DateTime              @updatedAt @map("updated_at")
+  deletedAt      DateTime?             @map("deleted_at")
+
+  order        Order                   @relation(fields: [orderId], references: [id])
+  assignedUser User?                   @relation(fields: [assignedUserId], references: [id])
+  items        ProductionOrderItem[]
+  consumptions ProductionConsumption[]
+  outputs      ProductionOutput[]
+  losses       ProductionLoss[]
+
+  @@map("production_orders")
+}
+
+model ProductionOrderItem {
+  id                String    @id @default(cuid())
+  productionOrderId String    @map("production_order_id")
+  orderItemId       String    @map("order_item_id")
+  productId         String    @map("product_id")
+  quantity          Float
+  pieces            Float?
+  size              Float?
+  unitMeasureId     String?   @map("unit_measure_id")
+  createdAt         DateTime  @default(now()) @map("created_at")
+  updatedAt         DateTime  @updatedAt @map("updated_at")
+  deletedAt         DateTime? @map("deleted_at")
+
+  productionOrder ProductionOrder @relation(fields: [productionOrderId], references: [id])
+  orderItem       OrderItem       @relation(fields: [orderItemId], references: [id])
+  product         Product         @relation(fields: [productId], references: [id])
+  unitMeasure     UnitMeasure?    @relation(fields: [unitMeasureId], references: [id])
+
+  @@map("production_order_items")
+}
+
+model ProductionConsumption {
+  id                String    @id @default(cuid())
+  productionOrderId String    @map("production_order_id")
+  ingredientId      String    @map("ingredient_id")
+  unitMeasureId     String?   @map("unit_measure_id")
+  plannedQuantity   Float     @map("planned_quantity")
+  actualQuantity    Float?    @map("actual_quantity")
+  weightM3          Float?    @map("weight_m3")
+  weight            Float?
+  costCents         Int?      @map("cost_cents")
+  totalCostCents    Int?      @map("total_cost_cents")
+  operation         String    @default("S") // S = saida
+  createdAt         DateTime  @default(now()) @map("created_at")
+  updatedAt         DateTime  @updatedAt @map("updated_at")
+  deletedAt         DateTime? @map("deleted_at")
+
+  productionOrder ProductionOrder @relation(fields: [productionOrderId], references: [id])
+  ingredient      Product         @relation(fields: [ingredientId], references: [id])
+  unitMeasure     UnitMeasure?    @relation(fields: [unitMeasureId], references: [id])
+
+  @@map("production_consumptions")
+}
+
+model ProductionOutput {
+  id                String    @id @default(cuid())
+  productionOrderId String    @map("production_order_id")
+  productId         String    @map("product_id")
+  unitMeasureId     String?   @map("unit_measure_id")
+  quantity          Float
+  operation         String    @default("E") // E = entrada
+  createdAt         DateTime  @default(now()) @map("created_at")
+  updatedAt         DateTime  @updatedAt @map("updated_at")
+  deletedAt         DateTime? @map("deleted_at")
+
+  productionOrder ProductionOrder @relation(fields: [productionOrderId], references: [id])
+  product         Product         @relation(fields: [productId], references: [id])
+  unitMeasure     UnitMeasure?    @relation(fields: [unitMeasureId], references: [id])
+
+  @@map("production_outputs")
+}
+
+model ProductionLoss {
+  id                String    @id @default(cuid())
+  productionOrderId String    @map("production_order_id")
+  description       String?
+  quantity          Float?
+  costCents         Int?      @map("cost_cents")
+  createdAt         DateTime  @default(now()) @map("created_at")
+  updatedAt         DateTime  @updatedAt @map("updated_at")
+  deletedAt         DateTime? @map("deleted_at")
+
+  productionOrder ProductionOrder @relation(fields: [productionOrderId], references: [id])
+
+  @@map("production_losses")
+}
+
+model SeparationOrder {
+  id             String                @id @default(cuid())
+  orderId        String                @map("order_id")
+  code           String                @unique
+  status         SeparationOrderStatus @default(PENDING)
+  assignedUserId String?               @map("assigned_user_id")
+  scheduledDate  DateTime?             @map("scheduled_date")
+  completedDate  DateTime?             @map("completed_date")
+  createdAt      DateTime              @default(now()) @map("created_at")
+  updatedAt      DateTime              @updatedAt @map("updated_at")
+  deletedAt      DateTime?             @map("deleted_at")
+
+  order Order               @relation(fields: [orderId], references: [id])
+  items SeparationOrderItem[]
+
+  @@map("separation_orders")
+}
+
+model SeparationOrderItem {
+  id                String    @id @default(cuid())
+  separationOrderId String    @map("separation_order_id")
+  orderItemId       String    @map("order_item_id")
+  productId         String    @map("product_id")
+  quantity          Float
+  pieces            Float?
+  stockLocation     String?   @map("stock_location")
+  isSeparated       Boolean   @default(false) @map("is_separated")
+  isChecked         Boolean   @default(false) @map("is_checked")
+  createdAt         DateTime  @default(now()) @map("created_at")
+  updatedAt         DateTime  @updatedAt @map("updated_at")
+  deletedAt         DateTime? @map("deleted_at")
+
+  separationOrder   SeparationOrder   @relation(fields: [separationOrderId], references: [id])
+  orderItem         OrderItem         @relation(fields: [orderItemId], references: [id])
+  product           Product           @relation(fields: [productId], references: [id])
+  orderItemSupplies OrderItemSupply[]
+
+  @@map("separation_order_items")
+}
+
+// ============================================================================
+// 1.8b — Stock Requisitions
+// ============================================================================
+
+model StockRequisition {
+  id              String                 @id @default(cuid())
+  code            String                 @unique
+  type            StockRequisitionType
+  status          StockRequisitionStatus @default(PENDING)
+  requestedByUserId String              @map("requested_by_user_id")
+  approvedByUserId  String?             @map("approved_by_user_id")
+  orderId           String?             @map("order_id")
+  notes             String?
+  requestedAt       DateTime            @default(now()) @map("requested_at")
+  processedAt       DateTime?           @map("processed_at")
+  createdAt         DateTime            @default(now()) @map("created_at")
+  updatedAt         DateTime            @updatedAt @map("updated_at")
+  deletedAt         DateTime?           @map("deleted_at")
+
+  requestedBy User                  @relation("RequisitionRequestedBy", fields: [requestedByUserId], references: [id])
+  approvedBy  User?                 @relation("RequisitionApprovedBy", fields: [approvedByUserId], references: [id])
+  order       Order?                @relation(fields: [orderId], references: [id])
+  items       StockRequisitionItem[]
+
+  @@map("stock_requisitions")
+}
+
+model StockRequisitionItem {
+  id                String    @id @default(cuid())
+  requisitionId     String    @map("requisition_id")
+  productId         String    @map("product_id")
+  requestedQuantity Float     @map("requested_quantity")
+  unitType          String    @map("unit_type") // "UN" or "CX"
+  unitsPerBox       Int?      @map("units_per_box")
+  quantityInBaseUnit Float    @map("quantity_in_base_unit")
+  actualQuantity    Float?    @map("actual_quantity")
+  createdAt         DateTime  @default(now()) @map("created_at")
+  updatedAt         DateTime  @updatedAt @map("updated_at")
+  deletedAt         DateTime? @map("deleted_at")
+
+  requisition StockRequisition @relation(fields: [requisitionId], references: [id])
+  product     Product          @relation(fields: [productId], references: [id])
+
+  @@map("stock_requisition_items")
+}
+
+// ============================================================================
+// 1.9 — Sync
+// ============================================================================
+
+model SyncLog {
+  id            String     @id @default(cuid())
+  entity        SyncEntity
+  status        SyncStatus @default(PENDING)
+  totalRecords  Int        @default(0) @map("total_records")
+  syncedRecords Int        @default(0) @map("synced_records")
+  failedRecords Int        @default(0) @map("failed_records")
+  startedAt     DateTime?  @map("started_at")
+  completedAt   DateTime?  @map("completed_at")
+  errorMessage  String?    @map("error_message")
+  metadata      Json?
+  createdAt     DateTime   @default(now()) @map("created_at")
+  updatedAt     DateTime   @updatedAt @map("updated_at")
+
+  @@map("sync_logs")
+}
+
+model SyncMapping {
+  id            String    @id @default(cuid())
+  entity        SyncEntity
+  proFinancasId Int       @map("pro_financas_id")
+  mundialErpId  String    @map("mundial_erp_id")
+  lastSyncedAt  DateTime? @map("last_synced_at")
+  checksum      String?
+  createdAt     DateTime  @default(now()) @map("created_at")
+  updatedAt     DateTime  @updatedAt @map("updated_at")
+
+  @@unique([entity, proFinancasId])
+  @@index([entity, mundialErpId], name: "idx_sync_entity_erp")
+  @@map("sync_mappings")
+}
+
+// ============================================================================
+// 2.12 — Geographic Reference Data (no soft-delete)
+// ============================================================================
+
+model State {
+  id           String   @id @default(cuid())
+  name         String
+  uf           String   @unique // 2 chars, e.g. "SP"
+  proFinancasId Int?    @map("pro_financas_id")
+  createdAt    DateTime @default(now()) @map("created_at")
+  updatedAt    DateTime @updatedAt @map("updated_at")
+
+  cities City[]
+
+  @@map("states")
+}
+
+model City {
+  id            String   @id @default(cuid())
+  name          String
+  stateId       String   @map("state_id")
+  ibgeCode      String?  @unique @map("ibge_code")
+  proFinancasId Int?     @map("pro_financas_id")
+  createdAt     DateTime @default(now()) @map("created_at")
+  updatedAt     DateTime @updatedAt @map("updated_at")
+
+  state         State          @relation(fields: [stateId], references: [id])
+  neighborhoods Neighborhood[]
+
+  @@index([stateId], name: "idx_cities_state")
+  @@map("cities")
+}
+
+model Neighborhood {
+  id            String   @id @default(cuid())
+  name          String
+  cityId        String   @map("city_id")
+  proFinancasId Int?     @map("pro_financas_id")
+  createdAt     DateTime @default(now()) @map("created_at")
+  updatedAt     DateTime @updatedAt @map("updated_at")
+
+  city City @relation(fields: [cityId], references: [id])
+
+  @@index([cityId], name: "idx_neighborhoods_city")
+  @@map("neighborhoods")
+}
+
+// ============================================================================
+// 1.10 — Audit
+// ============================================================================
+
+model AuditLog {
+  id        String      @id @default(cuid())
+  userId    String?     @map("user_id")
+  action    AuditAction
+  entity    String
+  entityId  String      @map("entity_id")
+  changes   Json?
+  ipAddress String?     @map("ip_address")
+  userAgent String?     @map("user_agent")
+  createdAt DateTime    @default(now()) @map("created_at")
+
+  user User? @relation(fields: [userId], references: [id])
+
+  @@index([entity, entityId], name: "idx_audit_entity")
+  @@index([userId, createdAt], name: "idx_audit_user")
+  @@map("audit_logs")
+}
+
+// ============================================================================
+// 1.11 — Chat (Comunicacao Interna)
+// ============================================================================
+
+model ChatChannel {
+  id              String            @id @default(cuid())
+  name            String?           @db.VarChar(255)
+  description     String?           @db.VarChar(1000)
+  topic           String?           @db.VarChar(255)
+  type            ChannelType       @default(CHANNEL)
+  visibility      ChannelVisibility @default(PUBLIC)
+  participantHash String?           @unique @map("participant_hash")
+  locationEntity  String?           @map("location_entity") @db.VarChar(50)
+  locationId      String?           @map("location_id")
+  createdById     String            @map("created_by_id")
+  createdAt       DateTime          @default(now()) @map("created_at")
+  updatedAt       DateTime          @updatedAt @map("updated_at")
+  deletedAt       DateTime?         @map("deleted_at")
+
+  createdBy User              @relation("ChatChannelCreatedBy", fields: [createdById], references: [id])
+  members   ChatChannelMember[]
+  messages  ChatMessage[]
+
+  @@index([type], name: "idx_chat_channels_type")
+  @@index([locationEntity, locationId], name: "idx_chat_channels_location")
+  @@index([createdById], name: "idx_chat_channels_created_by")
+  @@map("chat_channels")
+}
+
+model ChatChannelMember {
+  id         String            @id @default(cuid())
+  channelId  String            @map("channel_id")
+  userId     String            @map("user_id")
+  role       ChannelMemberRole @default(MEMBER)
+  isFollower Boolean           @default(true) @map("is_follower")
+  lastReadAt DateTime?         @map("last_read_at")
+  closedAt   DateTime?         @map("closed_at")
+  leftAt     DateTime?         @map("left_at")
+  createdAt  DateTime          @default(now()) @map("created_at")
+
+  channel ChatChannel @relation(fields: [channelId], references: [id], onDelete: Cascade)
+  user    User        @relation(fields: [userId], references: [id])
+
+  @@unique([channelId, userId], name: "uq_channel_member")
+  @@index([userId], name: "idx_chat_channel_members_user")
+  @@index([userId, isFollower], name: "idx_chat_channel_members_follower")
+  @@map("chat_channel_members")
+}
+
+model ChatMessage {
+  id              String          @id @default(cuid())
+  channelId       String          @map("channel_id")
+  authorId        String          @map("author_id")
+  parentMessageId String?         @map("parent_message_id")
+  type            ChatMessageType @default(MESSAGE)
+  content         String          @db.Text
+  contentFormat   ContentFormat   @default(TEXT_MD) @map("content_format")
+  richContent     Json?           @map("rich_content")
+  assigneeId      String?         @map("assignee_id")
+  resolved        Boolean         @default(false)
+  postData        Json?           @map("post_data")
+  editedAt        DateTime?       @map("edited_at")
+  createdAt       DateTime        @default(now()) @map("created_at")
+  updatedAt       DateTime        @updatedAt @map("updated_at")
+  deletedAt       DateTime?       @map("deleted_at")
+
+  channel       ChatChannel          @relation(fields: [channelId], references: [id], onDelete: Cascade)
+  author        User                 @relation("ChatMessageAuthor", fields: [authorId], references: [id])
+  parentMessage ChatMessage?         @relation("MessageReplies", fields: [parentMessageId], references: [id])
+  replies       ChatMessage[]        @relation("MessageReplies")
+  assignee      User?                @relation("ChatMessageAssignee", fields: [assigneeId], references: [id])
+  reactions     ChatReaction[]
+  mentions      ChatMention[]
+  followers     ChatMessageFollower[]
+
+  @@index([channelId, createdAt], name: "idx_chat_messages_channel_time")
+  @@index([parentMessageId], name: "idx_chat_messages_parent")
+  @@index([authorId], name: "idx_chat_messages_author")
+  @@index([assigneeId], name: "idx_chat_messages_assignee")
+  @@map("chat_messages")
+}
+
+model ChatMessageFollower {
+  id        String   @id @default(cuid())
+  messageId String   @map("message_id")
+  userId    String   @map("user_id")
+  createdAt DateTime @default(now()) @map("created_at")
+
+  message ChatMessage @relation(fields: [messageId], references: [id], onDelete: Cascade)
+  user    User        @relation(fields: [userId], references: [id])
+
+  @@unique([messageId, userId], name: "uq_message_follower")
+  @@index([userId], name: "idx_chat_message_followers_user")
+  @@map("chat_message_followers")
+}
+
+model ChatReaction {
+  id        String   @id @default(cuid())
+  messageId String   @map("message_id")
+  userId    String   @map("user_id")
+  emojiName String   @map("emoji_name") @db.VarChar(50)
+  createdAt DateTime @default(now()) @map("created_at")
+
+  message ChatMessage @relation(fields: [messageId], references: [id], onDelete: Cascade)
+  user    User        @relation(fields: [userId], references: [id])
+
+  @@unique([messageId, userId, emojiName], name: "uq_reaction")
+  @@index([messageId], name: "idx_chat_reactions_message")
+  @@map("chat_reactions")
+}
+
+model ChatMention {
+  id              String   @id @default(cuid())
+  messageId       String   @map("message_id")
+  mentionedUserId String   @map("mentioned_user_id")
+  createdAt       DateTime @default(now()) @map("created_at")
+
+  message       ChatMessage @relation(fields: [messageId], references: [id], onDelete: Cascade)
+  mentionedUser User        @relation(fields: [mentionedUserId], references: [id])
+
+  @@unique([messageId, mentionedUserId], name: "uq_mention")
+  @@index([mentionedUserId], name: "idx_chat_mentions_user")
+  @@map("chat_mentions")
+}

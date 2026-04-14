@@ -1,0 +1,176 @@
+name: CI/CD Pipeline
+
+on:
+  push:
+    branches: [main, develop]
+  pull_request:
+    branches: [main]
+
+env:
+  NODE_VERSION: '20'
+
+jobs:
+  # ============================================================================
+  # Lint
+  # ============================================================================
+  lint:
+    name: Lint
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: 'npm'
+          cache-dependency-path: |
+            mundial-erp-api/package-lock.json
+            mundial-erp-web/package-lock.json
+
+      - name: Install API dependencies
+        working-directory: mundial-erp-api
+        run: npm ci
+
+      - name: Install Web dependencies
+        working-directory: mundial-erp-web
+        run: npm ci
+
+      - name: Lint API
+        working-directory: mundial-erp-api
+        run: npx eslint src --ext .ts --max-warnings 0
+
+      - name: Lint Web
+        working-directory: mundial-erp-web
+        run: npx eslint src --ext .ts,.tsx --max-warnings 0
+
+  # ============================================================================
+  # Test
+  # ============================================================================
+  test:
+    name: Test
+    needs: lint
+    runs-on: ubuntu-latest
+
+    services:
+      postgres:
+        image: postgres:16-alpine
+        env:
+          POSTGRES_DB: mundial_erp_test
+          POSTGRES_USER: test
+          POSTGRES_PASSWORD: test
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U test"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+
+      redis:
+        image: redis:7-alpine
+        ports:
+          - 6379:6379
+        options: >-
+          --health-cmd "redis-cli ping"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: 'npm'
+          cache-dependency-path: mundial-erp-api/package-lock.json
+
+      - name: Install dependencies
+        working-directory: mundial-erp-api
+        run: npm ci
+
+      - name: Generate Prisma client
+        working-directory: mundial-erp-api
+        run: npx prisma generate
+
+      - name: Run database migrations
+        working-directory: mundial-erp-api
+        env:
+          DATABASE_URL: postgresql://test:test@localhost:5432/mundial_erp_test?schema=public
+        run: npx prisma migrate deploy
+
+      - name: Run tests
+        working-directory: mundial-erp-api
+        env:
+          DATABASE_URL: postgresql://test:test@localhost:5432/mundial_erp_test?schema=public
+          REDIS_HOST: localhost
+          REDIS_PORT: 6379
+          JWT_SECRET: test-secret-key-ci
+          JWT_REFRESH_SECRET: test-refresh-secret-ci
+          NODE_ENV: test
+        run: npm test -- --passWithNoTests
+
+  # ============================================================================
+  # Build
+  # ============================================================================
+  build:
+    name: Build
+    needs: test
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: 'npm'
+          cache-dependency-path: |
+            mundial-erp-api/package-lock.json
+            mundial-erp-web/package-lock.json
+
+      - name: Install & Build API
+        working-directory: mundial-erp-api
+        run: |
+          npm ci
+          npx prisma generate
+          npm run build
+
+      - name: Install & Build Web
+        working-directory: mundial-erp-web
+        run: |
+          npm ci
+          npm run build
+
+  # ============================================================================
+  # Docker Build (main branch only)
+  # ============================================================================
+  docker:
+    name: Docker Build
+    needs: build
+    runs-on: ubuntu-latest
+    if: github.ref == 'refs/heads/main' && github.event_name == 'push'
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Build API image
+        run: docker build -t mundial-erp-api:${{ github.sha }} ./mundial-erp-api
+
+      - name: Build Web image
+        run: docker build -t mundial-erp-web:${{ github.sha }} ./mundial-erp-web
+
+      # Uncomment to push to a container registry:
+      # - name: Login to Container Registry
+      #   uses: docker/login-action@v3
+      #   with:
+      #     registry: ${{ secrets.REGISTRY_URL }}
+      #     username: ${{ secrets.REGISTRY_USERNAME }}
+      #     password: ${{ secrets.REGISTRY_PASSWORD }}
+      #
+      # - name: Push images
+      #   run: |
+      #     docker tag mundial-erp-api:${{ github.sha }} ${{ secrets.REGISTRY_URL }}/mundial-erp-api:latest
+      #     docker tag mundial-erp-web:${{ github.sha }} ${{ secrets.REGISTRY_URL }}/mundial-erp-web:latest
+      #     docker push ${{ secrets.REGISTRY_URL }}/mundial-erp-api:latest
+      #     docker push ${{ secrets.REGISTRY_URL }}/mundial-erp-web:latest
