@@ -59,6 +59,40 @@ export class ActivityInstancesRepository {
     return { items, total };
   }
 
+  async findDailyByUser(userId: string) {
+    const where: Prisma.ActivityInstanceWhereInput = {
+      deletedAt: null,
+      assignedUserId: userId,
+      status: { in: ['PENDING', 'IN_PROGRESS'] },
+    };
+
+    const [items, total] = await Promise.all([
+      this.prisma.activityInstance.findMany({
+        where,
+        orderBy: [{ dueAt: 'asc' }, { createdAt: 'desc' }],
+        take: 50,
+        include: {
+          activity: {
+            include: {
+              process: {
+                include: { department: true },
+              },
+            },
+          },
+          processInstance: {
+            include: {
+              order: { include: { client: true } },
+            },
+          },
+          taskInstances: { where: { deletedAt: null } },
+        },
+      }),
+      this.prisma.activityInstance.count({ where }),
+    ]);
+
+    return { items, total };
+  }
+
   async update(id: string, data: Prisma.ActivityInstanceUpdateInput) {
     return this.prisma.activityInstance.update({ where: { id }, data });
   }

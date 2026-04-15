@@ -2,6 +2,7 @@ import { Injectable, NotFoundException } from '@nestjs/common';
 import { HandoffStatus, ProcessStatus } from '@prisma/client';
 import { HandoffInstancesRepository } from './handoff-instances.repository';
 import { HandoffInstanceResponseDto } from './dto/handoff-instance-response.dto';
+import { PendingHandoffResponseDto } from './dto/pending-handoff-response.dto';
 import { PaginationDto } from '../../../../common/dtos/pagination.dto';
 import { ProcessInstancesRepository } from '../process-instances/process-instances.repository';
 
@@ -11,6 +12,16 @@ export class HandoffInstancesService {
     private readonly handoffInstancesRepository: HandoffInstancesRepository,
     private readonly processInstancesRepository: ProcessInstancesRepository,
   ) {}
+
+  async findPending() {
+    const { items, total } =
+      await this.handoffInstancesRepository.findPending();
+
+    return {
+      handoffs: items.map(PendingHandoffResponseDto.fromEntity),
+      total,
+    };
+  }
 
   async findAll(
     pagination: PaginationDto,

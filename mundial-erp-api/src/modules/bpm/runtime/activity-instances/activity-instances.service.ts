@@ -7,6 +7,7 @@ import { ActivityStatus, TaskStatus } from '@prisma/client';
 import { ActivityInstancesRepository } from './activity-instances.repository';
 import { CreateActivityInstanceDto } from './dto/create-activity-instance.dto';
 import { ActivityInstanceResponseDto } from './dto/activity-instance-response.dto';
+import { DailyActivityResponseDto } from './dto/daily-activity-response.dto';
 import { PaginationDto } from '../../../../common/dtos/pagination.dto';
 
 @Injectable()
@@ -14,6 +15,16 @@ export class ActivityInstancesService {
   constructor(
     private readonly activityInstancesRepository: ActivityInstancesRepository,
   ) {}
+
+  async findDaily(userId: string) {
+    const { items, total } =
+      await this.activityInstancesRepository.findDailyByUser(userId);
+
+    return {
+      activities: items.map(DailyActivityResponseDto.fromEntity),
+      total,
+    };
+  }
 
   async create(
     dto: CreateActivityInstanceDto,

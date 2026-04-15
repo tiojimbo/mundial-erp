@@ -44,6 +44,33 @@ export class HandoffInstancesRepository {
     return { items, total };
   }
 
+  async findPending() {
+    const where: Prisma.HandoffInstanceWhereInput = {
+      deletedAt: null,
+      status: 'PENDING',
+    };
+
+    const [items, total] = await Promise.all([
+      this.prisma.handoffInstance.findMany({
+        where,
+        orderBy: { createdAt: 'desc' },
+        take: 50,
+        include: {
+          handoff: {
+            include: {
+              fromProcess: { include: { department: true } },
+              toProcess: { include: { department: true } },
+            },
+          },
+          order: { include: { client: true } },
+        },
+      }),
+      this.prisma.handoffInstance.count({ where }),
+    ]);
+
+    return { items, total };
+  }
+
   async update(id: string, data: Prisma.HandoffInstanceUpdateInput) {
     return this.prisma.handoffInstance.update({ where: { id }, data });
   }

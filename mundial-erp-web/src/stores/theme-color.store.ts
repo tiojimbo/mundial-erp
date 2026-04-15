@@ -104,6 +104,7 @@ const COLOR_MAP: Record<
 };
 
 export function applyThemeColor(key: ThemeColorKey) {
+  if (typeof document === 'undefined') return;
   const colors = COLOR_MAP[key];
   if (!colors) return;
 
@@ -123,13 +124,28 @@ function getStoredColor(): ThemeColorKey {
   return 'blue';
 }
 
+const DEFAULT_COLOR: ThemeColorKey = 'blue';
+
 export const useThemeColorStore = create<ThemeColorState>((set) => ({
-  colorKey: getStoredColor(),
+  colorKey: DEFAULT_COLOR,
   setColorKey: (key) => {
-    localStorage.setItem(STORAGE_KEY, key);
+    if (typeof localStorage !== 'undefined') {
+      localStorage.setItem(STORAGE_KEY, key);
+    }
     applyThemeColor(key);
     set({ colorKey: key });
   },
 }));
+
+/**
+ * Call once from a useEffect to hydrate the stored color without SSR mismatch.
+ */
+export function hydrateThemeColor() {
+  const stored = getStoredColor();
+  if (stored !== DEFAULT_COLOR) {
+    useThemeColorStore.setState({ colorKey: stored });
+    applyThemeColor(stored);
+  }
+}
 
 export type { ThemeColorKey };

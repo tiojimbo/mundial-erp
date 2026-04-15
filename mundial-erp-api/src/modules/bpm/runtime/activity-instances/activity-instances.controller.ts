@@ -20,7 +20,8 @@ import { CreateActivityInstanceDto } from './dto/create-activity-instance.dto';
 import { AssignActivityInstanceDto } from './dto/assign-activity-instance.dto';
 import { ActivityInstanceResponseDto } from './dto/activity-instance-response.dto';
 import { PaginationDto } from '../../../../common/dtos/pagination.dto';
-import { Roles } from '../../../auth/decorators';
+import { CurrentUser, Roles } from '../../../auth/decorators';
+import type { JwtPayload } from '../../../auth/decorators';
 
 @ApiTags('BPM - Activity Instances')
 @ApiBearerAuth()
@@ -47,6 +48,13 @@ export class ActivityInstancesController {
       assignedUserId,
       status,
     });
+  }
+
+  @Get('daily')
+  @Roles(Role.ADMIN, Role.MANAGER, Role.OPERATOR)
+  @ApiOperation({ summary: 'Atividades diárias do usuário autenticado' })
+  daily(@CurrentUser() user: JwtPayload) {
+    return this.activityInstancesService.findDaily(user.sub);
   }
 
   @Get(':id')

@@ -37,6 +37,13 @@ export class HandoffInstancesController {
     });
   }
 
+  @Get('pending')
+  @Roles(Role.ADMIN, Role.MANAGER, Role.OPERATOR)
+  @ApiOperation({ summary: 'Listar handoffs pendentes' })
+  pending() {
+    return this.handoffInstancesService.findPending();
+  }
+
   @Get(':id')
   @Roles(Role.ADMIN, Role.MANAGER, Role.OPERATOR)
   @ApiOperation({ summary: 'Buscar instância de handoff por ID' })

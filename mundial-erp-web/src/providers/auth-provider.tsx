@@ -70,6 +70,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   }, [setUser, clearUser]);
 
   useEffect(() => {
+    if (typeof window === 'undefined') return;
     function handleAuthExpired() {
       clearUser();
       setAuthCookie(false);
