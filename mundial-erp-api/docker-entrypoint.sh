@@ -1,8 +1,8 @@
 #!/bin/sh
 set -e
 
-echo "Running Prisma migrations..."
-npx prisma migrate deploy
+echo "Pushing Prisma schema to database..."
+npx prisma db push --skip-generate
 
 echo "Seeding admin user..."
 node dist/prisma/seed-admin.js || echo "Admin seed skipped (may already exist)"
