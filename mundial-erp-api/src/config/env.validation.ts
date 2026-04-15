@@ -10,13 +10,14 @@ export const envSchema = z.object({
   JWT_ACCESS_EXPIRES_IN: z.string().default('15m'),
   JWT_REFRESH_EXPIRES_IN: z.string().default('7d'),
 
-  // Redis
+  // Redis — supports REDIS_URL (redis://:pass@host:port) or individual vars
+  REDIS_URL: z.string().optional(),
   REDIS_HOST: z.string().default('127.0.0.1'),
   REDIS_PORT: z.coerce.number().default(6379),
   REDIS_PASSWORD: z.string().optional(),
 
   // Elasticsearch
-  ELASTICSEARCH_URL: z.string().url().default('http://localhost:9200'),
+  ELASTICSEARCH_URL: z.string().default('http://localhost:9200'),
 
   // Pro Finanças
   PRO_FINANCAS_URL: z.string().optional(),

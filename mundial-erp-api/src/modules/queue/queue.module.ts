@@ -1,16 +1,32 @@
 import { Logger, Module } from '@nestjs/common';
 import { BullModule } from '@nestjs/bullmq';
 import { ConfigService } from '@nestjs/config';
-import Redis from 'ioredis';
+import Redis, { RedisOptions } from 'ioredis';
 import { QUEUE_SYNC, QUEUE_REPORTS, QUEUE_SEARCH_REINDEX } from './queue.constants';
 
-function createBullConnection(config: ConfigService): Redis {
-  const logger = new Logger('QueueModule');
-  const password = config.get('REDIS_PASSWORD');
-  const connection = new Redis({
+function buildRedisOptions(config: ConfigService): RedisOptions {
+  const url = config.get<string>('REDIS_URL');
+  if (url) {
+    const parsed = new URL(url);
+    return {
+      host: parsed.hostname,
+      port: Number(parsed.port) || 6379,
+      ...(parsed.password && { password: decodeURIComponent(parsed.password) }),
+    };
+  }
+  const password = config.get<string>('REDIS_PASSWORD');
+  return {
     host: config.get('REDIS_HOST'),
     port: config.get('REDIS_PORT'),
     ...(password && { password }),
+  };
+}
+
+function createBullConnection(config: ConfigService): Redis {
+  const logger = new Logger('QueueModule');
+  const opts = buildRedisOptions(config);
+  const connection = new Redis({
+    ...opts,
     maxRetriesPerRequest: null,
     family: 4,
     lazyConnect: true,

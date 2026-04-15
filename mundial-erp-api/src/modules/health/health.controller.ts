@@ -30,13 +30,27 @@ export class HealthController {
   }
 
   @Get('ready')
-  @ApiOperation({ summary: 'Readiness check (DB + Redis + Elasticsearch)' })
+  @ApiOperation({ summary: 'Readiness check (DB required, Redis + ES optional)' })
   @HealthCheck()
   readiness() {
     return this.health.check([
+      // Database is required — fails readiness if down
       () => this.prismaHealth.pingCheck('database', this.prisma),
-      () => this.redisHealth.isHealthy('redis'),
-      () => this.searchHealth.isHealthy('elasticsearch'),
+      // Redis and Elasticsearch are optional — report status but don't fail readiness
+      async () => {
+        try {
+          return await this.redisHealth.isHealthy('redis');
+        } catch {
+          return { redis: { status: 'down' as const } };
+        }
+      },
+      async () => {
+        try {
+          return await this.searchHealth.isHealthy('elasticsearch');
+        } catch {
+          return { elasticsearch: { status: 'down' as const } };
+        }
+      },
     ]);
   }
 }

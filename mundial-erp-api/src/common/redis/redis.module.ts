@@ -1,7 +1,26 @@
 import { Global, Logger, Module } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
-import Redis from 'ioredis';
+import Redis, { RedisOptions } from 'ioredis';
 import { REDIS_CLIENT } from './redis.constants';
+
+function buildRedisOptions(config: ConfigService): RedisOptions {
+  const url = config.get<string>('REDIS_URL');
+  if (url) {
+    // Parse redis://:password@host:port
+    const parsed = new URL(url);
+    return {
+      host: parsed.hostname,
+      port: Number(parsed.port) || 6379,
+      ...(parsed.password && { password: decodeURIComponent(parsed.password) }),
+    };
+  }
+  const password = config.get<string>('REDIS_PASSWORD');
+  return {
+    host: config.get('REDIS_HOST'),
+    port: config.get('REDIS_PORT'),
+    ...(password && { password }),
+  };
+}
 
 @Global()
 @Module({
@@ -10,11 +29,9 @@ import { REDIS_CLIENT } from './redis.constants';
       provide: REDIS_CLIENT,
       useFactory: (config: ConfigService) => {
         const logger = new Logger('RedisModule');
-        const password = config.get('REDIS_PASSWORD');
+        const opts = buildRedisOptions(config);
         const client = new Redis({
-          host: config.get('REDIS_HOST'),
-          port: config.get('REDIS_PORT'),
-          ...(password && { password }),
+          ...opts,
           maxRetriesPerRequest: 3,
           connectTimeout: 5000,
           family: 4,
