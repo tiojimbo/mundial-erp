@@ -35,8 +35,17 @@ export function getApiErrorMessage(error: unknown): string {
   return 'Erro inesperado.';
 }
 
+function resolveBaseURL(): string {
+  const raw = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001';
+  // Ensure the base URL always ends with /api/v1
+  if (raw.endsWith('/api/v1')) return raw;
+  if (raw.endsWith('/api/v1/')) return raw.slice(0, -1);
+  const base = raw.endsWith('/') ? raw.slice(0, -1) : raw;
+  return `${base}/api/v1`;
+}
+
 export const api = axios.create({
-  baseURL: process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001/api/v1',
+  baseURL: resolveBaseURL(),
   timeout: 15000,
   headers: { 'Content-Type': 'application/json' },
 });
