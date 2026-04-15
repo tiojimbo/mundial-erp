@@ -1,13 +1,11 @@
 # ============================================================================
-# Stage 1 — Install dependencies
+# Stage 1 — Install dependencies (include devDependencies)
 # ============================================================================
 FROM node:20-alpine AS deps
 WORKDIR /app
 
-ENV NODE_ENV=development
-
 COPY package.json package-lock.json ./
-RUN npm ci
+RUN NODE_ENV=development npm ci
 
 # ============================================================================
 # Stage 2 — Build
@@ -15,13 +13,12 @@ RUN npm ci
 FROM node:20-alpine AS build
 WORKDIR /app
 
-ENV NODE_ENV=development
 ENV NEXT_TELEMETRY_DISABLED=1
 
 COPY --from=deps /app/node_modules ./node_modules
 COPY . .
 
-RUN npm run build
+RUN NODE_ENV=production npm run build
 
 # ============================================================================
 # Stage 3 — Production (standalone)
