@@ -2,7 +2,7 @@
 set -e
 
 echo "Pushing Prisma schema to database..."
-npx prisma db push --accept-data-loss
+npx prisma db push --url "$DATABASE_URL" --accept-data-loss
 
 echo "Seeding admin user..."
 node dist/prisma/seed-admin.js || echo "Admin seed skipped (may already exist)"
