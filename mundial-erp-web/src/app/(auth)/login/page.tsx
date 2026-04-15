@@ -153,11 +153,11 @@ export default function LoginPage() {
                 <Hint.Root hasError className='mt-4'>{serverError}</Hint.Root>
               )}
 
-              {/* ── Green "Entrar" button ── */}
+              {/* ── "Entrar" button ── */}
               <button
                 type='submit'
                 disabled={isSubmitting}
-                className='mt-6 flex h-10 w-full items-center justify-center rounded-10 border border-[#76a91a] bg-[#76a91a] text-label-sm text-static-white transition duration-200 hover:bg-[#6b9a17] disabled:pointer-events-none disabled:border-transparent disabled:bg-bg-weak-50 disabled:text-text-disabled-300'
+                className='mt-6 flex h-10 w-full items-center justify-center rounded-10 border border-[#033983] bg-[#033983] text-label-sm text-static-white transition duration-200 hover:bg-[#02306e] disabled:pointer-events-none disabled:border-transparent disabled:bg-bg-weak-50 disabled:text-text-disabled-300'
               >
                 {isSubmitting ? 'Entrando...' : 'Entrar'}
               </button>
@@ -184,8 +184,8 @@ export default function LoginPage() {
         <div className='h-8 shrink-0' />
       </div>
 
-      {/* ── Green panel ── */}
-      <div className='hidden flex-1 items-center justify-center lg:flex'>
+      {/* ── Side panel ── */}
+      <div className='hidden flex-1 items-center justify-center bg-[#033983] lg:flex'>
       </div>
 
       {/* Decorative circles */}
