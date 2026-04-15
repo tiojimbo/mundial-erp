@@ -1,27 +1,21 @@
 'use client';
 
 import Link from 'next/link';
-import { useTheme } from 'next-themes';
 import {
   RiNotification3Line,
   RiLogoutBoxRLine,
   RiMenuLine,
   RiSearchLine,
   RiSettings4Line,
-  RiSunLine,
-  RiMoonLine,
-  RiComputerLine,
 } from '@remixicon/react';
 import * as Avatar from '@/components/ui/avatar';
 import * as Dropdown from '@/components/ui/dropdown';
 import { useAuth } from '@/providers/auth-provider';
 import { useSidebarStore } from '@/stores/sidebar.store';
-import { cn } from '@/lib/cn';
 
 export function Header() {
   const { user, logout } = useAuth();
   const { toggleMobileSidebar } = useSidebarStore();
-  const { theme, setTheme } = useTheme();
 
   return (
     <header className='flex shrink-0 items-center px-2'>
