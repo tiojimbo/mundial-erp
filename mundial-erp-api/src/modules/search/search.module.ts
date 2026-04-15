@@ -1,4 +1,4 @@
-import { Module } from '@nestjs/common';
+import { Logger, Module } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { Client } from '@elastic/elasticsearch';
 import { BullModule } from '@nestjs/bullmq';
@@ -22,10 +22,13 @@ import { QUEUE_SEARCH_REINDEX } from '../queue/queue.constants';
     {
       provide: ELASTICSEARCH_CLIENT,
       useFactory: (config: ConfigService) => {
+        const node = config.get('ELASTICSEARCH_URL');
+        const logger = new Logger('SearchModule');
+        logger.log(`Elasticsearch config: node=${node}`);
         return new Client({
-          node: config.get('ELASTICSEARCH_URL'),
-          requestTimeout: 5000,
-          maxRetries: 2,
+          node,
+          requestTimeout: 3000,
+          maxRetries: 1,
         });
       },
       inject: [ConfigService],

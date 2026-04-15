@@ -28,11 +28,16 @@ function createBullConnection(config: ConfigService): Redis {
   const connection = new Redis({
     ...opts,
     maxRetriesPerRequest: null,
-    family: 4,
+    connectTimeout: 3000,
+    family: 0,
     lazyConnect: true,
+    enableOfflineQueue: true,
     retryStrategy(times: number) {
-      if (times > 3) return null;
-      return Math.min(2 ** times * 200, 5000);
+      if (times > 2) {
+        logger.warn(`BullMQ Redis: giving up after ${times} retries`);
+        return null;
+      }
+      return Math.min(2 ** times * 500, 3000);
     },
   });
 
@@ -41,7 +46,7 @@ function createBullConnection(config: ConfigService): Redis {
   });
 
   connection.connect().catch((err) => {
-    logger.warn(`BullMQ Redis unavailable: ${err.message}`);
+    logger.warn(`BullMQ Redis unavailable: ${err.message}. Queues will be offline.`);
   });
 
   return connection;

@@ -30,20 +30,29 @@ function buildRedisOptions(config: ConfigService): RedisOptions {
       useFactory: (config: ConfigService) => {
         const logger = new Logger('RedisModule');
         const opts = buildRedisOptions(config);
+        logger.log(`Redis config: host=${opts.host}, port=${opts.port}, hasPassword=${!!opts.password}`);
         const client = new Redis({
           ...opts,
           maxRetriesPerRequest: 3,
-          connectTimeout: 5000,
-          family: 4,
+          connectTimeout: 3000,
+          family: 0,
           lazyConnect: true,
+          enableOfflineQueue: true,
           retryStrategy(times) {
-            if (times > 3) return null;
-            return Math.min(2 ** times * 200, 5000);
+            if (times > 2) {
+              logger.warn(`Redis: giving up after ${times} retries`);
+              return null;
+            }
+            return Math.min(2 ** times * 500, 3000);
           },
         });
 
+        let lastErrorMsg = '';
         client.on('error', (err) => {
-          logger.warn(`Redis: ${err.message}`);
+          if (err.message !== lastErrorMsg) {
+            logger.warn(`Redis: ${err.message}`);
+            lastErrorMsg = err.message;
+          }
         });
 
         client.on('connect', () => {
@@ -51,7 +60,7 @@ function buildRedisOptions(config: ConfigService): RedisOptions {
         });
 
         client.connect().catch((err) => {
-          logger.warn(`Redis unavailable: ${err.message}`);
+          logger.warn(`Redis unavailable at startup: ${err.message}. App will continue without Redis.`);
         });
 
         return client;

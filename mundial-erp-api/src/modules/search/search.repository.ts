@@ -19,14 +19,13 @@ export class SearchRepository implements OnModuleInit {
     @Inject(ELASTICSEARCH_CLIENT) private readonly esClient: Client,
   ) {}
 
-  async onModuleInit() {
-    try {
-      await this.ensureIndices();
-    } catch (error) {
+  onModuleInit() {
+    // Non-blocking: don't hold up app startup if ES is unavailable
+    this.ensureIndices().catch((error) => {
       this.logger.warn(
         `Elasticsearch unavailable on startup: ${(error as Error).message}`,
       );
-    }
+    });
   }
 
   /**
