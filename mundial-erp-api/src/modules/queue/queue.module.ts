@@ -6,9 +6,11 @@ import { QUEUE_SYNC, QUEUE_REPORTS, QUEUE_SEARCH_REINDEX } from './queue.constan
 
 function createBullConnection(config: ConfigService): Redis {
   const logger = new Logger('QueueModule');
+  const password = config.get('REDIS_PASSWORD');
   const connection = new Redis({
     host: config.get('REDIS_HOST'),
     port: config.get('REDIS_PORT'),
+    ...(password && { password }),
     maxRetriesPerRequest: null,
     family: 4,
     lazyConnect: true,

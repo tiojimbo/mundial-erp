@@ -10,9 +10,11 @@ import { REDIS_CLIENT } from './redis.constants';
       provide: REDIS_CLIENT,
       useFactory: (config: ConfigService) => {
         const logger = new Logger('RedisModule');
+        const password = config.get('REDIS_PASSWORD');
         const client = new Redis({
           host: config.get('REDIS_HOST'),
           port: config.get('REDIS_PORT'),
+          ...(password && { password }),
           maxRetriesPerRequest: 3,
           connectTimeout: 5000,
           family: 4,
