@@ -34,14 +34,15 @@ COPY --from=build /app/dist ./dist
 COPY --from=build /app/node_modules ./node_modules
 COPY --from=build /app/package.json ./
 COPY --from=build /app/prisma ./prisma
+COPY --from=build /app/docker-entrypoint.sh ./
 
-RUN npm prune --omit=dev
+RUN npm prune --omit=dev && chmod +x docker-entrypoint.sh
 
 USER nestjs
 
 EXPOSE 3001
 
-HEALTHCHECK --interval=30s --timeout=5s --start-period=30s --retries=3 \
+HEALTHCHECK --interval=30s --timeout=5s --start-period=45s --retries=3 \
   CMD wget --no-verbose --tries=1 --spider http://127.0.0.1:3001/health || exit 1
 
-CMD ["node", "dist/src/main.js"]
+ENTRYPOINT ["./docker-entrypoint.sh"]
