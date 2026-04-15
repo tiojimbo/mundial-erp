@@ -4,6 +4,8 @@
 FROM node:20-alpine AS deps
 WORKDIR /app
 
+ENV NODE_ENV=development
+
 COPY package.json package-lock.json ./
 RUN npm ci
 
@@ -13,11 +15,13 @@ RUN npm ci
 FROM node:20-alpine AS build
 WORKDIR /app
 
+ENV NODE_ENV=development
+
 COPY --from=deps /app/node_modules ./node_modules
 COPY . .
 
 RUN npx prisma generate
-RUN npm run build
+RUN ./node_modules/.bin/nest build
 
 # ============================================================================
 # Stage 3 — Production
