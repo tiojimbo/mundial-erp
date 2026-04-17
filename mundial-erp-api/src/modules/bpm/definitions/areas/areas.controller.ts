@@ -46,6 +46,28 @@ export class AreasController {
     return this.areasService.findAll(pagination);
   }
 
+  @Get('by-slug/:slug')
+  @Roles(Role.ADMIN, Role.MANAGER, Role.OPERATOR, Role.VIEWER)
+  @ApiOperation({ summary: 'Buscar área por slug (com processos e dados do departamento)' })
+  @ApiResponse({ status: 200 })
+  @ApiResponse({ status: 404, description: 'Área não encontrada' })
+  findBySlug(@Param('slug') slug: string) {
+    return this.areasService.findBySlug(slug);
+  }
+
+  @Get(':id/process-summaries')
+  @Roles(Role.ADMIN, Role.MANAGER, Role.OPERATOR, Role.VIEWER)
+  @ApiOperation({
+    summary: 'Resumo consolidado de todos os processos da área (LIST + BPM)',
+  })
+  @ApiResponse({ status: 200 })
+  getAreaProcessSummaries(
+    @Param('id') id: string,
+    @Query('showClosed') showClosed?: string,
+  ) {
+    return this.areasService.getProcessSummaries(id, showClosed === 'true');
+  }
+
   @Get(':id')
   @Roles(Role.ADMIN, Role.MANAGER, Role.OPERATOR, Role.VIEWER)
   @ApiOperation({ summary: 'Buscar área por ID' })

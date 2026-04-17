@@ -27,7 +27,13 @@ export class ProcessResponseDto {
   processType: ProcessType;
 
   @ApiPropertyOptional()
+  description: string | null;
+
+  @ApiPropertyOptional()
   featureRoute: string | null;
+
+  @ApiProperty()
+  isPrivate: boolean;
 
   @ApiProperty()
   isProtected: boolean;
@@ -58,8 +64,10 @@ export class ProcessResponseDto {
     dto.sectorName = entity.sector?.name;
     dto.departmentId = entity.departmentId;
     dto.areaId = entity.areaId;
+    dto.description = entity.description;
     dto.processType = entity.processType;
     dto.featureRoute = entity.featureRoute;
+    dto.isPrivate = entity.isPrivate;
     dto.isProtected = entity.isProtected;
     dto.status = entity.status;
     dto.sortOrder = entity.sortOrder;

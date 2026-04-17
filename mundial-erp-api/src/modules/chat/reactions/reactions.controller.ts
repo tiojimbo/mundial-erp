@@ -9,6 +9,7 @@ import {
   Post,
   Query,
 } from '@nestjs/common';
+import { ParseCuidPipe } from '../../../common/pipes/parse-cuid.pipe';
 import {
   ApiBearerAuth,
   ApiOperation,
@@ -32,7 +33,7 @@ export class ReactionsController {
   @ApiResponse({ status: 201 })
   @ApiResponse({ status: 400, description: 'Reacao ja existe' })
   addReaction(
-    @Param('messageId') messageId: string,
+    @Param('messageId', ParseCuidPipe) messageId: string,
     @Body() dto: CreateReactionDto,
     @CurrentUser('sub') userId: string,
   ) {
@@ -42,7 +43,7 @@ export class ReactionsController {
   @Get()
   @ApiOperation({ summary: 'Listar reacoes agrupadas (ClickUp #15)' })
   getReactions(
-    @Param('messageId') messageId: string,
+    @Param('messageId', ParseCuidPipe) messageId: string,
     @Query() query: CursorPaginationDto,
     @CurrentUser('sub') userId: string,
   ) {
@@ -55,7 +56,7 @@ export class ReactionsController {
   @ApiResponse({ status: 204 })
   @ApiResponse({ status: 404, description: 'Reacao nao encontrada' })
   removeReaction(
-    @Param('messageId') messageId: string,
+    @Param('messageId', ParseCuidPipe) messageId: string,
     @Param('emojiName') emojiName: string,
     @CurrentUser('sub') userId: string,
   ) {

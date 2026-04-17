@@ -1,5 +1,6 @@
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 import { ChatMessageType, ContentFormat } from '@prisma/client';
+import type { ChatMessageWithRelations } from '../messages.repository';
 
 export class MessageAuthorDto {
   @ApiProperty() id: string;
@@ -31,44 +32,34 @@ export class MessageResponseDto {
   @ApiProperty() createdAt: Date;
   @ApiProperty() updatedAt: Date;
 
-  static fromEntity(entity: Record<string, unknown>): MessageResponseDto {
+  static fromEntity(entity: ChatMessageWithRelations): MessageResponseDto {
     const dto = new MessageResponseDto();
-    dto.id = entity.id as string;
-    dto.channelId = entity.channelId as string;
-
-    const author = entity.author as Record<string, unknown> | undefined;
+    dto.id = entity.id;
+    dto.channelId = entity.channelId;
     dto.author = {
-      id: (author?.id as string) ?? '',
-      name: (author?.name as string) ?? '',
-      email: (author?.email as string) ?? null,
+      id: entity.author.id,
+      name: entity.author.name,
+      email: entity.author.email,
     };
-
-    dto.parentMessageId = (entity.parentMessageId as string) ?? null;
-    dto.type = entity.type as ChatMessageType;
-    dto.content = entity.content as string;
-    dto.contentFormat = entity.contentFormat as ContentFormat;
-    dto.richContent =
-      (entity.richContent as Record<string, unknown>) ?? null;
-
-    const assignee = entity.assignee as Record<string, unknown> | null;
-    dto.assignee = assignee
+    dto.parentMessageId = entity.parentMessageId;
+    dto.type = entity.type;
+    dto.content = entity.content;
+    dto.contentFormat = entity.contentFormat;
+    dto.richContent = entity.richContent as Record<string, unknown> | null;
+    dto.assignee = entity.assignee
       ? {
-          id: assignee.id as string,
-          name: assignee.name as string,
-          email: (assignee.email as string) ?? null,
+          id: entity.assignee.id,
+          name: entity.assignee.name,
+          email: entity.assignee.email,
         }
       : null;
-
-    dto.resolved = entity.resolved as boolean;
-    dto.postData = (entity.postData as Record<string, unknown>) ?? null;
-    dto.editedAt = (entity.editedAt as Date) ?? null;
-
-    const count = entity._count as Record<string, number> | undefined;
-    dto.replyCount = count?.replies ?? 0;
-
+    dto.resolved = entity.resolved;
+    dto.postData = entity.postData as Record<string, unknown> | null;
+    dto.editedAt = entity.editedAt;
+    dto.replyCount = entity._count.replies;
     dto.reactions = [];
-    dto.createdAt = entity.createdAt as Date;
-    dto.updatedAt = entity.updatedAt as Date;
+    dto.createdAt = entity.createdAt;
+    dto.updatedAt = entity.updatedAt;
     return dto;
   }
 }

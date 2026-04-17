@@ -23,13 +23,19 @@ export class DepartmentsService {
       .replace(/(^-|-$)/g, '');
   }
 
-  async create(dto: CreateDepartmentDto): Promise<DepartmentResponseDto> {
-    const slug = this.generateSlug(dto.name);
-
-    const existing = await this.departmentsRepository.findBySlug(slug);
-    if (existing) {
-      throw new ConflictException('Departamento com este nome já existe');
+  private async resolveUniqueSlug(baseSlug: string): Promise<string> {
+    let slug = baseSlug;
+    let suffix = 0;
+    while (await this.departmentsRepository.findBySlug(slug)) {
+      suffix++;
+      slug = `${baseSlug}-${suffix}`;
     }
+    return slug;
+  }
+
+  async create(dto: CreateDepartmentDto): Promise<DepartmentResponseDto> {
+    const baseSlug = this.generateSlug(dto.name);
+    const slug = await this.resolveUniqueSlug(baseSlug);
 
     const entity = await this.departmentsRepository.create({
       name: dto.name,
@@ -72,10 +78,12 @@ export class DepartmentsService {
     const updateData: Record<string, any> = {};
     if (dto.name !== undefined) {
       updateData.name = dto.name;
-      updateData.slug = this.generateSlug(dto.name);
-      const existingSlug = await this.departmentsRepository.findBySlug(updateData.slug);
-      if (existingSlug && existingSlug.id !== id) {
-        throw new ConflictException('Departamento com este nome já existe');
+      const baseSlug = this.generateSlug(dto.name);
+      const existingSlug = await this.departmentsRepository.findBySlug(baseSlug);
+      if (!existingSlug || existingSlug.id === id) {
+        updateData.slug = baseSlug;
+      } else {
+        updateData.slug = await this.resolveUniqueSlug(baseSlug);
       }
     }
     if (dto.description !== undefined) updateData.description = dto.description;
@@ -100,6 +108,59 @@ export class DepartmentsService {
   }
 
   async getSidebarTree() {
-    return this.departmentsRepository.getSidebarTree();
+    const departments = await this.departmentsRepository.getSidebarTree();
+    return departments.map((dept) => ({
+      id: dept.id,
+      name: dept.name,
+      slug: dept.slug,
+      description: dept.description,
+      icon: dept.icon,
+      color: dept.color,
+      isPrivate: dept.isPrivate,
+      isDefault: dept.isDefault,
+      isProtected: dept.isProtected,
+      sortOrder: dept.sortOrder,
+      areas: dept.areas,
+      directProcesses: dept.processes,
+    }));
+  }
+
+  async getProcessSummaries(departmentId: string, showClosed = false) {
+    const entity = await this.departmentsRepository.findById(departmentId);
+    if (!entity) {
+      throw new NotFoundException('Departamento não encontrado');
+    }
+    return this.departmentsRepository.getProcessSummaries(
+      departmentId,
+      showClosed,
+    );
+  }
+
+  async findBySlug(slug: string) {
+    const entity = await this.departmentsRepository.findBySlugWithDetails(slug);
+    if (!entity) {
+      throw new NotFoundException('Departamento não encontrado');
+    }
+
+    return {
+      ...DepartmentResponseDto.fromEntity(entity),
+      areas: entity.areas.map((area) => ({
+        id: area.id,
+        name: area.name,
+        slug: area.slug,
+        description: area.description,
+        isPrivate: area.isPrivate,
+        processCount: area._count.processes,
+      })),
+      directProcesses: entity.processes.map((proc) => ({
+        id: proc.id,
+        name: proc.name,
+        slug: proc.slug,
+        processType: proc.processType,
+        featureRoute: proc.featureRoute,
+        description: proc.description,
+        isPrivate: proc.isPrivate,
+      })),
+    };
   }
 }

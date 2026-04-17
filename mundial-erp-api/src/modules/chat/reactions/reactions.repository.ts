@@ -53,34 +53,35 @@ export class ReactionsRepository {
   }
 
   async findGroupedByMessage(messageId: string) {
-    const reactions = await this.prisma.chatReaction.groupBy({
-      by: ['emojiName'],
+    const reactions = await this.prisma.chatReaction.findMany({
       where: { messageId },
-      _count: { emojiName: true },
+      select: {
+        emojiName: true,
+        user: { select: { id: true, name: true } },
+      },
+      orderBy: { createdAt: 'asc' },
     });
 
-    const result: Array<{
-      emojiName: string;
-      count: number;
-      userIds: string[];
-      userNames: string[];
-    }> = [];
+    const grouped = new Map<
+      string,
+      { userIds: string[]; userNames: string[] }
+    >();
 
-    for (const group of reactions) {
-      const users = await this.prisma.chatReaction.findMany({
-        where: { messageId, emojiName: group.emojiName },
-        select: { user: { select: { id: true, name: true } } },
-        take: 10,
-      });
-
-      result.push({
-        emojiName: group.emojiName,
-        count: group._count.emojiName,
-        userIds: users.map((u) => u.user.id),
-        userNames: users.map((u) => u.user.name),
-      });
+    for (const r of reactions) {
+      let group = grouped.get(r.emojiName);
+      if (!group) {
+        group = { userIds: [], userNames: [] };
+        grouped.set(r.emojiName, group);
+      }
+      group.userIds.push(r.user.id);
+      group.userNames.push(r.user.name);
     }
 
-    return result;
+    return [...grouped.entries()].map(([emojiName, g]) => ({
+      emojiName,
+      count: g.userIds.length,
+      userIds: g.userIds,
+      userNames: g.userNames,
+    }));
   }
 }

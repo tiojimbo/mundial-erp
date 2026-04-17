@@ -1,5 +1,6 @@
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
-import { ChannelType, ChannelVisibility } from '@prisma/client';
+import { ChannelType } from '@prisma/client';
+import type { ChatChannelWithCount } from '../channels.repository';
 
 export class MessageSummaryDto {
   @ApiProperty()
@@ -31,9 +32,6 @@ export class ChannelResponseDto {
   @ApiProperty({ enum: ChannelType })
   type: ChannelType;
 
-  @ApiProperty({ enum: ChannelVisibility })
-  visibility: ChannelVisibility;
-
   @ApiPropertyOptional()
   locationEntity: string | null;
 
@@ -56,26 +54,22 @@ export class ChannelResponseDto {
   updatedAt: Date;
 
   static fromEntity(
-    entity: Record<string, unknown>,
+    entity: ChatChannelWithCount,
     extras?: { activeMemberCount?: number },
   ): ChannelResponseDto {
     const dto = new ChannelResponseDto();
-    dto.id = entity.id as string;
-    dto.name = (entity.name as string) ?? null;
-    dto.description = (entity.description as string) ?? null;
-    dto.topic = (entity.topic as string) ?? null;
-    dto.type = entity.type as ChannelType;
-    dto.visibility = entity.visibility as ChannelVisibility;
-    dto.locationEntity = (entity.locationEntity as string) ?? null;
-    dto.locationId = (entity.locationId as string) ?? null;
-    dto.memberCount =
-      extras?.activeMemberCount ??
-      (entity._count as Record<string, number>)?.members ??
-      0;
+    dto.id = entity.id;
+    dto.name = entity.name;
+    dto.description = entity.description;
+    dto.topic = entity.topic;
+    dto.type = entity.type;
+    dto.locationEntity = entity.locationEntity;
+    dto.locationId = entity.locationId;
+    dto.memberCount = extras?.activeMemberCount ?? entity._count.members;
     dto.unreadCount = 0;
     dto.lastMessage = null;
-    dto.createdAt = entity.createdAt as Date;
-    dto.updatedAt = entity.updatedAt as Date;
+    dto.createdAt = entity.createdAt;
+    dto.updatedAt = entity.updatedAt;
     return dto;
   }
 }

@@ -44,11 +44,15 @@ export class WorkflowStatusesController {
   @Get()
   @Roles(Role.ADMIN, Role.MANAGER, Role.OPERATOR, Role.VIEWER)
   @ApiOperation({
-    summary: 'Listar statuses por departamento, agrupados por categoria',
+    summary: 'Listar statuses por departamento (ou área), agrupados por categoria',
   })
   @ApiQuery({ name: 'departmentId', required: true, type: String })
-  findByDepartment(@Query('departmentId') departmentId: string) {
-    return this.workflowStatusesService.findByDepartment(departmentId);
+  @ApiQuery({ name: 'areaId', required: false, type: String })
+  findByDepartment(
+    @Query('departmentId') departmentId: string,
+    @Query('areaId') areaId?: string,
+  ) {
+    return this.workflowStatusesService.findByDepartment(departmentId, areaId);
   }
 
   @Patch(':id')

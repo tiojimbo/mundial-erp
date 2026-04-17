@@ -14,7 +14,13 @@ export class SidebarProcessDto {
   processType: string;
 
   @ApiPropertyOptional()
+  description: string | null;
+
+  @ApiPropertyOptional()
   featureRoute: string | null;
+
+  @ApiProperty()
+  isPrivate: boolean;
 
   @ApiProperty()
   isProtected: boolean;
@@ -32,6 +38,12 @@ export class SidebarAreaDto {
 
   @ApiProperty()
   slug: string;
+
+  @ApiPropertyOptional()
+  description: string | null;
+
+  @ApiProperty()
+  isPrivate: boolean;
 
   @ApiProperty()
   sortOrder: number;
@@ -54,6 +66,9 @@ export class SidebarDepartmentDto {
   slug: string;
 
   @ApiPropertyOptional()
+  description: string | null;
+
+  @ApiPropertyOptional()
   icon: string | null;
 
   @ApiPropertyOptional()
@@ -73,4 +88,7 @@ export class SidebarDepartmentDto {
 
   @ApiProperty({ type: [SidebarAreaDto] })
   areas: SidebarAreaDto[];
+
+  @ApiProperty({ type: [SidebarProcessDto], description: 'Processos diretos no departamento (sem área)' })
+  directProcesses: SidebarProcessDto[];
 }

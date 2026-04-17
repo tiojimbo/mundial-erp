@@ -25,6 +25,7 @@ import { ChangeStatusDto } from './dto/change-status.dto';
 import { ReorderWorkItemsDto } from './dto/reorder-work-items.dto';
 import { WorkItemResponseDto } from './dto/work-item-response.dto';
 import { WorkItemFiltersDto } from './dto/work-item-filters.dto';
+import { MyTasksResponseDto } from './dto/my-tasks-response.dto';
 import { CurrentUser, Roles } from '../auth/decorators';
 import type { JwtPayload } from '../auth/decorators';
 
@@ -50,6 +51,14 @@ export class WorkItemsController {
   @ApiOperation({ summary: 'Listar work items com filtros' })
   findAll(@Query() filters: WorkItemFiltersDto) {
     return this.workItemsService.findAll(filters);
+  }
+
+  @Get('my-tasks')
+  @Roles(Role.ADMIN, Role.MANAGER, Role.OPERATOR, Role.VIEWER)
+  @ApiOperation({ summary: 'Tarefas do usuário agrupadas por data' })
+  @ApiResponse({ status: 200, type: MyTasksResponseDto })
+  getMyTasks(@CurrentUser() user: JwtPayload) {
+    return this.workItemsService.getMyTasks(user.sub);
   }
 
   @Get('grouped')

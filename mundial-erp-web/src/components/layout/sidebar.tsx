@@ -17,6 +17,9 @@ import {
   RiEditLine,
   RiDeleteBinLine,
   RiSettings3Line,
+  RiFolderLine,
+  RiListCheck2,
+  RiTeamLine,
 } from '@remixicon/react';
 import * as ScrollArea from '@radix-ui/react-scroll-area';
 import { useQueryClient } from '@tanstack/react-query';
@@ -37,11 +40,14 @@ import * as Tooltip from '@/components/ui/tooltip';
 import * as Dropdown from '@/components/ui/dropdown';
 import * as Modal from '@/components/ui/modal';
 import * as Button from '@/components/ui/button';
+import { useUnreadCount } from '@/features/inbox/hooks/use-unread-count';
 import { useChannels } from '@/features/chat/hooks/use-channels';
 import { useChatStore } from '@/stores/chat.store';
 import { CreateChannelDialog } from '@/features/chat/components/create-channel-dialog';
 import { CreateDmDialog } from '@/features/chat/components/create-dm-dialog';
 import { CreateDepartmentDialog } from '@/features/work-items/components/create-department-dialog';
+import { CreateAreaDialog } from '@/features/work-items/components/create-area-dialog';
+import { CreateProcessDialog } from '@/features/work-items/components/create-process-dialog';
 import { StatusConfig } from '@/features/settings/components/status-config';
 import {
   useUpdateDepartment,
@@ -190,7 +196,9 @@ function isAreaActive(area: SidebarArea, deptSlug: string, pathname: string) {
 }
 
 function isDeptActive(dept: SidebarDepartment, pathname: string) {
-  return dept.areas.some((a) => isAreaActive(a, dept.slug, pathname));
+  const areaActive = dept.areas.some((a) => isAreaActive(a, dept.slug, pathname));
+  const directActive = (dept.directProcesses ?? []).some((p) => isProcessActive(p, dept.slug, pathname));
+  return areaActive || directActive;
 }
 
 function isLeafActive(item: NavItem, pathname: string) {
@@ -225,6 +233,8 @@ function SidebarContent({
   const [renamingAreaId, setRenamingAreaId] = useState<string | null>(null);
   const [statusConfigDeptId, setStatusConfigDeptId] = useState<string | null>(null);
   const [deleteTarget, setDeleteTarget] = useState<{ type: 'dept' | 'area'; id: string; name: string } | null>(null);
+  const [createAreaDialogDept, setCreateAreaDialogDept] = useState<{ id: string; name: string } | null>(null);
+  const [createProcessDialogCtx, setCreateProcessDialogCtx] = useState<{ areaId?: string; departmentId?: string; parentName: string } | null>(null);
 
   /* ── Mutations ── */
   const deleteDepartment = useDeleteDepartment();
@@ -367,6 +377,7 @@ function SidebarContent({
                     icon={item.icon}
                     isActive={isLeafActive(item, pathname)}
                     isExpanded={isExpanded}
+                    badge={item.href === '/caixa-de-entrada' ? <InboxBadge /> : undefined}
                   />
                 </li>
               ))}
@@ -423,6 +434,8 @@ function SidebarContent({
                     onCancelAddArea={() => setAddingAreaForDeptId(null)}
                     onCreateArea={handleCreateArea}
                     isCreatingArea={createArea.isPending}
+                    onOpenCreateAreaDialog={(deptId, deptName) => setCreateAreaDialogDept({ id: deptId, name: deptName })}
+                    onOpenCreateProcessDialog={(ctx) => setCreateProcessDialogCtx(ctx)}
                     renamingAreaId={renamingAreaId}
                     onStartRenameArea={(id) => setRenamingAreaId(id)}
                     onCancelRenameArea={() => setRenamingAreaId(null)}
@@ -463,6 +476,31 @@ function SidebarContent({
           open
           onOpenChange={(open) => {
             if (!open) setStatusConfigDeptId(null);
+          }}
+        />
+      )}
+
+      {/* Create Area Dialog */}
+      {createAreaDialogDept && (
+        <CreateAreaDialog
+          departmentId={createAreaDialogDept.id}
+          departmentName={createAreaDialogDept.name}
+          open
+          onOpenChange={(open) => {
+            if (!open) setCreateAreaDialogDept(null);
+          }}
+        />
+      )}
+
+      {/* Create Process Dialog */}
+      {createProcessDialogCtx && (
+        <CreateProcessDialog
+          areaId={createProcessDialogCtx.areaId}
+          departmentId={createProcessDialogCtx.departmentId}
+          parentName={createProcessDialogCtx.parentName}
+          open
+          onOpenChange={(open) => {
+            if (!open) setCreateProcessDialogCtx(null);
           }}
         />
       )}
@@ -510,8 +548,8 @@ function ChatChannelsSection({ pathname }: { pathname: string }) {
   const [showCreateDm, setShowCreateDm] = useState(false);
 
   const channels = data?.pages.flatMap((page) => page.data) ?? [];
-  const channelItems = channels.filter((c) => c.type === 'CHANNEL');
-  const dmItems = channels.filter((c) => c.type === 'DIRECT_MESSAGE');
+  const channelItems = channels.filter((c) => c.type === 'PUBLIC' || c.type === 'PRIVATE');
+  const dmItems = channels.filter((c) => c.type === 'DIRECT' || c.type === 'GROUP_DM');
 
   const isOnChatPage = pathname.startsWith('/chat');
 
@@ -627,7 +665,7 @@ function ChannelNavItem({
       )}
     >
       <span className='flex items-center gap-[2px]'>
-        {channel.visibility === 'PRIVATE' ? (
+        {channel.type === 'PRIVATE' ? (
           <RiLockLine className='size-4 text-[oklch(55.6%_0_0)]' />
         ) : (
           <RiHashtag className='size-4 text-[oklch(55.6%_0_0)]' />
@@ -727,12 +765,14 @@ function NavLeaf({
   icon: Icon,
   isActive,
   isExpanded,
+  badge,
 }: {
   label: string;
   href: string;
   icon: React.ComponentType<{ className?: string }>;
   isActive: boolean;
   isExpanded: boolean;
+  badge?: React.ReactNode;
 }) {
   const link = (
     <Link
@@ -752,7 +792,8 @@ function NavLeaf({
           isActive ? 'text-[oklch(14.5%_0_0)]' : 'text-[oklch(55.6%_0_0)]',
         )}
       />
-      {isExpanded && <span>{label}</span>}
+      {isExpanded && <span className='min-w-0 flex-1 truncate'>{label}</span>}
+      {isExpanded && badge}
     </Link>
   );
 
@@ -766,6 +807,22 @@ function NavLeaf({
   }
 
   return link;
+}
+
+/* ════════════════════════════════════════════════════════
+   InboxBadge — pink unread count badge for sidebar
+   ════════════════════════════════════════════════════════ */
+
+function InboxBadge() {
+  const { data: count } = useUnreadCount();
+
+  if (!count || count === 0) return null;
+
+  return (
+    <span className='flex h-5 min-w-5 items-center justify-center rounded-full bg-[oklch(70%_0.15_350)] px-1.5 text-xs font-medium text-white'>
+      {count > 99 ? '99+' : count}
+    </span>
+  );
 }
 
 /* ════════════════════════════════════════════════════════
@@ -817,6 +874,7 @@ function AreaItem({
   onCreateProcess,
   isCreatingProcess,
   onInvalidateSidebar,
+  onOpenCreateProcessDialog,
 }: {
   area: SidebarArea;
   deptSlug: string;
@@ -833,6 +891,7 @@ function AreaItem({
   onCreateProcess: (name: string, areaId: string) => void;
   isCreatingProcess: boolean;
   onInvalidateSidebar: () => void;
+  onOpenCreateProcessDialog: (ctx: { areaId?: string; departmentId?: string; parentName: string }) => void;
 }) {
   const areaActive = isAreaActive(area, deptSlug, pathname);
 
@@ -856,27 +915,34 @@ function AreaItem({
             />
           </div>
         ) : (
-          <button
-            type='button'
-            onClick={onToggle}
-            aria-expanded={isOpen}
-            className='flex h-7 min-w-0 flex-1 items-center gap-1.5 pl-9 pr-2 text-[14px]'
-          >
-            <RiArrowDownSLine
-              className={cn(
-                'size-3.5 shrink-0 text-[oklch(55.6%_0_0)] transition-transform duration-150',
-                isOpen ? 'rotate-0' : '-rotate-90',
-              )}
-            />
-            <span
+          <div className='flex h-7 min-w-0 flex-1 items-center gap-1.5 pl-9 pr-2 text-[14px]'>
+            <button
+              type='button'
+              onClick={onToggle}
+              aria-expanded={isOpen}
+              className='shrink-0'
+            >
+              <RiArrowDownSLine
+                className={cn(
+                  'size-3.5 text-[oklch(55.6%_0_0)] transition-transform duration-150',
+                  isOpen ? 'rotate-0' : '-rotate-90',
+                )}
+              />
+            </button>
+            {area.isPrivate && (
+              <RiLockLine className='size-3 shrink-0 text-[oklch(55.6%_0_0)]' />
+            )}
+            <Link
+              href={`/d/${deptSlug}/a/${area.slug}`}
+              onClick={() => { if (!isOpen) onToggle(); }}
               className={cn(
                 'flex-1 truncate text-left',
                 areaActive ? 'font-medium text-[oklch(14.5%_0_0)]' : 'text-[oklch(14.5%_0_0)]',
               )}
             >
               {area.name}
-            </span>
-          </button>
+            </Link>
+          </div>
         )}
         {!isRenaming && (
           <div className='flex shrink-0 items-center gap-0.5 pr-1 opacity-0 transition-opacity duration-150 group-hover/area:opacity-100'>
@@ -941,6 +1007,9 @@ function AreaItem({
                       : 'text-[oklch(14.5%_0_0)] hover:bg-[oklch(94%_0_0)]',
                   )}
                 >
+                  {process.isPrivate && (
+                    <RiLockLine className='size-3 shrink-0 text-[oklch(55.6%_0_0)]' />
+                  )}
                   <span className='truncate'>{process.name}</span>
                 </Link>
               </li>
@@ -995,6 +1064,8 @@ function DeptItem({
   onCreateProcess,
   isCreatingProcess,
   onInvalidateSidebar,
+  onOpenCreateAreaDialog,
+  onOpenCreateProcessDialog,
 }: {
   dept: SidebarDepartment;
   isExpanded: boolean;
@@ -1023,6 +1094,8 @@ function DeptItem({
   onCreateProcess: (name: string, areaId: string) => void;
   isCreatingProcess: boolean;
   onInvalidateSidebar: () => void;
+  onOpenCreateAreaDialog: (deptId: string, deptName: string) => void;
+  onOpenCreateProcessDialog: (ctx: { areaId?: string; departmentId?: string; parentName: string }) => void;
 }) {
   const { toggleArea } = useSidebarStore();
   const abbr = getAbbr(dept.name);
@@ -1069,22 +1142,26 @@ function DeptItem({
             />
           </div>
         ) : (
-          <button
-            type='button'
-            onClick={onToggle}
-            aria-expanded={isOpen}
-            className='flex h-7 min-w-0 flex-1 items-center gap-2 px-2 text-[14px]'
-          >
-            <DeptAvatar abbr={abbr} color={dept.color} isOpen={isOpen} />
-            <span
+          <div className='flex h-7 min-w-0 flex-1 items-center gap-2 px-2 text-[14px]'>
+            <button
+              type='button'
+              onClick={onToggle}
+              aria-expanded={isOpen}
+              className='shrink-0'
+            >
+              <DeptAvatar abbr={abbr} color={dept.color} isOpen={isOpen} />
+            </button>
+            <Link
+              href={`/d/${dept.slug}`}
+              onClick={() => { if (!isOpen) onToggle(); }}
               className={cn(
                 'flex-1 truncate text-left',
                 isActive ? 'font-medium text-[oklch(14.5%_0_0)]' : 'text-[oklch(14.5%_0_0)]',
               )}
             >
               {dept.name}
-            </span>
-          </button>
+            </Link>
+          </div>
         )}
         {!isRenamingThis && (
           <div className='flex shrink-0 items-center gap-0.5 pr-1 opacity-0 transition-opacity duration-150 group-hover/dept:opacity-100'>
@@ -1098,33 +1175,65 @@ function DeptItem({
                   <RiMoreLine className='size-3.5' />
                 </button>
               </Dropdown.Trigger>
-              <Dropdown.Content align='end' className='w-44'>
-                <Dropdown.Item onSelect={() => onStartRenameDept(dept.id)}>
-                  <Dropdown.ItemIcon as={RiEditLine} />
+              <Dropdown.Content side='bottom' align='start' alignOffset={-40} sideOffset={4} className='w-fit rounded-lg bg-white p-[5px] shadow-md !animate-none' style={{ border: '0.8px solid #e0e0e0' }}>
+                <Dropdown.Item
+                  onSelect={() => onStartRenameDept(dept.id)}
+                  className='flex h-8 w-full cursor-default items-center gap-2 rounded-[6px] px-2 text-[14px] font-normal leading-5 outline-none select-none hover:bg-[oklch(0.97_0_0)]'
+                >
+                  <RiEditLine className='size-4 shrink-0' />
                   Renomear
                 </Dropdown.Item>
-                <Dropdown.Item onSelect={() => onOpenStatusConfig(dept.id)}>
-                  <Dropdown.ItemIcon as={RiSettings3Line} />
+                <Dropdown.Separator className='-mx-[5px] my-1 h-px bg-[#e0e0e0]' />
+                <Dropdown.Item
+                  onSelect={() => onOpenStatusConfig(dept.id)}
+                  className='flex h-8 w-full cursor-default items-center gap-2 rounded-[6px] px-2 text-[14px] font-normal leading-5 outline-none select-none hover:bg-[oklch(0.97_0_0)]'
+                >
+                  <RiSettings3Line className='size-4 shrink-0' />
                   Editar status
                 </Dropdown.Item>
-                <Dropdown.Separator className='my-1 h-px bg-[oklch(92%_0_0)]' />
+                <Dropdown.Separator className='-mx-[5px] my-1 h-px bg-[#e0e0e0]' />
                 <Dropdown.Item
                   onSelect={() => onDeleteDept(dept.id, dept.name, dept.isProtected)}
                   disabled={dept.isProtected}
+                  className='flex h-8 w-full cursor-default items-center gap-2 rounded-[6px] px-2 text-[14px] font-normal leading-5 outline-none select-none hover:bg-[oklch(0.97_0_0)] data-[disabled]:pointer-events-none data-[disabled]:opacity-50'
                 >
-                  <Dropdown.ItemIcon as={RiDeleteBinLine} />
+                  <RiDeleteBinLine className='size-4 shrink-0' />
                   Excluir
+                </Dropdown.Item>
+                <Dropdown.Separator className='-mx-[5px] my-1 h-px bg-[#e0e0e0]' />
+                <div className='flex h-12 w-full items-center px-1'>
+                  <button
+                    type='button'
+                    className='inline-flex h-9 w-full cursor-pointer items-center justify-start gap-2 whitespace-nowrap rounded-lg px-3 py-2 text-[14px] font-medium leading-5 text-white shadow-xs transition-all hover:opacity-90'
+                    style={{ backgroundColor: '#000' }}
+                  >
+                    <RiTeamLine className='size-4 shrink-0 text-white' />
+                    Compartilhamento e permissões
+                  </button>
+                </div>
+              </Dropdown.Content>
+            </Dropdown.Root>
+            <Dropdown.Root>
+              <Dropdown.Trigger asChild>
+                <button
+                  type='button'
+                  className='rounded p-0.5 text-[oklch(55.6%_0_0)] transition-colors hover:bg-[oklch(92.2%_0_0)]'
+                  aria-label={`Adicionar em ${dept.name}`}
+                >
+                  <RiAddLine className='size-3.5' />
+                </button>
+              </Dropdown.Trigger>
+              <Dropdown.Content align='end' className='w-44'>
+                <Dropdown.Item onSelect={() => onOpenCreateAreaDialog(dept.id, dept.name)}>
+                  <Dropdown.ItemIcon as={RiFolderLine} />
+                  Area (Pasta)
+                </Dropdown.Item>
+                <Dropdown.Item onSelect={() => onOpenCreateProcessDialog({ departmentId: dept.id, parentName: dept.name })}>
+                  <Dropdown.ItemIcon as={RiListCheck2} />
+                  Processo (Lista)
                 </Dropdown.Item>
               </Dropdown.Content>
             </Dropdown.Root>
-            <button
-              type='button'
-              onClick={() => onStartAddArea(dept.id)}
-              className='rounded p-0.5 text-[oklch(55.6%_0_0)] transition-colors hover:bg-[oklch(92.2%_0_0)]'
-              aria-label={`Adicionar em ${dept.name}`}
-            >
-              <RiAddLine className='size-3.5' />
-            </button>
           </div>
         )}
       </div>
@@ -1135,6 +1244,32 @@ function DeptItem({
         )}
       >
         <ul className='overflow-hidden'>
+          {/* Direct processes (sem area) */}
+          {(dept.directProcesses ?? []).map((process) => {
+            const processHref =
+              process.featureRoute || `/d/${dept.slug}/p/${process.slug}`;
+            const active = isProcessActive(process, dept.slug, pathname);
+            return (
+              <li key={process.id}>
+                <Link
+                  href={processHref}
+                  data-active={active || undefined}
+                  className={cn(
+                    'flex h-7 items-center gap-2 rounded-[6px] py-1 pl-9 pr-3 text-[14px] transition-colors',
+                    active
+                      ? 'bg-[oklch(94%_0_0)] font-medium text-[oklch(14.5%_0_0)]'
+                      : 'text-[oklch(14.5%_0_0)] hover:bg-[oklch(94%_0_0)]',
+                  )}
+                >
+                  {process.isPrivate && (
+                    <RiLockLine className='size-3 shrink-0 text-[oklch(55.6%_0_0)]' />
+                  )}
+                  <span className='truncate'>{process.name}</span>
+                </Link>
+              </li>
+            );
+          })}
+          {/* Areas */}
           {dept.areas.map((area) => (
             <li key={area.id}>
               <AreaItem
@@ -1153,6 +1288,7 @@ function DeptItem({
                 onCreateProcess={onCreateProcess}
                 isCreatingProcess={isCreatingProcess}
                 onInvalidateSidebar={onInvalidateSidebar}
+                onOpenCreateProcessDialog={onOpenCreateProcessDialog}
               />
             </li>
           ))}

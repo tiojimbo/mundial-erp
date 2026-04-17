@@ -2,6 +2,14 @@ import { Injectable } from '@nestjs/common';
 import { ChannelMemberRole, ChannelType, Prisma } from '@prisma/client';
 import { PrismaService } from '../../../database/prisma.service';
 
+const CHANNEL_INCLUDE = {
+  _count: { select: { members: true } },
+} satisfies Prisma.ChatChannelInclude;
+
+export type ChatChannelWithCount = Prisma.ChatChannelGetPayload<{
+  include: typeof CHANNEL_INCLUDE;
+}>;
+
 @Injectable()
 export class ChannelsRepository {
   constructor(private readonly prisma: PrismaService) {}
@@ -9,26 +17,28 @@ export class ChannelsRepository {
   async create(data: Prisma.ChatChannelCreateInput) {
     return this.prisma.chatChannel.create({
       data,
-      include: { _count: { select: { members: true } } },
+      include: CHANNEL_INCLUDE,
     });
   }
 
   async findById(id: string) {
     return this.prisma.chatChannel.findFirst({
       where: { id, deletedAt: null },
-      include: { _count: { select: { members: true } } },
+      include: CHANNEL_INCLUDE,
     });
   }
 
   async findByName(name: string) {
     return this.prisma.chatChannel.findFirst({
-      where: { name, type: 'CHANNEL', deletedAt: null },
+      where: { name, type: { in: ['PUBLIC', 'PRIVATE'] }, deletedAt: null },
+      include: CHANNEL_INCLUDE,
     });
   }
 
   async findByLocation(locationEntity: string, locationId: string) {
     return this.prisma.chatChannel.findFirst({
       where: { locationEntity, locationId, deletedAt: null },
+      include: CHANNEL_INCLUDE,
     });
   }
 
@@ -36,10 +46,10 @@ export class ChannelsRepository {
     return this.prisma.chatChannel.findFirst({
       where: {
         participantHash: hash,
-        type: 'DIRECT_MESSAGE',
+        type: { in: ['DIRECT', 'GROUP_DM'] },
         deletedAt: null,
       },
-      include: { _count: { select: { members: true } } },
+      include: CHANNEL_INCLUDE,
     });
   }
 
@@ -82,7 +92,7 @@ export class ChannelsRepository {
       take: limit + 1,
       ...(cursor && { cursor: { id: cursor }, skip: 1 }),
       orderBy: { updatedAt: 'desc' },
-      include: { _count: { select: { members: true } } },
+      include: CHANNEL_INCLUDE,
     });
 
     const hasMore = items.length > limit;
@@ -214,6 +224,18 @@ export class ChannelsRepository {
     });
   }
 
+  async openDmForRecipients(channelId: string, excludeUserId: string) {
+    return this.prisma.chatChannelMember.updateMany({
+      where: {
+        channelId,
+        userId: { not: excludeUserId },
+        closedAt: { not: null },
+        leftAt: null,
+      },
+      data: { closedAt: null },
+    });
+  }
+
   async updateMemberRole(
     channelId: string,
     userId: string,
@@ -237,7 +259,7 @@ export class ChannelsRepository {
     return this.prisma.chatChannel.update({
       where: { id },
       data,
-      include: { _count: { select: { members: true } } },
+      include: CHANNEL_INCLUDE,
     });
   }
 

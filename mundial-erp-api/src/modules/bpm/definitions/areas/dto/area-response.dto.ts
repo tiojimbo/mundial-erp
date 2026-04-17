@@ -11,11 +11,26 @@ export class AreaResponseDto {
   @ApiProperty()
   slug: string;
 
+  @ApiPropertyOptional()
+  description: string | null;
+
   @ApiProperty()
   departmentId: string;
 
   @ApiPropertyOptional()
   departmentName?: string;
+
+  @ApiProperty()
+  isPrivate: boolean;
+
+  @ApiPropertyOptional()
+  icon: string | null;
+
+  @ApiPropertyOptional()
+  color: string | null;
+
+  @ApiProperty()
+  useSpaceStatuses: boolean;
 
   @ApiProperty()
   sortOrder: number;
@@ -34,8 +49,13 @@ export class AreaResponseDto {
     dto.id = entity.id;
     dto.name = entity.name;
     dto.slug = entity.slug;
+    dto.description = entity.description;
     dto.departmentId = entity.departmentId;
     dto.departmentName = entity.department?.name;
+    dto.isPrivate = entity.isPrivate;
+    dto.icon = entity.icon;
+    dto.color = entity.color;
+    dto.useSpaceStatuses = entity.useSpaceStatuses;
     dto.sortOrder = entity.sortOrder;
     dto.isDefault = entity.isDefault;
     dto.createdAt = entity.createdAt;

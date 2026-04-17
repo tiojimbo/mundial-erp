@@ -38,9 +38,23 @@ export class WorkflowStatusesService {
 
   async findByDepartment(
     departmentId: string,
+    areaId?: string,
   ): Promise<Record<StatusCategory, WorkflowStatusResponseDto[]>> {
-    const statuses =
-      await this.workflowStatusesRepository.findByDepartment(departmentId);
+    let statuses;
+
+    if (areaId) {
+      // Verifica se a área usa statuses próprios
+      const area = await this.workflowStatusesRepository.findAreaById(areaId);
+      if (area && !area.useSpaceStatuses) {
+        statuses = await this.workflowStatusesRepository.findByArea(areaId);
+      } else {
+        statuses =
+          await this.workflowStatusesRepository.findByDepartment(departmentId);
+      }
+    } else {
+      statuses =
+        await this.workflowStatusesRepository.findByDepartment(departmentId);
+    }
 
     const grouped: Record<StatusCategory, WorkflowStatusResponseDto[]> = {
       NOT_STARTED: [],
@@ -56,6 +70,13 @@ export class WorkflowStatusesService {
     }
 
     return grouped;
+  }
+
+  async copyStatusesToArea(departmentId: string, areaId: string) {
+    return this.workflowStatusesRepository.copyDepartmentStatusesToArea(
+      departmentId,
+      areaId,
+    );
   }
 
   async update(

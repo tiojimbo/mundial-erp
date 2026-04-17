@@ -8,7 +8,7 @@ import {
   IsString,
   MaxLength,
 } from 'class-validator';
-import { ChannelVisibility } from '@prisma/client';
+import { ChannelType } from '@prisma/client';
 
 export class CreateChannelDto {
   @ApiProperty({ example: 'vendas-geral', maxLength: 255 })
@@ -35,10 +35,10 @@ export class CreateChannelDto {
   @MaxLength(255)
   topic?: string;
 
-  @ApiPropertyOptional({ enum: ChannelVisibility, default: 'PUBLIC' })
+  @ApiPropertyOptional({ enum: ['PUBLIC', 'PRIVATE'], default: 'PUBLIC' })
   @IsOptional()
-  @IsEnum(ChannelVisibility)
-  visibility?: ChannelVisibility;
+  @IsEnum(ChannelType)
+  type?: ChannelType;
 
   @ApiPropertyOptional({
     description: 'IDs de usuarios a adicionar (max 100)',

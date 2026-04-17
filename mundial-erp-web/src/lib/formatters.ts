@@ -27,6 +27,13 @@ export function formatDate(dateStr: string): string {
   return new Intl.DateTimeFormat('pt-BR').format(new Date(dateStr));
 }
 
+export function formatShortDate(dateStr: string): string {
+  return new Intl.DateTimeFormat('pt-BR', {
+    day: 'numeric',
+    month: 'short',
+  }).format(new Date(dateStr));
+}
+
 export function formatDateTime(dateStr: string): string {
   return new Intl.DateTimeFormat('pt-BR', {
     day: '2-digit',

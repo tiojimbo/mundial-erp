@@ -1,31 +1,55 @@
 'use client';
 
-import { useEffect, useMemo, useState } from 'react';
+import { useMemo, useState } from 'react';
 import { useParams } from 'next/navigation';
-import { RiAddLine, RiListCheck2, RiLayoutColumnLine } from '@remixicon/react';
-import * as TabMenu from '@/components/ui/tab-menu-horizontal';
+import Link from 'next/link';
+import {
+  RiAddLine,
+  RiListCheck2,
+  RiLayoutColumnLine,
+  RiChat1Line,
+  RiPushpinLine,
+  RiFolderOpenLine,
+  RiArrowDownSLine,
+  RiStarLine,
+} from '@remixicon/react';
 import { useSidebarTree } from '@/features/navigation/hooks/use-sidebar-tree';
-import { useProcessContextStore } from '@/stores/process-context.store';
-import { WorkItemListView } from '@/features/work-items/components/work-item-list-view';
-import { WorkItemBoardView } from '@/features/work-items/components/work-item-board-view';
-import type { SidebarDepartment, SidebarProcess } from '@/features/navigation/types/navigation.types';
+import { useWorkItemsGrouped } from '@/features/work-items/hooks/use-work-items';
+import { ProcessCard } from '@/features/work-items/components/process-card';
+import { ProcessToolbar } from '@/features/work-items/components/process-toolbar';
+import type {
+  SidebarDepartment,
+  SidebarArea,
+  SidebarProcess,
+} from '@/features/navigation/types/navigation.types';
+import type { ProcessSummaryList } from '@/features/navigation/types/process-summary.types';
 
 /**
- * Find the matching department + process from the sidebar tree using the URL slugs.
+ * Find the matching department + area + process from the sidebar tree using URL slugs.
  */
 function findProcess(
   tree: SidebarDepartment[] | undefined,
   deptSlug: string,
   processSlug: string,
-): { dept: SidebarDepartment; process: SidebarProcess } | null {
+): {
+  dept: SidebarDepartment;
+  area: SidebarArea | null;
+  process: SidebarProcess;
+} | null {
   if (!tree) return null;
   for (const dept of tree) {
     if (dept.slug !== deptSlug) continue;
     for (const area of dept.areas) {
       for (const process of area.processes) {
         if (process.slug === processSlug) {
-          return { dept, process };
+          return { dept, area, process };
         }
+      }
+    }
+    // Also check directProcesses (no area)
+    for (const process of dept.directProcesses) {
+      if (process.slug === processSlug) {
+        return { dept, area: null, process };
       }
     }
   }
@@ -35,35 +59,72 @@ function findProcess(
 export default function GenericProcessPage() {
   const params = useParams<{ deptSlug: string; processSlug: string }>();
   const { data: sidebarTree, isLoading: isTreeLoading } = useSidebarTree();
-  const setBreadcrumbs = useProcessContextStore((s) => s.setBreadcrumbs);
-  const clearProcess = useProcessContextStore((s) => s.clearProcess);
+
   const [activeView, setActiveView] = useState<'list' | 'board'>('list');
+  const [search, setSearch] = useState('');
+  const [showClosed, setShowClosed] = useState(false);
 
   const match = useMemo(
     () => findProcess(sidebarTree, params.deptSlug, params.processSlug),
     [sidebarTree, params.deptSlug, params.processSlug],
   );
 
-  // Set breadcrumbs whenever the matched process changes
-  useEffect(() => {
-    if (match) {
-      setBreadcrumbs([
-        { label: match.dept.name },
-        { label: match.process.name },
-      ]);
-    }
-    return () => {
-      clearProcess();
-    };
-  }, [match, setBreadcrumbs, clearProcess]);
+  const { data: groupedData, isLoading: isDataLoading } = useWorkItemsGrouped(
+    match?.process.id ?? '',
+    'status',
+  );
 
-  // Loading state
+  // Build a ProcessSummaryList from the grouped data
+  const processSummary: ProcessSummaryList | null = useMemo(() => {
+    if (!match) return null;
+    const { process, area } = match;
+    return {
+      id: process.id,
+      name: process.name,
+      slug: process.slug,
+      processType: 'LIST' as const,
+      featureRoute: process.featureRoute,
+      description: process.description,
+      isPrivate: process.isPrivate,
+      areaId: area?.id ?? null,
+      areaName: area?.name ?? null,
+      totalItems: groupedData?.total ?? 0,
+      groups: (groupedData?.groups ?? []).map((g) => ({
+        statusId: g.statusId,
+        statusName: g.statusName,
+        statusColor: g.statusColor,
+        statusCategory: g.category,
+        count: g.count,
+        items: g.items.map((item) => ({
+          id: item.id,
+          title: item.title,
+          statusId: item.statusId,
+          priority: item.priority,
+          assigneeId: item.assigneeId,
+          assigneeName: item.assigneeName,
+          startDate: item.startDate,
+          dueDate: item.dueDate,
+          sortOrder: item.sortOrder,
+        })),
+      })),
+    };
+  }, [match, groupedData]);
+
+  const closedCount = useMemo(() => {
+    if (!groupedData?.groups) return 0;
+    return groupedData.groups
+      .filter((g) => g.category === 'DONE' || g.category === 'CLOSED')
+      .reduce((acc, g) => acc + g.count, 0);
+  }, [groupedData]);
+
+  // Loading state (tree not yet loaded)
   if (isTreeLoading) {
     return (
-      <div className='flex flex-col gap-4'>
-        <div className='h-8 w-48 animate-pulse rounded-lg bg-bg-weak-50' />
-        <div className='h-12 animate-pulse rounded-lg bg-bg-weak-50' />
-        <div className='h-64 animate-pulse rounded-lg bg-bg-weak-50' />
+      <div className="flex flex-col gap-4">
+        <div className="h-6 w-64 animate-pulse rounded-lg bg-bg-weak-50" />
+        <div className="h-10 w-96 animate-pulse rounded-lg bg-bg-weak-50" />
+        <div className="h-12 animate-pulse rounded-lg bg-bg-weak-50" />
+        <div className="h-64 animate-pulse rounded-lg bg-bg-weak-50" />
       </div>
     );
   }
@@ -71,66 +132,132 @@ export default function GenericProcessPage() {
   // Not found state
   if (!match) {
     return (
-      <div className='flex flex-col items-center justify-center gap-2 py-20 text-text-soft-400'>
-        <i className='ri-error-warning-line text-3xl' />
-        <p className='text-paragraph-sm'>Processo nao encontrado.</p>
+      <div className="flex flex-col items-center justify-center gap-2 py-20 text-text-soft-400">
+        <p className="text-paragraph-sm">Processo não encontrado.</p>
       </div>
     );
   }
 
-  const { dept, process } = match;
+  const { dept, area, process } = match;
 
   return (
-    <div className='flex flex-col gap-5'>
-      {/* Page title */}
-      <div>
-        <h1 className='text-title-h5 text-text-strong-950'>
-          {process.name}
-        </h1>
-        <p className='text-paragraph-sm text-text-sub-600'>
-          {dept.name}
-        </p>
+    <div className="relative -m-4 flex min-h-0 flex-1 flex-col overflow-hidden lg:-m-6">
+      {/* Page Header */}
+      <div className="border-b-[0.8px] border-stroke-soft-200">
+        {/* Breadcrumb */}
+        <header className="flex items-center gap-[6px] px-10 py-4">
+          <Link
+            href={`/d/${dept.slug}`}
+            className="max-w-[200px] truncate text-[13px] font-normal tracking-[-0.143px] text-text-sub-600 transition-colors hover:text-text-strong-950"
+          >
+            {dept.name}
+          </Link>
+          <span className="text-[12px] tracking-[-0.143px] text-text-sub-600/40">
+            /
+          </span>
+          <RiFolderOpenLine className="size-4 text-text-sub-600" />
+          <span className="max-w-[200px] truncate text-[13px] font-semibold tracking-[-0.143px] text-text-strong-950">
+            {area ? area.name : process.name}
+          </span>
+          {area && (
+            <>
+              <span className="text-[12px] tracking-[-0.143px] text-text-sub-600/40">
+                /
+              </span>
+              <span className="max-w-[200px] truncate text-[13px] font-semibold tracking-[-0.143px] text-text-strong-950">
+                {process.name}
+              </span>
+            </>
+          )}
+          <button
+            type="button"
+            className="flex items-center text-text-sub-600 transition-colors hover:text-text-strong-950"
+          >
+            <RiArrowDownSLine className="size-3.5" />
+          </button>
+          <button
+            type="button"
+            className="ml-1 text-text-sub-600 transition-colors hover:text-text-strong-950"
+          >
+            <RiStarLine className="size-3.5" />
+          </button>
+        </header>
+
+        {/* Tabs */}
+        <nav className="flex items-center overflow-x-auto border-b-[0.8px] border-stroke-soft-200 px-10">
+          <button
+            type="button"
+            className="relative flex items-center gap-1.5 px-3 py-2 text-[13px] font-medium text-text-sub-600 transition-colors hover:text-text-strong-950 h-[35.5px]"
+          >
+            <RiChat1Line className="size-4" />
+            Canal
+          </button>
+          <button
+            type="button"
+            onClick={() => setActiveView('list')}
+            className={`relative flex items-center gap-1.5 px-3 py-2 text-[13px] font-medium transition-colors h-[35.5px] ${
+              activeView === 'list'
+                ? 'text-text-strong-950 after:absolute after:bottom-0 after:left-0 after:right-0 after:h-0.5 after:bg-text-strong-950'
+                : 'text-text-sub-600 hover:text-text-strong-950'
+            }`}
+          >
+            <RiListCheck2 className="size-4" />
+            List
+            <RiPushpinLine className="size-3" />
+          </button>
+          <button
+            type="button"
+            disabled
+            className="flex items-center gap-1.5 px-3 py-2 text-[13px] font-medium text-text-sub-600 transition-colors hover:text-text-strong-950 h-[35.5px] disabled:opacity-50 disabled:cursor-not-allowed"
+          >
+            <RiAddLine className="size-3.5" />
+            Nova Visualização
+          </button>
+        </nav>
       </div>
 
-      {/* Tabs: List / Board / + Nova Visualizacao */}
-      <TabMenu.Root
-        value={activeView}
-        onValueChange={(v) => setActiveView(v as 'list' | 'board')}
-      >
-        <TabMenu.List>
-          <TabMenu.Trigger value='list'>
-            <TabMenu.Icon as={RiListCheck2} />
-            Lista
-          </TabMenu.Trigger>
-          <TabMenu.Trigger value='board'>
-            <TabMenu.Icon as={RiLayoutColumnLine} />
-            Board
-          </TabMenu.Trigger>
-          <button
-            type='button'
-            disabled
-            className='flex h-12 items-center gap-1.5 px-2 py-3.5 text-label-sm text-text-disabled-300'
-            title='Em breve'
-          >
-            <RiAddLine className='size-5' />
-            Nova Visualizacao
-          </button>
-        </TabMenu.List>
-
-        <TabMenu.Content value='list' className='pt-4'>
-          <WorkItemListView
-            processId={process.id}
-            departmentId={dept.id}
+      {/* Tab Content */}
+      {activeView === 'list' && (
+        <div className="flex min-h-0 flex-1 flex-col overflow-hidden">
+          {/* Toolbar */}
+          <ProcessToolbar
+            search={search}
+            onSearchChange={setSearch}
+            showClosed={showClosed}
+            onShowClosedChange={setShowClosed}
+            closedCount={closedCount}
           />
-        </TabMenu.Content>
 
-        <TabMenu.Content value='board' className='pt-4'>
-          <WorkItemBoardView
-            processId={process.id}
-            departmentId={dept.id}
-          />
-        </TabMenu.Content>
-      </TabMenu.Root>
+          {/* Content: Single ProcessCard */}
+          <div className="flex w-full flex-1 flex-col gap-4 overflow-auto pb-24">
+            {isDataLoading ? (
+              <div className="space-y-4 px-10">
+                {[1, 2, 3].map((i) => (
+                  <div
+                    key={i}
+                    className="h-48 animate-pulse rounded-xl bg-bg-weak-50"
+                  />
+                ))}
+              </div>
+            ) : processSummary ? (
+              <div className="space-y-4 py-4">
+                <ProcessCard
+                  process={processSummary}
+                  parentName={area?.name ?? dept.name}
+                  deptSlug={dept.slug}
+                />
+              </div>
+            ) : null}
+          </div>
+        </div>
+      )}
+
+      {activeView === 'board' && (
+        <div className="flex flex-col items-center justify-center gap-2 py-20 text-text-soft-400">
+          <RiLayoutColumnLine className="size-8" />
+          <p className="text-paragraph-sm">Visualização Board em breve.</p>
+        </div>
+      )}
     </div>
   );
 }

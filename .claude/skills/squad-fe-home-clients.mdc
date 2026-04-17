@@ -5,6 +5,7 @@
 Tela inicial personalizada (saudacao + atividades do dia + handoffs) e CRUD completo de clientes no browser. Features: `src/features/home/` e `src/features/clients/`.
 
 **Fonte de verdade:** PLANO.md Tela Inicio, Tela Clientes, Rotas /inicio e /comercial/clientes/**, Fase 7A
+**Design System:** FIGMA.md (.claude/references/FIGMA.md), Figma file key AjvK4iQOOs2wPcp53ZfIVr
 **Fase PLANO:** F7A (construcao) + ownership continuo
 
 ---
@@ -14,9 +15,9 @@ Tela inicial personalizada (saudacao + atividades do dia + handoffs) e CRUD comp
 | Recurso | Secao PLANO |
 |---|---|
 | /inicio — Saudacao dinamica (bom dia/tarde/noite + nome) | Tela Inicio |
-| /inicio — Atividades do dia: ActivityInstance onde assignedUserId = currentUser AND (dueAt hoje OR status IN_PROGRESS). Card: nome atividade, processo, pedido, SLA restante, progresso checklist | Tela Inicio |
-| /inicio — Handoffs pendentes: HandoffInstance com status PENDING onde departamento destino = departamento do usuario. Clicar abre dossie do pedido | Tela Inicio |
-| /inicio — Acao rapida: clicar em atividade abre dossie do pedido na aba da atividade | Tela Inicio |
+| /inicio — Atividades do dia (ActivityInstance: assignedUserId=currentUser, dueAt=hoje OR status=IN_PROGRESS) | Tela Inicio |
+| /inicio — Handoffs pendentes (HandoffInstance: status=PENDING, departamento destino=usuario) | Tela Inicio |
+| /inicio — Acao rapida: clicar em atividade abre dossie do pedido | Tela Inicio |
 | /comercial/clientes (tabela paginada + busca) | Rotas Frontend |
 | /comercial/clientes/novo (formulario cadastro) | Rotas Frontend |
 | /comercial/clientes/[id] (detalhe: tabs Dados, Pedidos, Financeiro) | Rotas Frontend |
@@ -26,23 +27,642 @@ Tela inicial personalizada (saudacao + atividades do dia + handoffs) e CRUD comp
 
 ---
 
-## Composicao do Time
+## Composicao do Time — 5 Tracks Paralelos
 
-| Membro | Recursos (dono vertical) | Papel extra |
-|---|---|---|
-| **Victor Lemos** (Senior) | Tela Inicio (saudacao, activity cards, handoffs) | Tech Lead |
-| **Sabrina Costa** (Pleno) | Lista de clientes (Table, Pagination, Filter, search) | Dona da listagem |
-| **Diego Martins** (Pleno) | Formulario cadastro/edicao (React Hook Form + Zod) | Dono dos formularios |
-| **Paula Rezende** (Pleno) | Detalhe do cliente (Tab Menu: Dados, Pedidos, Financeiro) | Dona do detalhe |
-| **Gustavo Lira** (Senior) | Validacao Figma, testes, review de componentes | QA visual |
+Todos os 5 membros atuam **simultaneamente** desde o inicio. Cada track tem ownership exclusivo de arquivos — ZERO sobreposicao.
+
+| Track | Membro | Papel | Arquivos exclusivos |
+|---|---|---|---|
+| **T1** | **Victor Lemos** (Senior) | Tech Lead + Home feature completa | `src/features/home/**`, `src/app/(dashboard)/inicio/page.tsx` |
+| **T2** | **Sabrina Costa** (Pleno) | Lista de clientes + fundacao compartilhada | `client-table.tsx`, `client.types.ts`, `client.service.ts`, `use-clients.ts`, `clientes/page.tsx` |
+| **T3** | **Diego Martins** (Pleno) | Formulario cadastro/edicao | `client-form.tsx`, `client.schema.ts`, `to-payload.ts`, `novo/page.tsx`, `[id]/editar/page.tsx` |
+| **T4** | **Paula Rezende** (Pleno) | Detalhe do cliente + tabs | `client-detail.tsx`, `client-tabs/**`, `[id]/page.tsx` |
+| **T5** | **Gustavo Lira** (Senior) | QA visual + testes (paralelo desde o inicio) | Nenhum exclusivo — valida os de outros tracks |
 
 ---
 
-## Ordem de Execucao
+## Contratos Compartilhados
 
-### Etapa 1 — Golden Path (Victor): Tela Inicio com saudacao + 1 activity card funcional
-### Etapa 2 — Paralelo: Sabrina (lista), Diego (formulario), Paula (detalhe com tabs)
-### Etapa 3 — QA (Gustavo): Validacao Figma, testes, review
+Estes contratos definem as interfaces que TODOS os tracks usam. Cada agente implementa apenas seus arquivos mas DEVE respeitar esses tipos.
+
+### Types (owner: Sabrina — `src/features/clients/types/client.types.ts`)
+
+```typescript
+export type PersonType = 'F' | 'J'
+
+export type Client = {
+  id: string
+  personType: PersonType
+  cpfCnpj: string
+  name: string
+  tradeName: string | null
+  ie: string | null
+  rg: string | null
+  email: string | null
+  phone: string | null
+  address: string | null
+  addressNumber: string | null
+  neighborhood: string | null
+  complement: string | null
+  city: string | null
+  state: string | null
+  zipCode: string | null
+  classificationId: string | null
+  classification: ClientClassification | null
+  deliveryRouteId: string | null
+  deliveryRoute: DeliveryRoute | null
+  defaultPriceTableId: string | null
+  defaultPaymentMethodId: string | null
+  proFinancasId: number | null
+  createdAt: string
+  updatedAt: string
+}
+
+export type ClientClassification = { id: string; name: string; proFinancasId: number | null }
+export type DeliveryRoute = { id: string; name: string; proFinancasId: number | null }
+
+export type ClientOrderSummary = {
+  id: string
+  orderNumber: string
+  title: string
+  status: string
+  totalCents: number
+  paidAmountCents: number
+  createdAt: string
+  deliveryDeadline: string | null
+}
+
+export type ClientFinancialSummary = {
+  totalAmountCents: number
+  totalPaidCents: number
+  totalPendingCents: number
+  totalOverdueCents: number
+  countTotal: number
+  countPending: number
+  countOverdue: number
+  countPaid: number
+}
+
+export type ClientFilters = {
+  search?: string
+  page?: number
+  limit?: number
+  personType?: PersonType
+}
+```
+
+### Service (owner: Sabrina — `src/features/clients/services/client.service.ts`)
+
+```typescript
+// Assinaturas que TODOS os tracks importam:
+getClients(filters?: ClientFilters): Promise<PaginatedResponse<Client>>
+getClientById(id: string): Promise<Client>
+createClient(payload: CreateClientPayload): Promise<Client>
+updateClient(id: string, payload: UpdateClientPayload): Promise<Client>
+deleteClient(id: string): Promise<void>
+getClientOrders(id: string): Promise<ClientOrderSummary[]>
+getClientFinancials(id: string): Promise<ClientFinancialSummary>
+getClientClassifications(): Promise<ClientClassification[]>
+getDeliveryRoutes(): Promise<DeliveryRoute[]>
+```
+
+### Hooks (owner: Sabrina — `src/features/clients/hooks/use-clients.ts`)
+
+```typescript
+// Query hooks (todos os tracks importam):
+useClients(filters?: ClientFilters)           // → { data, isLoading, error }
+useClient(id: string)                          // → { data, isLoading, error }
+useClientOrders(id: string)                    // → { data, isLoading, error }
+useClientFinancials(id: string)                // → { data, isLoading, error }
+useClientClassifications()                     // → { data }
+useDeliveryRoutes()                            // → { data }
+
+// Mutation hooks:
+useCreateClient()                              // → { mutate, isPending }
+useUpdateClient(id: string)                    // → { mutate, isPending }
+useDeleteClient(id: string)                    // → { mutate, isPending }
+```
+
+### Home Types (owner: Victor — `src/features/home/types/home.types.ts`)
+
+```typescript
+export type ActivityInstance = {
+  id: string
+  activityName: string
+  processName: string
+  orderId: string
+  orderCode: string
+  clientName: string
+  assignedUserId: string
+  status: 'PENDING' | 'IN_PROGRESS' | 'COMPLETED' | 'SKIPPED'
+  dueAt: string | null
+  startedAt: string | null
+  completedAt: string | null
+  slaMinutes: number | null
+  slaRemainingMinutes: number | null
+  checklistTotal: number
+  checklistCompleted: number
+  createdAt: string
+}
+
+export type HandoffInstance = {
+  id: string
+  handoffName: string
+  processName: string
+  orderId: string
+  orderCode: string
+  clientName: string
+  fromDepartment: string
+  toDepartment: string
+  status: 'PENDING' | 'ACCEPTED' | 'REJECTED'
+  notes: string | null
+  createdAt: string
+}
+```
+
+---
+
+## Track 1 — Victor Lemos: Home Feature (completa)
+
+**Escopo:** Toda a feature `/inicio` — de ponta a ponta.
+
+### Arquivos que cria/modifica (ownership exclusivo)
+
+```
+src/features/home/
+├── components/
+│   ├── greeting.tsx              ← Saudacao dinamica
+│   ├── activity-card.tsx         ← Card de atividade individual
+│   ├── daily-activities.tsx      ← Container: lista de ActivityCard
+│   ├── handoff-card.tsx          ← Card de handoff individual
+│   ├── pending-handoffs.tsx      ← Container: lista de HandoffCard
+│   └── stats-cards.tsx           ← KPIs resumo (total atividades, atrasadas, concluidas)
+├── hooks/
+│   ├── use-daily-activities.ts   ← React Query: getDailyActivities, refetch 60s
+│   └── use-pending-handoffs.ts   ← React Query: getPendingHandoffs, refetch 60s
+├── services/
+│   └── home.service.ts           ← API calls: /activity-instances, /handoff-instances
+└── types/
+    └── home.types.ts             ← ActivityInstance, HandoffInstance
+
+src/app/(dashboard)/inicio/page.tsx  ← Page: Greeting + DailyActivities + PendingHandoffs
+```
+
+### Especificacao funcional
+
+1. **greeting.tsx**
+   - Hora local: 5-11h "Bom dia", 12-17h "Boa tarde", 18-4h "Boa noite"
+   - Primeiro nome do usuario via `useAuthStore().user.name.split(' ')[0]`
+   - Subtitulo: "Aqui esta o resumo das suas atividades de hoje"
+
+2. **activity-card.tsx**
+   - Props: `activity: ActivityInstance`
+   - Link: `/comercial/pedidos/${activity.orderId}`
+   - Exibe: nome da atividade, nome do processo, codigo do pedido, nome do cliente
+   - Badge de status (Align UI Badge)
+   - SLA: vermelho se `slaRemainingMinutes < 0`, laranja se `< 60`, verde caso contrario
+   - Barra de progresso checklist: `checklistCompleted / checklistTotal` (Align UI ProgressBar)
+   - Hover: tooltip "Abrir dossie"
+
+3. **daily-activities.tsx**
+   - Titulo: "Atividades do dia" + contagem
+   - Se vazio: empty state "Nenhuma atividade para hoje"
+   - Mapeia ActivityInstance[] → ActivityCard[]
+
+4. **handoff-card.tsx** / **pending-handoffs.tsx**
+   - Mesmo padrao de daily-activities
+   - Card mostra: nome handoff, processo, pedido, departamento de origem, notas
+   - Link: `/comercial/pedidos/${handoff.orderId}`
+
+5. **stats-cards.tsx**
+   - 3 cards KPI: Total atividades, Atrasadas (SLA < 0), Concluidas hoje
+   - Cores: neutro, vermelho, verde
+
+6. **inicio/page.tsx**
+   - Layout: `<Greeting />` + `<StatsCards />` + grid 2 colunas `<DailyActivities />` | `<PendingHandoffs />`
+
+### Dependencias externas
+
+- `useAuthStore` de `src/stores/auth.store.ts` (ja existe)
+- Align UI: Badge, ProgressBar, Card (ja existem em `src/components/ui/`)
+- API BPM: GET /activity-instances?assignedUserId=X&dueAt=today, GET /handoff-instances?status=PENDING&toDepartment=Y
+
+### Criterios de aceite
+
+- [ ] Saudacao muda conforme hora do dia
+- [ ] Atividades carregam via React Query com refetch 60s
+- [ ] Cards de atividade linkam para dossie do pedido
+- [ ] SLA exibe cores corretas (verde/laranja/vermelho)
+- [ ] Checklist mostra progresso visual
+- [ ] Handoffs pendentes exibem com departamento de origem
+- [ ] Empty states quando nao ha dados
+- [ ] Dark mode funcional
+
+---
+
+## Track 2 — Sabrina Costa: Lista de Clientes + Fundacao
+
+**Escopo:** Pagina `/comercial/clientes` + TODOS os arquivos compartilhados (types, service, hooks).
+
+### Arquivos que cria/modifica (ownership exclusivo)
+
+```
+src/features/clients/
+├── types/
+│   └── client.types.ts           ← TODAS as types do modulo (contrato acima)
+├── services/
+│   └── client.service.ts         ← TODAS as API calls (contrato acima)
+├── hooks/
+│   └── use-clients.ts            ← TODOS os hooks React Query (contrato acima)
+└── components/
+    └── client-table.tsx          ← Tabela paginada + busca + filtros
+
+src/app/(dashboard)/comercial/clientes/page.tsx  ← Page: titulo + busca + ClientTable
+```
+
+### Especificacao funcional
+
+1. **client.types.ts** — Implementa EXATAMENTE o contrato da secao "Contratos Compartilhados"
+
+2. **client.service.ts** — Implementa TODAS as assinaturas do contrato. Usa `api` de `src/lib/api.ts`.
+
+3. **use-clients.ts** — Implementa TODOS os hooks do contrato. Query keys:
+   - `['clients', filters]` para lista
+   - `['clients', id]` para detalhe
+   - `['clients', id, 'orders']` para pedidos
+   - `['clients', id, 'financials']` para financeiro
+   - `['client-classifications']` para classificacoes
+   - `['delivery-routes']` para rotas
+   - Mutations invalidam `['clients']` no onSuccess
+
+4. **client-table.tsx**
+   - Props: nenhuma (usa hooks internamente)
+   - Colunas: Nome, CPF/CNPJ (formatado), Email, Cidade, Acoes (ver, editar, excluir)
+   - Busca por nome/CPF-CNPJ com debounce 300ms (`useDebounce` de `src/hooks/`)
+   - Paginacao (Align UI Pagination), limite 20 por pagina
+   - Filtro por personType (F/J) via Select
+   - Link "ver": `/comercial/clientes/${id}`
+   - Link "editar": `/comercial/clientes/${id}/editar`
+   - Excluir: modal de confirmacao (Align UI Modal)
+   - Loading: skeleton rows
+   - Empty state: "Nenhum cliente encontrado"
+
+5. **clientes/page.tsx**
+   - Titulo: "Clientes"
+   - Botao "Novo Cliente" → `/comercial/clientes/novo` (Align UI Button)
+   - `<ClientTable />`
+
+### Dependencias externas
+
+- `api` de `src/lib/api.ts`
+- `useDebounce` de `src/hooks/use-debounce.ts`
+- `formatCpfCnpj` de `src/lib/formatters.ts`
+- Align UI: Table, Pagination, Button, Modal, Input, Select, Badge
+
+### Criterios de aceite
+
+- [ ] Tabela carrega clientes paginados
+- [ ] Busca funciona com debounce
+- [ ] Filtro por pessoa fisica/juridica
+- [ ] Paginacao navega entre paginas
+- [ ] Delete abre modal de confirmacao
+- [ ] Loading skeleton enquanto carrega
+- [ ] Empty state quando nao ha resultados
+- [ ] Formatacao CPF/CNPJ correta
+- [ ] Dark mode funcional
+
+### IMPORTANTE — Fundacao para outros tracks
+
+Sabrina cria `client.types.ts`, `client.service.ts` e `use-clients.ts` seguindo os contratos acima. Diego (T3) e Paula (T4) importam desses arquivos. Se Sabrina ainda nao criou, Diego/Paula devem criar stubs locais com as mesmas assinaturas e refatorar depois. O contrato garante compatibilidade.
+
+---
+
+## Track 3 — Diego Martins: Formulario Cadastro/Edicao
+
+**Escopo:** Formularios `/comercial/clientes/novo` e `/comercial/clientes/[id]/editar`.
+
+### Arquivos que cria/modifica (ownership exclusivo)
+
+```
+src/features/clients/
+├── schemas/
+│   └── client.schema.ts          ← Zod schema para validacao
+├── components/
+│   └── client-form.tsx           ← Formulario reutilizavel (create + edit)
+└── utils/
+    └── to-payload.ts             ← Transforma form values → API payload
+
+src/app/(dashboard)/comercial/clientes/novo/page.tsx          ← Page: criar
+src/app/(dashboard)/comercial/clientes/[id]/editar/page.tsx   ← Page: editar
+```
+
+### Especificacao funcional
+
+1. **client.schema.ts** — Zod schema:
+   ```
+   personType: z.enum(['F', 'J'])
+   cpfCnpj: z.string() — validacao condicional: CPF (11 digitos, algoritmo) se F, CNPJ (14, algoritmo) se J
+   name: z.string().min(3).max(200)
+   tradeName: z.string().optional()
+   ie: z.string().optional() — visivel apenas se personType === 'J'
+   rg: z.string().optional() — visivel apenas se personType === 'F'
+   email: z.string().email().optional().or(z.literal(''))
+   phone: z.string().optional()
+   zipCode: z.string().length(8).optional()
+   address, addressNumber, neighborhood, complement, city, state: z.string().optional()
+   classificationId, deliveryRouteId, defaultPriceTableId, defaultPaymentMethodId: z.string().optional()
+   ```
+
+2. **client-form.tsx**
+   - Props: `{ defaultValues?: Partial<Client>; onSubmit: (data) => void; isPending: boolean }`
+   - React Hook Form + zodResolver
+   - **Fieldset 1 — Dados Principais:**
+     - Toggle PersonType (Radio group: Pessoa Fisica / Pessoa Juridica)
+     - CPF/CNPJ com mascara condicional
+     - Nome (label muda: "Nome Completo" se F, "Razao Social" se J)
+     - Nome Fantasia / Apelido
+     - IE (se J) ou RG (se F) — condicional com `watch('personType')`
+   - **Fieldset 2 — Contato:**
+     - Email, Telefone (com mascara)
+   - **Fieldset 3 — Endereco:**
+     - CEP (busca viaCEP → preenche address, neighborhood, city, state)
+     - Logradouro, Numero, Bairro, Complemento, Cidade, Estado (Select com 27 UFs)
+   - **Fieldset 4 — Classificacao:**
+     - Classificacao (Select → useClientClassifications)
+     - Rota de entrega (Select → useDeliveryRoutes)
+   - Botoes: "Salvar" (submit) + "Cancelar" (router.back)
+
+3. **to-payload.ts** — Remove campos vazios/undefined, converte para formato API
+
+4. **novo/page.tsx**
+   - Titulo: "Novo Cliente"
+   - `<ClientForm onSubmit={createClient} isPending={isPending} />`
+   - Redirect para `/comercial/clientes/${id}` no sucesso
+
+5. **[id]/editar/page.tsx**
+   - Carrega cliente via `useClient(id)`
+   - Titulo: "Editar Cliente — {client.name}"
+   - `<ClientForm defaultValues={client} onSubmit={updateClient} isPending={isPending} />`
+   - Redirect para `/comercial/clientes/${id}` no sucesso
+
+### Dependencias externas
+
+- `useCreateClient`, `useUpdateClient`, `useClient`, `useClientClassifications`, `useDeliveryRoutes` de `use-clients.ts` (T2)
+- `Client` type de `client.types.ts` (T2)
+- Align UI: Input, Select, Button, RadioGroup
+- `useNotification` de `src/hooks/use-notification.ts`
+- Se `use-clients.ts` ainda nao existir: criar stubs locais com mesmas assinaturas do contrato
+
+### Criterios de aceite
+
+- [ ] Formulario valida CPF (pessoa fisica) e CNPJ (pessoa juridica)
+- [ ] Labels mudam conforme personType (F/J)
+- [ ] CEP busca e preenche endereco automaticamente
+- [ ] Classificacao e rota de entrega carregam via API
+- [ ] Criar cliente redireciona para detalhe
+- [ ] Editar pre-preenche todos os campos
+- [ ] Botao desabilitado durante submit (isPending)
+- [ ] Mensagem de sucesso/erro via useNotification
+- [ ] Dark mode funcional
+
+---
+
+## Track 4 — Paula Rezende: Detalhe do Cliente + Tabs
+
+**Escopo:** Pagina `/comercial/clientes/[id]` com Tab Menu (Dados, Pedidos, Financeiro).
+
+### Arquivos que cria/modifica (ownership exclusivo)
+
+```
+src/features/clients/
+└── components/
+    ├── client-detail.tsx          ← Container: header + Tab Menu
+    └── client-tabs/
+        ├── data-tab.tsx           ← Tab Dados: exibicao read-only
+        ├── orders-tab.tsx         ← Tab Pedidos: lista resumida
+        └── financial-tab.tsx      ← Tab Financeiro: KPIs + resumo
+
+src/app/(dashboard)/comercial/clientes/[id]/page.tsx  ← Page: detalhe
+```
+
+### Especificacao funcional
+
+1. **client-detail.tsx**
+   - Props: `{ client: Client }`
+   - Header: nome do cliente, badge personType (PF/PJ), botao "Editar" → `/comercial/clientes/${id}/editar`
+   - Tab Menu (Align UI TabMenu): 3 abas — "Dados", "Pedidos", "Financeiro"
+   - Renderiza tab ativa: `<DataTab />` | `<OrdersTab />` | `<FinancialTab />`
+
+2. **data-tab.tsx**
+   - Props: `{ client: Client }`
+   - Exibicao read-only organizada em secoes:
+     - Dados Principais: tipo, CPF/CNPJ (formatado), nome, nome fantasia, IE/RG
+     - Contato: email, telefone
+     - Endereco: CEP, logradouro, numero, bairro, complemento, cidade/UF
+     - Classificacao: nome da classificacao, rota de entrega
+   - Campos vazios: exibir "—"
+
+3. **orders-tab.tsx**
+   - Usa `useClientOrders(client.id)`
+   - Tabela: Numero, Titulo, Status (Badge), Total (formatCurrency), Pago, Prazo entrega
+   - Empty state: "Nenhum pedido encontrado"
+   - Loading: skeleton
+
+4. **financial-tab.tsx**
+   - Usa `useClientFinancials(client.id)`
+   - 4 KPI cards: Total, Pago, Pendente, Vencido
+   - Cores: neutro, verde, laranja, vermelho
+   - Contadores por status abaixo dos cards
+   - Empty state se todos zerados
+
+5. **[id]/page.tsx**
+   - Carrega `useClient(id)` via params
+   - Loading: skeleton page
+   - Not found: mensagem + link voltar
+   - `<ClientDetail client={client} />`
+
+### Dependencias externas
+
+- `useClient`, `useClientOrders`, `useClientFinancials` de `use-clients.ts` (T2)
+- `Client`, `ClientOrderSummary`, `ClientFinancialSummary` de `client.types.ts` (T2)
+- `formatCpfCnpj`, `formatCurrency` de `src/lib/formatters.ts`
+- Align UI: TabMenu, Badge, Card, Table
+- Se `use-clients.ts` ainda nao existir: criar stubs locais com mesmas assinaturas do contrato
+
+### Criterios de aceite
+
+- [ ] Tab Menu navega entre 3 abas sem reload
+- [ ] Tab Dados exibe todos os campos formatados
+- [ ] Tab Pedidos carrega e exibe pedidos do cliente
+- [ ] Tab Financeiro exibe KPIs com cores corretas
+- [ ] Botao Editar navega para `/comercial/clientes/${id}/editar`
+- [ ] Loading states em todas as tabs
+- [ ] Empty states quando nao ha dados
+- [ ] Dark mode funcional
+
+---
+
+## Track 5 — Gustavo Lira: QA Visual + Testes (paralelo desde o inicio)
+
+**Escopo:** Validacao Figma, testes de componente, review visual. Atua em PARALELO com os tracks 1-4 desde o inicio — nao espera finalizacao.
+
+### Como atua em paralelo
+
+1. **Enquanto T1-T4 constroem:** Gustavo prepara a infraestrutura de testes e valida templates Figma
+   - Consulta Design System via `get_design_context(fileKey, nodeId)` para cada componente referenciado
+   - Documenta tokens esperados (cores, espacamentos, tipografia) por componente
+   - Prepara mocks de dados para testes
+
+2. **Conforme cada track entrega:** Gustavo valida imediatamente
+   - Compara componente com Figma via `get_screenshot`
+   - Valida em light mode E dark mode
+   - Reporta diferencas ao dono do track
+
+3. **Validacoes especificas por track:**
+
+   | Track | O que Gustavo valida |
+   |---|---|
+   | T1 (Victor) | Greeting typography, Activity Card layout, SLA color tokens, ProgressBar usage |
+   | T2 (Sabrina) | Table columns alignment, Pagination component, Search input, Empty state |
+   | T3 (Diego) | Form fieldset spacing, Input/Select usage, Error states, conditional fields |
+   | T4 (Paula) | TabMenu implementation, Data layout, KPI cards spacing, Financial colors |
+
+### Figma nodes para validacao
+
+| Componente | Node ID Figma | Uso |
+|---|---|---|
+| Table | consultar FIGMA.md | client-table.tsx |
+| Tab Menu | consultar FIGMA.md | client-detail.tsx |
+| Badge | consultar FIGMA.md | activity-card, status badges |
+| Button | consultar FIGMA.md | todas as pages |
+| Input | consultar FIGMA.md | client-form, busca |
+| Select | consultar FIGMA.md | client-form, filtros |
+| Pagination | consultar FIGMA.md | client-table |
+| Progress Bar | consultar FIGMA.md | activity-card checklist |
+| Card | consultar FIGMA.md | stats-cards, KPI cards |
+| Modal | consultar FIGMA.md | confirmacao delete |
+| Marketing & Sales template | 6696:81119 | Referencia para layout de /comercial/clientes |
+| Finance & Banking template | 3911:35677 | Referencia para layout de /inicio (dashboard) |
+
+### Criterios de aceite
+
+- [ ] Todos os componentes validados contra Figma Design System
+- [ ] Light mode e dark mode verificados
+- [ ] Tokens de cor corretos (sem hex hardcoded — usar CSS variables)
+- [ ] Tipografia segue text styles do DS (Title, Label, Paragraph, Subheading)
+- [ ] Espacamentos consistentes com grid system
+- [ ] Componentes Align UI usados corretamente (sem reinvencao)
+
+---
+
+## Estrategia Anti-Conflito
+
+### Regra de ouro: ZERO sobreposicao de arquivos
+
+Cada track SOMENTE cria/edita os arquivos listados em seu bloco "Arquivos que cria/modifica". Se precisar de um arquivo de outro track:
+
+1. **Arquivo ja existe?** → Importa normalmente
+2. **Arquivo ainda nao existe?** → Cria um stub local temporario com as mesmas assinaturas do contrato. Quando o arquivo real for criado pelo dono, substitui o import.
+
+### Resolucao de dependencias
+
+```
+T1 (Victor)  → INDEPENDENTE. Nao depende de nenhum track interno.
+T2 (Sabrina) → INDEPENDENTE. Cria a fundacao que T3 e T4 importam.
+T3 (Diego)   → Importa de T2 (types, hooks). Se T2 nao entregou ainda → stub.
+T4 (Paula)   → Importa de T2 (types, hooks). Se T2 nao entregou ainda → stub.
+T5 (Gustavo) → INDEPENDENTE. Valida em paralelo, nao modifica codigo.
+```
+
+### Ordem de criacao dos shared files
+
+Sabrina (T2) cria `client.types.ts`, `client.service.ts` e `use-clients.ts` como primeiras tarefas, ANTES de `client-table.tsx`. Isso desbloqueia T3 e T4 o mais rapido possivel.
+
+---
+
+## Padroes Tecnicos do Squad
+
+### Imports compartilhados (todos os tracks)
+
+```typescript
+// API client
+import { api } from '@/lib/api'
+
+// Formatters
+import { formatCpfCnpj, formatCurrency, formatDate } from '@/lib/formatters'
+
+// Auth store
+import { useAuthStore } from '@/stores/auth.store'
+
+// Global hooks
+import { useDebounce } from '@/hooks/use-debounce'
+import { useNotification } from '@/hooks/use-notification'
+
+// React Query
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
+
+// React Hook Form + Zod (T3 apenas)
+import { useForm } from 'react-hook-form'
+import { zodResolver } from '@hookform/resolvers/zod'
+import { z } from 'zod'
+
+// Navigation
+import { useRouter, useParams } from 'next/navigation'
+import Link from 'next/link'
+```
+
+### Tokens de cor
+
+```
+Status SLA:
+- Verde (ok):     text-success-base / bg-success-alpha-10
+- Laranja (alerta): text-warning-base / bg-warning-alpha-10
+- Vermelho (atrasado): text-error-base / bg-error-alpha-10
+
+KPI Financeiro:
+- Total:    text-text-strong-950 / bg-bg-white-0
+- Pago:     text-success-base / bg-success-alpha-10
+- Pendente: text-warning-base / bg-warning-alpha-10
+- Vencido:  text-error-base / bg-error-alpha-10
+
+Badges personType:
+- PF: variant="neutral"
+- PJ: variant="primary"
+```
+
+### Convencoes de arquivo
+
+```
+Componentes: kebab-case (client-form.tsx, activity-card.tsx)
+Types: kebab-case (client.types.ts)
+Hooks: use-{nome}.ts
+Services: {feature}.service.ts
+Schemas: {feature}.schema.ts
+Pages: page.tsx (Next.js App Router)
+```
+
+---
+
+## Regras do Squad
+
+1. **Nenhum componente ultrapassa 150 linhas.** Se ultrapassar, decomponha em subcomponentes.
+2. **Dark mode e obrigatorio.** Todo componente deve funcionar em light e dark.
+3. **Align UI primeiro.** Use componentes do Design System. Nao invente componentes.
+4. **Figma e referencia.** Adapte ao stack (Tailwind v4, Align UI tokens).
+5. **Types antes de tudo.** Nunca use `any`. Respeite os contratos compartilhados.
+6. **Stubs sao temporarios.** Se criou stub porque T2 nao entregou, remova assim que o arquivo real existir.
+
+---
+
+## Manutencao
+
+| Quando... | Procure... |
+|---|---|
+| Tela inicio, atividades, handoffs | Victor Lemos |
+| Tipos, servicos, hooks de clientes, tabela | Sabrina Costa |
+| Formulario, validacao, schema Zod | Diego Martins |
+| Detalhe, tabs, pedidos/financeiro do cliente | Paula Rezende |
+| Fidelidade Figma, dark mode, testes visuais | Gustavo Lira |
 
 ---
 
@@ -52,9 +672,15 @@ Tela inicial personalizada (saudacao + atividades do dia + handoffs) e CRUD comp
 
 | Squad | O que consumimos |
 |---|---|
-| Squad FE Shell | Layout, sidebar, providers, stores |
-| Squad Clients (backend) | API /clients/** |
-| Squad BPM (backend) | API /activity-instances, /handoff-instances |
+| Squad FE Shell (F6) | Layout, sidebar, providers, stores, tokens DS |
+| Squad Clients backend (F4A) | API /clients/**, /client-classifications, /delivery-routes |
+| Squad BPM backend (F3) | API /activity-instances, /handoff-instances |
+
+### Quem depende de nos
+
+| Squad | O que consomem |
+|---|---|
+| Squad FE Orders (F7B) | Link de clientes, navegacao de pedidos |
 
 ---
 
@@ -63,8 +689,18 @@ Tela inicial personalizada (saudacao + atividades do dia + handoffs) e CRUD comp
 ```
 REFERENCIAS:
 - Tela Inicio: .claude/plan/PLANO.md Tela Inicio
+- Tela Clientes: .claude/plan/PLANO.md Tela Clientes
 - Rotas: .claude/plan/PLANO.md secao 5 (Rotas Frontend /comercial/clientes/**)
 - Features: .claude/plan/PLANO.md Organizacao por Feature
 - Stories: .claude/plan/PLANO.md Fase 7A
-- Design System: .claude/references/FIGMA.md
+- Design System: .claude/references/FIGMA.md (file key AjvK4iQOOs2wPcp53ZfIVr)
+- Padrao frontend: .claude/standards/05-frontend.md
+- Nomenclatura: .claude/standards/03-nomenclatura-e-padroes.md
+- Template Marketing & Sales: Figma node 6696:81119 (referencia /comercial)
+- Template Finance & Banking: Figma node 3911:35677 (referencia /inicio)
+- Componentes Align UI: src/components/ui/
+- API client: src/lib/api.ts
+- Formatters: src/lib/formatters.ts
+- Auth store: src/stores/auth.store.ts
+- Hooks globais: src/hooks/
 ```

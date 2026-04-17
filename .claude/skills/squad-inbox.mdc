@@ -1,0 +1,1497 @@
+# Squad Inbox (Caixa de Entrada)
+
+## Dominio
+
+Feature completa de notificacoes do sistema: modelo de dados, API REST, event listeners, tela `/inbox` com tabs, toolbar, filtros, agrupamento por data, hotkeys e integracao com sidebar badge. Backend: `mundial-erp-api/src/modules/notifications/`. Frontend: `mundial-erp-web/src/features/inbox/`.
+
+**Fonte de verdade:** INBOX_SPEC.md (raiz do projeto — especificacao de produto + tecnica completa)
+**Design System:** FIGMA.md (.claude/references/FIGMA.md), Figma file key AjvK4iQOOs2wPcp53ZfIVr, Notification Feed node 4096:21398
+**Padrao Bravy:** .claude/standards/99-referencia-completa.md (Controller/Service/Repository, DTOs, React Query, Zod)
+**Agente CTO:** .claude/agents/agent-cto.md (performance, resiliencia, revisao de codigo)
+
+---
+
+## Recursos sob responsabilidade
+
+### Backend — API de Notificacoes
+
+| Recurso | Referencia INBOX_SPEC |
+|---|---|
+| Model Prisma `Notification` + enums + migration + indices | Secao 3 (Modelo de dados) |
+| `NotificationsRepository` (queries Prisma, contagens, bulk ops) | Secao 4 (Endpoints) |
+| `NotificationsService` (logica de negocio, mark/clear/snooze) | Secao 4 (Endpoints) |
+| `NotificationEmitterService` (EventEmitter2 listeners → cria notificacoes) | Integracao BPM/Orders/Chat |
+| `NotificationsController` (10 endpoints REST) | Secao 4 (Endpoints) |
+| DTOs: query, create, snooze, response, counts | Secao 3 + 4 |
+| `NotificationsModule` (wiring) | Padrao Bravy |
+| Seed: 5 notificacoes mockadas para dev | Secao 12 (CA #1) |
+
+### Frontend — Tela /inbox
+
+| Recurso | Referencia INBOX_SPEC |
+|---|---|
+| Types: Notification, NotificationStatus, NotificationType, InboxView, NotificationsResponse | Secao 3 |
+| Service HTTP: notificationService (todas as chamadas API) | Secao 4 |
+| Hooks React Query: useNotifications, mutations (read/clear/snooze/bulk) | Secao 4 |
+| Page Server Component: `/inbox` com prefetch | Secao 11 |
+| inbox-client.tsx: shell 'use client' com tabs + toolbar + lista | Secao 5 |
+| inbox-tabs.tsx: 5 abas (All, Primary, Other, Later, Cleared) com badges | Secao 5 |
+| inbox-toolbar.tsx: Filter + Mark all read + Clear all / Delete all | Secao 5, 8 |
+| inbox-filter-popover.tsx: filtros client-side (tipo, periodo, nao lidas) | Secao 8 |
+| notification-list.tsx: container com agrupamento por data | Secao 6 |
+| notification-group.tsx: header de grupo (Today, Yesterday, Last 7 days...) | Secao 6 |
+| notification-item.tsx: item individual (hover actions, unread indicator) | Secao 7 (UI critica) |
+| empty-state.tsx: estados vazios por view | Secao 9 |
+| confirm-dialog.tsx: AlertDialog para Clear all / Delete all | Secao 8 |
+| use-inbox-hotkeys.ts: E, J, K, Shift+E | Secao 8 |
+| date.ts: helpers de agrupamento e formatacao (date-fns + ptBR) | Secao 6 |
+| Sidebar badge: integracao do contador unread no menu lateral | Secao 1 |
+
+---
+
+## Composicao do Time — 10 Tracks Paralelos
+
+Todos os 10 membros atuam **simultaneamente** desde o inicio. Cada track tem ownership exclusivo de arquivos — ZERO sobreposicao.
+
+### Backend (4 tracks)
+
+| Track | Membro | Papel | Arquivos exclusivos |
+|---|---|---|---|
+| **T1** | **Renato Souza** (Senior) | Tech Lead Backend + Schema + Repository | `prisma/schema.prisma` (model Notification + enums), `notifications.repository.ts`, migration, seed |
+| **T2** | **Amanda Lopes** (Pleno) | DTOs + Module | Todos os DTOs em `dto/`, `notifications.module.ts` |
+| **T3** | **Thiago Mendes** (Senior) | Service + Event Listeners | `notifications.service.ts`, `notification-emitter.service.ts` |
+| **T4** | **Juliana Matos** (Pleno) | Controller | `notifications.controller.ts` |
+
+### Frontend (6 tracks)
+
+| Track | Membro | Papel | Arquivos exclusivos |
+|---|---|---|---|
+| **T5** | **Rafael Almeida** (Senior) | Tech Lead Frontend + Foundation (types, service, hooks) | `types/notification.types.ts`, `services/notification.service.ts`, `hooks/use-notifications.ts` |
+| **T6** | **Camila Rocha** (Pleno) | Page + Shell + Tabs | `app/(dashboard)/inbox/page.tsx`, `inbox-client.tsx`, `inbox-tabs.tsx` |
+| **T7** | **Leonardo Barros** (Pleno) | Lista + Grupos + Date helpers | `notification-list.tsx`, `notification-group.tsx`, `lib/date.ts` |
+| **T8** | **Fernanda Vieira** (Pleno) | NotificationItem (UI critica) | `notification-item.tsx` |
+| **T9** | **Andre Moreira** (Pleno) | Toolbar + Filter + Dialogs + Empty + Hotkeys | `inbox-toolbar.tsx`, `inbox-filter-popover.tsx`, `confirm-dialog.tsx`, `empty-state.tsx`, `use-inbox-hotkeys.ts` |
+| **T10** | **Isabela Cunha** (Senior) | QA Visual + Testes + Sidebar Badge | Testes em `__tests__/`, sidebar badge integration, validacao Figma |
+
+---
+
+## Contratos Compartilhados
+
+Estes contratos definem as interfaces que TODOS os tracks usam. Cada agente implementa apenas seus arquivos mas DEVE respeitar esses tipos.
+
+### Enums Prisma (owner: Renato T1 — `prisma/schema.prisma`)
+
+```prisma
+enum NotificationType {
+  TASK_OVERDUE
+  TASK_DUE_SOON
+  MESSAGE
+  MENTION
+  SYSTEM
+}
+
+enum NotificationStatus {
+  UNREAD
+  READ
+  CLEARED
+  SNOOZED
+}
+
+enum NotificationCategory {
+  PRIMARY
+  OTHER
+}
+```
+
+### Model Prisma (owner: Renato T1 — `prisma/schema.prisma`)
+
+```prisma
+model Notification {
+  id           String               @id @default(cuid())
+  createdAt    DateTime             @default(now()) @map("created_at")
+  updatedAt    DateTime             @updatedAt @map("updated_at")
+  deletedAt    DateTime?            @map("deleted_at")
+
+  userId       String               @map("user_id")
+  user         User                 @relation(fields: [userId], references: [id])
+  type         NotificationType
+  category     NotificationCategory
+  title        String
+  description  String
+  entityId     String?              @map("entity_id")
+  entityUrl    String?              @map("entity_url")
+  status       NotificationStatus   @default(UNREAD)
+  snoozedUntil DateTime?            @map("snoozed_until")
+  readAt       DateTime?            @map("read_at")
+  clearedAt    DateTime?            @map("cleared_at")
+
+  @@index([userId, status, createdAt], name: "idx_notifications_user_status_created")
+  @@index([userId, category, status], name: "idx_notifications_user_category_status")
+  @@index([userId, status], name: "idx_notifications_user_status")
+  @@index([snoozedUntil], name: "idx_notifications_snoozed_until")
+  @@map("notifications")
+}
+```
+
+### Frontend Types (owner: Rafael T5 — `src/features/inbox/types/notification.types.ts`)
+
+```typescript
+export type NotificationType =
+  | 'task.overdue'
+  | 'task.due_soon'
+  | 'message'
+  | 'mention'
+  | 'system'
+
+export type NotificationStatus = 'unread' | 'read' | 'cleared' | 'snoozed'
+
+export type NotificationCategory = 'primary' | 'other'
+
+export type Notification = {
+  id: string
+  userId: string
+  type: NotificationType
+  category: NotificationCategory
+  title: string
+  description: string
+  entityId: string | null
+  entityUrl: string | null
+  status: NotificationStatus
+  snoozedUntil: string | null
+  createdAt: string
+  readAt: string | null
+  clearedAt: string | null
+}
+
+export type InboxView = 'all' | 'primary' | 'other' | 'later' | 'cleared'
+
+export type NotificationCounts = {
+  all: number
+  primary: number
+  other: number
+  later: number
+  cleared: number
+}
+
+export type NotificationsResponse = {
+  items: Notification[]
+  counts: NotificationCounts
+}
+
+export type SnoozePayload = {
+  until: string
+}
+
+export type BulkActionPayload = {
+  view: InboxView
+}
+
+export type NotificationFilters = {
+  types?: NotificationType[]
+  period?: 'today' | '7days' | '30days' | 'custom'
+  unreadOnly?: boolean
+}
+```
+
+### Service HTTP (owner: Rafael T5 — `src/features/inbox/services/notification.service.ts`)
+
+```typescript
+// Assinaturas que TODOS os tracks frontend importam:
+getNotifications(view: InboxView): Promise<NotificationsResponse>
+markAsRead(id: string): Promise<void>
+markAsUnread(id: string): Promise<void>
+clearNotification(id: string): Promise<void>
+unclearNotification(id: string): Promise<void>
+snoozeNotification(id: string, payload: SnoozePayload): Promise<void>
+unsnoozeNotification(id: string): Promise<void>
+markAllRead(payload: BulkActionPayload): Promise<void>
+clearAll(payload: BulkActionPayload): Promise<void>
+deleteAllCleared(): Promise<void>
+```
+
+### Hooks React Query (owner: Rafael T5 — `src/features/inbox/hooks/use-notifications.ts`)
+
+```typescript
+// Query hooks:
+useNotifications(view: InboxView)               // → { data: NotificationsResponse, isLoading, error, refetch }
+// Config: refetchOnWindowFocus: true, staleTime: 30_000
+
+// Mutation hooks (todos com optimistic update + invalidate ['notifications']):
+useMarkAsRead()                                  // → { mutate(id) }
+useMarkAsUnread()                                // → { mutate(id) }
+useClearNotification()                           // → { mutate(id) }
+useUnclearNotification()                         // → { mutate(id) }
+useSnoozeNotification()                          // → { mutate({ id, until }) }
+useUnsnoozeNotification()                        // → { mutate(id) }
+useMarkAllRead()                                 // → { mutate(view) }
+useClearAll()                                    // → { mutate(view) }
+useDeleteAllCleared()                            // → { mutate() }
+```
+
+### Date Helpers (owner: Leonardo T7 — `src/features/inbox/lib/date.ts`)
+
+```typescript
+// Funcoes exportadas:
+type DateGroup = 'today' | 'yesterday' | 'last7days' | 'last30days' | 'older'
+
+groupNotificationsByDate(items: Notification[]): Map<DateGroup, Notification[]>
+getGroupLabel(group: DateGroup): string           // → "Today", "Yesterday", "Last 7 days", etc.
+formatNotificationTime(dateStr: string): string   // → "15:57" ou "15 de abr" ou "15 de abr de 2025"
+```
+
+### Endpoints REST (referencia para T4 Controller e T5 Service)
+
+| Metodo | Endpoint | Body/Params | Usado por |
+|---|---|---|---|
+| GET | `/notifications?view={view}` | query: view (InboxView) | useNotifications |
+| PATCH | `/notifications/:id/read` | — | useMarkAsRead |
+| PATCH | `/notifications/:id/unread` | — | useMarkAsUnread |
+| PATCH | `/notifications/:id/clear` | — | useClearNotification |
+| PATCH | `/notifications/:id/unclear` | — | useUnclearNotification |
+| PATCH | `/notifications/:id/snooze` | body: { until: ISO } | useSnoozeNotification |
+| PATCH | `/notifications/:id/unsnooze` | — | useUnsnoozeNotification |
+| POST | `/notifications/mark-all-read` | body: { view: InboxView } | useMarkAllRead |
+| POST | `/notifications/clear-all` | body: { view: InboxView } | useClearAll |
+| POST | `/notifications/delete-all-cleared` | — | useDeleteAllCleared |
+
+---
+
+## Track 1 — Renato Souza: Schema + Repository + Migration + Seed
+
+**Escopo:** Toda a camada de dados: modelo Prisma, migracao, repositorio com todas as queries, seed de dev.
+
+### Arquivos que cria/modifica (ownership exclusivo)
+
+```
+mundial-erp-api/
+├── prisma/
+│   └── schema.prisma                          ← ADD: enums + model Notification + relacao User
+│   └── seed.ts                                ← ADD: seed 5 notificacoes mockadas
+└── src/modules/notifications/
+    └── notifications.repository.ts            ← Repository completo
+```
+
+### Especificacao funcional
+
+1. **schema.prisma — Enums + Model**
+   - Adicionar os 3 enums: `NotificationType`, `NotificationStatus`, `NotificationCategory`
+   - Adicionar model `Notification` conforme contrato (secao Contratos Compartilhados)
+   - Adicionar relacao no model `User`: `notifications Notification[]`
+   - 4 indices nomeados conforme contrato
+   - `@@map("notifications")` + `@map("snake_case")` em todas as colunas
+   - Campos obrigatorios Bravy: `id (cuid)`, `createdAt`, `updatedAt`, `deletedAt` (soft delete)
+
+2. **Migration**
+   - `npx prisma migrate dev --name add-notifications`
+   - Gerar client: `npx prisma generate`
+
+3. **seed.ts — 5 notificacoes mockadas**
+   - 2x `TASK_OVERDUE` (category PRIMARY, status UNREAD) — createdAt: hoje e ontem
+   - 1x `TASK_DUE_SOON` (category PRIMARY, status UNREAD) — createdAt: 3 dias atras
+   - 1x `MESSAGE` (category OTHER, status READ) — createdAt: 5 dias atras
+   - 1x `SYSTEM` (category OTHER, status CLEARED) — createdAt: 10 dias atras
+   - Todas vinculadas ao primeiro usuario do banco
+
+4. **notifications.repository.ts**
+   ```typescript
+   @Injectable()
+   export class NotificationsRepository {
+     constructor(private readonly prisma: PrismaService) {}
+
+     // Queries de listagem por view
+     async findByView(userId: string, view: InboxView): Promise<Notification[]>
+     // Logica de where por view:
+     //   all     → status IN (UNREAD, READ), category IN (PRIMARY, OTHER)
+     //   primary → status IN (UNREAD, READ), category = PRIMARY
+     //   other   → status IN (UNREAD, READ), category = OTHER
+     //   later   → status = SNOOZED
+     //   cleared → status = CLEARED
+     // orderBy: createdAt desc
+     // where: deletedAt = null
+
+     // Contagens (uma unica query com groupBy ou 5 counts paralelos)
+     async getCounts(userId: string): Promise<NotificationCounts>
+
+     // CRUD unitario
+     async findById(id: string): Promise<Notification | null>
+     async create(data: Prisma.NotificationCreateInput): Promise<Notification>
+     async update(id: string, data: Prisma.NotificationUpdateInput): Promise<Notification>
+
+     // Bulk operations
+     async markAllReadByView(userId: string, view: InboxView): Promise<number>
+     async clearAllByView(userId: string, view: InboxView): Promise<number>
+     async deleteAllCleared(userId: string): Promise<number>
+     // deleteAllCleared faz DELETE fisico (nao soft delete) — spec diz "This cannot be undone"
+
+     // Soft delete padrao
+     async softDelete(id: string): Promise<Notification>
+   }
+   ```
+
+### Performance (principio CTO)
+- Indices cobrem TODAS as queries: `idx_notifications_user_status_created` para listagem, `idx_notifications_user_category_status` para contagens por categoria, `idx_notifications_user_status` para contagens gerais
+- `getCounts` usa `Promise.all` com 5 counts paralelos (mais simples que groupBy com case when)
+- `findByView` usa `orderBy: { createdAt: 'desc' }` e aproveita indice composto
+- `markAllReadByView` e `clearAllByView` usam `updateMany` (uma unica query, nao loop)
+- `deleteAllCleared` usa `deleteMany` (DELETE fisico conforme spec)
+
+### Criterios de aceite
+- [ ] Migration roda sem erro (`npx prisma migrate dev`)
+- [ ] Prisma generate sem warnings
+- [ ] Seed cria 5 notificacoes visiveirs no Prisma Studio
+- [ ] Repository: findByView retorna apenas notificacoes da view correta
+- [ ] Repository: getCounts retorna contagens corretas por view
+- [ ] Repository: bulk ops afetam apenas notificacoes do userId informado
+- [ ] Repository: deleteAllCleared faz DELETE fisico (nao soft delete)
+- [ ] Todos os campos mapeados com @map("snake_case")
+- [ ] Indices nomeados conforme contrato
+
+---
+
+## Track 2 — Amanda Lopes: DTOs + Module
+
+**Escopo:** Todos os DTOs de entrada/saida e o modulo NestJS que conecta controller, service e repository.
+
+### Arquivos que cria/modifica (ownership exclusivo)
+
+```
+mundial-erp-api/src/modules/notifications/
+├── dto/
+│   ├── notification-query.dto.ts              ← Query params: view
+│   ├── create-notification.dto.ts             ← Criacao interna (usado pelo emitter)
+│   ├── snooze-notification.dto.ts             ← Body: { until: ISO }
+│   ├── bulk-action.dto.ts                     ← Body: { view: InboxView }
+│   ├── notification-response.dto.ts           ← Response com fromEntity()
+│   └── notification-counts.dto.ts             ← Counts por view
+└── notifications.module.ts                    ← Module wiring
+```
+
+### Especificacao funcional
+
+1. **notification-query.dto.ts**
+   ```typescript
+   export class NotificationQueryDto {
+     @ApiPropertyOptional({ enum: ['all', 'primary', 'other', 'later', 'cleared'], default: 'all' })
+     @IsOptional()
+     @IsEnum(['all', 'primary', 'other', 'later', 'cleared'])
+     view: string = 'all';
+   }
+   ```
+
+2. **create-notification.dto.ts** (uso interno — NotificationEmitterService chama)
+   ```typescript
+   export class CreateNotificationDto {
+     @IsString() @IsNotEmpty()
+     userId: string;
+
+     @IsEnum(NotificationType)
+     type: NotificationType;
+
+     @IsEnum(NotificationCategory)
+     category: NotificationCategory;
+
+     @IsString() @IsNotEmpty() @MaxLength(255)
+     title: string;
+
+     @IsString() @IsNotEmpty() @MaxLength(1000)
+     description: string;
+
+     @IsOptional() @IsString()
+     entityId?: string;
+
+     @IsOptional() @IsString() @MaxLength(500)
+     entityUrl?: string;
+   }
+   ```
+
+3. **snooze-notification.dto.ts**
+   ```typescript
+   export class SnoozeNotificationDto {
+     @ApiProperty({ example: '2026-04-17T09:00:00.000Z' })
+     @IsISO8601()
+     until: string;
+   }
+   ```
+
+4. **bulk-action.dto.ts**
+   ```typescript
+   export class BulkActionDto {
+     @ApiProperty({ enum: ['all', 'primary', 'other', 'later', 'cleared'] })
+     @IsEnum(['all', 'primary', 'other', 'later', 'cleared'])
+     view: string;
+   }
+   ```
+
+5. **notification-response.dto.ts**
+   ```typescript
+   export class NotificationResponseDto {
+     @ApiProperty() id: string;
+     @ApiProperty() userId: string;
+     @ApiProperty() type: string;
+     @ApiProperty() category: string;
+     @ApiProperty() title: string;
+     @ApiProperty() description: string;
+     @ApiPropertyOptional() entityId: string | null;
+     @ApiPropertyOptional() entityUrl: string | null;
+     @ApiProperty() status: string;
+     @ApiPropertyOptional() snoozedUntil: string | null;
+     @ApiProperty() createdAt: string;
+     @ApiPropertyOptional() readAt: string | null;
+     @ApiPropertyOptional() clearedAt: string | null;
+
+     static fromEntity(entity: Notification): NotificationResponseDto {
+       const dto = new NotificationResponseDto();
+       Object.assign(dto, {
+         id: entity.id,
+         userId: entity.userId,
+         type: entity.type.toLowerCase().replace('_', '.'),  // TASK_OVERDUE → task.overdue
+         category: entity.category.toLowerCase(),             // PRIMARY → primary
+         title: entity.title,
+         description: entity.description,
+         entityId: entity.entityId,
+         entityUrl: entity.entityUrl,
+         status: entity.status.toLowerCase(),                 // UNREAD → unread
+         snoozedUntil: entity.snoozedUntil?.toISOString() ?? null,
+         createdAt: entity.createdAt.toISOString(),
+         readAt: entity.readAt?.toISOString() ?? null,
+         clearedAt: entity.clearedAt?.toISOString() ?? null,
+       });
+       return dto;
+     }
+   }
+   ```
+
+   **IMPORTANTE:** O `fromEntity` converte enums Prisma (UPPER_SNAKE) para formato frontend (lowercase dot-notation) conforme INBOX_SPEC secao 3. Mapeamento:
+   - `TASK_OVERDUE` → `task.overdue`
+   - `TASK_DUE_SOON` → `task.due_soon`
+   - `MESSAGE` → `message`
+   - `MENTION` → `mention`
+   - `SYSTEM` → `system`
+   - `PRIMARY` → `primary`, `OTHER` → `other`
+   - `UNREAD` → `unread`, `READ` → `read`, `CLEARED` → `cleared`, `SNOOZED` → `snoozed`
+
+6. **notification-counts.dto.ts**
+   ```typescript
+   export class NotificationCountsDto {
+     @ApiProperty() all: number;
+     @ApiProperty() primary: number;
+     @ApiProperty() other: number;
+     @ApiProperty() later: number;
+     @ApiProperty() cleared: number;
+   }
+
+   export class NotificationsListResponseDto {
+     @ApiProperty({ type: [NotificationResponseDto] })
+     items: NotificationResponseDto[];
+
+     @ApiProperty({ type: NotificationCountsDto })
+     counts: NotificationCountsDto;
+   }
+   ```
+
+7. **notifications.module.ts**
+   ```typescript
+   @Module({
+     imports: [DatabaseModule],
+     controllers: [NotificationsController],
+     providers: [
+       NotificationsService,
+       NotificationsRepository,
+       NotificationEmitterService,
+     ],
+     exports: [NotificationsService],
+   })
+   export class NotificationsModule {}
+   ```
+   - Registrar no `app.module.ts` (imports array)
+
+### Criterios de aceite
+- [ ] Todos os DTOs usam class-validator decorators
+- [ ] Swagger annotations (@ApiProperty, @ApiPropertyOptional) em todos os campos
+- [ ] NotificationResponseDto.fromEntity() converte enums corretamente (UPPER_SNAKE → lowercase)
+- [ ] Module registrado no app.module.ts
+- [ ] Zero `any` — todos os tipos explicitos
+- [ ] Nomes de arquivo em kebab-case conforme padrao Bravy
+
+---
+
+## Track 3 — Thiago Mendes: Service + Event Listeners
+
+**Escopo:** Toda a logica de negocio de notificacoes + servico que escuta eventos do sistema e cria notificacoes automaticamente.
+
+### Arquivos que cria/modifica (ownership exclusivo)
+
+```
+mundial-erp-api/src/modules/notifications/
+├── notifications.service.ts                   ← Logica de negocio completa
+└── notification-emitter.service.ts            ← EventEmitter2 listeners
+```
+
+### Especificacao funcional
+
+1. **notifications.service.ts**
+   ```typescript
+   @Injectable()
+   export class NotificationsService {
+     constructor(private readonly notificationsRepository: NotificationsRepository) {}
+
+     // Listagem com contagens
+     async findByView(userId: string, view: string): Promise<NotificationsListResponseDto>
+     // 1. Chama repository.findByView + repository.getCounts em paralelo (Promise.all)
+     // 2. Mapeia items com NotificationResponseDto.fromEntity
+     // 3. Retorna { items, counts }
+
+     // Acoes unitarias
+     async markAsRead(userId: string, id: string): Promise<void>
+     // Valida ownership (notification.userId === userId), atualiza status=READ, readAt=now
+
+     async markAsUnread(userId: string, id: string): Promise<void>
+     // Valida ownership, atualiza status=UNREAD, readAt=null
+
+     async clear(userId: string, id: string): Promise<void>
+     // Valida ownership, atualiza status=CLEARED, clearedAt=now
+
+     async unclear(userId: string, id: string): Promise<void>
+     // Valida ownership, atualiza status=READ, clearedAt=null (restaura para READ, nao UNREAD)
+
+     async snooze(userId: string, id: string, dto: SnoozeNotificationDto): Promise<void>
+     // Valida ownership, valida dto.until > now, atualiza status=SNOOZED, snoozedUntil=dto.until
+
+     async unsnooze(userId: string, id: string): Promise<void>
+     // Valida ownership, atualiza status=UNREAD, snoozedUntil=null
+
+     // Bulk operations
+     async markAllRead(userId: string, dto: BulkActionDto): Promise<void>
+     // Chama repository.markAllReadByView
+
+     async clearAll(userId: string, dto: BulkActionDto): Promise<void>
+     // Chama repository.clearAllByView
+
+     async deleteAllCleared(userId: string): Promise<void>
+     // Chama repository.deleteAllCleared (DELETE fisico)
+
+     // Criacao interna (chamado pelo emitter, NAO exposto via controller)
+     async create(dto: CreateNotificationDto): Promise<NotificationResponseDto>
+   }
+   ```
+
+   **Regras de validacao:**
+   - Toda acao unitaria valida `notification.userId === userId` → se nao, lanca `NotFoundException` (nao revela existencia para outro usuario)
+   - `snooze` valida `until > now` → se nao, lanca `BadRequestException('Snooze date must be in the future')`
+   - `clear` em notificacao ja cleared → idempotente (retorna 204 sem erro)
+   - `markAsRead` em notificacao ja read → idempotente
+
+2. **notification-emitter.service.ts**
+   ```typescript
+   @Injectable()
+   export class NotificationEmitterService {
+     constructor(private readonly notificationsService: NotificationsService) {}
+
+     // Listeners EventEmitter2 — escuta eventos de outros modulos e cria notificacoes
+
+     @OnEvent('order.status.changed')
+     async handleOrderStatusChanged(payload: { orderId, fromStatus, toStatus, assignedUserId, ... })
+     // Ex: FATURAR → cria notificacao type=SYSTEM para financeiro
+     //     EM_PRODUCAO → cria notificacao type=SYSTEM para producao
+
+     @OnEvent('task.overdue')
+     async handleTaskOverdue(payload: { taskInstanceId, activityName, orderId, assignedUserId })
+     // Cria notificacao type=TASK_OVERDUE, category=PRIMARY para assignedUser
+
+     @OnEvent('task.due_soon')
+     async handleTaskDueSoon(payload: { taskInstanceId, activityName, orderId, assignedUserId })
+     // Cria notificacao type=TASK_DUE_SOON, category=PRIMARY para assignedUser
+
+     @OnEvent('chat.message.created')
+     async handleChatMessage(payload: { channelId, senderId, recipientIds, preview })
+     // Cria notificacao type=MESSAGE, category=OTHER para cada recipient
+
+     @OnEvent('chat.mention')
+     async handleChatMention(payload: { channelId, senderId, mentionedUserId, preview })
+     // Cria notificacao type=MENTION, category=PRIMARY para mentionedUser
+
+     @OnEvent('handoff.created')
+     async handleHandoffCreated(payload: { handoffInstanceId, fromDepartment, toDepartment, orderId, targetUserIds })
+     // Cria notificacao type=SYSTEM, category=PRIMARY para usuarios do departamento destino
+   }
+   ```
+
+   **Regras de roteamento de categoria:**
+   - `PRIMARY`: task.overdue, task.due_soon, mention, handoff → acoes diretas que requerem atencao imediata
+   - `OTHER`: message, system (status changes) → informativos
+
+### Performance (principio CTO)
+- `findByView` usa `Promise.all` para paralelizar items + counts
+- Bulk ops delegam para repository `updateMany`/`deleteMany` (1 query, nao N)
+- Emitter cria notificacoes em background (nao bloqueia o fluxo principal)
+- Operacoes idempotentes: clear/read de algo ja cleared/read nao lanca erro
+
+### Criterios de aceite
+- [ ] Todas as acoes validam ownership (userId)
+- [ ] Snooze valida data futura
+- [ ] Operacoes idempotentes (clear de cleared = ok)
+- [ ] Event listeners registrados com @OnEvent (EventEmitter2)
+- [ ] Emitter cria notificacoes com categoria correta (PRIMARY vs OTHER)
+- [ ] Zero logica de negocio vazando para controller
+- [ ] Zero Prisma direto no service (tudo via repository)
+- [ ] NotFoundException para notificacao inexistente ou de outro usuario
+
+---
+
+## Track 4 — Juliana Matos: Controller
+
+**Escopo:** Camada HTTP: controller com os 10 endpoints REST, Swagger docs, auth guards.
+
+### Arquivos que cria/modifica (ownership exclusivo)
+
+```
+mundial-erp-api/src/modules/notifications/
+└── notifications.controller.ts                ← Controller com 10 endpoints
+```
+
+### Especificacao funcional
+
+```typescript
+@ApiTags('Notifications')
+@ApiBearerAuth()
+@Controller('notifications')
+export class NotificationsController {
+  constructor(private readonly notificationsService: NotificationsService) {}
+
+  @Get()
+  @ApiOperation({ summary: 'List notifications by view with counts' })
+  async findAll(
+    @CurrentUser('id') userId: string,
+    @Query() query: NotificationQueryDto,
+  ): Promise<NotificationsListResponseDto> {
+    return this.notificationsService.findByView(userId, query.view);
+  }
+
+  @Patch(':id/read')
+  @HttpCode(HttpStatus.NO_CONTENT)
+  async markAsRead(
+    @CurrentUser('id') userId: string,
+    @Param('id', ParseCuidPipe) id: string,
+  ): Promise<void> {
+    return this.notificationsService.markAsRead(userId, id);
+  }
+
+  @Patch(':id/unread')
+  @HttpCode(HttpStatus.NO_CONTENT)
+  async markAsUnread(
+    @CurrentUser('id') userId: string,
+    @Param('id', ParseCuidPipe) id: string,
+  ): Promise<void> {
+    return this.notificationsService.markAsUnread(userId, id);
+  }
+
+  @Patch(':id/clear')
+  @HttpCode(HttpStatus.NO_CONTENT)
+  async clear(
+    @CurrentUser('id') userId: string,
+    @Param('id', ParseCuidPipe) id: string,
+  ): Promise<void> {
+    return this.notificationsService.clear(userId, id);
+  }
+
+  @Patch(':id/unclear')
+  @HttpCode(HttpStatus.NO_CONTENT)
+  async unclear(
+    @CurrentUser('id') userId: string,
+    @Param('id', ParseCuidPipe) id: string,
+  ): Promise<void> {
+    return this.notificationsService.unclear(userId, id);
+  }
+
+  @Patch(':id/snooze')
+  @HttpCode(HttpStatus.NO_CONTENT)
+  async snooze(
+    @CurrentUser('id') userId: string,
+    @Param('id', ParseCuidPipe) id: string,
+    @Body() dto: SnoozeNotificationDto,
+  ): Promise<void> {
+    return this.notificationsService.snooze(userId, id, dto);
+  }
+
+  @Patch(':id/unsnooze')
+  @HttpCode(HttpStatus.NO_CONTENT)
+  async unsnooze(
+    @CurrentUser('id') userId: string,
+    @Param('id', ParseCuidPipe) id: string,
+  ): Promise<void> {
+    return this.notificationsService.unsnooze(userId, id);
+  }
+
+  @Post('mark-all-read')
+  @HttpCode(HttpStatus.NO_CONTENT)
+  async markAllRead(
+    @CurrentUser('id') userId: string,
+    @Body() dto: BulkActionDto,
+  ): Promise<void> {
+    return this.notificationsService.markAllRead(userId, dto);
+  }
+
+  @Post('clear-all')
+  @HttpCode(HttpStatus.NO_CONTENT)
+  async clearAll(
+    @CurrentUser('id') userId: string,
+    @Body() dto: BulkActionDto,
+  ): Promise<void> {
+    return this.notificationsService.clearAll(userId, dto);
+  }
+
+  @Post('delete-all-cleared')
+  @HttpCode(HttpStatus.NO_CONTENT)
+  async deleteAllCleared(
+    @CurrentUser('id') userId: string,
+  ): Promise<void> {
+    return this.notificationsService.deleteAllCleared(userId);
+  }
+}
+```
+
+**Regras:**
+- TODOS os endpoints usam `@CurrentUser('id')` para extrair userId do JWT — nunca receber userId do body
+- Acoes unitarias retornam 204 No Content (sem body)
+- GET retorna 200 com `NotificationsListResponseDto`
+- POST bulk retorna 204 No Content
+- `ParseCuidPipe` valida formato do id (existente no projeto: `common/pipes/`)
+- Zero logica no controller — apenas delegacao para service
+- Swagger: `@ApiOperation`, `@ApiResponse` em todos os endpoints
+
+### Criterios de aceite
+- [ ] 10 endpoints mapeados corretamente (verbos + rotas conforme INBOX_SPEC secao 4)
+- [ ] Todos usam @CurrentUser para userId (nao body)
+- [ ] Acoes unitarias retornam 204
+- [ ] GET retorna 200 com items + counts
+- [ ] Swagger completo (acessivel em /docs)
+- [ ] Zero logica de negocio no controller
+- [ ] ParseCuidPipe em todos os :id params
+
+---
+
+## Track 5 — Rafael Almeida: Types + Service HTTP + Hooks (Foundation Frontend)
+
+**Escopo:** Toda a fundacao frontend: tipos TypeScript, service HTTP, hooks React Query. Desbloqueia T6-T9.
+
+### Arquivos que cria/modifica (ownership exclusivo)
+
+```
+mundial-erp-web/src/features/inbox/
+├── types/
+│   └── notification.types.ts                  ← TODOS os tipos do modulo
+├── services/
+│   └── notification.service.ts                ← TODAS as chamadas API
+└── hooks/
+    └── use-notifications.ts                   ← TODOS os hooks React Query
+```
+
+### Especificacao funcional
+
+1. **notification.types.ts** — Implementa EXATAMENTE o contrato da secao "Contratos Compartilhados" (types frontend)
+
+2. **notification.service.ts** — Implementa TODAS as assinaturas do contrato. Usa `api` de `@/lib/api`.
+   ```typescript
+   import { api } from '@/lib/api'
+   import type {
+     InboxView,
+     NotificationsResponse,
+     SnoozePayload,
+     BulkActionPayload,
+   } from '../types/notification.types'
+
+   export const notificationService = {
+     async getNotifications(view: InboxView): Promise<NotificationsResponse> {
+       const { data } = await api.get<NotificationsResponse>('/notifications', {
+         params: { view },
+       })
+       return data
+     },
+     async markAsRead(id: string): Promise<void> {
+       await api.patch(`/notifications/${id}/read`)
+     },
+     // ... demais metodos seguem o mesmo padrao
+   }
+   ```
+
+3. **use-notifications.ts** — Implementa TODOS os hooks do contrato.
+   - Query key: `['notifications', view]`
+   - Config: `refetchOnWindowFocus: true`, `staleTime: 30_000`
+   - Mutations: optimistic updates + `queryClient.invalidateQueries({ queryKey: ['notifications'] })`
+   - Toast de sucesso em `useClearNotification.onSuccess`: "Notification cleared" (nao traduzir — spec em ingles)
+   - Todas as mutations usam `onError` para rollback otimista
+
+   **Optimistic update pattern (exemplo useClearNotification):**
+   ```typescript
+   export function useClearNotification() {
+     const qc = useQueryClient()
+     return useMutation({
+       mutationFn: (id: string) => notificationService.clearNotification(id),
+       onMutate: async (id) => {
+         await qc.cancelQueries({ queryKey: ['notifications'] })
+         const previousData = qc.getQueriesData({ queryKey: ['notifications'] })
+         // Remove item otimisticamente de todas as queries cached
+         qc.setQueriesData({ queryKey: ['notifications'] }, (old) => {
+           if (!old) return old
+           return {
+             ...old,
+             items: old.items.filter((n) => n.id !== id),
+             counts: { ...old.counts, cleared: old.counts.cleared + 1 },
+           }
+         })
+         return { previousData }
+       },
+       onError: (_err, _id, context) => {
+         // Rollback
+         context?.previousData?.forEach(([key, data]) => {
+           qc.setQueryData(key, data)
+         })
+       },
+       onSettled: () => {
+         qc.invalidateQueries({ queryKey: ['notifications'] })
+       },
+     })
+   }
+   ```
+
+### Dependencias externas
+- `api` de `@/lib/api`
+- `@tanstack/react-query` (useQuery, useMutation, useQueryClient)
+- Toast/notification de `@/hooks/use-notification` (para feedback de mutations)
+
+### Criterios de aceite
+- [ ] Todos os tipos exportados corretamente (named exports)
+- [ ] Service cobre os 10 endpoints da spec
+- [ ] Hooks com refetchOnWindowFocus (spec secao 4)
+- [ ] Optimistic updates em todas as mutations
+- [ ] Rollback em caso de erro
+- [ ] Query key `['notifications', view]` permite invalidacao granular
+- [ ] Zero `any`
+- [ ] staleTime 30s para nao sobrecarregar API
+
+---
+
+## Track 6 — Camila Rocha: Page + Shell + Tabs
+
+**Escopo:** Pagina Server Component, shell client com state de view, e componente de tabs com badges.
+
+### Arquivos que cria/modifica (ownership exclusivo)
+
+```
+mundial-erp-web/src/
+├── app/(dashboard)/inbox/
+│   └── page.tsx                               ← Server Component
+└── features/inbox/components/
+    ├── inbox-client.tsx                       ← 'use client' shell
+    └── inbox-tabs.tsx                         ← 5 tabs com badges
+```
+
+### Especificacao funcional
+
+1. **page.tsx** (Server Component)
+   ```tsx
+   import { InboxClient } from '@/features/inbox/components/inbox-client'
+
+   export default function InboxPage() {
+     return <InboxClient />
+   }
+   ```
+   - Server Component puro — sem logica client
+   - Futuramente pode adicionar prefetch via `dehydrate` do React Query
+
+2. **inbox-client.tsx** ('use client')
+   - State: `view` (InboxView) sincronizado com URL `?view=...` via `useSearchParams`
+   - Usa `useNotifications(view)` para buscar dados
+   - Layout:
+     ```
+     <div>
+       <header> Icone + "Caixa de entrada" </header>
+       <InboxTabs view={view} counts={data.counts} onViewChange={setView} />
+       <InboxToolbar view={view} onMarkAllRead={...} onClearAll={...} onDeleteAll={...} />
+       <NotificationList items={filteredItems} isLoading={isLoading} view={view} />
+     </div>
+     ```
+   - Gerencia filtros client-side: recebe `NotificationFilters` do `InboxFilterPopover`, aplica sobre `data.items` localmente
+   - Sincroniza view com URL: `router.replace(\`/inbox?view=\${view}\`, { scroll: false })`
+
+3. **inbox-tabs.tsx**
+   - Props: `{ view: InboxView; counts: NotificationCounts; onViewChange: (v: InboxView) => void }`
+   - 5 tabs com icones:
+     - All (Inbox icon) — badge: `counts.all`
+     - Primary (MessageSquare) — badge: `counts.primary`
+     - Other (ArrowLeftRight) — badge: `counts.other` (ocultar se 0)
+     - Later (Clock) — badge: `counts.later` (ocultar se 0)
+     - Cleared (Trash2) — sem badge
+   - Acessibilidade: `role="tablist"`, cada tab `role="tab"`, `aria-selected`, `aria-controls`
+   - Badge rosa: `bg-[oklch(70%_0.15_350)] text-white text-xs rounded-full px-1.5 min-w-5 h-5`
+   - Tab ativa: `border-b-2 border-foreground font-semibold`
+   - Icones: `@remixicon/react` (RiInboxLine, RiChat1Line, RiArrowLeftRightLine, RiTimeLine, RiDeleteBinLine)
+
+### Dependencias externas
+- `useNotifications` de `use-notifications.ts` (T5)
+- `NotificationList` de T7 (se nao existir, renderizar placeholder)
+- `InboxToolbar` de T9 (se nao existir, renderizar placeholder)
+- `useSearchParams`, `useRouter` de `next/navigation`
+- `@remixicon/react` para icones
+
+### Criterios de aceite
+- [ ] URL reflete view via `?view=...` (spec CA #8)
+- [ ] Recarregar pagina mantem a view
+- [ ] Badge rosa no All e Primary com contagens corretas
+- [ ] Tabs com acessibilidade completa (role, aria-selected, aria-controls)
+- [ ] View default: `all` quando nenhum param
+- [ ] Dark mode funcional
+- [ ] Header exibe icone + titulo "Caixa de entrada"
+
+---
+
+## Track 7 — Leonardo Barros: Lista + Grupos + Date Helpers
+
+**Escopo:** Container de notificacoes com agrupamento por data, headers de grupo e helpers de formatacao.
+
+### Arquivos que cria/modifica (ownership exclusivo)
+
+```
+mundial-erp-web/src/features/inbox/
+├── components/
+│   ├── notification-list.tsx                  ← Container com agrupamento
+│   └── notification-group.tsx                 ← Header de grupo + lista de items
+└── lib/
+    └── date.ts                                ← Helpers de agrupamento e formatacao
+```
+
+### Especificacao funcional
+
+1. **date.ts** — Implementa EXATAMENTE o contrato da secao "Contratos Compartilhados" (Date Helpers)
+   ```typescript
+   import { isToday, isYesterday, differenceInDays, format } from 'date-fns'
+   import { ptBR } from 'date-fns/locale'
+
+   export type DateGroup = 'today' | 'yesterday' | 'last7days' | 'last30days' | 'older'
+
+   export function groupNotificationsByDate(items: Notification[]): Map<DateGroup, Notification[]> {
+     const groups = new Map<DateGroup, Notification[]>()
+     for (const item of items) {
+       const date = new Date(item.createdAt)
+       let group: DateGroup
+       if (isToday(date)) group = 'today'
+       else if (isYesterday(date)) group = 'yesterday'
+       else if (differenceInDays(new Date(), date) <= 7) group = 'last7days'
+       else if (differenceInDays(new Date(), date) <= 30) group = 'last30days'
+       else group = 'older'
+       if (!groups.has(group)) groups.set(group, [])
+       groups.get(group)!.push(item)
+     }
+     return groups
+   }
+
+   export function getGroupLabel(group: DateGroup): string {
+     const labels: Record<DateGroup, string> = {
+       today: 'Today',
+       yesterday: 'Yesterday',
+       last7days: 'Last 7 days',
+       last30days: 'Last 30 days',
+       older: 'Older',
+     }
+     return labels[group]
+   }
+
+   export function formatNotificationTime(dateStr: string): string {
+     const date = new Date(dateStr)
+     if (isToday(date)) return format(date, 'HH:mm')
+     if (date.getFullYear() === new Date().getFullYear()) {
+       return format(date, "d 'de' MMM", { locale: ptBR })
+     }
+     return format(date, "d 'de' MMM 'de' yyyy", { locale: ptBR })
+   }
+   ```
+
+2. **notification-list.tsx**
+   - Props: `{ items: Notification[]; isLoading: boolean; view: InboxView }`
+   - Se `isLoading` e sem cache: renderiza 6 skeletons `h-11 w-full rounded` (spec secao 9)
+   - Se `items.length === 0`: renderiza `<EmptyState view={view} />` (importa de T9)
+   - Senao: agrupa com `groupNotificationsByDate(items)` e renderiza `<NotificationGroup>` para cada grupo
+   - Container: `<ul role="list">` (spec secao 10)
+
+3. **notification-group.tsx**
+   - Props: `{ group: DateGroup; items: Notification[] }`
+   - Header: `<h3>` com `getGroupLabel(group)` — estilo `text-xs font-medium text-muted-foreground uppercase tracking-wider px-4 py-2 bg-muted/30`
+   - Lista: mapeia items → `<NotificationItem>` (importa de T8)
+   - Cada item em `<li>` com `tabIndex={0}` (spec secao 10)
+
+### Dependencias externas
+- `Notification`, `InboxView` types de T5
+- `NotificationItem` de T8 (se nao existir, renderizar placeholder `<li>`)
+- `EmptyState` de T9 (se nao existir, renderizar `<div>Empty</div>`)
+- `date-fns` + `date-fns/locale/pt-BR`
+
+### Criterios de aceite
+- [ ] Agrupamento correto: Today, Yesterday, Last 7 days, Last 30 days, Older
+- [ ] Formato de hora: HH:mm para hoje, "d de MMM" para mesmo ano, "d de MMM de yyyy" para outro ano
+- [ ] 6 skeletons no loading inicial (spec secao 9)
+- [ ] Empty state renderizado quando items vazio
+- [ ] `<ul role="list">` e `<li>` corretos (a11y spec secao 10)
+- [ ] Grupos sem items nao aparecem
+
+---
+
+## Track 8 — Fernanda Vieira: NotificationItem (UI Critica)
+
+**Escopo:** O componente mais critico do squad — o item individual de notificacao conforme INBOX_SPEC secao 7.
+
+### Arquivos que cria/modifica (ownership exclusivo)
+
+```
+mundial-erp-web/src/features/inbox/
+└── components/
+    └── notification-item.tsx                  ← Item individual (spec secao 7)
+```
+
+### Especificacao funcional
+
+- Props:
+  ```typescript
+  type NotificationItemProps = {
+    notification: Notification
+    onRead: (id: string) => void
+    onUnread: (id: string) => void
+    onClear: (id: string) => void
+    onNavigate: (url: string) => void
+  }
+  ```
+
+- **Estrutura HTML/Tailwind:** Copiar TAL QUAL da INBOX_SPEC secao 7. Nao alterar classes.
+
+- **Icone por tipo:**
+  | Tipo | Icone (@remixicon/react) |
+  |---|---|
+  | task.overdue | RiAlertLine |
+  | task.due_soon | RiTimeLine |
+  | message | RiChat1Line |
+  | mention | RiAtLine |
+  | system | RiNotification3Line |
+
+- **Named group:** `group/notification` (NUNCA `group` puro — spec secao 7)
+
+- **Indicador unread:** Borda esquerda 3px + titulo font-semibold
+  ```
+  {notification.status === 'unread' && (
+    <div className="before:absolute before:inset-y-0 before:left-0 before:w-[3px] before:bg-primary" />
+  )}
+  ```
+  - Unread: titulo `font-semibold`
+  - Read: titulo `font-medium`
+
+- **Hover actions:**
+  - Data some com `group-hover/notification:invisible` (mantendo largura — NUNCA `hidden`)
+  - Botoes aparecem com `absolute inset-y-0 right-0 hidden group-hover/notification:flex`
+  - Botao envelope: toggle read/unread. `e.stopPropagation()` para nao navegar.
+    - Se unread: icone RiMailOpenLine + aria-label "Marcar como lida"
+    - Se read: icone RiMailLine + aria-label "Marcar como nao lida"
+  - Botao Clear: escuro `bg-foreground text-background` com icone Check + texto "Clear" + `<kbd>E</kbd>`
+
+- **Click na linha:** navega para `entityUrl` (se existir) + chama `onRead(id)` (otimista)
+- **Acessibilidade:** `tabIndex={0}`, reage a `Enter` e `Space` (abrir)
+- **Time label:** usa `formatNotificationTime` de T7 `date.ts`
+
+### Dependencias externas
+- `Notification` type de T5
+- `formatNotificationTime` de T7 `lib/date.ts` (se nao existir, renderizar `createdAt` raw)
+- `@remixicon/react` para icones
+- `useRouter` de `next/navigation` para navegacao
+
+### Criterios de aceite
+- [ ] HTML/Tailwind identico a INBOX_SPEC secao 7
+- [ ] Named group `group/notification` (nao `group`)
+- [ ] Data some com `invisible` no hover (nao `hidden`) — zero layout shift
+- [ ] Indicador unread: borda 3px + font-semibold
+- [ ] Botao envelope: toggle read/unread com stopPropagation
+- [ ] Botao Clear escuro com `<kbd>E</kbd>`
+- [ ] Click navega + marca como lida (otimista)
+- [ ] Icone correto por NotificationType
+- [ ] tabIndex={0} + Enter/Space funciona (a11y)
+- [ ] Dark mode funcional
+
+---
+
+## Track 9 — Andre Moreira: Toolbar + Filter + Dialogs + EmptyState + Hotkeys
+
+**Escopo:** Todas as interacoes avancadas: toolbar de acoes, popover de filtro, dialogs de confirmacao, estados vazios e atalhos de teclado.
+
+### Arquivos que cria/modifica (ownership exclusivo)
+
+```
+mundial-erp-web/src/features/inbox/
+├── components/
+│   ├── inbox-toolbar.tsx                      ← Toolbar com acoes por view
+│   ├── inbox-filter-popover.tsx               ← Popover de filtro client-side
+│   ├── confirm-dialog.tsx                     ← AlertDialog reutilizavel
+│   └── empty-state.tsx                        ← Estados vazios por view
+└── hooks/
+    └── use-inbox-hotkeys.ts                   ← Atalhos E, J, K, Shift+E
+```
+
+### Especificacao funcional
+
+1. **inbox-toolbar.tsx**
+   - Props: `{ view: InboxView; filters: NotificationFilters; onFiltersChange; onMarkAllRead; onClearAll; onDeleteAll }`
+   - Layout: `[Filter badge]` ... `[Mark all read] [Clear all]`
+   - Comportamento por view (spec secao 5):
+     - `all`, `primary`, `other`: Mark all read + Clear all
+     - `later`: Mark all read + Clear all (disabled se vazio)
+     - `cleared`: **Delete all** (icone trash, substitui Clear all) + oculta Mark all read
+   - Botao Filter: abre `InboxFilterPopover`. Badge com numero de filtros ativos.
+   - Mark all read: botao com icone RiCheckDoubleLine
+   - Clear all / Delete all: abre `ConfirmDialog` antes de executar
+
+2. **inbox-filter-popover.tsx**
+   - Props: `{ filters: NotificationFilters; onFiltersChange: (f: NotificationFilters) => void }`
+   - Abre via `Popover` (Align UI / Radix)
+   - Campos:
+     - Tipo: multi-select de `NotificationType` (checkboxes)
+     - Periodo: radio (Hoje, 7 dias, 30 dias, Customizado — se customizado, DatePicker)
+     - Apenas nao lidas: Switch
+   - Filtros sao **client-side** — aplicados sobre `data.items` ja carregados (spec secao 8)
+   - Badge no botao Filter: conta filtros ativos (ex: 2 tipos + 1 periodo = 3)
+
+3. **confirm-dialog.tsx**
+   - Props: `{ open: boolean; onOpenChange; title: string; description: string; confirmLabel: string; variant?: 'default' | 'destructive'; onConfirm: () => void; isLoading?: boolean }`
+   - Usa `AlertDialog` do shadcn/Align UI
+   - Botoes: Cancel + Confirm (destructive variant para Delete all)
+   - Textos conforme spec secao 8:
+     - Clear all: "Clear all notifications?" / Cancel / Clear
+     - Delete all: "Delete all cleared notifications? This cannot be undone." / Cancel / Delete
+
+4. **empty-state.tsx**
+   - Props: `{ view: InboxView }`
+   - Centralizado verticalmente
+   - Icone Bell dentro de circulo `h-16 w-16 bg-muted rounded-full`
+   - Textos por view (spec secao 9):
+     - `all` / `primary` / `other`: "You're all caught up" + "New notifications will appear here."
+     - `later`: "No snoozed notifications"
+     - `cleared`: "No cleared notifications"
+
+5. **use-inbox-hotkeys.ts**
+   - Props: `{ onClear: (id: string) => void; onClearAll: () => void; items: Notification[] }`
+   - Atalhos (spec secao 8):
+     - `E`: Clear notification sob foco/hover. Ignora se target for INPUT, TEXTAREA, [contenteditable]
+     - `J`: Foco proximo item
+     - `K`: Foco item anterior
+     - `Shift+E`: Clear all da view atual (com confirmacao)
+   - Implementacao: `useEffect` com `keydown` listener global
+   - Desativado quando modais/popovers estiverem abertos (checar `document.querySelector('[role="dialog"]')`)
+   - Mantém indice do item com foco (state interno)
+
+### Dependencias externas
+- `NotificationFilters`, `InboxView`, `Notification` types de T5
+- Align UI / shadcn: AlertDialog, Popover, Switch, Checkbox, DatePicker, Button
+- `@remixicon/react`: RiFilterLine, RiCheckDoubleLine, RiDeleteBinLine
+
+### Criterios de aceite
+- [ ] Toolbar muda botoes conforme view (spec secao 5)
+- [ ] Filter badge conta filtros ativos
+- [ ] Filtros sao client-side (nao disparam nova request)
+- [ ] ConfirmDialog: Clear all pede confirmacao (spec secao 8)
+- [ ] ConfirmDialog: Delete all alerta "cannot be undone" (spec secao 8)
+- [ ] Empty states corretos por view (spec secao 9)
+- [ ] Hotkey E: clear item ativo
+- [ ] Hotkey J/K: navegar entre items
+- [ ] Hotkey Shift+E: clear all com confirmacao
+- [ ] Hotkeys desativados quando dialog/popover aberto
+- [ ] Hotkeys ignoram INPUT/TEXTAREA/contenteditable
+- [ ] Dark mode funcional em todos os componentes
+
+---
+
+## Track 10 — Isabela Cunha: QA Visual + Testes + Sidebar Badge
+
+**Escopo:** Validacao Figma, testes automatizados, integracao do badge de notificacoes no sidebar, auditoria de acessibilidade. Atua em PARALELO com T1-T9 desde o inicio.
+
+### Arquivos que cria/modifica (ownership exclusivo)
+
+```
+mundial-erp-web/src/
+├── features/inbox/__tests__/
+│   ├── notification-item.test.tsx             ← Testes do item individual
+│   └── use-notifications.test.ts              ← Testes dos hooks
+├── components/layout/sidebar.tsx              ← MODIFICA: adiciona badge unread count
+└── features/inbox/hooks/
+    └── use-unread-count.ts                    ← Hook para sidebar badge (query separada)
+```
+
+### Como atua em paralelo
+
+1. **Enquanto T1-T9 constroem:** Isabela prepara infraestrutura de testes e valida Figma
+   - Consulta Notification Feed no Figma via `get_design_context(fileKey: "AjvK4iQOOs2wPcp53ZfIVr", nodeId: "4096:21398")`
+   - Documenta tokens esperados por componente (cores, espacamentos, tipografia)
+   - Prepara mocks de dados para testes
+   - Implementa `use-unread-count.ts` (hook independente para sidebar)
+
+2. **Conforme cada track entrega:** Isabela valida imediatamente
+   - Compara componente com Figma via `get_screenshot`
+   - Valida em light mode E dark mode
+   - Roda axe-core para a11y
+   - Reporta diferencas ao dono do track
+
+3. **Sidebar badge integration:**
+   ```typescript
+   // use-unread-count.ts
+   export function useUnreadCount() {
+     return useQuery({
+       queryKey: ['notifications', 'unread-count'],
+       queryFn: async () => {
+         const res = await notificationService.getNotifications('all')
+         return res.counts.all
+       },
+       refetchInterval: 60_000,  // poll a cada 60s
+       refetchOnWindowFocus: true,
+     })
+   }
+   ```
+   - Modifica `sidebar.tsx`: no item "Caixa de Entrada", adiciona `<Badge>` rosa com `useUnreadCount()`
+   - Badge visivel apenas se count > 0
+   - Estilo: `bg-[oklch(70%_0.15_350)] text-white text-xs rounded-full px-1.5 min-w-5 h-5`
+
+4. **Validacoes por track:**
+
+   | Track | O que Isabela valida |
+   |---|---|
+   | T1 (Renato) | Schema correto, migration roda, seed cria dados validos |
+   | T2 (Amanda) | DTOs validam corretamente, fromEntity mapeia enums |
+   | T3 (Thiago) | Service valida ownership, operacoes idempotentes |
+   | T4 (Juliana) | Endpoints retornam status codes corretos, Swagger acessivel |
+   | T5 (Rafael) | Hooks com optimistic update, rollback funciona, query keys corretas |
+   | T6 (Camila) | URL sync funciona, tabs acessiveis, layout conforme spec |
+   | T7 (Leonardo) | Agrupamento por data correto, formato de hora pt-BR, skeletons |
+   | T8 (Fernanda) | HTML identico a spec, hover sem layout shift, icones corretos, a11y |
+   | T9 (Andre) | Hotkeys funcionam, filtros client-side, dialogs com textos corretos |
+
+5. **Testes automatizados:**
+
+   **notification-item.test.tsx:**
+   - Renderiza com notification unread → verifica borda 3px e font-semibold
+   - Renderiza com notification read → verifica sem borda e font-medium
+   - Hover revela botoes de acao
+   - Click chama onNavigate + onRead
+   - Click no botao envelope chama onRead/onUnread (nao navega)
+   - Renderiza icone correto por tipo
+
+   **use-notifications.test.ts:**
+   - useNotifications retorna items e counts
+   - useClearNotification: optimistic update remove item da lista
+   - useClearNotification: rollback restaura em caso de erro
+   - useMarkAllRead: invalida queries
+
+### Figma nodes para validacao
+
+| Componente | Node ID Figma | Uso |
+|---|---|---|
+| Notification Feed | `4096:21398` | Referencia principal para layout da inbox |
+| Badge | `119:2863` | Badge rosa no sidebar e tabs |
+| Tab Menu | `553:734` | Tabs da inbox |
+| Button | `129:605` | Toolbar buttons |
+| Popover | `553:22099` | Filter popover |
+| Modal | `4096:21398` | ConfirmDialog |
+| Switch | `379:6649` | Filter "apenas nao lidas" |
+| Checkbox | `227:1986` | Filter por tipo |
+
+### Criterios de aceite
+- [ ] Todos os componentes validados contra Figma (Notification Feed node)
+- [ ] Light mode e dark mode verificados
+- [ ] Zero warnings axe-core (a11y)
+- [ ] Sidebar badge funcional (poll 60s, rosa, oculto se 0)
+- [ ] Testes notification-item: 6+ cenarios passando
+- [ ] Testes use-notifications: 4+ cenarios passando
+- [ ] Tokens de cor sem hex hardcoded (usar CSS variables/Tailwind tokens)
+- [ ] Icones exclusivamente @remixicon/react
+
+---
+
+## Estrategia Anti-Conflito
+
+### Regra de ouro: ZERO sobreposicao de arquivos
+
+Cada track SOMENTE cria/edita os arquivos listados em seu bloco "Arquivos que cria/modifica". Se precisar de um arquivo de outro track:
+
+1. **Arquivo ja existe?** → Importa normalmente
+2. **Arquivo ainda nao existe?** → Cria um stub local temporario com as mesmas assinaturas do contrato. Quando o arquivo real for criado pelo dono, substitui o import.
+
+### Resolucao de dependencias
+
+```
+BACKEND:
+T1 (Renato)  → INDEPENDENTE. Schema + Repository. Base para tudo.
+T2 (Amanda)  → INDEPENDENTE. DTOs + Module. Nao depende de T1 para comecar (usa tipos do contrato).
+T3 (Thiago)  → Depende de T1 (repository) e T2 (DTOs). Se nao existirem → stub.
+T4 (Juliana) → Depende de T3 (service) e T2 (DTOs). Se nao existirem → stub.
+
+FRONTEND:
+T5 (Rafael)  → INDEPENDENTE. Foundation (types, service, hooks). Desbloqueia T6-T9.
+T6 (Camila)  → Depende de T5 (hooks), T7 (list), T9 (toolbar). Se nao existirem → stub/placeholder.
+T7 (Leonardo)→ Depende de T5 (types), T8 (item). Se nao existirem → stub.
+T8 (Fernanda)→ Depende de T5 (types), T7 (date.ts). Se nao existirem → stub.
+T9 (Andre)   → Depende de T5 (types, hooks). Se nao existirem → stub.
+T10 (Isabela)→ INDEPENDENTE. Testes + sidebar. Valida conforme entregas chegam.
+```
+
+### Ordem de criacao dos shared files
+
+**Backend:** Renato (T1) cria schema + repository PRIMEIRO. Amanda (T2) cria DTOs em paralelo. Ambos desbloqueiam T3 e T4.
+
+**Frontend:** Rafael (T5) cria types + service + hooks como PRIMEIRAS tarefas, ANTES de qualquer componente. Isso desbloqueia T6, T7, T8, T9 o mais rapido possivel.
+
+---
+
+## Padroes Tecnicos do Squad
+
+### Imports Backend (todos os tracks backend)
+
+```typescript
+// Prisma
+import { PrismaService } from '@/database/prisma.service'
+import { Prisma, Notification, NotificationType, NotificationStatus, NotificationCategory } from '@prisma/client'
+
+// NestJS
+import { Injectable, NotFoundException, BadRequestException } from '@nestjs/common'
+import { Controller, Get, Post, Patch, Body, Param, Query, HttpCode, HttpStatus } from '@nestjs/common'
+import { ApiTags, ApiBearerAuth, ApiOperation, ApiProperty, ApiPropertyOptional } from '@nestjs/swagger'
+import { IsString, IsNotEmpty, IsOptional, IsEnum, IsISO8601, MaxLength } from 'class-validator'
+
+// Auth
+import { CurrentUser } from '@/common/decorators/current-user.decorator'
+import { ParseCuidPipe } from '@/common/pipes/parse-cuid.pipe'
+
+// Events
+import { EventEmitter2, OnEvent } from '@nestjs/event-emitter'
+```
+
+### Imports Frontend (todos os tracks frontend)
+
+```typescript
+// API client
+import { api } from '@/lib/api'
+
+// Types
+import type { Notification, InboxView, NotificationsResponse, NotificationFilters } from '../types/notification.types'
+
+// React Query
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
+
+// Navigation
+import { useRouter, useSearchParams } from 'next/navigation'
+
+// Icons (@remixicon/react — UNICO pacote de icones permitido)
+import {
+  RiInboxLine, RiChat1Line, RiArrowLeftRightLine, RiTimeLine,
+  RiDeleteBinLine, RiAlertLine, RiAtLine, RiNotification3Line,
+  RiMailLine, RiMailOpenLine, RiCheckLine, RiCheckDoubleLine,
+  RiFilterLine,
+} from '@remixicon/react'
+
+// Date helpers
+import { groupNotificationsByDate, formatNotificationTime, getGroupLabel } from '../lib/date'
+
+// date-fns (apenas em lib/date.ts)
+import { isToday, isYesterday, differenceInDays, format } from 'date-fns'
+import { ptBR } from 'date-fns/locale'
+```
+
+### Convencoes de arquivo
+
+```
+Backend:
+  notifications.controller.ts        ← kebab-case
+  notifications.service.ts
+  notifications.repository.ts
+  notifications.module.ts
+  notification-emitter.service.ts
+  dto/notification-query.dto.ts
+  dto/create-notification.dto.ts
+  dto/snooze-notification.dto.ts
+  dto/bulk-action.dto.ts
+  dto/notification-response.dto.ts
+  dto/notification-counts.dto.ts
+
+Frontend:
+  Componentes: kebab-case (notification-item.tsx, inbox-tabs.tsx)
+  Types: kebab-case (notification.types.ts)
+  Hooks: use-{nome}.ts (use-notifications.ts, use-inbox-hotkeys.ts)
+  Services: {feature}.service.ts (notification.service.ts)
+  Lib: {nome}.ts (date.ts)
+  Pages: page.tsx (Next.js App Router)
+  Tests: {nome}.test.tsx / {nome}.test.ts
+```
+
+---
+
+## Regras do Squad
+
+1. **HTML/Tailwind da spec e lei.** O item de notificacao (secao 7) DEVE ser copiado tal qual. Nao "melhorar" classes.
+2. **Named group obrigatorio.** `group/notification`, nunca `group` puro.
+3. **invisible, nao hidden.** Para esconder data no hover, usar `invisible` (mantem largura). `hidden` causa layout shift.
+4. **Nenhum componente ultrapassa 150 linhas.** Decomponha se necessario.
+5. **Dark mode obrigatorio.** Todo componente funciona em light e dark.
+6. **Icones: @remixicon/react.** Nenhum outro pacote de icones (Lucide, Heroicons, etc.).
+7. **Types antes de tudo.** Nunca usar `any`. Respeitar contratos compartilhados.
+8. **Stubs sao temporarios.** Remover assim que o arquivo real existir.
+9. **Optimistic updates em mutations.** Todas as mutations frontend fazem update otimista + rollback.
+10. **Zero logica no controller.** Controller apenas delega para service.
+
+---
+
+## Manutencao
+
+| Quando... | Procure... |
+|---|---|
+| Schema, migration, repository, queries | Renato Souza (T1) |
+| DTOs, validacao, module wiring | Amanda Lopes (T2) |
+| Logica de negocio, event listeners | Thiago Mendes (T3) |
+| Endpoints REST, Swagger | Juliana Matos (T4) |
+| Types frontend, service HTTP, hooks React Query | Rafael Almeida (T5) |
+| Page, shell, tabs, URL sync | Camila Rocha (T6) |
+| Lista, agrupamento por data, formatacao | Leonardo Barros (T7) |
+| Componente NotificationItem (UI) | Fernanda Vieira (T8) |
+| Toolbar, filtros, dialogs, hotkeys, empty state | Andre Moreira (T9) |
+| Testes, sidebar badge, QA visual, Figma, a11y | Isabela Cunha (T10) |
+
+---
+
+## Interface com Outros Squads
+
+### De quem dependemos
+
+| Squad | O que consumimos |
+|---|---|
+| Squad Infra (F1) | PrismaService, EventEmitter2, CommonModule (guards, decorators, pipes) |
+| Squad Auth (F2) | JwtAuthGuard global, @CurrentUser decorator, User model |
+| Squad FE Shell (F6) | Layout dashboard, sidebar (T10 modifica para badge), providers, stores |
+| Squad BPM (F3) | Eventos: `task.overdue`, `task.due_soon`, `handoff.created` |
+| Squad Orders | Eventos: `order.status.changed` |
+| Squad Chat | Eventos: `chat.message.created`, `chat.mention` |
+
+### Quem depende de nos
+
+| Squad | O que consomem |
+|---|---|
+| Squad FE Shell (F6) | `useUnreadCount` hook para sidebar badge |
+| Qualquer squad futuro | `NotificationsService.create()` para emitir notificacoes custom |
+
+---
+
+## Contexto para Agentes
+
+```
+REFERENCIAS:
+- Especificacao completa: INBOX_SPEC.md (raiz do projeto)
+- Padrao Bravy: .claude/standards/99-referencia-completa.md
+- Agente CTO: .claude/agents/agent-cto.md
+- Design System: .claude/references/FIGMA.md (file key AjvK4iQOOs2wPcp53ZfIVr)
+- Notification Feed Figma: node 4096:21398
+- Padrao frontend: .claude/standards/05-frontend.md
+- Nomenclatura: .claude/standards/03-nomenclatura-e-padroes.md
+- Schema existente: mundial-erp-api/prisma/schema.prisma
+- Modules existentes: mundial-erp-api/src/modules/ (referencia de padrao)
+- Features existentes: mundial-erp-web/src/features/ (referencia de padrao)
+- Sidebar: mundial-erp-web/src/components/layout/sidebar.tsx (T10 modifica)
+- Componentes UI: mundial-erp-web/src/components/ui/
+```

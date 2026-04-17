@@ -1,6 +1,6 @@
 import { ApiPropertyOptional } from '@nestjs/swagger';
 import { IsEnum, IsOptional, IsString, MaxLength } from 'class-validator';
-import { ChannelVisibility } from '@prisma/client';
+import { ChannelType } from '@prisma/client';
 
 export class UpdateChannelDto {
   @ApiPropertyOptional({ maxLength: 255 })
@@ -21,10 +21,10 @@ export class UpdateChannelDto {
   @MaxLength(255)
   topic?: string;
 
-  @ApiPropertyOptional({ enum: ChannelVisibility })
+  @ApiPropertyOptional({ enum: ['PUBLIC', 'PRIVATE'] })
   @IsOptional()
-  @IsEnum(ChannelVisibility)
-  visibility?: ChannelVisibility;
+  @IsEnum(ChannelType)
+  type?: ChannelType;
 
   @ApiPropertyOptional()
   @IsOptional()

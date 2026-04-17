@@ -131,6 +131,10 @@ export type CreateAreaPayload = {
   name: string;
   departmentId: string;
   description?: string;
+  isPrivate?: boolean;
+  icon?: string;
+  color?: string;
+  useSpaceStatuses?: boolean;
 };
 
 export type UpdateAreaPayload = {
@@ -178,8 +182,11 @@ export type ActivityConfig = {
 
 export type CreateProcessPayload = {
   name: string;
-  areaId: string;
+  areaId?: string;
+  departmentId?: string;
   description?: string;
+  isPrivate?: boolean;
+  processType?: 'LIST' | 'BPM';
 };
 
 export type UpdateProcessPayload = {

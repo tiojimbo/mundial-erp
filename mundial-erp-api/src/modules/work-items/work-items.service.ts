@@ -10,10 +10,193 @@ import { ChangeStatusDto } from './dto/change-status.dto';
 import { ReorderWorkItemsDto } from './dto/reorder-work-items.dto';
 import { WorkItemResponseDto } from './dto/work-item-response.dto';
 import { WorkItemFiltersDto } from './dto/work-item-filters.dto';
+import type {
+  MyTaskDto,
+  MyTasksResponseDto,
+  MyTasksDayGroupDto,
+} from './dto/my-tasks-response.dto';
 
 @Injectable()
 export class WorkItemsService {
   constructor(private readonly workItemsRepository: WorkItemsRepository) {}
+
+  async getMyTasks(userId: string): Promise<MyTasksResponseDto> {
+    const items = await this.workItemsRepository.findByAssignee(userId);
+
+    const now = new Date();
+    const todayStart = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+    const tomorrowStart = new Date(todayStart);
+    tomorrowStart.setDate(tomorrowStart.getDate() + 1);
+    const sevenDaysFromNow = new Date(todayStart);
+    sevenDaysFromNow.setDate(sevenDaysFromNow.getDate() + 8);
+    const sevenDaysAgo = new Date(todayStart);
+    sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7);
+
+    const overdue: MyTaskDto[] = [];
+    const dueToday: MyTaskDto[] = [];
+    const dueTomorrow: MyTaskDto[] = [];
+    const upcoming: MyTaskDto[] = [];
+    const noDueDate: MyTaskDto[] = [];
+    const recentlyCompleted: MyTaskDto[] = [];
+    const dueByDayMap = new Map<string, { date: Date; tasks: MyTaskDto[] }>();
+
+    // Build next 7 days slots (from day after tomorrow to +7)
+    for (let i = 2; i <= 7; i++) {
+      const d = new Date(todayStart);
+      d.setDate(d.getDate() + i);
+      const key = d.toISOString().split('T')[0];
+      dueByDayMap.set(key, { date: d, tasks: [] });
+    }
+
+    for (const item of items) {
+      const task = this.mapToMyTask(item);
+
+      // Completed items (dateDone in last 7 days)
+      if (item.completedAt && item.completedAt >= sevenDaysAgo) {
+        recentlyCompleted.push(task);
+        continue;
+      }
+
+      // Closed items — skip
+      if (item.closedAt) continue;
+
+      // Already completed but older than 7 days — skip
+      if (item.completedAt) continue;
+
+      if (!item.dueDate) {
+        noDueDate.push(task);
+        continue;
+      }
+
+      const due = new Date(item.dueDate);
+      const dueDay = new Date(due.getFullYear(), due.getMonth(), due.getDate());
+
+      if (dueDay < todayStart) {
+        overdue.push(task);
+      } else if (dueDay.getTime() === todayStart.getTime()) {
+        dueToday.push(task);
+      } else if (dueDay.getTime() === tomorrowStart.getTime()) {
+        dueTomorrow.push(task);
+      } else if (dueDay < sevenDaysFromNow) {
+        const key = dueDay.toISOString().split('T')[0];
+        const slot = dueByDayMap.get(key);
+        if (slot) {
+          slot.tasks.push(task);
+        } else {
+          upcoming.push(task);
+        }
+      } else {
+        upcoming.push(task);
+      }
+    }
+
+    // Build dueByDay array
+    const dueByDay: MyTasksDayGroupDto[] = [];
+    for (const [key, value] of dueByDayMap) {
+      const dayLabel = this.formatDayLabel(value.date);
+      dueByDay.push({
+        id: key,
+        date: value.date.toISOString(),
+        label: dayLabel,
+        tasks: value.tasks,
+      });
+    }
+
+    const dueNextDaysCount = dueByDay.reduce((sum, g) => sum + g.tasks.length, 0);
+
+    const summary = {
+      overdueCount: overdue.length,
+      dueTodayCount: dueToday.length,
+      dueTomorrowCount: dueTomorrow.length,
+      dueNextSevenDaysCount: dueTomorrow.length + dueNextDaysCount,
+      dueNextDaysCount,
+      upcomingCount: upcoming.length,
+      noDueDateCount: noDueDate.length,
+      completedCount: recentlyCompleted.length,
+      totalActive:
+        overdue.length +
+        dueToday.length +
+        dueTomorrow.length +
+        dueNextDaysCount +
+        upcoming.length +
+        noDueDate.length,
+    };
+
+    return {
+      summary,
+      overdue,
+      dueToday,
+      dueTomorrow,
+      dueByDay,
+      upcoming,
+      noDueDate,
+      recentlyCompleted,
+    };
+  }
+
+  private mapToMyTask(item: any): MyTaskDto {
+    const assignees: { id: string; name: string; email: string }[] = [];
+    if (item.assignee) {
+      assignees.push({
+        id: item.assignee.id,
+        name: item.assignee.name,
+        email: item.assignee.email,
+      });
+    }
+
+    return {
+      id: item.id,
+      name: item.title,
+      priority: item.priority ?? null,
+      dueDate: item.dueDate?.toISOString() ?? null,
+      startDate: item.startDate?.toISOString() ?? null,
+      status: {
+        id: item.status?.id ?? '',
+        name: item.status?.name ?? '',
+        color: item.status?.color ?? '#888888',
+        type: item.status?.category ?? 'NOT_STARTED',
+      },
+      list: {
+        id: item.process?.id ?? '',
+        name: item.process?.name ?? '',
+        folder: item.process?.department?.name ?? null,
+      },
+      assignees,
+      taskType: item.itemType ?? null,
+      createdAt: item.createdAt.toISOString(),
+      dateDone: item.completedAt?.toISOString() ?? null,
+    };
+  }
+
+  private formatDayLabel(date: Date): string {
+    const weekdays = [
+      'Domingo',
+      'Segunda-feira',
+      'Terça-feira',
+      'Quarta-feira',
+      'Quinta-feira',
+      'Sexta-feira',
+      'Sábado',
+    ];
+    const months = [
+      'jan.',
+      'fev.',
+      'mar.',
+      'abr.',
+      'mai.',
+      'jun.',
+      'jul.',
+      'ago.',
+      'set.',
+      'out.',
+      'nov.',
+      'dez.',
+    ];
+    const dayName = weekdays[date.getDay()];
+    const day = date.getDate();
+    const month = months[date.getMonth()];
+    return `${dayName} \u00b7 ${day} de ${month}`;
+  }
 
   async create(
     dto: CreateWorkItemDto,

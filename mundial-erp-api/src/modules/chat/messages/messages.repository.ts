@@ -8,6 +8,10 @@ const MESSAGE_INCLUDE = {
   _count: { select: { replies: true } },
 } satisfies Prisma.ChatMessageInclude;
 
+export type ChatMessageWithRelations = Prisma.ChatMessageGetPayload<{
+  include: typeof MESSAGE_INCLUDE;
+}>;
+
 @Injectable()
 export class MessagesRepository {
   constructor(private readonly prisma: PrismaService) {}
@@ -24,6 +28,14 @@ export class MessagesRepository {
       where: { id, deletedAt: null },
       include: MESSAGE_INCLUDE,
     });
+  }
+
+  async findChannelId(messageId: string): Promise<string | null> {
+    const result = await this.prisma.chatMessage.findFirst({
+      where: { id: messageId, deletedAt: null },
+      select: { channelId: true },
+    });
+    return result?.channelId ?? null;
   }
 
   async findByChannelId(

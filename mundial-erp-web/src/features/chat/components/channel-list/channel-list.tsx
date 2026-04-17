@@ -17,8 +17,8 @@ export function ChannelList() {
   });
 
   const channels = data?.pages.flatMap((page) => page.data) ?? [];
-  const channelItems = channels.filter((c) => c.type === 'CHANNEL');
-  const dmItems = channels.filter((c) => c.type === 'DIRECT_MESSAGE');
+  const channelItems = channels.filter((c) => c.type === 'PUBLIC' || c.type === 'PRIVATE');
+  const dmItems = channels.filter((c) => c.type === 'DIRECT' || c.type === 'GROUP_DM');
 
   return (
     <div className='flex h-full flex-col'>

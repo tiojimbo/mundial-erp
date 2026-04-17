@@ -53,4 +53,46 @@ export class ProcessesRepository {
       data: { deletedAt: new Date() },
     });
   }
+
+  async findAreaById(areaId: string) {
+    return this.prisma.area.findFirst({
+      where: { id: areaId, deletedAt: null },
+      select: { id: true, departmentId: true },
+    });
+  }
+
+  async createWithDefaultView(data: Prisma.ProcessCreateInput) {
+    return this.prisma.$transaction(async (tx) => {
+      const process = await tx.process.create({ data });
+      await tx.processView.create({
+        data: {
+          name: 'Lista',
+          viewType: 'LIST',
+          isPinned: true,
+          process: { connect: { id: process.id } },
+        },
+      });
+      return process;
+    });
+  }
+
+  async findBySlugWithDetails(slug: string) {
+    return this.prisma.process.findFirst({
+      where: { slug, deletedAt: null },
+      include: {
+        sector: { select: { id: true, name: true, slug: true } },
+        area: {
+          select: {
+            id: true,
+            name: true,
+            slug: true,
+            departmentId: true,
+            department: { select: { name: true, slug: true } },
+          },
+        },
+        department: { select: { id: true, name: true, slug: true } },
+        _count: { select: { activities: { where: { deletedAt: null } } } },
+      },
+    });
+  }
 }

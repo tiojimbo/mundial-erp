@@ -8,7 +8,7 @@ import {
   IsString,
   MaxLength,
 } from 'class-validator';
-import { ChannelVisibility } from '@prisma/client';
+import { ChannelType } from '@prisma/client';
 
 export class CreateChannelLocationDto {
   @ApiPropertyOptional({ maxLength: 1000 })
@@ -23,10 +23,10 @@ export class CreateChannelLocationDto {
   @MaxLength(255)
   topic?: string;
 
-  @ApiPropertyOptional({ enum: ChannelVisibility, default: 'PUBLIC' })
+  @ApiPropertyOptional({ enum: ['PUBLIC', 'PRIVATE'], default: 'PUBLIC' })
   @IsOptional()
-  @IsEnum(ChannelVisibility)
-  visibility?: ChannelVisibility;
+  @IsEnum(ChannelType)
+  type?: ChannelType;
 
   @ApiPropertyOptional({ type: [String] })
   @IsOptional()

@@ -10,7 +10,6 @@ import * as Label from '@/components/ui/label';
 import { useCreateChannel } from '../hooks/use-channels';
 import { useChatStore } from '@/stores/chat.store';
 import { useRouter } from 'next/navigation';
-import type { ChannelVisibility } from '../types/chat.types';
 
 type CreateChannelDialogProps = {
   open: boolean;
@@ -32,13 +31,13 @@ export function CreateChannelDialog({
     e.preventDefault();
     if (!name.trim()) return;
 
-    const visibility: ChannelVisibility = isPrivate ? 'PRIVATE' : 'PUBLIC';
+    const type = isPrivate ? 'PRIVATE' : 'PUBLIC';
 
     createChannel(
       {
         name: name.trim(),
         description: description.trim() || undefined,
-        visibility,
+        type,
       },
       {
         onSuccess: (channel) => {

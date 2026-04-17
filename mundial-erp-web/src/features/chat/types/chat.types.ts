@@ -1,5 +1,4 @@
-export type ChannelVisibility = 'PUBLIC' | 'PRIVATE';
-export type ChannelType = 'CHANNEL' | 'DIRECT_MESSAGE';
+export type ChannelType = 'PUBLIC' | 'PRIVATE' | 'DIRECT' | 'GROUP_DM';
 export type ChatMessageType = 'MESSAGE' | 'POST';
 export type ContentFormat = 'TEXT_MD' | 'TEXT_PLAIN';
 export type ChannelMemberRole = 'OWNER' | 'ADMIN' | 'MEMBER';
@@ -10,7 +9,6 @@ export type Channel = {
   description: string | null;
   topic: string | null;
   type: ChannelType;
-  visibility: ChannelVisibility;
   locationEntity: string | null;
   locationId: string | null;
   memberCount: number;
@@ -94,7 +92,7 @@ export type CreateChannelPayload = {
   name: string;
   description?: string;
   topic?: string;
-  visibility?: ChannelVisibility;
+  type?: ChannelType;
   userIds?: string[];
 };
 
@@ -106,7 +104,7 @@ export type UpdateChannelPayload = {
   name?: string;
   description?: string;
   topic?: string;
-  visibility?: ChannelVisibility;
+  type?: ChannelType;
 };
 
 export type SendMessagePayload = {

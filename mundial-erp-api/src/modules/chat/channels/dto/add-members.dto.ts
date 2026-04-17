@@ -6,6 +6,7 @@ import {
   IsEnum,
   IsOptional,
   IsString,
+  Matches,
 } from 'class-validator';
 import { ChannelMemberRole } from '@prisma/client';
 
@@ -18,6 +19,7 @@ export class AddMembersDto {
   @ArrayMinSize(1)
   @ArrayMaxSize(100)
   @IsString({ each: true })
+  @Matches(/^c[a-z0-9]{20,30}$/, { each: true, message: 'Cada userId deve ser um CUID valido' })
   userIds: string[];
 
   @ApiPropertyOptional({ enum: ChannelMemberRole, default: 'MEMBER' })

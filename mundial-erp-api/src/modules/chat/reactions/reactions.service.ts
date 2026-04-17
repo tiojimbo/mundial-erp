@@ -7,7 +7,8 @@ import {
 import { EventEmitter2 } from '@nestjs/event-emitter';
 import { ReactionsRepository } from './reactions.repository';
 import { MessagesService } from '../messages/messages.service';
-import { ChannelsService } from '../channels/channels.service';
+import { ChannelAccessService } from '../channels/channel-access.service';
+import { CHAT_EVENTS } from '../constants/chat-events';
 import { CreateReactionDto } from './dto/create-reaction.dto';
 import { CursorPaginationDto } from '../../../common/dtos/cursor-pagination.dto';
 
@@ -16,7 +17,7 @@ export class ReactionsService {
   constructor(
     private readonly reactionsRepository: ReactionsRepository,
     private readonly messagesService: MessagesService,
-    private readonly channelsService: ChannelsService,
+    private readonly channelAccessService: ChannelAccessService,
     private readonly eventEmitter: EventEmitter2,
   ) {}
 
@@ -26,7 +27,7 @@ export class ReactionsService {
     userId: string,
   ): Promise<void> {
     const channelId = await this.messagesService.getChannelId(messageId);
-    await this.channelsService.assertMembership(channelId, userId);
+    await this.channelAccessService.assertMembership(channelId, userId);
 
     const alreadyExists = await this.reactionsRepository.exists(
       messageId,
@@ -39,7 +40,7 @@ export class ReactionsService {
 
     await this.reactionsRepository.create(messageId, userId, dto.emojiName);
 
-    this.eventEmitter.emit('chat.reaction.added', {
+    this.eventEmitter.emit(CHAT_EVENTS.REACTION_ADDED, {
       messageId,
       channelId,
       userId,
@@ -65,7 +66,7 @@ export class ReactionsService {
 
     await this.reactionsRepository.delete(messageId, userId, emojiName);
 
-    this.eventEmitter.emit('chat.reaction.removed', {
+    this.eventEmitter.emit(CHAT_EVENTS.REACTION_REMOVED, {
       messageId,
       channelId,
       userId,
@@ -79,7 +80,7 @@ export class ReactionsService {
     userId: string,
   ) {
     const channelId = await this.messagesService.getChannelId(messageId);
-    await this.channelsService.assertMembership(channelId, userId);
+    await this.channelAccessService.assertMembership(channelId, userId);
 
     return this.reactionsRepository.findByMessage(messageId, {
       cursor: query.cursor,

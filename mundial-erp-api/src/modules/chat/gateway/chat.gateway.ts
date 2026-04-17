@@ -10,6 +10,15 @@ import { OnEvent } from '@nestjs/event-emitter';
 import { Server, Socket } from 'socket.io';
 import { WsAuthGuard } from '../../../common/guards/ws-auth.guard';
 import { ChannelsService } from '../channels/channels.service';
+import { CHAT_EVENTS } from '../constants/chat-events';
+import type {
+  MessageCreatedPayload,
+  MessageUpdatedPayload,
+  MessageDeletedPayload,
+  ReactionPayload,
+  ChannelMembersAddedPayload,
+  ChannelMemberRemovedPayload,
+} from '../types/chat-event-payloads';
 
 @WebSocketGateway({ namespace: '/chat' })
 export class ChatGateway
@@ -75,66 +84,50 @@ export class ChatGateway
     });
   }
 
-  @OnEvent('chat.message.created')
-  onMessageCreated(payload: {
-    message: Record<string, unknown>;
-    channelId: string;
-  }) {
+  @OnEvent(CHAT_EVENTS.MESSAGE_CREATED)
+  onMessageCreated(payload: MessageCreatedPayload) {
     this.server
       .to(`channel:${payload.channelId}`)
       .emit('message:new', payload.message);
   }
 
-  @OnEvent('chat.message.updated')
-  onMessageUpdated(payload: {
-    message: Record<string, unknown>;
-    channelId: string;
-  }) {
+  @OnEvent(CHAT_EVENTS.MESSAGE_UPDATED)
+  onMessageUpdated(payload: MessageUpdatedPayload) {
     this.server
       .to(`channel:${payload.channelId}`)
       .emit('message:updated', payload.message);
   }
 
-  @OnEvent('chat.message.deleted')
-  onMessageDeleted(payload: { messageId: string; channelId: string }) {
+  @OnEvent(CHAT_EVENTS.MESSAGE_DELETED)
+  onMessageDeleted(payload: MessageDeletedPayload) {
     this.server
       .to(`channel:${payload.channelId}`)
       .emit('message:deleted', payload);
   }
 
-  @OnEvent('chat.reaction.added')
-  onReactionAdded(payload: {
-    messageId: string;
-    channelId: string;
-    userId: string;
-    emojiName: string;
-  }) {
+  @OnEvent(CHAT_EVENTS.REACTION_ADDED)
+  onReactionAdded(payload: ReactionPayload) {
     this.server
       .to(`channel:${payload.channelId}`)
       .emit('reaction:added', payload);
   }
 
-  @OnEvent('chat.reaction.removed')
-  onReactionRemoved(payload: {
-    messageId: string;
-    channelId: string;
-    userId: string;
-    emojiName: string;
-  }) {
+  @OnEvent(CHAT_EVENTS.REACTION_REMOVED)
+  onReactionRemoved(payload: ReactionPayload) {
     this.server
       .to(`channel:${payload.channelId}`)
       .emit('reaction:removed', payload);
   }
 
-  @OnEvent('chat.channel.members-added')
-  onMembersAdded(payload: { channelId: string; userIds: string[] }) {
+  @OnEvent(CHAT_EVENTS.CHANNEL_MEMBERS_ADDED)
+  onMembersAdded(payload: ChannelMembersAddedPayload) {
     this.server
       .to(`channel:${payload.channelId}`)
       .emit('member:added', payload);
   }
 
-  @OnEvent('chat.channel.member-removed')
-  onMemberRemoved(payload: { channelId: string; userId: string }) {
+  @OnEvent(CHAT_EVENTS.CHANNEL_MEMBER_REMOVED)
+  onMemberRemoved(payload: ChannelMemberRemovedPayload) {
     this.server
       .to(`channel:${payload.channelId}`)
       .emit('member:removed', payload);

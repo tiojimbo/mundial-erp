@@ -56,6 +56,7 @@ import { AuditInterceptor } from './common/interceptors/audit.interceptor';
 import { ChatModule } from './modules/chat/chat.module';
 import { ProcessViewsModule } from './modules/process-views/process-views.module';
 import { WorkItemsModule } from './modules/work-items/work-items.module';
+import { NotificationsModule } from './modules/notifications/notifications.module';
 
 @Module({
   imports: [
@@ -183,6 +184,9 @@ import { WorkItemsModule } from './modules/work-items/work-items.module';
 
     // Work Items (Itens de Processos LIST)
     WorkItemsModule,
+
+    // Notifications (Notificacoes Inbox)
+    NotificationsModule,
   ],
   providers: [
     // Global guards (order: Throttler → JWT Auth → Roles)

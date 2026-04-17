@@ -6,7 +6,8 @@ import {
 import { EventEmitter2 } from '@nestjs/event-emitter';
 import { Prisma } from '@prisma/client';
 import { MessagesRepository } from './messages.repository';
-import { ChannelsService } from '../channels/channels.service';
+import { ChannelAccessService } from '../channels/channel-access.service';
+import { CHAT_EVENTS } from '../constants/chat-events';
 import { CreateMessageDto } from './dto/create-message.dto';
 import { UpdateMessageDto } from './dto/update-message.dto';
 import { ListMessagesQueryDto } from './dto/list-messages-query.dto';
@@ -17,7 +18,7 @@ import { CursorPaginationDto } from '../../../common/dtos/cursor-pagination.dto'
 export class MessagesService {
   constructor(
     private readonly messagesRepository: MessagesRepository,
-    private readonly channelsService: ChannelsService,
+    private readonly channelAccessService: ChannelAccessService,
     private readonly eventEmitter: EventEmitter2,
   ) {}
 
@@ -26,8 +27,7 @@ export class MessagesService {
     dto: CreateMessageDto,
     userId: string,
   ): Promise<MessageResponseDto> {
-    await this.channelsService.autoJoinIfPublic(channelId, userId);
-    await this.channelsService.assertMembership(channelId, userId);
+    await this.channelAccessService.ensureMembershipOrAutoJoin(channelId, userId);
 
     const entity = await this.messagesRepository.create({
       content: dto.content,
@@ -62,15 +62,10 @@ export class MessagesService {
       );
     }
 
-    await this.channelsService.reopenClosedDmForRecipients(
-      channelId,
-      userId,
-    );
-
     const response = MessageResponseDto.fromEntity(
-      entity as Record<string, unknown>,
+      entity,
     );
-    this.eventEmitter.emit('chat.message.created', {
+    this.eventEmitter.emit(CHAT_EVENTS.MESSAGE_CREATED, {
       message: response,
       channelId,
     });
@@ -83,7 +78,7 @@ export class MessagesService {
     query: ListMessagesQueryDto,
     userId: string,
   ) {
-    await this.channelsService.assertMembership(channelId, userId);
+    await this.channelAccessService.assertMembership(channelId, userId);
     const result = await this.messagesRepository.findByChannelId(channelId, {
       cursor: query.cursor,
       limit: query.limit,
@@ -91,7 +86,7 @@ export class MessagesService {
     return {
       ...result,
       items: result.items.map((item) =>
-        MessageResponseDto.fromEntity(item as Record<string, unknown>),
+        MessageResponseDto.fromEntity(item),
       ),
     };
   }
@@ -103,9 +98,9 @@ export class MessagesService {
     const entity = await this.messagesRepository.findById(messageId);
     if (!entity) throw new NotFoundException('Mensagem nao encontrada');
 
-    await this.channelsService.assertMembership(entity.channelId, userId);
+    await this.channelAccessService.assertMembership(entity.channelId, userId);
     return MessageResponseDto.fromEntity(
-      entity as Record<string, unknown>,
+      entity,
     );
   }
 
@@ -150,9 +145,9 @@ export class MessagesService {
     }
 
     const response = MessageResponseDto.fromEntity(
-      updated as Record<string, unknown>,
+      updated,
     );
-    this.eventEmitter.emit('chat.message.updated', {
+    this.eventEmitter.emit(CHAT_EVENTS.MESSAGE_UPDATED, {
       message: response,
       channelId: entity.channelId,
     });
@@ -165,7 +160,7 @@ export class MessagesService {
     if (!entity) throw new NotFoundException('Mensagem nao encontrada');
 
     if (entity.authorId !== userId) {
-      const role = await this.channelsService.getMemberRole(
+      const role = await this.channelAccessService.getMemberRole(
         entity.channelId,
         userId,
       );
@@ -177,7 +172,7 @@ export class MessagesService {
     }
 
     await this.messagesRepository.softDelete(messageId);
-    this.eventEmitter.emit('chat.message.deleted', {
+    this.eventEmitter.emit(CHAT_EVENTS.MESSAGE_DELETED, {
       messageId,
       channelId: entity.channelId,
     });
@@ -191,7 +186,7 @@ export class MessagesService {
     const entity = await this.messagesRepository.findById(messageId);
     if (!entity) throw new NotFoundException('Mensagem nao encontrada');
 
-    await this.channelsService.assertMembership(entity.channelId, userId);
+    await this.channelAccessService.assertMembership(entity.channelId, userId);
     const result = await this.messagesRepository.findReplies(messageId, {
       cursor: query.cursor,
       limit: query.limit,
@@ -199,7 +194,7 @@ export class MessagesService {
     return {
       ...result,
       items: result.items.map((item) =>
-        MessageResponseDto.fromEntity(item as Record<string, unknown>),
+        MessageResponseDto.fromEntity(item),
       ),
     };
   }
@@ -212,7 +207,7 @@ export class MessagesService {
     const entity = await this.messagesRepository.findById(messageId);
     if (!entity) throw new NotFoundException('Mensagem nao encontrada');
 
-    await this.channelsService.assertMembership(entity.channelId, userId);
+    await this.channelAccessService.assertMembership(entity.channelId, userId);
     return this.messagesRepository.findTaggedUsers(messageId, {
       cursor: query.cursor,
       limit: query.limit,

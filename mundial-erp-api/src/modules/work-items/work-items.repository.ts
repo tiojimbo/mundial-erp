@@ -152,6 +152,25 @@ export class WorkItemsRepository {
     return this.prisma.$transaction(updates);
   }
 
+  async findByAssignee(userId: string) {
+    return this.prisma.workItem.findMany({
+      where: {
+        assigneeId: userId,
+        deletedAt: null,
+      },
+      orderBy: [{ dueDate: 'asc' }, { sortOrder: 'asc' }, { createdAt: 'desc' }],
+      include: {
+        status: true,
+        process: {
+          select: { id: true, name: true, departmentId: true, department: { select: { name: true } } },
+        },
+        assignee: {
+          select: { id: true, name: true, email: true },
+        },
+      },
+    });
+  }
+
   async findProcessById(processId: string) {
     return this.prisma.process.findFirst({
       where: { id: processId, deletedAt: null },

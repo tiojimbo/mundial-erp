@@ -55,6 +55,32 @@ export class DepartmentsController {
     return this.departmentsService.getSidebarTree();
   }
 
+  @Get('by-slug/:slug')
+  @Roles(Role.ADMIN, Role.MANAGER, Role.OPERATOR, Role.VIEWER)
+  @ApiOperation({ summary: 'Buscar departamento por slug (com áreas e processos diretos)' })
+  @ApiResponse({ status: 200 })
+  @ApiResponse({ status: 404, description: 'Departamento não encontrado' })
+  findBySlug(@Param('slug') slug: string) {
+    return this.departmentsService.findBySlug(slug);
+  }
+
+  @Get(':id/process-summaries')
+  @Roles(Role.ADMIN, Role.MANAGER, Role.OPERATOR, Role.VIEWER)
+  @ApiOperation({
+    summary: 'Resumo consolidado de todos os processos do departamento (LIST + BPM)',
+  })
+  @ApiResponse({ status: 200 })
+  @ApiResponse({ status: 404, description: 'Departamento não encontrado' })
+  getProcessSummaries(
+    @Param('id') id: string,
+    @Query('showClosed') showClosed?: string,
+  ) {
+    return this.departmentsService.getProcessSummaries(
+      id,
+      showClosed === 'true',
+    );
+  }
+
   @Get(':id')
   @Roles(Role.ADMIN, Role.MANAGER)
   @ApiOperation({ summary: 'Buscar departamento por ID' })

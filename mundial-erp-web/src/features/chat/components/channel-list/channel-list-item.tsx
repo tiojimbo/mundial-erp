@@ -23,7 +23,7 @@ export function ChannelListItem({ channel }: ChannelListItemProps) {
   const unreadCount = useChatStore((s) => s.unreadCounts[channel.id] ?? 0);
 
   const isActive = activeChannelId === channel.id;
-  const isDm = channel.type === 'DIRECT_MESSAGE';
+  const isDm = channel.type === 'DIRECT' || channel.type === 'GROUP_DM';
 
   return (
     <button
@@ -37,7 +37,7 @@ export function ChannelListItem({ channel }: ChannelListItemProps) {
       {isDm ? (
         <DmAvatar name={channel.name} />
       ) : (
-        <ChannelIcon visibility={channel.visibility} name={channel.name} />
+        <ChannelIcon type={channel.type} name={channel.name} />
       )}
 
       <span className='min-w-0 flex-1 truncate'>
@@ -54,10 +54,10 @@ export function ChannelListItem({ channel }: ChannelListItemProps) {
 }
 
 function ChannelIcon({
-  visibility,
+  type,
   name,
 }: {
-  visibility: string;
+  type: string;
   name: string | null;
 }) {
   const abbr = name?.substring(0, 2).toUpperCase() ?? '';
@@ -65,7 +65,7 @@ function ChannelIcon({
 
   return (
     <span className='flex items-center gap-[2px]'>
-      {visibility === 'PRIVATE' ? (
+      {type === 'PRIVATE' ? (
         <RiLockLine className='size-4 text-[oklch(55.6%_0_0)]' />
       ) : (
         <RiHashtag className='size-4 text-[oklch(55.6%_0_0)]' />

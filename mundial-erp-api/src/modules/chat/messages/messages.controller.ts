@@ -10,6 +10,7 @@ import {
   Post,
   Query,
 } from '@nestjs/common';
+import { ParseCuidPipe } from '../../../common/pipes/parse-cuid.pipe';
 import {
   ApiBearerAuth,
   ApiOperation,
@@ -35,7 +36,7 @@ export class ChannelMessagesController {
   @ApiResponse({ status: 201, type: MessageResponseDto })
   @ApiResponse({ status: 404, description: 'Canal nao encontrado' })
   create(
-    @Param('channelId') channelId: string,
+    @Param('channelId', ParseCuidPipe) channelId: string,
     @Body() dto: CreateMessageDto,
     @CurrentUser('sub') userId: string,
   ) {
@@ -45,7 +46,7 @@ export class ChannelMessagesController {
   @Get()
   @ApiOperation({ summary: 'Listar mensagens do canal (ClickUp #11)' })
   findByChannel(
-    @Param('channelId') channelId: string,
+    @Param('channelId', ParseCuidPipe) channelId: string,
     @Query() query: ListMessagesQueryDto,
     @CurrentUser('sub') userId: string,
   ) {
@@ -57,7 +58,7 @@ export class ChannelMessagesController {
   @ApiResponse({ status: 200, type: MessageResponseDto })
   @ApiResponse({ status: 404, description: 'Mensagem nao encontrada' })
   findOne(
-    @Param('messageId') messageId: string,
+    @Param('messageId', ParseCuidPipe) messageId: string,
     @CurrentUser('sub') userId: string,
   ) {
     return this.messagesService.findById(messageId, userId);
@@ -74,7 +75,7 @@ export class MessagesController {
   @ApiOperation({ summary: 'Editar mensagem (ClickUp #12)' })
   @ApiResponse({ status: 200, type: MessageResponseDto })
   update(
-    @Param('messageId') messageId: string,
+    @Param('messageId', ParseCuidPipe) messageId: string,
     @Body() dto: UpdateMessageDto,
     @CurrentUser('sub') userId: string,
   ) {
@@ -86,7 +87,7 @@ export class MessagesController {
   @ApiOperation({ summary: 'Deletar mensagem (ClickUp #13)' })
   @ApiResponse({ status: 204 })
   remove(
-    @Param('messageId') messageId: string,
+    @Param('messageId', ParseCuidPipe) messageId: string,
     @CurrentUser('sub') userId: string,
   ) {
     return this.messagesService.remove(messageId, userId);
@@ -95,7 +96,7 @@ export class MessagesController {
   @Get(':messageId/replies')
   @ApiOperation({ summary: 'Listar replies de mensagem (ClickUp #18)' })
   findReplies(
-    @Param('messageId') messageId: string,
+    @Param('messageId', ParseCuidPipe) messageId: string,
     @Query() query: CursorPaginationDto,
     @CurrentUser('sub') userId: string,
   ) {
@@ -105,7 +106,7 @@ export class MessagesController {
   @Get(':messageId/tagged-users')
   @ApiOperation({ summary: 'Listar usuarios mencionados (ClickUp #19)' })
   findTaggedUsers(
-    @Param('messageId') messageId: string,
+    @Param('messageId', ParseCuidPipe) messageId: string,
     @Query() query: CursorPaginationDto,
     @CurrentUser('sub') userId: string,
   ) {

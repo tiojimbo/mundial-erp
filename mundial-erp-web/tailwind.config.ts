@@ -588,6 +588,29 @@ const config = {
       none: defaultTheme.boxShadow.none,
     },
     extend: {
+      colors: {
+        background: 'var(--background)',
+        foreground: 'var(--foreground)',
+        card: {
+          DEFAULT: 'var(--card)',
+          foreground: 'var(--card-foreground)',
+        },
+        secondary: {
+          DEFAULT: 'var(--secondary)',
+          foreground: 'var(--secondary-foreground)',
+        },
+        muted: {
+          DEFAULT: 'var(--muted)',
+          foreground: 'var(--muted-foreground)',
+        },
+        accent: {
+          DEFAULT: 'var(--accent)',
+          foreground: 'var(--accent-foreground)',
+        },
+        border: 'var(--border)',
+        input: 'var(--input)',
+        ring: 'var(--ring)',
+      },
       fontFamily: {
         sans: ['var(--font-sans)'],
         mono: ['var(--font-geist-mono)'],

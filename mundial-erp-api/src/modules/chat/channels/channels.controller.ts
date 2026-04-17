@@ -10,6 +10,7 @@ import {
   Post,
   Query,
 } from '@nestjs/common';
+import { ParseCuidPipe } from '../../../common/pipes/parse-cuid.pipe';
 import {
   ApiBearerAuth,
   ApiOperation,
@@ -82,7 +83,7 @@ export class ChannelsController {
   @ApiResponse({ status: 200, type: ChannelResponseDto })
   @ApiResponse({ status: 404, description: 'Canal nao encontrado' })
   findOne(
-    @Param('channelId') channelId: string,
+    @Param('channelId', ParseCuidPipe) channelId: string,
     @CurrentUser('sub') userId: string,
   ) {
     return this.channelsService.findById(channelId, userId);
@@ -92,7 +93,7 @@ export class ChannelsController {
   @ApiOperation({ summary: 'Atualizar canal (ClickUp #5)' })
   @ApiResponse({ status: 200, type: ChannelResponseDto })
   update(
-    @Param('channelId') channelId: string,
+    @Param('channelId', ParseCuidPipe) channelId: string,
     @Body() dto: UpdateChannelDto,
     @CurrentUser('sub') userId: string,
   ) {
@@ -104,7 +105,7 @@ export class ChannelsController {
   @ApiOperation({ summary: 'Deletar canal (ClickUp #6)' })
   @ApiResponse({ status: 204 })
   remove(
-    @Param('channelId') channelId: string,
+    @Param('channelId', ParseCuidPipe) channelId: string,
     @CurrentUser('sub') userId: string,
   ) {
     return this.channelsService.remove(channelId, userId);
@@ -113,7 +114,7 @@ export class ChannelsController {
   @Get(':channelId/followers')
   @ApiOperation({ summary: 'Listar followers do canal (ClickUp #7)' })
   findFollowers(
-    @Param('channelId') channelId: string,
+    @Param('channelId', ParseCuidPipe) channelId: string,
     @Query() query: CursorPaginationDto,
     @CurrentUser('sub') userId: string,
   ) {
@@ -123,7 +124,7 @@ export class ChannelsController {
   @Get(':channelId/members')
   @ApiOperation({ summary: 'Listar membros do canal (ClickUp #8)' })
   findMembers(
-    @Param('channelId') channelId: string,
+    @Param('channelId', ParseCuidPipe) channelId: string,
     @Query() query: CursorPaginationDto,
     @CurrentUser('sub') userId: string,
   ) {
@@ -134,7 +135,7 @@ export class ChannelsController {
   @ApiOperation({ summary: 'Adicionar membros' })
   @ApiResponse({ status: 201 })
   addMembers(
-    @Param('channelId') channelId: string,
+    @Param('channelId', ParseCuidPipe) channelId: string,
     @Body() dto: AddMembersDto,
     @CurrentUser('sub') userId: string,
   ) {
@@ -150,8 +151,8 @@ export class ChannelsController {
     description: 'DMs nao permitem remocao de membros',
   })
   removeMember(
-    @Param('channelId') channelId: string,
-    @Param('targetUserId') targetUserId: string,
+    @Param('channelId', ParseCuidPipe) channelId: string,
+    @Param('targetUserId', ParseCuidPipe) targetUserId: string,
     @CurrentUser('sub') userId: string,
   ) {
     return this.channelsService.removeMember(channelId, targetUserId, userId);
@@ -161,8 +162,8 @@ export class ChannelsController {
   @ApiOperation({ summary: 'Alterar role de membro (somente OWNER)' })
   @ApiResponse({ status: 200 })
   updateMemberRole(
-    @Param('channelId') channelId: string,
-    @Param('targetUserId') targetUserId: string,
+    @Param('channelId', ParseCuidPipe) channelId: string,
+    @Param('targetUserId', ParseCuidPipe) targetUserId: string,
     @Body('role') role: ChannelMemberRole,
     @CurrentUser('sub') userId: string,
   ) {
@@ -178,7 +179,7 @@ export class ChannelsController {
   @HttpCode(HttpStatus.OK)
   @ApiOperation({ summary: 'Seguir canal (receber notificacoes)' })
   follow(
-    @Param('channelId') channelId: string,
+    @Param('channelId', ParseCuidPipe) channelId: string,
     @CurrentUser('sub') userId: string,
   ) {
     return this.channelsService.followChannel(channelId, userId);
@@ -190,7 +191,7 @@ export class ChannelsController {
     summary: 'Deixar de seguir canal (parar notificacoes, continua membro)',
   })
   unfollow(
-    @Param('channelId') channelId: string,
+    @Param('channelId', ParseCuidPipe) channelId: string,
     @CurrentUser('sub') userId: string,
   ) {
     return this.channelsService.unfollowChannel(channelId, userId);
@@ -200,7 +201,7 @@ export class ChannelsController {
   @HttpCode(HttpStatus.OK)
   @ApiOperation({ summary: 'Fechar/esconder DM da listagem' })
   closeDm(
-    @Param('channelId') channelId: string,
+    @Param('channelId', ParseCuidPipe) channelId: string,
     @CurrentUser('sub') userId: string,
   ) {
     return this.channelsService.closeDm(channelId, userId);
@@ -210,7 +211,7 @@ export class ChannelsController {
   @HttpCode(HttpStatus.OK)
   @ApiOperation({ summary: 'Reabrir DM na listagem' })
   openDm(
-    @Param('channelId') channelId: string,
+    @Param('channelId', ParseCuidPipe) channelId: string,
     @CurrentUser('sub') userId: string,
   ) {
     return this.channelsService.openDm(channelId, userId);
@@ -220,7 +221,7 @@ export class ChannelsController {
   @HttpCode(HttpStatus.OK)
   @ApiOperation({ summary: 'Marcar canal como lido' })
   markAsRead(
-    @Param('channelId') channelId: string,
+    @Param('channelId', ParseCuidPipe) channelId: string,
     @CurrentUser('sub') userId: string,
   ) {
     return this.channelsService.markAsRead(channelId, userId);

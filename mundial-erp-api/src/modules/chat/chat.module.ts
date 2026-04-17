@@ -2,6 +2,7 @@ import { Module } from '@nestjs/common';
 import { AuthModule } from '../auth/auth.module';
 import { ChannelsController } from './channels/channels.controller';
 import { ChannelsRepository } from './channels/channels.repository';
+import { ChannelAccessService } from './channels/channel-access.service';
 import { ChannelsService } from './channels/channels.service';
 import {
   ChannelMessagesController,
@@ -13,6 +14,7 @@ import { ReactionsController } from './reactions/reactions.controller';
 import { ReactionsRepository } from './reactions/reactions.repository';
 import { ReactionsService } from './reactions/reactions.service';
 import { ChatGateway } from './gateway/chat.gateway';
+import { PresenceService } from './gateway/presence.service';
 import { WsAuthGuard } from '../../common/guards/ws-auth.guard';
 
 @Module({
@@ -25,14 +27,16 @@ import { WsAuthGuard } from '../../common/guards/ws-auth.guard';
   ],
   providers: [
     ChannelsRepository,
+    ChannelAccessService,
     ChannelsService,
     MessagesRepository,
     MessagesService,
     ReactionsRepository,
     ReactionsService,
     WsAuthGuard,
+    PresenceService,
     ChatGateway,
   ],
-  exports: [ChannelsService, MessagesService],
+  exports: [ChannelAccessService, ChannelsService, MessagesService],
 })
 export class ChatModule {}

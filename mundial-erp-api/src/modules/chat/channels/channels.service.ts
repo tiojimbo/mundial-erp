@@ -5,8 +5,12 @@ import {
   NotFoundException,
 } from '@nestjs/common';
 import { EventEmitter2 } from '@nestjs/event-emitter';
+import { OnEvent } from '@nestjs/event-emitter';
 import { ChannelMemberRole } from '@prisma/client';
 import { createHash } from 'crypto';
+import { CHAT_EVENTS } from '../constants/chat-events';
+import type { MessageCreatedPayload } from '../types/chat-event-payloads';
+import { ChannelAccessService } from './channel-access.service';
 import { ChannelsRepository } from './channels.repository';
 import { CreateChannelDto } from './dto/create-channel.dto';
 import { CreateChannelLocationDto } from './dto/create-channel-location.dto';
@@ -21,6 +25,7 @@ import { CursorPaginationDto } from '../../../common/dtos/cursor-pagination.dto'
 export class ChannelsService {
   constructor(
     private readonly channelsRepository: ChannelsRepository,
+    private readonly channelAccessService: ChannelAccessService,
     private readonly eventEmitter: EventEmitter2,
   ) {}
 
@@ -35,8 +40,7 @@ export class ChannelsService {
       name: dto.name,
       description: dto.description,
       topic: dto.topic,
-      visibility: dto.visibility ?? 'PUBLIC',
-      type: 'CHANNEL',
+      type: dto.type ?? 'PUBLIC',
       createdBy: { connect: { id: userId } },
       members: {
         create: { userId, role: 'OWNER' },
@@ -51,7 +55,7 @@ export class ChannelsService {
       );
     }
 
-    this.eventEmitter.emit('chat.channel.created', { channelId: entity.id });
+    this.eventEmitter.emit(CHAT_EVENTS.CHANNEL_CREATED, { channelId: entity.id });
     return ChannelResponseDto.fromEntity(entity);
   }
 
@@ -68,8 +72,7 @@ export class ChannelsService {
     const entity = await this.channelsRepository.create({
       description: dto.description,
       topic: dto.topic,
-      visibility: dto.visibility ?? 'PUBLIC',
-      type: 'CHANNEL',
+      type: dto.type ?? 'PUBLIC',
       locationEntity: dto.locationEntity,
       locationId: dto.locationId,
       createdBy: { connect: { id: userId } },
@@ -103,8 +106,7 @@ export class ChannelsService {
     if (existing) return ChannelResponseDto.fromEntity(existing);
 
     const entity = await this.channelsRepository.create({
-      type: 'DIRECT_MESSAGE',
-      visibility: 'PRIVATE',
+      type: participantIds.length > 2 ? 'GROUP_DM' : 'DIRECT',
       participantHash: hash,
       createdBy: { connect: { id: userId } },
       members: {
@@ -138,7 +140,7 @@ export class ChannelsService {
     const entity = await this.channelsRepository.findById(channelId);
     if (!entity) throw new NotFoundException('Canal nao encontrado');
 
-    if (entity.visibility === 'PRIVATE') {
+    if (entity.type !== 'PUBLIC') {
       const isMember = await this.channelsRepository.isMember(
         channelId,
         userId,
@@ -173,14 +175,14 @@ export class ChannelsService {
       ...(dto.name !== undefined && { name: dto.name }),
       ...(dto.description !== undefined && { description: dto.description }),
       ...(dto.topic !== undefined && { topic: dto.topic }),
-      ...(dto.visibility !== undefined && { visibility: dto.visibility }),
+      ...(dto.type !== undefined && { type: dto.type }),
       ...(dto.locationEntity !== undefined && {
         locationEntity: dto.locationEntity,
       }),
       ...(dto.locationId !== undefined && { locationId: dto.locationId }),
     });
 
-    this.eventEmitter.emit('chat.channel.updated', { channelId });
+    this.eventEmitter.emit(CHAT_EVENTS.CHANNEL_UPDATED, { channelId });
     return ChannelResponseDto.fromEntity(updated);
   }
 
@@ -207,13 +209,13 @@ export class ChannelsService {
     const channel = await this.channelsRepository.findById(channelId);
     if (!channel) throw new NotFoundException('Canal nao encontrado');
 
-    if (channel.type === 'DIRECT_MESSAGE') {
+    if (this.channelAccessService.isDmType(channel.type)) {
       throw new BadRequestException(
         'Nao e possivel adicionar membros a um DM. Crie um novo DM com os participantes desejados.',
       );
     }
 
-    if (channel.visibility === 'PRIVATE') {
+    if (channel.type === 'PRIVATE') {
       const role = await this.channelsRepository.getMemberRole(
         channelId,
         userId,
@@ -230,7 +232,7 @@ export class ChannelsService {
       dto.userIds,
       dto.role ?? 'MEMBER',
     );
-    this.eventEmitter.emit('chat.channel.members-added', {
+    this.eventEmitter.emit(CHAT_EVENTS.CHANNEL_MEMBERS_ADDED, {
       channelId,
       userIds: dto.userIds,
     });
@@ -244,7 +246,7 @@ export class ChannelsService {
     const channel = await this.channelsRepository.findById(channelId);
     if (!channel) throw new NotFoundException('Canal nao encontrado');
 
-    if (channel.type === 'DIRECT_MESSAGE') {
+    if (this.channelAccessService.isDmType(channel.type)) {
       throw new BadRequestException(
         'Nao e possivel remover membros de um DM. Use close para esconder.',
       );
@@ -263,7 +265,7 @@ export class ChannelsService {
     }
 
     await this.channelsRepository.removeMember(channelId, targetUserId);
-    this.eventEmitter.emit('chat.channel.member-removed', {
+    this.eventEmitter.emit(CHAT_EVENTS.CHANNEL_MEMBER_REMOVED, {
       channelId,
       userId: targetUserId,
     });
@@ -290,18 +292,18 @@ export class ChannelsService {
   }
 
   async followChannel(channelId: string, userId: string): Promise<void> {
-    await this.assertMembership(channelId, userId);
+    await this.channelAccessService.assertMembership(channelId, userId);
     await this.channelsRepository.setFollower(channelId, userId, true);
   }
 
   async unfollowChannel(channelId: string, userId: string): Promise<void> {
-    await this.assertMembership(channelId, userId);
+    await this.channelAccessService.assertMembership(channelId, userId);
     await this.channelsRepository.setFollower(channelId, userId, false);
   }
 
   async closeDm(channelId: string, userId: string): Promise<void> {
     const channel = await this.channelsRepository.findById(channelId);
-    if (!channel || channel.type !== 'DIRECT_MESSAGE') {
+    if (!channel || !this.channelAccessService.isDmType(channel.type)) {
       throw new BadRequestException('Somente DMs podem ser fechados');
     }
     await this.channelsRepository.closeDm(channelId, userId);
@@ -319,7 +321,7 @@ export class ChannelsService {
     const channel = await this.channelsRepository.findById(channelId);
     if (!channel) throw new NotFoundException('Canal nao encontrado');
 
-    if (channel.visibility === 'PUBLIC') {
+    if (channel.type === 'PUBLIC') {
       const isMember = await this.channelsRepository.isMember(
         channelId,
         userId,
@@ -335,7 +337,7 @@ export class ChannelsService {
     query: CursorPaginationDto,
     userId: string,
   ) {
-    await this.assertMembership(channelId, userId);
+    await this.channelAccessService.assertMembership(channelId, userId);
     return this.channelsRepository.findMembers(channelId, {
       cursor: query.cursor,
       limit: query.limit,
@@ -347,36 +349,11 @@ export class ChannelsService {
     query: CursorPaginationDto,
     userId: string,
   ) {
-    await this.assertMembership(channelId, userId);
+    await this.channelAccessService.assertMembership(channelId, userId);
     return this.channelsRepository.findFollowers(channelId, {
       cursor: query.cursor,
       limit: query.limit,
     });
-  }
-
-  // --- Metodos publicos para uso por outros services (Messages, Reactions, Gateway) ---
-
-  async assertMembership(
-    channelId: string,
-    userId: string,
-  ): Promise<void> {
-    const isMember = await this.channelsRepository.isMember(
-      channelId,
-      userId,
-    );
-    if (!isMember)
-      throw new ForbiddenException('Voce nao e membro deste canal');
-  }
-
-  async isMember(channelId: string, userId: string): Promise<boolean> {
-    return this.channelsRepository.isMember(channelId, userId);
-  }
-
-  async getMemberRole(
-    channelId: string,
-    userId: string,
-  ): Promise<ChannelMemberRole | null> {
-    return this.channelsRepository.getMemberRole(channelId, userId);
   }
 
   async getChannelType(channelId: string): Promise<string | null> {
@@ -384,22 +361,22 @@ export class ChannelsService {
     return channel?.type ?? null;
   }
 
-  async reopenClosedDmForRecipients(
+  @OnEvent(CHAT_EVENTS.MESSAGE_CREATED)
+  async onMessageCreatedReopenDm(payload: MessageCreatedPayload): Promise<void> {
+    await this.reopenClosedDmForRecipients(
+      payload.channelId,
+      payload.message.author.id,
+    );
+  }
+
+  private async reopenClosedDmForRecipients(
     channelId: string,
     senderId: string,
   ): Promise<void> {
     const channel = await this.channelsRepository.findById(channelId);
-    if (!channel || channel.type !== 'DIRECT_MESSAGE') return;
+    if (!channel || !this.channelAccessService.isDmType(channel.type)) return;
 
-    const members = (
-      await this.channelsRepository.findMembers(channelId, { limit: 15 })
-    ).items;
-
-    for (const member of members) {
-      if (member.userId !== senderId && member.closedAt) {
-        await this.channelsRepository.openDm(channelId, member.userId);
-      }
-    }
+    await this.channelsRepository.openDmForRecipients(channelId, senderId);
   }
 
   async findChannelIdsForUser(userId: string): Promise<string[]> {
