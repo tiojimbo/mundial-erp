@@ -60,7 +60,7 @@ export function InboxToolbar({
             disabled={isEmpty}
           >
             <RiCheckDoubleLine className='size-4' />
-            Mark all read
+            Marcar tudo como lido
           </button>
         )}
 
@@ -71,7 +71,7 @@ export function InboxToolbar({
             disabled={isEmpty}
           >
             <RiDeleteBinLine className='size-4' />
-            Delete all
+            Excluir tudo
           </button>
         ) : (
           <button
@@ -80,7 +80,7 @@ export function InboxToolbar({
             disabled={isEmpty}
           >
             <RiCheckLine className='size-4' />
-            Clear all
+            Limpar tudo
           </button>
         )}
       </div>
@@ -88,9 +88,9 @@ export function InboxToolbar({
       <ConfirmDialog
         open={showClearDialog}
         onOpenChange={setShowClearDialog}
-        title='Clear all notifications?'
-        description='All notifications in this view will be moved to cleared.'
-        confirmLabel='Clear'
+        title='Limpar todas as notificações?'
+        description='Todas as notificações desta visualização serão movidas para Limpas.'
+        confirmLabel='Limpar'
         onConfirm={() => {
           onClearAll();
           setShowClearDialog(false);
@@ -100,9 +100,9 @@ export function InboxToolbar({
       <ConfirmDialog
         open={showDeleteDialog}
         onOpenChange={setShowDeleteDialog}
-        title='Delete all cleared notifications?'
-        description='This cannot be undone.'
-        confirmLabel='Delete'
+        title='Excluir todas as notificações limpas?'
+        description='Esta ação não pode ser desfeita.'
+        confirmLabel='Excluir'
         variant='destructive'
         onConfirm={() => {
           onDeleteAll();

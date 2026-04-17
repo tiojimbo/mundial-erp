@@ -1,6 +1,9 @@
 #!/bin/sh
 set -e
 
+echo "Migrating ChannelType enum (old -> new values)..."
+node prisma/fix-channel-type-enum.js
+
 echo "Pushing Prisma schema to database..."
 npx prisma db push --url "$DATABASE_URL" --accept-data-loss
 

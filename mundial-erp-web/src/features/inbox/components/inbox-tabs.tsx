@@ -19,18 +19,18 @@ type TabConfig = {
 };
 
 const TABS: TabConfig[] = [
-  { key: 'all', label: 'All', icon: RiInboxLine, showBadge: true },
-  { key: 'primary', label: 'Primary', icon: RiChat1Line, showBadge: true },
+  { key: 'all', label: 'Todas', icon: RiInboxLine, showBadge: true },
+  { key: 'primary', label: 'Principal', icon: RiChat1Line, showBadge: true },
   {
     key: 'other',
-    label: 'Other',
+    label: 'Outras',
     icon: RiArrowLeftRightLine,
     showBadge: true,
   },
-  { key: 'later', label: 'Later', icon: RiTimeLine, showBadge: true },
+  { key: 'later', label: 'Depois', icon: RiTimeLine, showBadge: true },
   {
     key: 'cleared',
-    label: 'Cleared',
+    label: 'Limpas',
     icon: RiDeleteBinLine,
     showBadge: false,
   },

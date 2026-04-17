@@ -49,6 +49,12 @@ Cada squad e um **time de especialistas donos de um dominio**. Nao sao executore
 | **Squad FE Dashboards + Reports** | F7D | Dashboards drag-and-drop, relatorios | Rotas /paineis/**, /relatorios/** | `squad-fe-dashboards.mdc` |
 | **Squad FE Sync + Settings** | F7D | Monitoramento sync, configuracoes admin | Rotas /integracao/**, /configuracoes/** | `squad-fe-settings.mdc` |
 
+### DevOps & Deploy
+
+| Squad | Fase | Dominio | Secoes PLANO | Skill File |
+|---|---|---|---|---|
+| **Squad Coolify** | Continuo | Deploy Coolify, CI/CD pipeline, Dockerfiles, networking, env vars, monitoring, rollback | Todas (deploy) | `squad-coolify.md` |
+
 ### Finalizacao
 
 | Squad | Fase | Dominio | Secoes PLANO | Skill File |

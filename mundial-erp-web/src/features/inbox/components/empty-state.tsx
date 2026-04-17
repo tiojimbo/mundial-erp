@@ -5,19 +5,19 @@ type EmptyStateProps = { view: InboxView };
 
 const MESSAGES: Record<InboxView, { title: string; subtitle?: string }> = {
   all: {
-    title: "You're all caught up",
-    subtitle: 'New notifications will appear here.',
+    title: 'Nenhuma notificação pendente',
+    subtitle: 'Novas notificações aparecerão aqui.',
   },
   primary: {
-    title: "You're all caught up",
-    subtitle: 'New notifications will appear here.',
+    title: 'Nenhuma notificação pendente',
+    subtitle: 'Novas notificações aparecerão aqui.',
   },
   other: {
-    title: "You're all caught up",
-    subtitle: 'New notifications will appear here.',
+    title: 'Nenhuma notificação pendente',
+    subtitle: 'Novas notificações aparecerão aqui.',
   },
-  later: { title: 'No snoozed notifications' },
-  cleared: { title: 'No cleared notifications' },
+  later: { title: 'Nenhuma notificação adiada' },
+  cleared: { title: 'Nenhuma notificação limpa' },
 };
 
 export function EmptyState({ view }: EmptyStateProps) {

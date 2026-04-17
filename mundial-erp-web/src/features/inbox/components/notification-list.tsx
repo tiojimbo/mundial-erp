@@ -56,14 +56,14 @@ export function NotificationList({
         </div>
         <p className='mt-4 text-sm font-medium text-muted-foreground'>
           {view === 'later'
-            ? "No snoozed notifications"
+            ? 'Nenhuma notificação adiada'
             : view === 'cleared'
-              ? "No cleared notifications"
-              : "You're all caught up"}
+              ? 'Nenhuma notificação limpa'
+              : 'Nenhuma notificação pendente'}
         </p>
         {(view === 'all' || view === 'primary' || view === 'other') && (
           <p className='mt-1 text-sm font-normal text-muted-foreground'>
-            New notifications will appear here.
+            Novas notificações aparecerão aqui.
           </p>
         )}
       </div>
