@@ -4,6 +4,7 @@ import {
   Injectable,
   NotFoundException,
 } from '@nestjs/common';
+import { Prisma } from '@prisma/client';
 import { DepartmentsRepository } from './departments.repository';
 import { CreateDepartmentDto } from './dto/create-department.dto';
 import { UpdateDepartmentDto } from './dto/update-department.dto';
@@ -26,7 +27,7 @@ export class DepartmentsService {
   private async resolveUniqueSlug(baseSlug: string): Promise<string> {
     let slug = baseSlug;
     let suffix = 0;
-    while (await this.departmentsRepository.findBySlug(slug)) {
+    while (await this.departmentsRepository.slugExists(slug)) {
       suffix++;
       slug = `${baseSlug}-${suffix}`;
     }
@@ -37,17 +38,27 @@ export class DepartmentsService {
     const baseSlug = this.generateSlug(dto.name);
     const slug = await this.resolveUniqueSlug(baseSlug);
 
-    const entity = await this.departmentsRepository.create({
-      name: dto.name,
-      slug,
-      description: dto.description,
-      icon: dto.icon,
-      color: dto.color,
-      isPrivate: dto.isPrivate,
-      sortOrder: dto.sortOrder ?? 0,
-    });
+    try {
+      const entity = await this.departmentsRepository.create({
+        name: dto.name,
+        slug,
+        description: dto.description,
+        icon: dto.icon,
+        color: dto.color,
+        isPrivate: dto.isPrivate,
+        sortOrder: dto.sortOrder ?? 0,
+      });
 
-    return DepartmentResponseDto.fromEntity(entity);
+      return DepartmentResponseDto.fromEntity(entity);
+    } catch (error) {
+      if (
+        error instanceof Prisma.PrismaClientKnownRequestError &&
+        error.code === 'P2002'
+      ) {
+        throw new ConflictException('Departamento com este nome já existe');
+      }
+      throw error;
+    }
   }
 
   async findAll(pagination: PaginationDto) {
@@ -79,12 +90,9 @@ export class DepartmentsService {
     if (dto.name !== undefined) {
       updateData.name = dto.name;
       const baseSlug = this.generateSlug(dto.name);
-      const existingSlug = await this.departmentsRepository.findBySlug(baseSlug);
-      if (!existingSlug || existingSlug.id === id) {
-        updateData.slug = baseSlug;
-      } else {
-        updateData.slug = await this.resolveUniqueSlug(baseSlug);
-      }
+      updateData.slug = entity.slug === baseSlug
+        ? baseSlug
+        : await this.resolveUniqueSlug(baseSlug);
     }
     if (dto.description !== undefined) updateData.description = dto.description;
     if (dto.icon !== undefined) updateData.icon = dto.icon;
@@ -92,8 +100,18 @@ export class DepartmentsService {
     if (dto.isPrivate !== undefined) updateData.isPrivate = dto.isPrivate;
     if (dto.sortOrder !== undefined) updateData.sortOrder = dto.sortOrder;
 
-    const updated = await this.departmentsRepository.update(id, updateData);
-    return DepartmentResponseDto.fromEntity(updated);
+    try {
+      const updated = await this.departmentsRepository.update(id, updateData);
+      return DepartmentResponseDto.fromEntity(updated);
+    } catch (error) {
+      if (
+        error instanceof Prisma.PrismaClientKnownRequestError &&
+        error.code === 'P2002'
+      ) {
+        throw new ConflictException('Departamento com este nome já existe');
+      }
+      throw error;
+    }
   }
 
   async remove(id: string): Promise<void> {

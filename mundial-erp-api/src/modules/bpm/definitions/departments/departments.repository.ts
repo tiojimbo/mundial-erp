@@ -23,6 +23,11 @@ export class DepartmentsRepository {
     });
   }
 
+  async slugExists(slug: string): Promise<boolean> {
+    const count = await this.prisma.department.count({ where: { slug } });
+    return count > 0;
+  }
+
   async findMany(params: { skip?: number; take?: number }) {
     const { skip = 0, take = 20 } = params;
     const [items, total] = await Promise.all([
