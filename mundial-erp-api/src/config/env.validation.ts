@@ -35,8 +35,8 @@ export const envSchema = z.object({
   THROTTLE_LIMIT: z.coerce.number().default(100),
 
   // Feature Flags
-  // Bloqueador P0 CTO — vide ADR-001. Default false = single-tenant legado.
-  MULTI_WORKSPACE_ENABLED: z.enum(['true', 'false']).default('false'),
+  // Vide ADR-001. Default true desde 2026-04-19 (rollout concluído).
+  MULTI_WORKSPACE_ENABLED: z.enum(['true', 'false']).default('true'),
 });
 
 export type EnvConfig = z.infer<typeof envSchema>;
