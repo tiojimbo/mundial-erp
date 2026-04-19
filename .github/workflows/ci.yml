@@ -31,6 +31,10 @@ jobs:
         working-directory: mundial-erp-api
         run: npm ci
 
+      - name: Generate Prisma client (needed for type-aware lint)
+        working-directory: mundial-erp-api
+        run: npx prisma generate
+
       - name: Install Web dependencies
         working-directory: mundial-erp-web
         run: npm ci
