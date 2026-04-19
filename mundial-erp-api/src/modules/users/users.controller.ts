@@ -20,9 +20,10 @@ import { Role } from '@prisma/client';
 import { UsersService } from './users.service';
 import { CreateUserDto } from './dto/create-user.dto';
 import { UpdateUserDto } from './dto/update-user.dto';
+import { UpdateMeDto } from './dto/update-me.dto';
 import { UserResponseDto } from './dto/user-response.dto';
 import { PaginationDto } from '../../common/dtos/pagination.dto';
-import { Roles } from '../auth/decorators';
+import { CurrentUser, Roles } from '../auth/decorators';
 
 @ApiTags('Users')
 @ApiBearerAuth()
@@ -44,6 +45,18 @@ export class UsersController {
   @ApiOperation({ summary: 'Listar usuários' })
   findAll(@Query() pagination: PaginationDto) {
     return this.usersService.findAll(pagination);
+  }
+
+  @Patch('me')
+  @ApiOperation({ summary: 'Atualizar dados do próprio usuário autenticado' })
+  @ApiResponse({ status: 200, type: UserResponseDto })
+  @ApiResponse({ status: 401, description: 'Senha atual incorreta' })
+  @ApiResponse({ status: 409, description: 'Email já cadastrado' })
+  updateMe(
+    @CurrentUser() user: { sub: string },
+    @Body() dto: UpdateMeDto,
+  ) {
+    return this.usersService.updateMe(user.sub, dto);
   }
 
   @Get(':id')

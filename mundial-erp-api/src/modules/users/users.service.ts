@@ -2,12 +2,14 @@ import {
   ConflictException,
   Injectable,
   NotFoundException,
+  UnauthorizedException,
 } from '@nestjs/common';
 import { Prisma } from '@prisma/client';
 import * as bcrypt from 'bcrypt';
 import { UsersRepository } from './users.repository';
 import { CreateUserDto } from './dto/create-user.dto';
 import { UpdateUserDto } from './dto/update-user.dto';
+import { UpdateMeDto } from './dto/update-me.dto';
 import { UserResponseDto } from './dto/user-response.dto';
 import { PaginationDto } from '../../common/dtos/pagination.dto';
 
@@ -85,6 +87,38 @@ export class UsersService {
     }
 
     const updated = await this.usersRepository.update(id, updateData);
+    return UserResponseDto.fromEntity(updated);
+  }
+
+  async updateMe(userId: string, dto: UpdateMeDto): Promise<UserResponseDto> {
+    const user = await this.usersRepository.findById(userId);
+    if (!user) {
+      throw new NotFoundException('Usuário não encontrado');
+    }
+
+    if (dto.email && dto.email !== user.email) {
+      const existing = await this.usersRepository.findByEmail(dto.email);
+      if (existing) {
+        throw new ConflictException('Email já cadastrado');
+      }
+    }
+
+    const updateData: Prisma.UserUpdateInput = {};
+    if (dto.fullName !== undefined) updateData.name = dto.fullName;
+    if (dto.email !== undefined) updateData.email = dto.email;
+
+    if (dto.password) {
+      const currentValid = await bcrypt.compare(
+        dto.currentPassword ?? '',
+        user.passwordHash,
+      );
+      if (!currentValid) {
+        throw new UnauthorizedException('Senha atual incorreta');
+      }
+      updateData.passwordHash = await bcrypt.hash(dto.password, BCRYPT_ROUNDS);
+    }
+
+    const updated = await this.usersRepository.update(userId, updateData);
     return UserResponseDto.fromEntity(updated);
   }
 
