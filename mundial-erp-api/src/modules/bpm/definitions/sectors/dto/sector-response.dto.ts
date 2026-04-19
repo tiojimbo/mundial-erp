@@ -23,7 +23,9 @@ export class SectorResponseDto {
   @ApiProperty()
   updatedAt: Date;
 
-  static fromEntity(entity: Sector & { department?: { name: string } }): SectorResponseDto {
+  static fromEntity(
+    entity: Sector & { department?: { name: string } },
+  ): SectorResponseDto {
     const dto = new SectorResponseDto();
     dto.id = entity.id;
     dto.name = entity.name;

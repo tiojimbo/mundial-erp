@@ -13,15 +13,21 @@ import { PaginationDto } from '../../common/dtos/pagination.dto';
 export class CompaniesService {
   constructor(private readonly companiesRepository: CompaniesRepository) {}
 
-  async create(dto: CreateCompanyDto): Promise<CompanyResponseDto> {
+  async create(
+    workspaceId: string,
+    dto: CreateCompanyDto,
+  ): Promise<CompanyResponseDto> {
     if (dto.cnpj) {
-      const existing = await this.companiesRepository.findByCnpj(dto.cnpj);
+      const existing = await this.companiesRepository.findByCnpj(
+        workspaceId,
+        dto.cnpj,
+      );
       if (existing) {
         throw new ConflictException('Empresa com este CNPJ já existe');
       }
     }
 
-    const entity = await this.companiesRepository.create({
+    const entity = await this.companiesRepository.create(workspaceId, {
       name: dto.name,
       tradeName: dto.tradeName,
       cnpj: dto.cnpj,
@@ -39,34 +45,48 @@ export class CompaniesService {
     return CompanyResponseDto.fromEntity(entity);
   }
 
-  async findAll(pagination: PaginationDto, search?: string) {
-    const { items, total } = await this.companiesRepository.findMany({
-      skip: pagination.skip,
-      take: pagination.limit,
-      search,
-    });
+  async findAll(
+    workspaceId: string,
+    pagination: PaginationDto,
+    search?: string,
+  ) {
+    const { items, total } = await this.companiesRepository.findMany(
+      workspaceId,
+      {
+        skip: pagination.skip,
+        take: pagination.limit,
+        search,
+      },
+    );
     return {
       items: items.map(CompanyResponseDto.fromEntity),
       total,
     };
   }
 
-  async findById(id: string): Promise<CompanyResponseDto> {
-    const entity = await this.companiesRepository.findById(id);
+  async findById(workspaceId: string, id: string): Promise<CompanyResponseDto> {
+    const entity = await this.companiesRepository.findById(workspaceId, id);
     if (!entity) {
       throw new NotFoundException('Empresa não encontrada');
     }
     return CompanyResponseDto.fromEntity(entity);
   }
 
-  async update(id: string, dto: UpdateCompanyDto): Promise<CompanyResponseDto> {
-    const entity = await this.companiesRepository.findById(id);
+  async update(
+    workspaceId: string,
+    id: string,
+    dto: UpdateCompanyDto,
+  ): Promise<CompanyResponseDto> {
+    const entity = await this.companiesRepository.findById(workspaceId, id);
     if (!entity) {
       throw new NotFoundException('Empresa não encontrada');
     }
 
     if (dto.cnpj) {
-      const existing = await this.companiesRepository.findByCnpj(dto.cnpj);
+      const existing = await this.companiesRepository.findByCnpj(
+        workspaceId,
+        dto.cnpj,
+      );
       if (existing && existing.id !== id) {
         throw new ConflictException('Empresa com este CNPJ já existe');
       }
@@ -84,17 +104,22 @@ export class CompaniesService {
     if (dto.city !== undefined) updateData.city = dto.city;
     if (dto.state !== undefined) updateData.state = dto.state;
     if (dto.zipCode !== undefined) updateData.zipCode = dto.zipCode;
-    if (dto.proFinancasId !== undefined) updateData.proFinancasId = dto.proFinancasId;
+    if (dto.proFinancasId !== undefined)
+      updateData.proFinancasId = dto.proFinancasId;
 
-    const updated = await this.companiesRepository.update(id, updateData);
+    const updated = await this.companiesRepository.update(
+      workspaceId,
+      id,
+      updateData,
+    );
     return CompanyResponseDto.fromEntity(updated);
   }
 
-  async remove(id: string): Promise<void> {
-    const entity = await this.companiesRepository.findById(id);
+  async remove(workspaceId: string, id: string): Promise<void> {
+    const entity = await this.companiesRepository.findById(workspaceId, id);
     if (!entity) {
       throw new NotFoundException('Empresa não encontrada');
     }
-    await this.companiesRepository.softDelete(id);
+    await this.companiesRepository.softDelete(workspaceId, id);
   }
 }

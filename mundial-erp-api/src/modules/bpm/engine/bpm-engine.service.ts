@@ -54,7 +54,7 @@ export class BpmEngineService {
   private async processActivities(
     orderId: string,
     toStatus: OrderStatus,
-    userId: string,
+    _userId: string,
   ): Promise<void> {
     const activities = await this.prisma.activity.findMany({
       where: { triggerOnStatus: toStatus, deletedAt: null },

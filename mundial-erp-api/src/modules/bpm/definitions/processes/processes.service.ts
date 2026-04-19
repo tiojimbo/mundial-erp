@@ -1,6 +1,5 @@
 import {
   BadRequestException,
-  ConflictException,
   Injectable,
   NotFoundException,
 } from '@nestjs/common';
@@ -10,10 +9,14 @@ import { CreateProcessDto } from './dto/create-process.dto';
 import { UpdateProcessDto } from './dto/update-process.dto';
 import { ProcessResponseDto } from './dto/process-response.dto';
 import { PaginationDto } from '../../../../common/dtos/pagination.dto';
+import { DepartmentsRepository } from '../departments/departments.repository';
 
 @Injectable()
 export class ProcessesService {
-  constructor(private readonly processesRepository: ProcessesRepository) {}
+  constructor(
+    private readonly processesRepository: ProcessesRepository,
+    private readonly departmentsRepository: DepartmentsRepository,
+  ) {}
 
   private generateSlug(name: string): string {
     return name
@@ -24,17 +27,23 @@ export class ProcessesService {
       .replace(/(^-|-$)/g, '');
   }
 
-  private async resolveUniqueSlug(baseSlug: string): Promise<string> {
+  private async resolveUniqueSlug(
+    workspaceId: string,
+    baseSlug: string,
+  ): Promise<string> {
     let slug = baseSlug;
     let suffix = 0;
-    while (await this.processesRepository.findBySlug(slug)) {
+    while (await this.processesRepository.findBySlug(workspaceId, slug)) {
       suffix++;
       slug = `${baseSlug}-${suffix}`;
     }
     return slug;
   }
 
-  async create(dto: CreateProcessDto): Promise<ProcessResponseDto> {
+  async create(
+    workspaceId: string,
+    dto: CreateProcessDto,
+  ): Promise<ProcessResponseDto> {
     if (!dto.areaId && !dto.departmentId && !dto.sectorId) {
       throw new BadRequestException(
         'Deve informar areaId, departmentId ou sectorId',
@@ -42,16 +51,28 @@ export class ProcessesService {
     }
 
     const baseSlug = this.generateSlug(dto.name);
-    const slug = await this.resolveUniqueSlug(baseSlug);
+    const slug = await this.resolveUniqueSlug(workspaceId, baseSlug);
 
-    // Se areaId fornecido, busca a area para preencher departmentId automaticamente
     let resolvedDepartmentId = dto.departmentId;
     if (dto.areaId) {
-      const area = await this.processesRepository.findAreaById(dto.areaId);
+      const area = await this.processesRepository.findAreaById(
+        workspaceId,
+        dto.areaId,
+      );
       if (!area) {
         throw new NotFoundException('Área não encontrada');
       }
       resolvedDepartmentId = area.departmentId;
+    }
+
+    if (resolvedDepartmentId) {
+      const dept = await this.departmentsRepository.findById(
+        workspaceId,
+        resolvedDepartmentId,
+      );
+      if (!dept) {
+        throw new NotFoundException('Departamento não encontrado');
+      }
     }
 
     const createData: Prisma.ProcessCreateInput = {
@@ -69,33 +90,42 @@ export class ProcessesService {
       }),
     };
 
-    // Cria processo + ProcessView padrão em transação
-    const entity = await this.processesRepository.createWithDefaultView(createData);
+    const entity = await this.processesRepository.createWithDefaultView(
+      workspaceId,
+      createData,
+    );
 
     return ProcessResponseDto.fromEntity(entity);
   }
 
-  async findAll(pagination: PaginationDto) {
-    const { items, total } = await this.processesRepository.findMany({
-      skip: pagination.skip,
-      take: pagination.limit,
-    });
+  async findAll(workspaceId: string, pagination: PaginationDto) {
+    const { items, total } = await this.processesRepository.findMany(
+      workspaceId,
+      {
+        skip: pagination.skip,
+        take: pagination.limit,
+      },
+    );
     return {
       items: items.map(ProcessResponseDto.fromEntity),
       total,
     };
   }
 
-  async findById(id: string): Promise<ProcessResponseDto> {
-    const entity = await this.processesRepository.findById(id);
+  async findById(workspaceId: string, id: string): Promise<ProcessResponseDto> {
+    const entity = await this.processesRepository.findById(workspaceId, id);
     if (!entity) {
       throw new NotFoundException('Processo não encontrado');
     }
     return ProcessResponseDto.fromEntity(entity);
   }
 
-  async update(id: string, dto: UpdateProcessDto): Promise<ProcessResponseDto> {
-    const entity = await this.processesRepository.findById(id);
+  async update(
+    workspaceId: string,
+    id: string,
+    dto: UpdateProcessDto,
+  ): Promise<ProcessResponseDto> {
+    const entity = await this.processesRepository.findById(workspaceId, id);
     if (!entity) {
       throw new NotFoundException('Processo não encontrado');
     }
@@ -104,11 +134,14 @@ export class ProcessesService {
     if (dto.name !== undefined) {
       updateData.name = dto.name;
       const baseSlug = this.generateSlug(dto.name);
-      const existingSlug = await this.processesRepository.findBySlug(baseSlug);
+      const existingSlug = await this.processesRepository.findBySlug(
+        workspaceId,
+        baseSlug,
+      );
       if (!existingSlug || existingSlug.id === id) {
         updateData.slug = baseSlug;
       } else {
-        updateData.slug = await this.resolveUniqueSlug(baseSlug);
+        updateData.slug = await this.resolveUniqueSlug(workspaceId, baseSlug);
       }
     }
     if (dto.sectorId !== undefined) {
@@ -119,15 +152,19 @@ export class ProcessesService {
     if (dto.status !== undefined) updateData.status = dto.status;
     if (dto.sortOrder !== undefined) updateData.sortOrder = dto.sortOrder;
 
-    const updated = await this.processesRepository.update(id, updateData);
+    const updated = await this.processesRepository.update(
+      workspaceId,
+      id,
+      updateData,
+    );
     return ProcessResponseDto.fromEntity(updated);
   }
 
-  async remove(id: string): Promise<void> {
-    const entity = await this.processesRepository.findById(id);
+  async remove(workspaceId: string, id: string): Promise<void> {
+    const entity = await this.processesRepository.findById(workspaceId, id);
     if (!entity) {
       throw new NotFoundException('Processo não encontrado');
     }
-    await this.processesRepository.softDelete(id);
+    await this.processesRepository.softDelete(workspaceId, id);
   }
 }

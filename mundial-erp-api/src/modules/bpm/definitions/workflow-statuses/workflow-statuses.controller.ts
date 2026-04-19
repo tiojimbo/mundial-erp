@@ -24,6 +24,7 @@ import { UpdateWorkflowStatusDto } from './dto/update-workflow-status.dto';
 import { WorkflowStatusResponseDto } from './dto/workflow-status-response.dto';
 import { ReorderWorkflowStatusesDto } from './dto/reorder-workflow-statuses.dto';
 import { Roles } from '../../../auth/decorators';
+import { WorkspaceId } from '../../../workspaces/decorators/workspace-id.decorator';
 
 @ApiTags('BPM - Workflow Statuses')
 @ApiBearerAuth()
@@ -37,22 +38,31 @@ export class WorkflowStatusesController {
   @Roles(Role.ADMIN, Role.MANAGER)
   @ApiOperation({ summary: 'Criar status de workflow (ADMIN, MANAGER)' })
   @ApiResponse({ status: 201, type: WorkflowStatusResponseDto })
-  create(@Body() dto: CreateWorkflowStatusDto) {
-    return this.workflowStatusesService.create(dto);
+  create(
+    @WorkspaceId() workspaceId: string,
+    @Body() dto: CreateWorkflowStatusDto,
+  ) {
+    return this.workflowStatusesService.create(workspaceId, dto);
   }
 
   @Get()
   @Roles(Role.ADMIN, Role.MANAGER, Role.OPERATOR, Role.VIEWER)
   @ApiOperation({
-    summary: 'Listar statuses por departamento (ou área), agrupados por categoria',
+    summary:
+      'Listar statuses por departamento (ou área), agrupados por categoria',
   })
   @ApiQuery({ name: 'departmentId', required: true, type: String })
   @ApiQuery({ name: 'areaId', required: false, type: String })
   findByDepartment(
+    @WorkspaceId() workspaceId: string,
     @Query('departmentId') departmentId: string,
     @Query('areaId') areaId?: string,
   ) {
-    return this.workflowStatusesService.findByDepartment(departmentId, areaId);
+    return this.workflowStatusesService.findByDepartment(
+      workspaceId,
+      departmentId,
+      areaId,
+    );
   }
 
   @Patch(':id')
@@ -62,8 +72,12 @@ export class WorkflowStatusesController {
   })
   @ApiResponse({ status: 200, type: WorkflowStatusResponseDto })
   @ApiResponse({ status: 404, description: 'Status não encontrado' })
-  update(@Param('id') id: string, @Body() dto: UpdateWorkflowStatusDto) {
-    return this.workflowStatusesService.update(id, dto);
+  update(
+    @WorkspaceId() workspaceId: string,
+    @Param('id') id: string,
+    @Body() dto: UpdateWorkflowStatusDto,
+  ) {
+    return this.workflowStatusesService.update(workspaceId, id, dto);
   }
 
   @Delete(':id')
@@ -73,18 +87,22 @@ export class WorkflowStatusesController {
   @ApiResponse({ status: 204 })
   @ApiResponse({
     status: 400,
-    description:
-      'Status possui work items — informe migrateToStatusId no body',
+    description: 'Status possui work items — informe migrateToStatusId no body',
   })
   @ApiResponse({
     status: 409,
     description: 'Não é possível remover o último status de uma categoria',
   })
   remove(
+    @WorkspaceId() workspaceId: string,
     @Param('id') id: string,
     @Body() body: { migrateToStatusId?: string },
   ) {
-    return this.workflowStatusesService.remove(id, body?.migrateToStatusId);
+    return this.workflowStatusesService.remove(
+      workspaceId,
+      id,
+      body?.migrateToStatusId,
+    );
   }
 
   @Post('reorder')
@@ -92,7 +110,10 @@ export class WorkflowStatusesController {
   @HttpCode(HttpStatus.NO_CONTENT)
   @ApiOperation({ summary: 'Reordenar statuses em massa (ADMIN, MANAGER)' })
   @ApiResponse({ status: 204 })
-  reorder(@Body() dto: ReorderWorkflowStatusesDto) {
-    return this.workflowStatusesService.reorder(dto);
+  reorder(
+    @WorkspaceId() workspaceId: string,
+    @Body() dto: ReorderWorkflowStatusesDto,
+  ) {
+    return this.workflowStatusesService.reorder(workspaceId, dto);
   }
 }

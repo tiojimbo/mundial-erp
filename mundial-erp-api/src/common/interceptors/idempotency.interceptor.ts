@@ -20,20 +20,20 @@ export class IdempotencyInterceptor implements NestInterceptor {
     const route: string = request._idempotencyRoute;
 
     return next.handle().pipe(
-      tap(async (responseBody) => {
+      tap((responseBody) => {
         const response = context.switchToHttp().getResponse();
-        try {
-          await this.prisma.idempotencyRecord.create({
+        void this.prisma.idempotencyRecord
+          .create({
             data: {
               key: idempotencyKey,
               route,
               statusCode: response.statusCode,
               body: responseBody ? JSON.stringify(responseBody) : null,
             },
+          })
+          .catch(() => {
+            // Ignore duplicate key errors (race condition)
           });
-        } catch {
-          // Ignore duplicate key errors (race condition)
-        }
       }),
     );
   }

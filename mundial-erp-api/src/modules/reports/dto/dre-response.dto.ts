@@ -21,7 +21,9 @@ export class DreResponseDto {
   @ApiProperty({ description: '(=) Receita Liquida (cents)' })
   netRevenueCents: number;
 
-  @ApiProperty({ description: '(-) CMV — Custo das Mercadorias Vendidas (cents)' })
+  @ApiProperty({
+    description: '(-) CMV — Custo das Mercadorias Vendidas (cents)',
+  })
   cogsCents: number;
 
   @ApiProperty({ description: '(=) Lucro Bruto (cents)' })

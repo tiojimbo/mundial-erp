@@ -49,20 +49,35 @@ export class ProposalPdfService {
       const pageWidth = doc.page.width - 80;
 
       // --- CABECALHO ---
-      doc.fontSize(16).font('Helvetica-Bold').text('PROPOSTA DE VENDA', { align: 'center' });
+      doc
+        .fontSize(16)
+        .font('Helvetica-Bold')
+        .text('PROPOSTA DE VENDA', { align: 'center' });
       doc.moveDown(0.5);
 
       const company = order.company;
       if (company) {
-        doc.fontSize(8).font('Helvetica')
+        doc
+          .fontSize(8)
+          .font('Helvetica')
           .text(company.name, { align: 'center' })
-          .text(`CNPJ: ${company.cnpj ?? ''} | IE: ${company.ie ?? ''}`, { align: 'center' })
-          .text(`${company.address ?? ''}, ${company.city ?? ''} - ${company.state ?? ''}`, { align: 'center' });
+          .text(`CNPJ: ${company.cnpj ?? ''} | IE: ${company.ie ?? ''}`, {
+            align: 'center',
+          })
+          .text(
+            `${company.address ?? ''}, ${company.city ?? ''} - ${company.state ?? ''}`,
+            { align: 'center' },
+          );
       }
 
       doc.moveDown(0.3);
-      doc.fontSize(9).font('Helvetica')
-        .text(`Data: ${new Date(order.issueDate ?? order.createdAt).toLocaleDateString('pt-BR')}`, { align: 'right' })
+      doc
+        .fontSize(9)
+        .font('Helvetica')
+        .text(
+          `Data: ${new Date(order.issueDate ?? order.createdAt).toLocaleDateString('pt-BR')}`,
+          { align: 'right' },
+        )
         .text(`Pedido n.: ${order.orderNumber}`, { align: 'right' });
 
       doc.moveDown(0.5);
@@ -74,30 +89,41 @@ export class ProposalPdfService {
       doc.fontSize(9).font('Helvetica');
 
       const client = order.client;
-      doc.text(`Nome: ${client.name}${client.tradeName ? ` (${client.tradeName})` : ''}`);
+      doc.text(
+        `Nome: ${client.name}${client.tradeName ? ` (${client.tradeName})` : ''}`,
+      );
       doc.text(`CPF/CNPJ: ${client.cpfCnpj}   IE: ${client.ie ?? '-'}`);
       doc.text(`Tel: ${client.phone ?? '-'}   Email: ${client.email ?? '-'}`);
-      doc.text(`Endereco: ${client.address ?? ''}, ${client.neighborhood ?? ''}, ${client.city ?? ''} - ${client.state ?? ''} CEP: ${client.zipCode ?? ''}`);
+      doc.text(
+        `Endereco: ${client.address ?? ''}, ${client.neighborhood ?? ''}, ${client.city ?? ''} - ${client.state ?? ''} CEP: ${client.zipCode ?? ''}`,
+      );
 
       doc.moveDown(0.3);
       this.drawLine(doc);
 
       // --- INFO COMERCIAL + ENTREGA ---
       doc.moveDown(0.3);
-      const midX = 40 + pageWidth / 2;
 
       doc.fontSize(10).font('Helvetica-Bold').text('INFO COMERCIAL', 40);
       doc.fontSize(9).font('Helvetica');
-      doc.text(`Prazo entrega: ${order.deliveryDeadline ? new Date(order.deliveryDeadline).toLocaleDateString('pt-BR') : '-'}`);
+      doc.text(
+        `Prazo entrega: ${order.deliveryDeadline ? new Date(order.deliveryDeadline).toLocaleDateString('pt-BR') : '-'}`,
+      );
       doc.text(`Pagamento: ${order.paymentMethod?.name ?? '-'}`);
       doc.text(`Validade: ${order.proposalValidityDays} dias`);
-      doc.text(`Produzir: ${order.shouldProduce ? 'Sim' : 'Nao'}   Revenda: ${order.isResale ? 'Sim' : 'Nao'}   Subst. Trib.: ${order.hasTaxSubstitution ? 'Sim' : 'Nao'}`);
+      doc.text(
+        `Produzir: ${order.shouldProduce ? 'Sim' : 'Nao'}   Revenda: ${order.isResale ? 'Sim' : 'Nao'}   Subst. Trib.: ${order.hasTaxSubstitution ? 'Sim' : 'Nao'}`,
+      );
 
       doc.moveDown(0.3);
       doc.fontSize(10).font('Helvetica-Bold').text('ENDERECO DE ENTREGA');
       doc.fontSize(9).font('Helvetica');
-      doc.text(`${order.deliveryAddress ?? '-'}, ${order.deliveryNeighborhood ?? ''}`);
-      doc.text(`${order.deliveryCity ?? ''} - ${order.deliveryState ?? ''} CEP: ${order.deliveryCep ?? ''}`);
+      doc.text(
+        `${order.deliveryAddress ?? '-'}, ${order.deliveryNeighborhood ?? ''}`,
+      );
+      doc.text(
+        `${order.deliveryCity ?? ''} - ${order.deliveryState ?? ''} CEP: ${order.deliveryCep ?? ''}`,
+      );
       doc.text(`Ref: ${order.deliveryReferencePoint ?? '-'}`);
       if (order.contactName) doc.text(`Contato: ${order.contactName}`);
 
@@ -137,13 +163,27 @@ export class ProposalPdfService {
         const productName = item.product?.name ?? `Produto ${item.productId}`;
         const unit = '-';
 
-        doc.text(productName, x, y, { width: cols[0].width }); x += cols[0].width;
-        doc.text(String(item.quantity), x, y, { width: cols[1].width }); x += cols[1].width;
-        doc.text(unit, x, y, { width: cols[2].width }); x += cols[2].width;
-        doc.text(item.pieces != null ? String(item.pieces) : '-', x, y, { width: cols[3].width }); x += cols[3].width;
-        doc.text(item.size != null ? String(item.size) : '-', x, y, { width: cols[4].width }); x += cols[4].width;
-        doc.text(this.formatCurrency(item.unitPriceCents), x, y, { width: cols[5].width }); x += cols[5].width;
-        doc.text(this.formatCurrency(item.totalCents), x, y, { width: cols[6].width });
+        doc.text(productName, x, y, { width: cols[0].width });
+        x += cols[0].width;
+        doc.text(String(item.quantity), x, y, { width: cols[1].width });
+        x += cols[1].width;
+        doc.text(unit, x, y, { width: cols[2].width });
+        x += cols[2].width;
+        doc.text(item.pieces != null ? String(item.pieces) : '-', x, y, {
+          width: cols[3].width,
+        });
+        x += cols[3].width;
+        doc.text(item.size != null ? String(item.size) : '-', x, y, {
+          width: cols[4].width,
+        });
+        x += cols[4].width;
+        doc.text(this.formatCurrency(item.unitPriceCents), x, y, {
+          width: cols[5].width,
+        });
+        x += cols[5].width;
+        doc.text(this.formatCurrency(item.totalCents), x, y, {
+          width: cols[6].width,
+        });
         doc.moveDown(0.5);
       }
 
@@ -156,16 +196,36 @@ export class ProposalPdfService {
       doc.fontSize(9).font('Helvetica');
 
       const rightX = 40 + pageWidth * 0.6;
-      const valWidth = pageWidth * 0.35;
 
-      doc.text(`Subtotal:`, rightX); doc.text(this.formatCurrency(order.subtotalCents), rightX + 120, doc.y - 12);
-      doc.text(`Frete:`, rightX); doc.text(this.formatCurrency(order.freightCents), rightX + 120, doc.y - 12);
-      doc.text(`Desconto:`, rightX); doc.text(`- ${this.formatCurrency(order.discountCents)}`, rightX + 120, doc.y - 12);
-      doc.text(`Subst. Trib./IPI:`, rightX); doc.text(this.formatCurrency(order.taxSubstitutionCents), rightX + 120, doc.y - 12);
+      doc.text(`Subtotal:`, rightX);
+      doc.text(
+        this.formatCurrency(order.subtotalCents),
+        rightX + 120,
+        doc.y - 12,
+      );
+      doc.text(`Frete:`, rightX);
+      doc.text(
+        this.formatCurrency(order.freightCents),
+        rightX + 120,
+        doc.y - 12,
+      );
+      doc.text(`Desconto:`, rightX);
+      doc.text(
+        `- ${this.formatCurrency(order.discountCents)}`,
+        rightX + 120,
+        doc.y - 12,
+      );
+      doc.text(`Subst. Trib./IPI:`, rightX);
+      doc.text(
+        this.formatCurrency(order.taxSubstitutionCents),
+        rightX + 120,
+        doc.y - 12,
+      );
 
       doc.moveDown(0.3);
       doc.fontSize(11).font('Helvetica-Bold');
-      doc.text(`TOTAL A PAGAR:`, rightX); doc.text(this.formatCurrency(order.totalCents), rightX + 120, doc.y - 14);
+      doc.text(`TOTAL A PAGAR:`, rightX);
+      doc.text(this.formatCurrency(order.totalCents), rightX + 120, doc.y - 14);
 
       // --- ASSINATURAS ---
       doc.moveDown(3);
@@ -187,7 +247,10 @@ export class ProposalPdfService {
 
   private drawLine(doc: PDFKit.PDFDocument) {
     const y = doc.y;
-    doc.moveTo(40, y).lineTo(doc.page.width - 40, y).stroke();
+    doc
+      .moveTo(40, y)
+      .lineTo(doc.page.width - 40, y)
+      .stroke();
     doc.moveDown(0.2);
   }
 }

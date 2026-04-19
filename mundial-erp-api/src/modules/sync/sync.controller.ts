@@ -56,7 +56,10 @@ export class SyncController {
 
   @Post('reference-data')
   @HttpCode(HttpStatus.ACCEPTED)
-  @ApiOperation({ summary: 'Enqueue reference data sync (companies, carriers, payment methods, etc.)' })
+  @ApiOperation({
+    summary:
+      'Enqueue reference data sync (companies, carriers, payment methods, etc.)',
+  })
   @ApiResponse({ status: 202, type: SyncJobResponseDto })
   async syncReferenceData(): Promise<SyncJobResponseDto> {
     this.ensureConfigured();
@@ -68,7 +71,10 @@ export class SyncController {
 
   @Post('all')
   @HttpCode(HttpStatus.ACCEPTED)
-  @ApiOperation({ summary: 'Enqueue full sync in dependency order: reference-data → clients → orders' })
+  @ApiOperation({
+    summary:
+      'Enqueue full sync in dependency order: reference-data → clients → orders',
+  })
   @ApiResponse({ status: 202, type: SyncJobResponseDto })
   async syncAll(): Promise<SyncJobResponseDto> {
     this.ensureConfigured();
@@ -96,7 +102,8 @@ export class SyncController {
     const lastSyncPerEntity: Record<string, SyncLog | null> = {};
 
     for (const entity of entities) {
-      lastSyncPerEntity[entity] = await this.syncLogRepo.getLatestByEntity(entity);
+      lastSyncPerEntity[entity] =
+        await this.syncLogRepo.getLatestByEntity(entity);
     }
 
     const [waiting, active] = await Promise.all([
@@ -116,7 +123,9 @@ export class SyncController {
   @Get('jobs/:jobId')
   @ApiOperation({ summary: 'Status of a specific sync job' })
   @ApiResponse({ status: 200, type: SyncJobStatusResponseDto })
-  async getJobStatus(@Param('jobId') jobId: string): Promise<SyncJobStatusResponseDto> {
+  async getJobStatus(
+    @Param('jobId') jobId: string,
+  ): Promise<SyncJobStatusResponseDto> {
     const job = await this.syncQueue.getJob(jobId);
     if (!job) {
       throw new BadRequestException(`Job ${jobId} not found`);

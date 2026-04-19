@@ -1,8 +1,5 @@
 import { Test, TestingModule } from '@nestjs/testing';
-import {
-  BadRequestException,
-  NotFoundException,
-} from '@nestjs/common';
+import { BadRequestException, NotFoundException } from '@nestjs/common';
 import { AreasService } from './areas.service';
 import { AreasRepository } from './areas.repository';
 import { WorkflowStatusesService } from '../workflow-statuses/workflow-statuses.service';
@@ -125,14 +122,17 @@ describe('AreasService', () => {
 
     it('should append suffix when slug already exists', async () => {
       repository.findBySlug
-        .mockResolvedValueOnce(mockArea)  // "vendas" taken
-        .mockResolvedValueOnce(null);      // "vendas-1" free
+        .mockResolvedValueOnce(mockArea) // "vendas" taken
+        .mockResolvedValueOnce(null); // "vendas-1" free
       repository.create.mockResolvedValue({
         ...mockArea,
         slug: 'vendas-1',
       });
 
-      const result = await service.create({ name: 'Vendas', departmentId: 'dept-1' });
+      const result = await service.create({
+        name: 'Vendas',
+        departmentId: 'dept-1',
+      });
 
       expect(result.slug).toBe('vendas-1');
     });
@@ -207,9 +207,9 @@ describe('AreasService', () => {
     it('should throw NotFoundException if area not found', async () => {
       repository.findById.mockResolvedValue(null);
 
-      await expect(
-        service.update('bad-id', { name: 'Test' }),
-      ).rejects.toThrow(NotFoundException);
+      await expect(service.update('bad-id', { name: 'Test' })).rejects.toThrow(
+        NotFoundException,
+      );
     });
 
     it('should regenerate slug when name changes', async () => {
@@ -233,7 +233,7 @@ describe('AreasService', () => {
       repository.findById.mockResolvedValue(mockArea);
       repository.findBySlug
         .mockResolvedValueOnce({ ...mockArea, id: 'area-2' }) // "producao" taken
-        .mockResolvedValueOnce(null);                          // "producao-1" free
+        .mockResolvedValueOnce(null); // "producao-1" free
       repository.update.mockResolvedValue({
         ...mockArea,
         name: 'Producao',
@@ -275,9 +275,7 @@ describe('AreasService', () => {
 
       await service.update('area-1', { useSpaceStatuses: false });
 
-      expect(
-        workflowStatusesService.copyStatusesToArea,
-      ).not.toHaveBeenCalled();
+      expect(workflowStatusesService.copyStatusesToArea).not.toHaveBeenCalled();
     });
 
     it('should NOT copy statuses when useSpaceStatuses changes from false to true', async () => {
@@ -292,9 +290,7 @@ describe('AreasService', () => {
 
       await service.update('area-1', { useSpaceStatuses: true });
 
-      expect(
-        workflowStatusesService.copyStatusesToArea,
-      ).not.toHaveBeenCalled();
+      expect(workflowStatusesService.copyStatusesToArea).not.toHaveBeenCalled();
     });
   });
 
@@ -310,9 +306,7 @@ describe('AreasService', () => {
     it('should throw NotFoundException if not found', async () => {
       repository.findById.mockResolvedValue(null);
 
-      await expect(service.remove('bad-id')).rejects.toThrow(
-        NotFoundException,
-      );
+      await expect(service.remove('bad-id')).rejects.toThrow(NotFoundException);
     });
 
     it('should throw BadRequestException if area is default', async () => {

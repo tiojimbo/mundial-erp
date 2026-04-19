@@ -66,7 +66,10 @@ export class ActivitiesService {
     return ActivityResponseDto.fromEntity(entity);
   }
 
-  async update(id: string, dto: UpdateActivityDto): Promise<ActivityResponseDto> {
+  async update(
+    id: string,
+    dto: UpdateActivityDto,
+  ): Promise<ActivityResponseDto> {
     const entity = await this.activitiesRepository.findById(id);
     if (!entity) {
       throw new NotFoundException('Atividade não encontrada');
@@ -76,7 +79,9 @@ export class ActivitiesService {
     if (dto.name !== undefined) {
       updateData.name = dto.name;
       updateData.slug = this.generateSlug(dto.name);
-      const existingSlug = await this.activitiesRepository.findBySlug(updateData.slug);
+      const existingSlug = await this.activitiesRepository.findBySlug(
+        updateData.slug,
+      );
       if (existingSlug && existingSlug.id !== id) {
         throw new ConflictException('Atividade com este nome já existe');
       }
@@ -85,13 +90,16 @@ export class ActivitiesService {
       updateData.process = { connect: { id: dto.processId } };
     }
     if (dto.ownerRole !== undefined) updateData.ownerRole = dto.ownerRole;
-    if (dto.inputDescription !== undefined) updateData.inputDescription = dto.inputDescription;
-    if (dto.outputDescription !== undefined) updateData.outputDescription = dto.outputDescription;
+    if (dto.inputDescription !== undefined)
+      updateData.inputDescription = dto.inputDescription;
+    if (dto.outputDescription !== undefined)
+      updateData.outputDescription = dto.outputDescription;
     if (dto.slaMinutes !== undefined) updateData.slaMinutes = dto.slaMinutes;
     if (dto.exceptions !== undefined) updateData.exceptions = dto.exceptions;
     if (dto.sortOrder !== undefined) updateData.sortOrder = dto.sortOrder;
     if (dto.isAutomatic !== undefined) updateData.isAutomatic = dto.isAutomatic;
-    if (dto.triggerOnStatus !== undefined) updateData.triggerOnStatus = dto.triggerOnStatus;
+    if (dto.triggerOnStatus !== undefined)
+      updateData.triggerOnStatus = dto.triggerOnStatus;
 
     const updated = await this.activitiesRepository.update(id, updateData);
     return ActivityResponseDto.fromEntity(updated);

@@ -1,11 +1,6 @@
 'use client';
 
 import { useState } from 'react';
-import {
-  RiArrowUpLine,
-  RiArrowDownLine,
-  RiSubtractLine,
-} from '@remixicon/react';
 import { formatCents } from '@/lib/formatters';
 import { PeriodSelector } from './period-selector';
 import { useDREReport } from '../hooks/use-reports';

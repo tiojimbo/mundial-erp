@@ -48,9 +48,7 @@ export class PendingHandoffResponseDto {
   @ApiProperty()
   createdAt: string;
 
-  static fromEntity(
-    entity: PendingHandoffEntity,
-  ): PendingHandoffResponseDto {
+  static fromEntity(entity: PendingHandoffEntity): PendingHandoffResponseDto {
     const dto = new PendingHandoffResponseDto();
     const handoff = entity.handoff;
     const fromProcess = handoff.fromProcess;

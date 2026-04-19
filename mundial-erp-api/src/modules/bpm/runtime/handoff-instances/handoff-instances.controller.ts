@@ -76,10 +76,7 @@ export class HandoffInstancesController {
     status: 404,
     description: 'Instância de handoff não encontrada',
   })
-  reject(
-    @Param('id') id: string,
-    @Body() dto: RejectHandoffInstanceDto,
-  ) {
+  reject(@Param('id') id: string, @Body() dto: RejectHandoffInstanceDto) {
     return this.handoffInstancesService.reject(id, dto.reason);
   }
 }

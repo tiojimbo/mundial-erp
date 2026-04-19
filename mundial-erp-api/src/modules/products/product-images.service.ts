@@ -11,15 +11,22 @@ export class ProductImagesService {
     private readonly productsRepository: ProductsRepository,
   ) {}
 
-  private async ensureProductExists(productId: string): Promise<void> {
-    const exists = await this.productsRepository.exists(productId);
+  private async ensureProductExists(
+    workspaceId: string,
+    productId: string,
+  ): Promise<void> {
+    const exists = await this.productsRepository.exists(workspaceId, productId);
     if (!exists) {
       throw new NotFoundException('Produto não encontrado');
     }
   }
 
-  async create(productId: string, dto: CreateProductImageDto): Promise<ProductImageResponseDto> {
-    await this.ensureProductExists(productId);
+  async create(
+    workspaceId: string,
+    productId: string,
+    dto: CreateProductImageDto,
+  ): Promise<ProductImageResponseDto> {
+    await this.ensureProductExists(workspaceId, productId);
 
     const image = await this.productImagesRepository.create({
       product: { connect: { id: productId } },
@@ -29,14 +36,23 @@ export class ProductImagesService {
     return ProductImageResponseDto.fromEntity(image);
   }
 
-  async findByProductId(productId: string): Promise<ProductImageResponseDto[]> {
-    await this.ensureProductExists(productId);
+  async findByProductId(
+    workspaceId: string,
+    productId: string,
+  ): Promise<ProductImageResponseDto[]> {
+    await this.ensureProductExists(workspaceId, productId);
 
-    const images = await this.productImagesRepository.findByProductId(productId);
+    const images =
+      await this.productImagesRepository.findByProductId(productId);
     return images.map(ProductImageResponseDto.fromEntity);
   }
 
-  async remove(productId: string, imageId: string): Promise<void> {
+  async remove(
+    workspaceId: string,
+    productId: string,
+    imageId: string,
+  ): Promise<void> {
+    await this.ensureProductExists(workspaceId, productId);
     const image = await this.productImagesRepository.findById(imageId);
     if (!image || image.productId !== productId) {
       throw new NotFoundException('Imagem não encontrada para este produto');
@@ -44,11 +60,16 @@ export class ProductImagesService {
     await this.productImagesRepository.softDelete(imageId);
   }
 
-  async reorder(productId: string, imageIds: string[]): Promise<ProductImageResponseDto[]> {
-    await this.ensureProductExists(productId);
+  async reorder(
+    workspaceId: string,
+    productId: string,
+    imageIds: string[],
+  ): Promise<ProductImageResponseDto[]> {
+    await this.ensureProductExists(workspaceId, productId);
 
     await this.productImagesRepository.reorder(productId, imageIds);
-    const images = await this.productImagesRepository.findByProductId(productId);
+    const images =
+      await this.productImagesRepository.findByProductId(productId);
     return images.map(ProductImageResponseDto.fromEntity);
   }
 }

@@ -6,10 +6,7 @@ import {
 import { NotificationStatus } from '@prisma/client';
 import { NotificationsRepository } from './notifications.repository';
 import { NotificationResponseDto } from './dto/notification-response.dto';
-import {
-  NotificationsListResponseDto,
-  NotificationCountsDto,
-} from './dto/notification-counts.dto';
+import { NotificationsListResponseDto } from './dto/notification-counts.dto';
 import { CreateNotificationDto } from './dto/create-notification.dto';
 import { SnoozeNotificationDto } from './dto/snooze-notification.dto';
 import { BulkActionDto } from './dto/bulk-action.dto';
@@ -109,10 +106,7 @@ export class NotificationsService {
   }
 
   async clearAll(userId: string, dto: BulkActionDto): Promise<void> {
-    await this.notificationsRepository.clearAllByView(
-      userId,
-      dto.view as any,
-    );
+    await this.notificationsRepository.clearAllByView(userId, dto.view as any);
   }
 
   async deleteAllCleared(userId: string): Promise<void> {

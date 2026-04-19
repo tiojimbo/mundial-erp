@@ -1,3 +1,6 @@
+// SCOPE: GLOBAL — sync Pro Finanças é single-tenant (workspace default).
+// Refatorar quando 2º cliente entrar (vide ADR-001).
+
 import { Injectable } from '@nestjs/common';
 import { SyncEntity } from '@prisma/client';
 import { PrismaService } from '../../../database/prisma.service';

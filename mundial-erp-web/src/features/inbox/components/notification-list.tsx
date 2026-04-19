@@ -54,7 +54,7 @@ export function NotificationList({
             />
           </svg>
         </div>
-        <p className='mt-4 text-sm font-medium text-muted-foreground'>
+        <p className='mt-4 text-label-sm text-muted-foreground'>
           {view === 'later'
             ? 'Nenhuma notificação adiada'
             : view === 'cleared'
@@ -62,7 +62,7 @@ export function NotificationList({
               : 'Nenhuma notificação pendente'}
         </p>
         {(view === 'all' || view === 'primary' || view === 'other') && (
-          <p className='mt-1 text-sm font-normal text-muted-foreground'>
+          <p className='mt-1 text-paragraph-sm text-muted-foreground'>
             Novas notificações aparecerão aqui.
           </p>
         )}

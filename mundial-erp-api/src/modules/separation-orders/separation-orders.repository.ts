@@ -100,7 +100,10 @@ export class SeparationOrdersRepository {
     });
   }
 
-  async updateItem(itemId: string, data: Prisma.SeparationOrderItemUpdateInput) {
+  async updateItem(
+    itemId: string,
+    data: Prisma.SeparationOrderItemUpdateInput,
+  ) {
     return this.prisma.separationOrderItem.update({
       where: { id: itemId },
       data,

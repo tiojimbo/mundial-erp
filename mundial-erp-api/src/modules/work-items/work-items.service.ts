@@ -20,11 +20,21 @@ import type {
 export class WorkItemsService {
   constructor(private readonly workItemsRepository: WorkItemsRepository) {}
 
-  async getMyTasks(userId: string): Promise<MyTasksResponseDto> {
-    const items = await this.workItemsRepository.findByAssignee(userId);
+  async getMyTasks(
+    workspaceId: string,
+    userId: string,
+  ): Promise<MyTasksResponseDto> {
+    const items = await this.workItemsRepository.findByAssignee(
+      workspaceId,
+      userId,
+    );
 
     const now = new Date();
-    const todayStart = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+    const todayStart = new Date(
+      now.getFullYear(),
+      now.getMonth(),
+      now.getDate(),
+    );
     const tomorrowStart = new Date(todayStart);
     tomorrowStart.setDate(tomorrowStart.getDate() + 1);
     const sevenDaysFromNow = new Date(todayStart);
@@ -40,7 +50,6 @@ export class WorkItemsService {
     const recentlyCompleted: MyTaskDto[] = [];
     const dueByDayMap = new Map<string, { date: Date; tasks: MyTaskDto[] }>();
 
-    // Build next 7 days slots (from day after tomorrow to +7)
     for (let i = 2; i <= 7; i++) {
       const d = new Date(todayStart);
       d.setDate(d.getDate() + i);
@@ -51,16 +60,12 @@ export class WorkItemsService {
     for (const item of items) {
       const task = this.mapToMyTask(item);
 
-      // Completed items (dateDone in last 7 days)
       if (item.completedAt && item.completedAt >= sevenDaysAgo) {
         recentlyCompleted.push(task);
         continue;
       }
 
-      // Closed items — skip
       if (item.closedAt) continue;
-
-      // Already completed but older than 7 days — skip
       if (item.completedAt) continue;
 
       if (!item.dueDate) {
@@ -90,7 +95,6 @@ export class WorkItemsService {
       }
     }
 
-    // Build dueByDay array
     const dueByDay: MyTasksDayGroupDto[] = [];
     for (const [key, value] of dueByDayMap) {
       const dayLabel = this.formatDayLabel(value.date);
@@ -102,7 +106,10 @@ export class WorkItemsService {
       });
     }
 
-    const dueNextDaysCount = dueByDay.reduce((sum, g) => sum + g.tasks.length, 0);
+    const dueNextDaysCount = dueByDay.reduce(
+      (sum, g) => sum + g.tasks.length,
+      0,
+    );
 
     const summary = {
       overdueCount: overdue.length,
@@ -199,17 +206,22 @@ export class WorkItemsService {
   }
 
   async create(
+    workspaceId: string,
     dto: CreateWorkItemDto,
     creatorId: string,
   ): Promise<WorkItemResponseDto> {
     const process = await this.workItemsRepository.findProcessById(
+      workspaceId,
       dto.processId,
     );
     if (!process) {
       throw new NotFoundException('Processo não encontrado');
     }
 
-    const status = await this.workItemsRepository.findStatusById(dto.statusId);
+    const status = await this.workItemsRepository.findStatusById(
+      workspaceId,
+      dto.statusId,
+    );
     if (!status) {
       throw new NotFoundException('Status não encontrado');
     }
@@ -220,7 +232,7 @@ export class WorkItemsService {
       );
     }
 
-    const entity = await this.workItemsRepository.create({
+    const entity = await this.workItemsRepository.create(workspaceId, {
       processId: dto.processId,
       title: dto.title,
       description: dto.description,
@@ -238,19 +250,22 @@ export class WorkItemsService {
     return WorkItemResponseDto.fromEntity(entity);
   }
 
-  async findAll(filters: WorkItemFiltersDto) {
-    const { items, total } = await this.workItemsRepository.findMany({
-      skip: filters.skip,
-      take: filters.limit,
-      processId: filters.processId,
-      statusId: filters.statusId,
-      assigneeId: filters.assigneeId,
-      priority: filters.priority,
-      itemType: filters.itemType,
-      search: filters.search,
-      showClosed: filters.showClosed,
-      showSubtasks: filters.showSubtasks,
-    });
+  async findAll(workspaceId: string, filters: WorkItemFiltersDto) {
+    const { items, total } = await this.workItemsRepository.findMany(
+      workspaceId,
+      {
+        skip: filters.skip,
+        take: filters.limit,
+        processId: filters.processId,
+        statusId: filters.statusId,
+        assigneeId: filters.assigneeId,
+        priority: filters.priority,
+        itemType: filters.itemType,
+        search: filters.search,
+        showClosed: filters.showClosed,
+        showSubtasks: filters.showSubtasks,
+      },
+    );
 
     return {
       items: items.map(WorkItemResponseDto.fromEntity),
@@ -258,15 +273,22 @@ export class WorkItemsService {
     };
   }
 
-  async findGrouped(processId: string, showClosed = false) {
-    const process =
-      await this.workItemsRepository.findProcessById(processId);
+  async findGrouped(
+    workspaceId: string,
+    processId: string,
+    showClosed = false,
+  ) {
+    const process = await this.workItemsRepository.findProcessById(
+      workspaceId,
+      processId,
+    );
     if (!process) {
       throw new NotFoundException('Processo não encontrado');
     }
 
     const { items, statuses } =
       await this.workItemsRepository.findGroupedByStatus(
+        workspaceId,
         processId,
         showClosed,
       );
@@ -284,7 +306,6 @@ export class WorkItemsService {
       }
     >();
 
-    // Initialize groups from all statuses (so empty statuses appear too)
     for (const status of statuses) {
       groupMap.set(status.id, {
         statusId: status.id,
@@ -297,11 +318,9 @@ export class WorkItemsService {
       });
     }
 
-    // Populate groups with items
     for (const item of items) {
       let group = groupMap.get(item.statusId);
       if (!group) {
-        // Status exists but wasn't in the department statuses (edge case)
         group = {
           statusId: item.statusId,
           statusName: item.status?.name ?? 'Desconhecido',
@@ -325,8 +344,11 @@ export class WorkItemsService {
     };
   }
 
-  async findById(id: string): Promise<WorkItemResponseDto> {
-    const entity = await this.workItemsRepository.findById(id);
+  async findById(
+    workspaceId: string,
+    id: string,
+  ): Promise<WorkItemResponseDto> {
+    const entity = await this.workItemsRepository.findById(workspaceId, id);
     if (!entity) {
       throw new NotFoundException('Work item não encontrado');
     }
@@ -334,10 +356,11 @@ export class WorkItemsService {
   }
 
   async update(
+    workspaceId: string,
     id: string,
     dto: UpdateWorkItemDto,
   ): Promise<WorkItemResponseDto> {
-    const entity = await this.workItemsRepository.findById(id);
+    const entity = await this.workItemsRepository.findById(workspaceId, id);
     if (!entity) {
       throw new NotFoundException('Work item não encontrado');
     }
@@ -358,12 +381,17 @@ export class WorkItemsService {
       updateData.estimatedMinutes = dto.estimatedMinutes;
 
     if (dto.statusId !== undefined && dto.statusId !== entity.statusId) {
-      await this.validateStatusForProcess(dto.statusId, entity.processId);
+      await this.validateStatusForProcess(
+        workspaceId,
+        dto.statusId,
+        entity.processId,
+      );
       updateData.statusId = dto.statusId;
     }
 
     if (dto.processId !== undefined && dto.processId !== entity.processId) {
       const process = await this.workItemsRepository.findProcessById(
+        workspaceId,
         dto.processId,
       );
       if (!process) {
@@ -372,73 +400,96 @@ export class WorkItemsService {
       updateData.processId = dto.processId;
     }
 
-    const updated = await this.workItemsRepository.update(id, updateData);
+    const updated = await this.workItemsRepository.update(
+      workspaceId,
+      id,
+      updateData,
+    );
     return WorkItemResponseDto.fromEntity(updated);
   }
 
   async changeStatus(
+    workspaceId: string,
     id: string,
     dto: ChangeStatusDto,
   ): Promise<WorkItemResponseDto> {
-    const entity = await this.workItemsRepository.findById(id);
+    const entity = await this.workItemsRepository.findById(workspaceId, id);
     if (!entity) {
       throw new NotFoundException('Work item não encontrado');
     }
 
-    await this.validateStatusForProcess(dto.statusId, entity.processId);
+    await this.validateStatusForProcess(
+      workspaceId,
+      dto.statusId,
+      entity.processId,
+    );
 
     const updateData: Record<string, any> = { statusId: dto.statusId };
 
-    // Check the new status category for auto-setting timestamps
     const newStatus = await this.workItemsRepository.findStatusById(
+      workspaceId,
       dto.statusId,
     );
     if (newStatus) {
-      // If moving to DONE, set completedAt
       if (newStatus.category === 'DONE' && !entity.completedAt) {
         updateData.completedAt = new Date();
       }
-      // If moving to CLOSED, set closedAt
       if (newStatus.category === 'CLOSED' && !entity.closedAt) {
         updateData.closedAt = new Date();
       }
-      // If moving back from DONE/CLOSED, clear timestamps
-      if (
-        newStatus.category !== 'DONE' &&
-        newStatus.category !== 'CLOSED'
-      ) {
+      if (newStatus.category !== 'DONE' && newStatus.category !== 'CLOSED') {
         updateData.completedAt = null;
         updateData.closedAt = null;
       }
     }
 
-    const updated = await this.workItemsRepository.update(id, updateData);
+    const updated = await this.workItemsRepository.update(
+      workspaceId,
+      id,
+      updateData,
+    );
     return WorkItemResponseDto.fromEntity(updated);
   }
 
-  async remove(id: string): Promise<void> {
-    const entity = await this.workItemsRepository.findById(id);
+  async remove(workspaceId: string, id: string): Promise<void> {
+    const entity = await this.workItemsRepository.findById(workspaceId, id);
     if (!entity) {
       throw new NotFoundException('Work item não encontrado');
     }
-    await this.workItemsRepository.softDelete(id);
+    await this.workItemsRepository.softDelete(workspaceId, id);
   }
 
-  async reorder(dto: ReorderWorkItemsDto): Promise<void> {
-    await this.workItemsRepository.bulkUpdateSortOrder(dto.items);
+  async reorder(workspaceId: string, dto: ReorderWorkItemsDto): Promise<void> {
+    // Validar que todos os ids pertencem ao workspace
+    for (const item of dto.items) {
+      const entity = await this.workItemsRepository.findById(
+        workspaceId,
+        item.id,
+      );
+      if (!entity) {
+        throw new NotFoundException(`Work item ${item.id} não encontrado`);
+      }
+    }
+    await this.workItemsRepository.bulkUpdateSortOrder(workspaceId, dto.items);
   }
 
   private async validateStatusForProcess(
+    workspaceId: string,
     statusId: string,
     processId: string,
   ): Promise<void> {
-    const status = await this.workItemsRepository.findStatusById(statusId);
+    const status = await this.workItemsRepository.findStatusById(
+      workspaceId,
+      statusId,
+    );
     if (!status) {
       throw new NotFoundException('Status não encontrado');
     }
 
-    const process =
-      await this.workItemsRepository.findProcessById(processId);
+    const process = await this.workItemsRepository.findProcessById(
+      workspaceId,
+      processId,
+    );
     if (!process) {
       throw new NotFoundException('Processo não encontrado');
     }

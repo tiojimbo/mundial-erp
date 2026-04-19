@@ -26,7 +26,9 @@ export class PriceTableItemResponseDto {
   @ApiProperty()
   updatedAt: Date;
 
-  static fromEntity(entity: PriceTableItemWithProduct): PriceTableItemResponseDto {
+  static fromEntity(
+    entity: PriceTableItemWithProduct,
+  ): PriceTableItemResponseDto {
     const dto = new PriceTableItemResponseDto();
     dto.id = entity.id;
     dto.priceTableId = entity.priceTableId;

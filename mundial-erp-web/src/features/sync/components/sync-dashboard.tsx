@@ -31,14 +31,12 @@ export function SyncDashboard() {
   const [logEntityFilter, setLogEntityFilter] = useState<SyncEntity | undefined>();
   const [logStatusFilter, setLogStatusFilter] = useState<SyncStatusType | undefined>();
 
-  const entities = status?.entities ?? [];
-  const sortedEntities = useMemo(
-    () =>
-      [...entities].sort(
-        (a, b) => (SYNC_ORDER_MAP.get(a.entity) ?? 99) - (SYNC_ORDER_MAP.get(b.entity) ?? 99),
-      ),
-    [entities],
-  );
+  const sortedEntities = useMemo(() => {
+    const entities = status?.entities ?? [];
+    return [...entities].sort(
+      (a, b) => (SYNC_ORDER_MAP.get(a.entity) ?? 99) - (SYNC_ORDER_MAP.get(b.entity) ?? 99),
+    );
+  }, [status?.entities]);
 
   return (
     <div className="space-y-8 p-6">

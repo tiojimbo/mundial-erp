@@ -69,62 +69,110 @@ export class SearchIndexerService {
    */
   @OnEvent('client.created')
   async onClientCreated(event: { clientId: string }) {
-    await this.handleSearchIndex({ entity: 'client', action: 'created', entityId: event.clientId });
+    await this.handleSearchIndex({
+      entity: 'client',
+      action: 'created',
+      entityId: event.clientId,
+    });
   }
 
   @OnEvent('client.updated')
   async onClientUpdated(event: { clientId: string }) {
-    await this.handleSearchIndex({ entity: 'client', action: 'updated', entityId: event.clientId });
+    await this.handleSearchIndex({
+      entity: 'client',
+      action: 'updated',
+      entityId: event.clientId,
+    });
   }
 
   @OnEvent('client.deleted')
   async onClientDeleted(event: { clientId: string }) {
-    await this.handleSearchIndex({ entity: 'client', action: 'deleted', entityId: event.clientId });
+    await this.handleSearchIndex({
+      entity: 'client',
+      action: 'deleted',
+      entityId: event.clientId,
+    });
   }
 
   @OnEvent('product.created')
   async onProductCreated(event: { productId: string }) {
-    await this.handleSearchIndex({ entity: 'product', action: 'created', entityId: event.productId });
+    await this.handleSearchIndex({
+      entity: 'product',
+      action: 'created',
+      entityId: event.productId,
+    });
   }
 
   @OnEvent('product.updated')
   async onProductUpdated(event: { productId: string }) {
-    await this.handleSearchIndex({ entity: 'product', action: 'updated', entityId: event.productId });
+    await this.handleSearchIndex({
+      entity: 'product',
+      action: 'updated',
+      entityId: event.productId,
+    });
   }
 
   @OnEvent('product.deleted')
   async onProductDeleted(event: { productId: string }) {
-    await this.handleSearchIndex({ entity: 'product', action: 'deleted', entityId: event.productId });
+    await this.handleSearchIndex({
+      entity: 'product',
+      action: 'deleted',
+      entityId: event.productId,
+    });
   }
 
   @OnEvent('supplier.created')
   async onSupplierCreated(event: { supplierId: string }) {
-    await this.handleSearchIndex({ entity: 'supplier', action: 'created', entityId: event.supplierId });
+    await this.handleSearchIndex({
+      entity: 'supplier',
+      action: 'created',
+      entityId: event.supplierId,
+    });
   }
 
   @OnEvent('supplier.updated')
   async onSupplierUpdated(event: { supplierId: string }) {
-    await this.handleSearchIndex({ entity: 'supplier', action: 'updated', entityId: event.supplierId });
+    await this.handleSearchIndex({
+      entity: 'supplier',
+      action: 'updated',
+      entityId: event.supplierId,
+    });
   }
 
   @OnEvent('supplier.deleted')
   async onSupplierDeleted(event: { supplierId: string }) {
-    await this.handleSearchIndex({ entity: 'supplier', action: 'deleted', entityId: event.supplierId });
+    await this.handleSearchIndex({
+      entity: 'supplier',
+      action: 'deleted',
+      entityId: event.supplierId,
+    });
   }
 
   @OnEvent('invoice.created')
   async onInvoiceCreated(event: { invoiceId: string }) {
-    await this.handleSearchIndex({ entity: 'invoice', action: 'created', entityId: event.invoiceId });
+    await this.handleSearchIndex({
+      entity: 'invoice',
+      action: 'created',
+      entityId: event.invoiceId,
+    });
   }
 
   @OnEvent('invoice.updated')
   async onInvoiceUpdated(event: { invoiceId: string }) {
-    await this.handleSearchIndex({ entity: 'invoice', action: 'updated', entityId: event.invoiceId });
+    await this.handleSearchIndex({
+      entity: 'invoice',
+      action: 'updated',
+      entityId: event.invoiceId,
+    });
   }
 
   @OnEvent('invoice.deleted')
   async onInvoiceDeleted(event: { invoiceId: string }) {
-    await this.handleSearchIndex({ entity: 'invoice', action: 'deleted', entityId: event.invoiceId });
+    await this.handleSearchIndex({
+      entity: 'invoice',
+      action: 'deleted',
+      entityId: event.invoiceId,
+    });
   }
 
   // -- Private handlers --
@@ -192,10 +240,18 @@ export class SearchIndexerService {
     }
   }
 
-  private async fetchClient(id: string): Promise<Record<string, unknown> | null> {
-    const row = await this.dataRepository.findClientById(id);
+  // SCOPE: indexer SEMPRE inclui `workspaceId` no doc ES — search.repository
+  // filtra via term query. Sem isso, busca multi-tenant vazaria entre
+  // workspaces. Para Invoice (transitivo), workspaceId vem de
+  // order.workspaceId OU company.workspaceId (vide schema).
+
+  private async fetchClient(
+    id: string,
+  ): Promise<Record<string, unknown> | null> {
+    const row = await this.dataRepository.findClientByIdForIndexer(id);
     if (!row) return null;
     return {
+      workspaceId: row.workspaceId,
       name: row.name,
       tradeName: row.tradeName,
       cpfCnpj: row.cpfCnpj,
@@ -208,10 +264,13 @@ export class SearchIndexerService {
     };
   }
 
-  private async fetchProduct(id: string): Promise<Record<string, unknown> | null> {
-    const row = await this.dataRepository.findProductById(id);
+  private async fetchProduct(
+    id: string,
+  ): Promise<Record<string, unknown> | null> {
+    const row = await this.dataRepository.findProductByIdForIndexer(id);
     if (!row) return null;
     return {
+      workspaceId: row.workspaceId,
       name: row.name,
       code: row.code,
       barcode: row.barcode,
@@ -221,10 +280,13 @@ export class SearchIndexerService {
     };
   }
 
-  private async fetchOrder(id: string): Promise<Record<string, unknown> | null> {
-    const row = await this.dataRepository.findOrderById(id);
+  private async fetchOrder(
+    id: string,
+  ): Promise<Record<string, unknown> | null> {
+    const row = await this.dataRepository.findOrderByIdForIndexer(id);
     if (!row) return null;
     return {
+      workspaceId: row.workspaceId,
       orderNumber: row.orderNumber,
       title: row.title,
       clientName: row.client?.name ?? null,
@@ -234,10 +296,16 @@ export class SearchIndexerService {
     };
   }
 
-  private async fetchInvoice(id: string): Promise<Record<string, unknown> | null> {
-    const row = await this.dataRepository.findInvoiceById(id);
+  private async fetchInvoice(
+    id: string,
+  ): Promise<Record<string, unknown> | null> {
+    const row = await this.dataRepository.findInvoiceByIdForIndexer(id);
     if (!row) return null;
+    // Invoice transitivo: deriva workspaceId de order ou company.
+    const workspaceId =
+      row.order?.workspaceId ?? row.company?.workspaceId ?? null;
     return {
+      workspaceId,
       invoiceNumber: row.invoiceNumber,
       accessKey: row.accessKey,
       clientName: row.client?.name ?? null,
@@ -247,10 +315,13 @@ export class SearchIndexerService {
     };
   }
 
-  private async fetchSupplier(id: string): Promise<Record<string, unknown> | null> {
-    const row = await this.dataRepository.findSupplierById(id);
+  private async fetchSupplier(
+    id: string,
+  ): Promise<Record<string, unknown> | null> {
+    const row = await this.dataRepository.findSupplierByIdForIndexer(id);
     if (!row) return null;
     return {
+      workspaceId: row.workspaceId,
       name: row.name,
       tradeName: row.tradeName,
       cpfCnpj: row.cpfCnpj,
@@ -269,7 +340,9 @@ export class SearchIndexerService {
       const elapsed = Date.now() - this.lastFailureTime;
       if (elapsed >= CIRCUIT_BREAKER_RESET_MS) {
         this.circuitState = 'half-open';
-        this.logger.log('Indexer circuit breaker → HALF-OPEN (attempting ES again)');
+        this.logger.log(
+          'Indexer circuit breaker → HALF-OPEN (attempting ES again)',
+        );
         return false;
       }
       return true;
@@ -286,7 +359,7 @@ export class SearchIndexerService {
     this.failureCount = 0;
   }
 
-  private onFailure(error: Error): void {
+  private onFailure(_error: Error): void {
     this.failureCount++;
     this.lastFailureTime = Date.now();
     if (this.failureCount >= CIRCUIT_BREAKER_THRESHOLD) {

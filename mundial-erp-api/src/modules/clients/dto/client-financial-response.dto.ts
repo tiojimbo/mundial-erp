@@ -7,7 +7,9 @@ export class ClientFinancialResponseDto {
   @ApiProperty({ description: 'Total pago em centavos' })
   totalPaidCents: number;
 
-  @ApiProperty({ description: 'Total pendente em centavos (PENDING + PARTIAL)' })
+  @ApiProperty({
+    description: 'Total pendente em centavos (PENDING + PARTIAL)',
+  })
   totalPendingCents: number;
 
   @ApiProperty({ description: 'Total vencido em centavos (OVERDUE)' })

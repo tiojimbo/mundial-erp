@@ -124,9 +124,7 @@ describe('Auth (e2e)', () => {
     });
 
     it('should return 401 without token', async () => {
-      await request(app.getHttpServer())
-        .get('/api/v1/auth/me')
-        .expect(401);
+      await request(app.getHttpServer()).get('/api/v1/auth/me').expect(401);
     });
 
     it('should return 401 with invalid token', async () => {
@@ -180,9 +178,7 @@ describe('Auth (e2e)', () => {
 
   describe('Protected routes', () => {
     it('should return 401 for protected route without token', async () => {
-      await request(app.getHttpServer())
-        .get('/api/v1/users')
-        .expect(401);
+      await request(app.getHttpServer()).get('/api/v1/users').expect(401);
     });
   });
 });

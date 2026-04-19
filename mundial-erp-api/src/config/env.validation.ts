@@ -33,6 +33,10 @@ export const envSchema = z.object({
   FRONTEND_URL: z.string().default('http://localhost:3000'),
   THROTTLE_TTL: z.coerce.number().default(60000),
   THROTTLE_LIMIT: z.coerce.number().default(100),
+
+  // Feature Flags
+  // Bloqueador P0 CTO — vide ADR-001. Default false = single-tenant legado.
+  MULTI_WORKSPACE_ENABLED: z.enum(['true', 'false']).default('false'),
 });
 
 export type EnvConfig = z.infer<typeof envSchema>;

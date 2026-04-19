@@ -19,16 +19,26 @@ export interface WorkItemFindManyParams {
 export class WorkItemsRepository {
   constructor(private readonly prisma: PrismaService) {}
 
-  async create(data: Prisma.WorkItemUncheckedCreateInput) {
+  /**
+   * WorkItem NÃO possui workspaceId direto. Escopo via process→department→workspace.
+   */
+  async create(
+    _workspaceId: string,
+    data: Prisma.WorkItemUncheckedCreateInput,
+  ) {
     return this.prisma.workItem.create({
       data,
       include: { status: true },
     });
   }
 
-  async findById(id: string) {
+  async findById(workspaceId: string, id: string) {
     return this.prisma.workItem.findFirst({
-      where: { id, deletedAt: null },
+      where: {
+        id,
+        deletedAt: null,
+        process: { department: { workspaceId } },
+      },
       include: {
         status: true,
         children: {
@@ -40,7 +50,7 @@ export class WorkItemsRepository {
     });
   }
 
-  async findMany(params: WorkItemFindManyParams) {
+  async findMany(workspaceId: string, params: WorkItemFindManyParams) {
     const {
       skip = 0,
       take = 20,
@@ -56,6 +66,7 @@ export class WorkItemsRepository {
 
     const where: Prisma.WorkItemWhereInput = {
       deletedAt: null,
+      process: { department: { workspaceId } },
     };
 
     if (processId) where.processId = processId;
@@ -93,9 +104,14 @@ export class WorkItemsRepository {
     return { items, total };
   }
 
-  async findGroupedByStatus(processId: string, showClosed = false) {
+  async findGroupedByStatus(
+    workspaceId: string,
+    processId: string,
+    showClosed = false,
+  ) {
     const where: Prisma.WorkItemWhereInput = {
       processId,
+      process: { department: { workspaceId } },
       deletedAt: null,
       parentId: null,
     };
@@ -110,15 +126,15 @@ export class WorkItemsRepository {
       include: { status: true },
     });
 
-    // Get all workflow statuses for the process's department
-    const process = await this.prisma.process.findUnique({
-      where: { id: processId },
+    const process = await this.prisma.process.findFirst({
+      where: { id: processId, department: { workspaceId } },
       select: { departmentId: true },
     });
 
     const statuses = await this.prisma.workflowStatus.findMany({
       where: {
         departmentId: process?.departmentId ?? undefined,
+        department: { workspaceId },
         deletedAt: null,
       },
       orderBy: { sortOrder: 'asc' },
@@ -127,7 +143,11 @@ export class WorkItemsRepository {
     return { items, statuses };
   }
 
-  async update(id: string, data: Prisma.WorkItemUncheckedUpdateInput) {
+  async update(
+    _workspaceId: string,
+    id: string,
+    data: Prisma.WorkItemUncheckedUpdateInput,
+  ) {
     return this.prisma.workItem.update({
       where: { id },
       data,
@@ -135,14 +155,17 @@ export class WorkItemsRepository {
     });
   }
 
-  async softDelete(id: string) {
+  async softDelete(_workspaceId: string, id: string) {
     return this.prisma.workItem.update({
       where: { id },
       data: { deletedAt: new Date() },
     });
   }
 
-  async bulkUpdateSortOrder(items: Array<{ id: string; sortOrder: number }>) {
+  async bulkUpdateSortOrder(
+    _workspaceId: string,
+    items: Array<{ id: string; sortOrder: number }>,
+  ) {
     const updates = items.map((item) =>
       this.prisma.workItem.update({
         where: { id: item.id },
@@ -152,17 +175,27 @@ export class WorkItemsRepository {
     return this.prisma.$transaction(updates);
   }
 
-  async findByAssignee(userId: string) {
+  async findByAssignee(workspaceId: string, userId: string) {
     return this.prisma.workItem.findMany({
       where: {
         assigneeId: userId,
         deletedAt: null,
+        process: { department: { workspaceId } },
       },
-      orderBy: [{ dueDate: 'asc' }, { sortOrder: 'asc' }, { createdAt: 'desc' }],
+      orderBy: [
+        { dueDate: 'asc' },
+        { sortOrder: 'asc' },
+        { createdAt: 'desc' },
+      ],
       include: {
         status: true,
         process: {
-          select: { id: true, name: true, departmentId: true, department: { select: { name: true } } },
+          select: {
+            id: true,
+            name: true,
+            departmentId: true,
+            department: { select: { name: true } },
+          },
         },
         assignee: {
           select: { id: true, name: true, email: true },
@@ -171,16 +204,27 @@ export class WorkItemsRepository {
     });
   }
 
-  async findProcessById(processId: string) {
+  async findProcessById(workspaceId: string, processId: string) {
     return this.prisma.process.findFirst({
-      where: { id: processId, deletedAt: null },
+      where: {
+        id: processId,
+        deletedAt: null,
+        OR: [
+          { department: { workspaceId } },
+          { area: { department: { workspaceId } } },
+        ],
+      },
       select: { id: true, departmentId: true },
     });
   }
 
-  async findStatusById(statusId: string) {
+  async findStatusById(workspaceId: string, statusId: string) {
     return this.prisma.workflowStatus.findFirst({
-      where: { id: statusId, deletedAt: null },
+      where: {
+        id: statusId,
+        deletedAt: null,
+        department: { workspaceId },
+      },
       select: { id: true, departmentId: true, category: true },
     });
   }

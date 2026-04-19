@@ -38,13 +38,21 @@ export class NeighborhoodsRepository {
     return this.prisma.neighborhood.delete({ where: { id } });
   }
 
-  async upsertByProFinancasId(proFinancasId: number, data: Omit<Prisma.NeighborhoodCreateInput, 'proFinancasId'>) {
+  async upsertByProFinancasId(
+    proFinancasId: number,
+    data: Omit<Prisma.NeighborhoodCreateInput, 'proFinancasId'>,
+  ) {
     const existing = await this.prisma.neighborhood.findFirst({
       where: { proFinancasId },
     });
     if (existing) {
-      return this.prisma.neighborhood.update({ where: { id: existing.id }, data });
+      return this.prisma.neighborhood.update({
+        where: { id: existing.id },
+        data,
+      });
     }
-    return this.prisma.neighborhood.create({ data: { ...data, proFinancasId } });
+    return this.prisma.neighborhood.create({
+      data: { ...data, proFinancasId },
+    });
   }
 }

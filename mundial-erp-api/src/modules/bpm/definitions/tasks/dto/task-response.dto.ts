@@ -26,7 +26,9 @@ export class TaskResponseDto {
   @ApiProperty()
   updatedAt: Date;
 
-  static fromEntity(entity: Task & { activity?: { name: string } }): TaskResponseDto {
+  static fromEntity(
+    entity: Task & { activity?: { name: string } },
+  ): TaskResponseDto {
     const dto = new TaskResponseDto();
     dto.id = entity.id;
     dto.activityId = entity.activityId;

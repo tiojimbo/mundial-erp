@@ -1,7 +1,6 @@
 'use client';
 
 import { useChatStore } from '@/stores/chat.store';
-import { shallow } from 'zustand/shallow';
 
 type TypingIndicatorProps = {
   channelId: string;

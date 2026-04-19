@@ -30,7 +30,9 @@ export class HealthController {
   }
 
   @Get('ready')
-  @ApiOperation({ summary: 'Readiness check (DB required, Redis + ES optional)' })
+  @ApiOperation({
+    summary: 'Readiness check (DB required, Redis + ES optional)',
+  })
   @HealthCheck()
   readiness() {
     return this.health.check([

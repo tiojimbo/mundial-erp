@@ -8,7 +8,10 @@ export class RegisterPaymentDto {
   @Min(1)
   paidAmountCents: number;
 
-  @ApiPropertyOptional({ example: 'https://storage.example.com/comprovante.pdf', description: 'URL do comprovante de pagamento' })
+  @ApiPropertyOptional({
+    example: 'https://storage.example.com/comprovante.pdf',
+    description: 'URL do comprovante de pagamento',
+  })
   @IsOptional()
   @IsString()
   paymentProofUrl?: string;

@@ -37,13 +37,17 @@ export class CreateMessageDto {
   @ApiPropertyOptional({ description: 'ID da mensagem pai (para replies)' })
   @IsOptional()
   @IsString()
-  @Matches(/^c[a-z0-9]{20,30}$/, { message: 'parentMessageId deve ser um CUID valido' })
+  @Matches(/^c[a-z0-9]{20,30}$/, {
+    message: 'parentMessageId deve ser um CUID valido',
+  })
   parentMessageId?: string;
 
   @ApiPropertyOptional({ description: 'ID do usuario responsavel' })
   @IsOptional()
   @IsString()
-  @Matches(/^c[a-z0-9]{20,30}$/, { message: 'assigneeId deve ser um CUID valido' })
+  @Matches(/^c[a-z0-9]{20,30}$/, {
+    message: 'assigneeId deve ser um CUID valido',
+  })
   assigneeId?: string;
 
   @ApiPropertyOptional({

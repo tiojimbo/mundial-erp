@@ -18,13 +18,19 @@ export class CreateProductDto {
   @IsNotEmpty()
   productTypeId: string;
 
-  @ApiProperty({ example: 'Telha Térmica 40mm', description: 'Nome/descrição do produto' })
+  @ApiProperty({
+    example: 'Telha Térmica 40mm',
+    description: 'Nome/descrição do produto',
+  })
   @IsString()
   @IsNotEmpty()
   @MaxLength(255)
   name: string;
 
-  @ApiPropertyOptional({ example: 'clxyz456', description: 'ID do departamento de produto' })
+  @ApiPropertyOptional({
+    example: 'clxyz456',
+    description: 'ID do departamento de produto',
+  })
   @IsOptional()
   @IsString()
   departmentCategoryId?: string;
@@ -34,17 +40,26 @@ export class CreateProductDto {
   @IsString()
   brandId?: string;
 
-  @ApiPropertyOptional({ example: 'clxyzabc', description: 'ID da unidade de medida base' })
+  @ApiPropertyOptional({
+    example: 'clxyzabc',
+    description: 'ID da unidade de medida base',
+  })
   @IsOptional()
   @IsString()
   unitMeasureId?: string;
 
-  @ApiPropertyOptional({ example: 'clxyzdef', description: 'ID da unidade de medida caixa/conjunto' })
+  @ApiPropertyOptional({
+    example: 'clxyzdef',
+    description: 'ID da unidade de medida caixa/conjunto',
+  })
   @IsOptional()
   @IsString()
   boxUnitMeasureId?: string;
 
-  @ApiPropertyOptional({ example: 1000, description: 'Quantidade de unidades por caixa' })
+  @ApiPropertyOptional({
+    example: 1000,
+    description: 'Quantidade de unidades por caixa',
+  })
   @IsOptional()
   @IsInt()
   @Min(1)
@@ -81,7 +96,10 @@ export class CreateProductDto {
   @IsNumber()
   productionCapacity?: number;
 
-  @ApiPropertyOptional({ example: 'A-01-03', description: 'Localização no estoque' })
+  @ApiPropertyOptional({
+    example: 'A-01-03',
+    description: 'Localização no estoque',
+  })
   @IsOptional()
   @IsString()
   stockLocation?: string;
@@ -110,7 +128,10 @@ export class CreateProductDto {
   @IsEnum(ProductClassification)
   classification?: ProductClassification;
 
-  @ApiPropertyOptional({ example: 150, description: 'Capacidade de carga (kg/m²)' })
+  @ApiPropertyOptional({
+    example: 150,
+    description: 'Capacidade de carga (kg/m²)',
+  })
   @IsOptional()
   @IsNumber()
   loadCapacity?: number;
@@ -152,19 +173,28 @@ export class CreateProductDto {
   taxBasketId?: string;
 
   // === Step 4 — Pricing ===
-  @ApiPropertyOptional({ example: 15000, description: 'Preço de custo (centavos)' })
+  @ApiPropertyOptional({
+    example: 15000,
+    description: 'Preço de custo (centavos)',
+  })
   @IsOptional()
   @IsInt()
   @Min(0)
   costPrice?: number;
 
-  @ApiPropertyOptional({ example: 25000, description: 'Preço de venda (centavos)' })
+  @ApiPropertyOptional({
+    example: 25000,
+    description: 'Preço de venda (centavos)',
+  })
   @IsOptional()
   @IsInt()
   @Min(0)
   salePrice?: number;
 
-  @ApiPropertyOptional({ example: 20000, description: 'Preço mínimo de venda (centavos)' })
+  @ApiPropertyOptional({
+    example: 20000,
+    description: 'Preço mínimo de venda (centavos)',
+  })
   @IsOptional()
   @IsInt()
   @Min(0)
@@ -180,7 +210,10 @@ export class CreateProductDto {
   @IsString()
   formulaId?: string;
 
-  @ApiPropertyOptional({ example: 1, description: 'ID no Pro Finanças (legado)' })
+  @ApiPropertyOptional({
+    example: 1,
+    description: 'ID no Pro Finanças (legado)',
+  })
   @IsOptional()
   @IsInt()
   proFinancasId?: number;

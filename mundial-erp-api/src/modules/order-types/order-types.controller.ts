@@ -65,7 +65,9 @@ export class OrderTypesController {
   @Delete(':id')
   @Roles(Role.ADMIN)
   @HttpCode(HttpStatus.NO_CONTENT)
-  @ApiOperation({ summary: 'Remover tipo de pedido (soft delete, somente ADMIN)' })
+  @ApiOperation({
+    summary: 'Remover tipo de pedido (soft delete, somente ADMIN)',
+  })
   @ApiResponse({ status: 204 })
   remove(@Param('id') id: string) {
     return this.orderTypesService.remove(id);

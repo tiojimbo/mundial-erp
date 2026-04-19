@@ -2,7 +2,10 @@ import { ApiPropertyOptional } from '@nestjs/swagger';
 import { IsNumber, IsOptional, IsString, Min } from 'class-validator';
 
 export class CreateLossDto {
-  @ApiPropertyOptional({ example: 'Perda por quebra', description: 'Descrição da perda' })
+  @ApiPropertyOptional({
+    example: 'Perda por quebra',
+    description: 'Descrição da perda',
+  })
   @IsOptional()
   @IsString()
   description?: string;
@@ -13,7 +16,10 @@ export class CreateLossDto {
   @Min(0)
   quantity?: number;
 
-  @ApiPropertyOptional({ example: 2500, description: 'Custo da perda em centavos' })
+  @ApiPropertyOptional({
+    example: 2500,
+    description: 'Custo da perda em centavos',
+  })
   @IsOptional()
   @IsNumber()
   costCents?: number;

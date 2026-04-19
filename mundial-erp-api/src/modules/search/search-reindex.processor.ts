@@ -29,7 +29,9 @@ export class SearchReindexProcessor extends WorkerHost {
     super();
   }
 
-  async process(job: Job<ReindexJobData>): Promise<{ indexed: number; errors: number }> {
+  async process(
+    job: Job<ReindexJobData>,
+  ): Promise<{ indexed: number; errors: number }> {
     this.logger.log(`Reindex job ${job.id} started`);
     const entities = job.data?.entities ?? [
       'clients',
@@ -84,7 +86,9 @@ export class SearchReindexProcessor extends WorkerHost {
     }
   }
 
-  private async reindexClients(job: Job): Promise<{ indexed: number; errors: number }> {
+  private async reindexClients(
+    job: Job,
+  ): Promise<{ indexed: number; errors: number }> {
     await this.searchRepository.deleteByQuery(ES_INDEX_CLIENTS);
     const total = await this.dataRepository.countClients();
     let processed = 0;
@@ -92,13 +96,18 @@ export class SearchReindexProcessor extends WorkerHost {
     let errors = 0;
 
     while (processed < total) {
-      const rows = await this.dataRepository.findClientsBatch(processed, BATCH_SIZE);
+      const rows = await this.dataRepository.findClientsBatch(
+        processed,
+        BATCH_SIZE,
+      );
       if (rows.length === 0) break;
 
       const ops = rows.map((row) => ({
         index: ES_INDEX_CLIENTS,
         id: row.id,
         body: {
+          // SCOPE: workspaceId obrigatorio no doc ES — search filtra via term.
+          workspaceId: row.workspaceId,
           name: row.name,
           tradeName: row.tradeName,
           cpfCnpj: row.cpfCnpj,
@@ -122,7 +131,9 @@ export class SearchReindexProcessor extends WorkerHost {
     return { indexed, errors };
   }
 
-  private async reindexProducts(job: Job): Promise<{ indexed: number; errors: number }> {
+  private async reindexProducts(
+    job: Job,
+  ): Promise<{ indexed: number; errors: number }> {
     await this.searchRepository.deleteByQuery(ES_INDEX_PRODUCTS);
     const total = await this.dataRepository.countProducts();
     let processed = 0;
@@ -130,13 +141,17 @@ export class SearchReindexProcessor extends WorkerHost {
     let errors = 0;
 
     while (processed < total) {
-      const rows = await this.dataRepository.findProductsBatch(processed, BATCH_SIZE);
+      const rows = await this.dataRepository.findProductsBatch(
+        processed,
+        BATCH_SIZE,
+      );
       if (rows.length === 0) break;
 
       const ops = rows.map((row) => ({
         index: ES_INDEX_PRODUCTS,
         id: row.id,
         body: {
+          workspaceId: row.workspaceId,
           name: row.name,
           code: row.code,
           barcode: row.barcode,
@@ -157,7 +172,9 @@ export class SearchReindexProcessor extends WorkerHost {
     return { indexed, errors };
   }
 
-  private async reindexOrders(job: Job): Promise<{ indexed: number; errors: number }> {
+  private async reindexOrders(
+    job: Job,
+  ): Promise<{ indexed: number; errors: number }> {
     await this.searchRepository.deleteByQuery(ES_INDEX_ORDERS);
     const total = await this.dataRepository.countOrders();
     let processed = 0;
@@ -165,13 +182,17 @@ export class SearchReindexProcessor extends WorkerHost {
     let errors = 0;
 
     while (processed < total) {
-      const rows = await this.dataRepository.findOrdersBatch(processed, BATCH_SIZE);
+      const rows = await this.dataRepository.findOrdersBatch(
+        processed,
+        BATCH_SIZE,
+      );
       if (rows.length === 0) break;
 
       const ops = rows.map((row) => ({
         index: ES_INDEX_ORDERS,
         id: row.id,
         body: {
+          workspaceId: row.workspaceId,
           orderNumber: row.orderNumber,
           title: row.title,
           clientName: row.client?.name ?? null,
@@ -192,7 +213,9 @@ export class SearchReindexProcessor extends WorkerHost {
     return { indexed, errors };
   }
 
-  private async reindexInvoices(job: Job): Promise<{ indexed: number; errors: number }> {
+  private async reindexInvoices(
+    job: Job,
+  ): Promise<{ indexed: number; errors: number }> {
     await this.searchRepository.deleteByQuery(ES_INDEX_INVOICES);
     const total = await this.dataRepository.countInvoices();
     let processed = 0;
@@ -200,13 +223,19 @@ export class SearchReindexProcessor extends WorkerHost {
     let errors = 0;
 
     while (processed < total) {
-      const rows = await this.dataRepository.findInvoicesBatch(processed, BATCH_SIZE);
+      const rows = await this.dataRepository.findInvoicesBatch(
+        processed,
+        BATCH_SIZE,
+      );
       if (rows.length === 0) break;
 
       const ops = rows.map((row) => ({
         index: ES_INDEX_INVOICES,
         id: row.id,
         body: {
+          // Invoice transitivo: workspaceId vem de order ou company.
+          workspaceId:
+            row.order?.workspaceId ?? row.company?.workspaceId ?? null,
           invoiceNumber: row.invoiceNumber,
           accessKey: row.accessKey,
           clientName: row.client?.name ?? null,
@@ -227,7 +256,9 @@ export class SearchReindexProcessor extends WorkerHost {
     return { indexed, errors };
   }
 
-  private async reindexSuppliers(job: Job): Promise<{ indexed: number; errors: number }> {
+  private async reindexSuppliers(
+    job: Job,
+  ): Promise<{ indexed: number; errors: number }> {
     await this.searchRepository.deleteByQuery(ES_INDEX_SUPPLIERS);
     const total = await this.dataRepository.countSuppliers();
     let processed = 0;
@@ -235,13 +266,17 @@ export class SearchReindexProcessor extends WorkerHost {
     let errors = 0;
 
     while (processed < total) {
-      const rows = await this.dataRepository.findSuppliersBatch(processed, BATCH_SIZE);
+      const rows = await this.dataRepository.findSuppliersBatch(
+        processed,
+        BATCH_SIZE,
+      );
       if (rows.length === 0) break;
 
       const ops = rows.map((row) => ({
         index: ES_INDEX_SUPPLIERS,
         id: row.id,
         body: {
+          workspaceId: row.workspaceId,
           name: row.name,
           tradeName: row.tradeName,
           cpfCnpj: row.cpfCnpj,

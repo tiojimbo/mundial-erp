@@ -40,7 +40,9 @@ export class OrderFaturadoListener {
     });
 
     if (arParcela1) {
-      this.logger.log(`Parcela 1 do pedido ${order.orderNumber} ja registrada como PAID`);
+      this.logger.log(
+        `Parcela 1 do pedido ${order.orderNumber} ja registrada como PAID`,
+      );
     }
 
     this.logger.log(

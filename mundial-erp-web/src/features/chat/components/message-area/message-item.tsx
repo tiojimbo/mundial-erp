@@ -8,8 +8,6 @@ import {
   RiCheckLine,
   RiPencilLine,
   RiDeleteBinLine,
-  RiCheckboxCircleLine,
-  RiCloseLine,
 } from '@remixicon/react';
 import { useChatStore } from '@/stores/chat.store';
 import { useAuth } from '@/providers/auth-provider';
@@ -119,13 +117,6 @@ export function MessageItem({ message, hideThreadPreview }: MessageItemProps) {
     setShowDeleteModal(false);
   };
 
-  const handleResolve = () => {
-    updateMessage({
-      messageId: message.id,
-      payload: { resolved: !message.resolved },
-    });
-    setShowMoreMenu(false);
-  };
 
   return (
     <div className='group relative flex gap-3 px-4 py-1 transition-colors hover:bg-bg-weak-50/40'>

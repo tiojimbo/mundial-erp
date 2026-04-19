@@ -32,7 +32,14 @@ export class AccountsPayableRepository {
     categoryId?: string;
     overdue?: boolean;
   }) {
-    const { skip = 0, take = 20, supplierId, status, categoryId, overdue } = params;
+    const {
+      skip = 0,
+      take = 20,
+      supplierId,
+      status,
+      categoryId,
+      overdue,
+    } = params;
 
     const where: Prisma.AccountPayableWhereInput = {
       deletedAt: null,

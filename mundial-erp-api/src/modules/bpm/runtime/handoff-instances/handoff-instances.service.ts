@@ -27,12 +27,11 @@ export class HandoffInstancesService {
     pagination: PaginationDto,
     filters: { orderId?: string; status?: HandoffStatus },
   ) {
-    const { items, total } =
-      await this.handoffInstancesRepository.findMany({
-        skip: pagination.skip,
-        take: pagination.limit,
-        ...filters,
-      });
+    const { items, total } = await this.handoffInstancesRepository.findMany({
+      skip: pagination.skip,
+      take: pagination.limit,
+      ...filters,
+    });
 
     return {
       items: items.map(HandoffInstanceResponseDto.fromEntity),
@@ -58,12 +57,11 @@ export class HandoffInstancesService {
     let toProcessInstanceId = instance.toProcessInstanceId;
 
     if (!toProcessInstanceId) {
-      const newProcessInstance =
-        await this.processInstancesRepository.create({
-          process: { connect: { id: instance.handoff.toProcessId } },
-          order: { connect: { id: instance.orderId } },
-          status: ProcessStatus.DRAFT,
-        });
+      const newProcessInstance = await this.processInstancesRepository.create({
+        process: { connect: { id: instance.handoff.toProcessId } },
+        order: { connect: { id: instance.orderId } },
+        status: ProcessStatus.DRAFT,
+      });
       toProcessInstanceId = newProcessInstance.id;
     }
 

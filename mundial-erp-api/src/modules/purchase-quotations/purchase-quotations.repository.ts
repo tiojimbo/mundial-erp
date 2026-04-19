@@ -56,7 +56,11 @@ export class PurchaseQuotationsRepository {
       ...(search && {
         OR: [
           { notes: { contains: search, mode: 'insensitive' as const } },
-          { supplier: { name: { contains: search, mode: 'insensitive' as const } } },
+          {
+            supplier: {
+              name: { contains: search, mode: 'insensitive' as const },
+            },
+          },
         ],
       }),
     };

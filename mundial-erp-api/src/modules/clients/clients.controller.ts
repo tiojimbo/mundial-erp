@@ -26,6 +26,7 @@ import { ClientFinancialResponseDto } from './dto/client-financial-response.dto'
 import { ListClientsQueryDto } from './dto/list-clients-query.dto';
 import { PaginationDto } from '../../common/dtos/pagination.dto';
 import { Roles } from '../auth/decorators';
+import { WorkspaceId } from '../workspaces/decorators/workspace-id.decorator';
 
 @ApiTags('Clients')
 @ApiBearerAuth()
@@ -38,16 +39,22 @@ export class ClientsController {
   @ApiOperation({ summary: 'Criar cliente' })
   @ApiResponse({ status: 201, type: ClientResponseDto })
   @ApiResponse({ status: 400, description: 'CPF/CNPJ inválido' })
-  @ApiResponse({ status: 409, description: 'Cliente com este CPF/CNPJ já existe' })
-  create(@Body() dto: CreateClientDto) {
-    return this.clientsService.create(dto);
+  @ApiResponse({
+    status: 409,
+    description: 'Cliente com este CPF/CNPJ já existe',
+  })
+  create(@WorkspaceId() workspaceId: string, @Body() dto: CreateClientDto) {
+    return this.clientsService.create(workspaceId, dto);
   }
 
   @Get()
   @Roles(Role.ADMIN, Role.MANAGER, Role.OPERATOR)
   @ApiOperation({ summary: 'Listar clientes' })
-  findAll(@Query() query: ListClientsQueryDto) {
-    return this.clientsService.findAll(query, query.search);
+  findAll(
+    @WorkspaceId() workspaceId: string,
+    @Query() query: ListClientsQueryDto,
+  ) {
+    return this.clientsService.findAll(workspaceId, query, query.search);
   }
 
   @Get(':id')
@@ -55,8 +62,8 @@ export class ClientsController {
   @ApiOperation({ summary: 'Buscar cliente por ID' })
   @ApiResponse({ status: 200, type: ClientResponseDto })
   @ApiResponse({ status: 404, description: 'Cliente não encontrado' })
-  findOne(@Param('id') id: string) {
-    return this.clientsService.findById(id);
+  findOne(@WorkspaceId() workspaceId: string, @Param('id') id: string) {
+    return this.clientsService.findById(workspaceId, id);
   }
 
   @Patch(':id')
@@ -64,9 +71,16 @@ export class ClientsController {
   @ApiOperation({ summary: 'Atualizar cliente' })
   @ApiResponse({ status: 200, type: ClientResponseDto })
   @ApiResponse({ status: 400, description: 'CPF/CNPJ inválido' })
-  @ApiResponse({ status: 409, description: 'Cliente com este CPF/CNPJ já existe' })
-  update(@Param('id') id: string, @Body() dto: UpdateClientDto) {
-    return this.clientsService.update(id, dto);
+  @ApiResponse({
+    status: 409,
+    description: 'Cliente com este CPF/CNPJ já existe',
+  })
+  update(
+    @WorkspaceId() workspaceId: string,
+    @Param('id') id: string,
+    @Body() dto: UpdateClientDto,
+  ) {
+    return this.clientsService.update(workspaceId, id, dto);
   }
 
   @Delete(':id')
@@ -74,8 +88,8 @@ export class ClientsController {
   @HttpCode(HttpStatus.NO_CONTENT)
   @ApiOperation({ summary: 'Remover cliente (soft delete, somente ADMIN)' })
   @ApiResponse({ status: 204 })
-  remove(@Param('id') id: string) {
-    return this.clientsService.remove(id);
+  remove(@WorkspaceId() workspaceId: string, @Param('id') id: string) {
+    return this.clientsService.remove(workspaceId, id);
   }
 
   @Get(':id/orders')
@@ -84,18 +98,21 @@ export class ClientsController {
   @ApiResponse({ status: 200, type: ClientOrderResponseDto, isArray: true })
   @ApiResponse({ status: 404, description: 'Cliente não encontrado' })
   findOrders(
+    @WorkspaceId() workspaceId: string,
     @Param('id') id: string,
     @Query() pagination: PaginationDto,
   ) {
-    return this.clientsService.findOrders(id, pagination);
+    return this.clientsService.findOrders(workspaceId, id, pagination);
   }
 
   @Get(':id/financials')
   @Roles(Role.ADMIN, Role.MANAGER)
-  @ApiOperation({ summary: 'Resumo financeiro do cliente (AR total, pago, pendente, vencido)' })
+  @ApiOperation({
+    summary: 'Resumo financeiro do cliente (AR total, pago, pendente, vencido)',
+  })
   @ApiResponse({ status: 200, type: ClientFinancialResponseDto })
   @ApiResponse({ status: 404, description: 'Cliente não encontrado' })
-  getFinancials(@Param('id') id: string) {
-    return this.clientsService.getFinancials(id);
+  getFinancials(@WorkspaceId() workspaceId: string, @Param('id') id: string) {
+    return this.clientsService.getFinancials(workspaceId, id);
   }
 }

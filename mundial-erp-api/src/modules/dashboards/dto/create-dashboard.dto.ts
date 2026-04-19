@@ -1,5 +1,13 @@
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
-import { IsBoolean, IsInt, IsNotEmpty, IsOptional, IsString, MaxLength, Min } from 'class-validator';
+import {
+  IsBoolean,
+  IsInt,
+  IsNotEmpty,
+  IsOptional,
+  IsString,
+  MaxLength,
+  Min,
+} from 'class-validator';
 
 export class CreateDashboardDto {
   @ApiProperty({ example: 'Painel de Vendas' })
@@ -19,7 +27,10 @@ export class CreateDashboardDto {
   @IsBoolean()
   isPublic?: boolean;
 
-  @ApiPropertyOptional({ example: 30, description: 'Auto-refresh em segundos (null = desabilitado)' })
+  @ApiPropertyOptional({
+    example: 30,
+    description: 'Auto-refresh em segundos (null = desabilitado)',
+  })
   @IsOptional()
   @IsInt()
   @Min(5)

@@ -7,7 +7,11 @@ import {
 import { Role } from '@prisma/client';
 import { DashboardsRepository } from './dashboards.repository';
 import { DashboardCardQueryService } from './dashboard-card-query.service';
-import type { DataSource, AxisConfig, GlobalFilter } from './dashboard-card-query.service';
+import type {
+  DataSource,
+  AxisConfig,
+  GlobalFilter,
+} from './dashboard-card-query.service';
 import { CreateDashboardDto } from './dto/create-dashboard.dto';
 import { UpdateDashboardDto } from './dto/update-dashboard.dto';
 import { CreateCardDto } from './dto/create-card.dto';
@@ -36,8 +40,12 @@ export class DashboardsService {
   // Dashboard CRUD
   // ---------------------------------------------------------------------------
 
-  async create(dto: CreateDashboardDto, userId: string): Promise<DashboardResponseDto> {
-    const entity = await this.repo.create({
+  async create(
+    workspaceId: string,
+    dto: CreateDashboardDto,
+    userId: string,
+  ): Promise<DashboardResponseDto> {
+    const entity = await this.repo.create(workspaceId, {
       name: dto.name,
       description: dto.description,
       isPublic: dto.isPublic ?? false,
@@ -46,54 +54,85 @@ export class DashboardsService {
       owner: { connect: { id: userId } },
     });
 
-    this.logger.log(`Dashboard "${dto.name}" criado (ID: ${entity.id}) por ${userId}`);
-    return DashboardResponseDto.fromEntity(entity as unknown as Record<string, unknown>);
+    this.logger.log(
+      `Dashboard "${dto.name}" criado (ID: ${entity.id}) por ${userId}`,
+    );
+    return DashboardResponseDto.fromEntity(
+      entity as unknown as Record<string, unknown>,
+    );
   }
 
-  async findAll(pagination: PaginationDto, userId: string) {
-    const { items, total } = await this.repo.findMany({
+  async findAll(
+    workspaceId: string,
+    pagination: PaginationDto,
+    userId: string,
+  ) {
+    const { items, total } = await this.repo.findMany(workspaceId, {
       skip: pagination.skip,
       take: pagination.limit,
       ownerId: userId,
     });
 
     return {
-      items: items.map((e) => DashboardResponseDto.fromEntity(e as unknown as Record<string, unknown>)),
+      items: items.map((e) =>
+        DashboardResponseDto.fromEntity(
+          e as unknown as Record<string, unknown>,
+        ),
+      ),
       total,
       page: pagination.page,
       limit: pagination.limit,
     };
   }
 
-  async findById(id: string, user: UserContext): Promise<DashboardResponseDto> {
-    const entity = await this.repo.findById(id);
+  async findById(
+    workspaceId: string,
+    id: string,
+    user: UserContext,
+  ): Promise<DashboardResponseDto> {
+    const entity = await this.repo.findById(workspaceId, id);
     if (!entity) throw new NotFoundException('Dashboard nao encontrado');
     this.assertReadAccess(entity, user);
-    return DashboardResponseDto.fromEntity(entity as unknown as Record<string, unknown>);
+    return DashboardResponseDto.fromEntity(
+      entity as unknown as Record<string, unknown>,
+    );
   }
 
-  async update(id: string, dto: UpdateDashboardDto, user: UserContext): Promise<DashboardResponseDto> {
-    const entity = await this.repo.findById(id);
+  async update(
+    workspaceId: string,
+    id: string,
+    dto: UpdateDashboardDto,
+    user: UserContext,
+  ): Promise<DashboardResponseDto> {
+    const entity = await this.repo.findById(workspaceId, id);
     if (!entity) throw new NotFoundException('Dashboard nao encontrado');
     this.assertWriteAccess(entity, user);
 
-    const updated = await this.repo.update(id, {
+    const updated = await this.repo.update(workspaceId, id, {
       ...(dto.name !== undefined && { name: dto.name }),
       ...(dto.description !== undefined && { description: dto.description }),
       ...(dto.isPublic !== undefined && { isPublic: dto.isPublic }),
-      ...(dto.autoRefreshSeconds !== undefined && { autoRefreshSeconds: dto.autoRefreshSeconds }),
+      ...(dto.autoRefreshSeconds !== undefined && {
+        autoRefreshSeconds: dto.autoRefreshSeconds,
+      }),
       ...(dto.sortOrder !== undefined && { sortOrder: dto.sortOrder }),
     });
 
-    return DashboardResponseDto.fromEntity(updated as unknown as Record<string, unknown>);
+    return DashboardResponseDto.fromEntity(
+      updated as unknown as Record<string, unknown>,
+    );
   }
 
-  async remove(id: string, user: UserContext): Promise<void> {
-    const entity = await this.repo.findById(id);
+  async remove(
+    workspaceId: string,
+    id: string,
+    user: UserContext,
+  ): Promise<void> {
+    const entity = await this.repo.findById(workspaceId, id);
     if (!entity) throw new NotFoundException('Dashboard nao encontrado');
     this.assertWriteAccess(entity, user);
 
-    await this.repo.softDelete(id);
+    await this.repo.softDelete(workspaceId, id);
     this.logger.log(`Dashboard ${id} soft-deleted por ${user.userId}`);
   }
 
@@ -101,8 +140,13 @@ export class DashboardsService {
   // Cards
   // ---------------------------------------------------------------------------
 
-  async addCard(dashboardId: string, dto: CreateCardDto, user: UserContext): Promise<DashboardCardResponseDto> {
-    await this.loadAndAssertWrite(dashboardId, user);
+  async addCard(
+    workspaceId: string,
+    dashboardId: string,
+    dto: CreateCardDto,
+    user: UserContext,
+  ): Promise<DashboardCardResponseDto> {
+    await this.loadAndAssertWrite(workspaceId, dashboardId, user);
 
     const card = await this.repo.createCard({
       dashboard: { connect: { id: dashboardId } },
@@ -119,18 +163,23 @@ export class DashboardsService {
       sortOrder: dto.sortOrder ?? 0,
     });
 
-    this.logger.log(`Card "${dto.title}" adicionado ao dashboard ${dashboardId}`);
-    return DashboardCardResponseDto.fromEntity(card as unknown as Record<string, unknown>);
+    this.logger.log(
+      `Card "${dto.title}" adicionado ao dashboard ${dashboardId}`,
+    );
+    return DashboardCardResponseDto.fromEntity(
+      card as unknown as Record<string, unknown>,
+    );
   }
 
   async updateCard(
+    workspaceId: string,
     dashboardId: string,
     cardId: string,
     dto: UpdateCardDto,
     user: UserContext,
   ): Promise<DashboardCardResponseDto> {
-    await this.loadAndAssertWrite(dashboardId, user);
-    const card = await this.repo.findCardById(cardId);
+    await this.loadAndAssertWrite(workspaceId, dashboardId, user);
+    const card = await this.repo.findCardById(workspaceId, cardId);
     if (!card || card.dashboardId !== dashboardId) {
       throw new NotFoundException('Card nao encontrado neste dashboard');
     }
@@ -149,46 +198,72 @@ export class DashboardsService {
       ...(dto.sortOrder !== undefined && { sortOrder: dto.sortOrder }),
     });
 
-    return DashboardCardResponseDto.fromEntity(updated as unknown as Record<string, unknown>);
+    return DashboardCardResponseDto.fromEntity(
+      updated as unknown as Record<string, unknown>,
+    );
   }
 
-  async removeCard(dashboardId: string, cardId: string, user: UserContext): Promise<void> {
-    await this.loadAndAssertWrite(dashboardId, user);
-    const card = await this.repo.findCardById(cardId);
+  async removeCard(
+    workspaceId: string,
+    dashboardId: string,
+    cardId: string,
+    user: UserContext,
+  ): Promise<void> {
+    await this.loadAndAssertWrite(workspaceId, dashboardId, user);
+    const card = await this.repo.findCardById(workspaceId, cardId);
     if (!card || card.dashboardId !== dashboardId) {
       throw new NotFoundException('Card nao encontrado neste dashboard');
     }
     await this.repo.deleteCard(cardId);
   }
 
-  async updateLayout(dashboardId: string, dto: UpdateLayoutDto, user: UserContext): Promise<DashboardResponseDto> {
-    const dashboard = await this.loadAndAssertWrite(dashboardId, user);
+  async updateLayout(
+    workspaceId: string,
+    dashboardId: string,
+    dto: UpdateLayoutDto,
+    user: UserContext,
+  ): Promise<DashboardResponseDto> {
+    const dashboard = await this.loadAndAssertWrite(
+      workspaceId,
+      dashboardId,
+      user,
+    );
 
-    // Validate all card IDs belong to this dashboard
     const dashboardCardIds = new Set(
-      (dashboard.cards ?? []).map((c: Record<string, unknown>) => c.id as string),
+      (dashboard.cards ?? []).map(
+        (c: Record<string, unknown>) => c.id as string,
+      ),
     );
     for (const card of dto.cards) {
       if (!dashboardCardIds.has(card.cardId)) {
-        throw new NotFoundException(`Card "${card.cardId}" nao pertence a este dashboard`);
+        throw new NotFoundException(
+          `Card "${card.cardId}" nao pertence a este dashboard`,
+        );
       }
     }
 
     await this.repo.updateLayoutBatch(dto.cards);
-    const updated = await this.repo.findById(dashboardId);
-    return DashboardResponseDto.fromEntity(updated as unknown as Record<string, unknown>);
+    const updated = await this.repo.findById(workspaceId, dashboardId);
+    return DashboardResponseDto.fromEntity(
+      updated as unknown as Record<string, unknown>,
+    );
   }
 
   // ---------------------------------------------------------------------------
   // Card Data (Query Engine)
   // ---------------------------------------------------------------------------
 
-  async getCardData(dashboardId: string, cardId: string, user: UserContext) {
-    const dashboard = await this.repo.findById(dashboardId);
+  async getCardData(
+    workspaceId: string,
+    dashboardId: string,
+    cardId: string,
+    user: UserContext,
+  ) {
+    const dashboard = await this.repo.findById(workspaceId, dashboardId);
     if (!dashboard) throw new NotFoundException('Dashboard nao encontrado');
     this.assertReadAccess(dashboard, user);
 
-    const card = await this.repo.findCardById(cardId);
+    const card = await this.repo.findCardById(workspaceId, cardId);
     if (!card || card.dashboardId !== dashboardId) {
       throw new NotFoundException('Card nao encontrado neste dashboard');
     }
@@ -213,8 +288,13 @@ export class DashboardsService {
   // Filters
   // ---------------------------------------------------------------------------
 
-  async addFilter(dashboardId: string, dto: CreateFilterDto, user: UserContext): Promise<DashboardFilterResponseDto> {
-    await this.loadAndAssertWrite(dashboardId, user);
+  async addFilter(
+    workspaceId: string,
+    dashboardId: string,
+    dto: CreateFilterDto,
+    user: UserContext,
+  ): Promise<DashboardFilterResponseDto> {
+    await this.loadAndAssertWrite(workspaceId, dashboardId, user);
 
     const filter = await this.repo.createFilter({
       dashboard: { connect: { id: dashboardId } },
@@ -224,12 +304,19 @@ export class DashboardsService {
       label: dto.label,
     });
 
-    return DashboardFilterResponseDto.fromEntity(filter as unknown as Record<string, unknown>);
+    return DashboardFilterResponseDto.fromEntity(
+      filter as unknown as Record<string, unknown>,
+    );
   }
 
-  async removeFilter(dashboardId: string, filterId: string, user: UserContext): Promise<void> {
-    await this.loadAndAssertWrite(dashboardId, user);
-    const filter = await this.repo.findFilterById(filterId);
+  async removeFilter(
+    workspaceId: string,
+    dashboardId: string,
+    filterId: string,
+    user: UserContext,
+  ): Promise<void> {
+    await this.loadAndAssertWrite(workspaceId, dashboardId, user);
+    const filter = await this.repo.findFilterById(workspaceId, filterId);
     if (!filter || filter.dashboardId !== dashboardId) {
       throw new NotFoundException('Filtro nao encontrado neste dashboard');
     }
@@ -240,21 +327,33 @@ export class DashboardsService {
   // Access control helpers
   // ---------------------------------------------------------------------------
 
-  private assertReadAccess(entity: { ownerId: string; isPublic: boolean }, user: UserContext): void {
+  private assertReadAccess(
+    entity: { ownerId: string; isPublic: boolean },
+    user: UserContext,
+  ): void {
     if (user.role === Role.ADMIN) return;
     if (entity.ownerId === user.userId) return;
     if (entity.isPublic) return;
     throw new ForbiddenException('Acesso negado a este dashboard');
   }
 
-  private assertWriteAccess(entity: { ownerId: string }, user: UserContext): void {
+  private assertWriteAccess(
+    entity: { ownerId: string },
+    user: UserContext,
+  ): void {
     if (user.role === Role.ADMIN) return;
     if (entity.ownerId === user.userId) return;
-    throw new ForbiddenException('Somente o owner pode modificar este dashboard');
+    throw new ForbiddenException(
+      'Somente o owner pode modificar este dashboard',
+    );
   }
 
-  private async loadAndAssertWrite(dashboardId: string, user: UserContext) {
-    const entity = await this.repo.findById(dashboardId);
+  private async loadAndAssertWrite(
+    workspaceId: string,
+    dashboardId: string,
+    user: UserContext,
+  ) {
+    const entity = await this.repo.findById(workspaceId, dashboardId);
     if (!entity) throw new NotFoundException('Dashboard nao encontrado');
     this.assertWriteAccess(entity, user);
     return entity;

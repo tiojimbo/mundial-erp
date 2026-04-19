@@ -1,7 +1,9 @@
 import { ApiProperty } from '@nestjs/swagger';
 
 export class SalesChartPointDto {
-  @ApiProperty({ description: 'Label do periodo (ex: 2026-04, 2026-W15, 2026-04-07)' })
+  @ApiProperty({
+    description: 'Label do periodo (ex: 2026-04, 2026-W15, 2026-04-07)',
+  })
   period: string;
 
   @ApiProperty({ description: 'Total de vendas no periodo (cents)' })

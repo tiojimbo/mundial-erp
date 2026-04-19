@@ -57,7 +57,10 @@ export class CitiesController {
   @Get(':id/neighborhoods')
   @Roles(Role.ADMIN, Role.MANAGER, Role.OPERATOR, Role.VIEWER)
   @ApiOperation({ summary: 'Listar bairros da cidade' })
-  findNeighborhoodsByCity(@Param('id') id: string, @Query() pagination: PaginationDto) {
+  findNeighborhoodsByCity(
+    @Param('id') id: string,
+    @Query() pagination: PaginationDto,
+  ) {
     return this.citiesService.findNeighborhoodsByCity(id, pagination);
   }
 

@@ -88,7 +88,11 @@ export class PurchaseOrdersRepository {
       ...(search && {
         OR: [
           { notes: { contains: search, mode: 'insensitive' as const } },
-          { supplier: { name: { contains: search, mode: 'insensitive' as const } } },
+          {
+            supplier: {
+              name: { contains: search, mode: 'insensitive' as const },
+            },
+          },
         ],
       }),
     };

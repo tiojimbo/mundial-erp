@@ -17,7 +17,9 @@ export class ClientClassificationResponseDto {
   @ApiProperty()
   updatedAt: Date;
 
-  static fromEntity(entity: ClientClassification): ClientClassificationResponseDto {
+  static fromEntity(
+    entity: ClientClassification,
+  ): ClientClassificationResponseDto {
     const dto = new ClientClassificationResponseDto();
     dto.id = entity.id;
     dto.name = entity.name;

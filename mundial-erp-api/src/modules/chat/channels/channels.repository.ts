@@ -143,11 +143,7 @@ export class ChannelsRepository {
     });
   }
 
-  async addMember(
-    channelId: string,
-    userId: string,
-    role: ChannelMemberRole,
-  ) {
+  async addMember(channelId: string, userId: string, role: ChannelMemberRole) {
     return this.prisma.chatChannelMember.upsert({
       where: { uq_channel_member: { channelId, userId } },
       create: { channelId, userId, role },
@@ -199,11 +195,7 @@ export class ChannelsRepository {
     });
   }
 
-  async setFollower(
-    channelId: string,
-    userId: string,
-    isFollower: boolean,
-  ) {
+  async setFollower(channelId: string, userId: string, isFollower: boolean) {
     return this.prisma.chatChannelMember.update({
       where: { uq_channel_member: { channelId, userId } },
       data: { isFollower },

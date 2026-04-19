@@ -12,11 +12,10 @@ export class WsAuthGuard {
     private readonly configService: ConfigService,
   ) {}
 
-  async authenticate(
+  authenticate(
     client: Socket,
-  ): Promise<{ sub: string; email: string; role: string } | null> {
-    const token =
-      client.handshake.auth?.token || client.handshake.query?.token;
+  ): { sub: string; email: string; role: string } | null {
+    const token = client.handshake.auth?.token || client.handshake.query?.token;
     if (!token) {
       this.logger.warn(`WS connection without token: ${client.id}`);
       return null;

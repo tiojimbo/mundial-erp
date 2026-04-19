@@ -1,4 +1,8 @@
-import { ConflictException, Injectable, NotFoundException } from '@nestjs/common';
+import {
+  ConflictException,
+  Injectable,
+  NotFoundException,
+} from '@nestjs/common';
 import { BrandsRepository } from './brands.repository';
 import { CreateBrandDto } from './dto/create-brand.dto';
 import { UpdateBrandDto } from './dto/update-brand.dto';
@@ -16,7 +20,9 @@ export class BrandsService {
     }
     const entity = await this.brandsRepository.create({
       name: dto.name,
-      ...(dto.proFinancasId !== undefined && { proFinancasId: dto.proFinancasId }),
+      ...(dto.proFinancasId !== undefined && {
+        proFinancasId: dto.proFinancasId,
+      }),
     });
     return BrandResponseDto.fromEntity(entity);
   }
@@ -51,7 +57,9 @@ export class BrandsService {
     }
     const updated = await this.brandsRepository.update(id, {
       ...(dto.name !== undefined && { name: dto.name }),
-      ...(dto.proFinancasId !== undefined && { proFinancasId: dto.proFinancasId }),
+      ...(dto.proFinancasId !== undefined && {
+        proFinancasId: dto.proFinancasId,
+      }),
     });
     return BrandResponseDto.fromEntity(updated);
   }

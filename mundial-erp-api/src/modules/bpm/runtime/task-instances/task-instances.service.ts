@@ -34,10 +34,7 @@ export class TaskInstancesService {
     return TaskInstanceResponseDto.fromEntity(instance);
   }
 
-  async toggle(
-    id: string,
-    userId: string,
-  ): Promise<TaskInstanceResponseDto> {
+  async toggle(id: string, userId: string): Promise<TaskInstanceResponseDto> {
     const instance = await this.taskInstancesRepository.findById(id);
     if (!instance) {
       throw new NotFoundException('Instância de tarefa não encontrada');
@@ -47,9 +44,7 @@ export class TaskInstancesService {
 
     const updated = await this.taskInstancesRepository.update(id, {
       status: isDone ? TaskStatus.PENDING : TaskStatus.DONE,
-      completedBy: isDone
-        ? { disconnect: true }
-        : { connect: { id: userId } },
+      completedBy: isDone ? { disconnect: true } : { connect: { id: userId } },
     });
 
     return TaskInstanceResponseDto.fromEntity(updated);

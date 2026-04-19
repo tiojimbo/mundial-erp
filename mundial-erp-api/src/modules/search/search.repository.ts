@@ -74,7 +74,9 @@ export class SearchRepository implements OnModuleInit {
     } catch (error: unknown) {
       const esError = error as { meta?: { statusCode?: number } };
       if (esError.meta?.statusCode === 404) {
-        this.logger.debug(`Document "${id}" not found in "${index}", skipping delete`);
+        this.logger.debug(
+          `Document "${id}" not found in "${index}", skipping delete`,
+        );
         return;
       }
       throw error;
@@ -89,6 +91,7 @@ export class SearchRepository implements OnModuleInit {
     query: string,
     from: number,
     size: number,
+    workspaceId?: string,
   ): Promise<{
     hits: Array<{
       _id: string;
@@ -98,18 +101,26 @@ export class SearchRepository implements OnModuleInit {
     }>;
     total: number;
   }> {
+    // SCOPE: filtro de workspaceId injetado como term filter no must.
+    // Reindexer ja indexa workspaceId em todos os documentos. Quando
+    // workspaceId e undefined (uso administrativo super-user), busca
+    // global sem filtro.
+    const must: QueryDslQueryContainer[] = [
+      {
+        multi_match: {
+          query,
+          type: 'best_fields',
+          fuzziness: 'AUTO',
+          operator: 'or',
+        },
+      },
+    ];
+    if (workspaceId) {
+      must.push({ term: { workspaceId } });
+    }
     const esQuery: QueryDslQueryContainer = {
       bool: {
-        must: [
-          {
-            multi_match: {
-              query,
-              type: 'best_fields',
-              fuzziness: 'AUTO',
-              operator: 'or',
-            },
-          },
-        ],
+        must,
         must_not: [{ exists: { field: 'deletedAt' } }],
       },
     };
@@ -130,7 +141,7 @@ export class SearchRepository implements OnModuleInit {
     const total =
       typeof result.hits.total === 'number'
         ? result.hits.total
-        : result.hits.total?.value ?? 0;
+        : (result.hits.total?.value ?? 0);
 
     const hits = result.hits.hits.map((hit) => ({
       _id: hit._id!,

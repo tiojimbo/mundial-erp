@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useRef, useCallback } from 'react';
+import { useEffect, useRef } from 'react';
 import { useMessages } from '../../hooks/use-messages';
 import { MessageItem } from './message-item';
 import type { Message } from '../../types/chat.types';

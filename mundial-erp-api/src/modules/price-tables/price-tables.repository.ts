@@ -6,31 +6,53 @@ import { PrismaService } from '../../database/prisma.service';
 export class PriceTablesRepository {
   constructor(private readonly prisma: PrismaService) {}
 
-  async create(data: Prisma.PriceTableCreateInput, clearOtherDefaults = false) {
+  async create(
+    workspaceId: string,
+    data: Prisma.PriceTableCreateInput,
+    clearOtherDefaults = false,
+  ) {
+    const dataWithWorkspace = {
+      ...data,
+      workspace: { connect: { id: workspaceId } },
+    };
     if (clearOtherDefaults) {
       return this.prisma.$transaction(async (tx) => {
         await tx.priceTable.updateMany({
-          where: { isDefault: true, deletedAt: null },
+          where: { isDefault: true, workspaceId, deletedAt: null },
           data: { isDefault: false },
         });
-        return tx.priceTable.create({ data, include: { items: { include: { product: true } } } });
+        return tx.priceTable.create({
+          data: dataWithWorkspace,
+          include: { items: { include: { product: true } } },
+        });
       });
     }
-    return this.prisma.priceTable.create({ data, include: { items: { include: { product: true } } } });
-  }
-
-  async findById(id: string) {
-    return this.prisma.priceTable.findFirst({
-      where: { id, deletedAt: null },
-      include: { items: { where: { deletedAt: null }, include: { product: true } } },
+    return this.prisma.priceTable.create({
+      data: dataWithWorkspace,
+      include: { items: { include: { product: true } } },
     });
   }
 
-  async findMany(params: { skip?: number; take?: number; search?: string }) {
+  async findById(workspaceId: string, id: string) {
+    return this.prisma.priceTable.findFirst({
+      where: { id, workspaceId, deletedAt: null },
+      include: {
+        items: { where: { deletedAt: null }, include: { product: true } },
+      },
+    });
+  }
+
+  async findMany(
+    workspaceId: string,
+    params: { skip?: number; take?: number; search?: string },
+  ) {
     const { skip = 0, take = 20, search } = params;
     const where: Prisma.PriceTableWhereInput = {
+      workspaceId,
       deletedAt: null,
-      ...(search && { name: { contains: search, mode: 'insensitive' as const } }),
+      ...(search && {
+        name: { contains: search, mode: 'insensitive' as const },
+      }),
     };
     const [items, total] = await Promise.all([
       this.prisma.priceTable.findMany({
@@ -45,33 +67,55 @@ export class PriceTablesRepository {
     return { items, total };
   }
 
-  async update(id: string, data: Prisma.PriceTableUpdateInput, clearOtherDefaults = false) {
+  async update(
+    workspaceId: string,
+    id: string,
+    data: Prisma.PriceTableUpdateInput,
+    clearOtherDefaults = false,
+  ) {
     if (clearOtherDefaults) {
       return this.prisma.$transaction(async (tx) => {
         await tx.priceTable.updateMany({
-          where: { isDefault: true, deletedAt: null, id: { not: id } },
+          where: {
+            isDefault: true,
+            workspaceId,
+            deletedAt: null,
+            id: { not: id },
+          },
           data: { isDefault: false },
         });
         return tx.priceTable.update({
           where: { id },
           data,
-          include: { items: { where: { deletedAt: null }, include: { product: true } } },
+          include: {
+            items: { where: { deletedAt: null }, include: { product: true } },
+          },
         });
       });
     }
     return this.prisma.priceTable.update({
       where: { id },
       data,
-      include: { items: { where: { deletedAt: null }, include: { product: true } } },
+      include: {
+        items: { where: { deletedAt: null }, include: { product: true } },
+      },
     });
   }
 
-  async softDelete(id: string) {
-    return this.prisma.priceTable.update({ where: { id }, data: { deletedAt: new Date() } });
+  async softDelete(_workspaceId: string, id: string) {
+    return this.prisma.priceTable.update({
+      where: { id },
+      data: { deletedAt: new Date() },
+    });
   }
 
   // --- PriceTableItem operations ---
-  async upsertItem(priceTableId: string, productId: string, priceInCents: number) {
+  async upsertItem(
+    _workspaceId: string,
+    priceTableId: string,
+    productId: string,
+    priceInCents: number,
+  ) {
     return this.prisma.priceTableItem.upsert({
       where: {
         priceTableId_productId: { priceTableId, productId },
@@ -86,9 +130,17 @@ export class PriceTablesRepository {
     });
   }
 
-  async findItemsByTableId(priceTableId: string, params: { skip?: number; take?: number }) {
+  async findItemsByTableId(
+    workspaceId: string,
+    priceTableId: string,
+    params: { skip?: number; take?: number },
+  ) {
     const { skip = 0, take = 20 } = params;
-    const where = { priceTableId, deletedAt: null };
+    const where: Prisma.PriceTableItemWhereInput = {
+      priceTableId,
+      priceTable: { workspaceId },
+      deletedAt: null,
+    };
     const [items, total] = await Promise.all([
       this.prisma.priceTableItem.findMany({
         where,
@@ -102,14 +154,16 @@ export class PriceTablesRepository {
     return { items, total };
   }
 
-  async removeItem(id: string) {
+  async removeItem(_workspaceId: string, id: string) {
     return this.prisma.priceTableItem.update({
       where: { id },
       data: { deletedAt: new Date() },
     });
   }
 
-  async findItemById(id: string) {
-    return this.prisma.priceTableItem.findFirst({ where: { id, deletedAt: null } });
+  async findItemById(workspaceId: string, id: string) {
+    return this.prisma.priceTableItem.findFirst({
+      where: { id, deletedAt: null, priceTable: { workspaceId } },
+    });
   }
 }

@@ -16,11 +16,15 @@ export class LabelPdfService {
   async generateProductionLabel(orderId: string): Promise<Buffer> {
     const order = await this.loadOrder(orderId);
     const items = order.items.filter(
-      (item) => item.classificationSnapshot === ProductClassification.FABRICACAO_PROPRIA,
+      (item) =>
+        item.classificationSnapshot ===
+        ProductClassification.FABRICACAO_PROPRIA,
     );
 
     if (items.length === 0) {
-      throw new NotFoundException('Nenhum item de FABRICACAO_PROPRIA neste pedido');
+      throw new NotFoundException(
+        'Nenhum item de FABRICACAO_PROPRIA neste pedido',
+      );
     }
 
     return this.buildLabel(order, items, 'PRODUCAO');
@@ -63,7 +67,11 @@ export class LabelPdfService {
     return order;
   }
 
-  private buildLabel(order: Record<string, unknown>, items: Record<string, unknown>[], tipo: string): Promise<Buffer> {
+  private buildLabel(
+    order: Record<string, unknown>,
+    items: Record<string, unknown>[],
+    tipo: string,
+  ): Promise<Buffer> {
     return new Promise<Buffer>((resolve, reject) => {
       const doc = new PDFDocument({ size: [283, 425], margin: 10 }); // ~10x15cm
       const chunks: Buffer[] = [];
@@ -76,10 +84,19 @@ export class LabelPdfService {
 
       // --- CABECALHO EMPRESA ---
       if (company) {
-        doc.fontSize(9).font('Helvetica-Bold').text(company.name as string, { align: 'center' });
+        doc
+          .fontSize(9)
+          .font('Helvetica-Bold')
+          .text(company.name as string, { align: 'center' });
         doc.fontSize(6).font('Helvetica');
-        doc.text(`CNPJ: ${(company.cnpj as string) ?? ''}  IE: ${(company.ie as string) ?? ''}`, { align: 'center' });
-        doc.text(`${(company.address as string) ?? ''}, ${(company.city as string) ?? ''} - ${(company.state as string) ?? ''}`, { align: 'center' });
+        doc.text(
+          `CNPJ: ${(company.cnpj as string) ?? ''}  IE: ${(company.ie as string) ?? ''}`,
+          { align: 'center' },
+        );
+        doc.text(
+          `${(company.address as string) ?? ''}, ${(company.city as string) ?? ''} - ${(company.state as string) ?? ''}`,
+          { align: 'center' },
+        );
       }
 
       doc.moveDown(0.3);
@@ -87,12 +104,20 @@ export class LabelPdfService {
 
       // --- ORDEM DE PRODUCAO / SEPARACAO ---
       doc.moveDown(0.2);
-      const productionOrders = order.productionOrders as Record<string, unknown>[] | undefined;
-      const poCode = productionOrders?.[0]?.code ?? `O${tipo === 'PRODUCAO' ? 'P' : 'S'}-${order.orderNumber as string}`;
+      const productionOrders = order.productionOrders as
+        | Record<string, unknown>[]
+        | undefined;
+      const poCode =
+        productionOrders?.[0]?.code ??
+        `O${tipo === 'PRODUCAO' ? 'P' : 'S'}-${order.orderNumber as string}`;
       doc.fontSize(8).font('Helvetica-Bold');
-      doc.text(`Ordem de ${tipo === 'PRODUCAO' ? 'Producao' : 'Separacao'} Codigo: ${poCode}`);
+      doc.text(
+        `Ordem de ${tipo === 'PRODUCAO' ? 'Producao' : 'Separacao'} Codigo: ${poCode}`,
+      );
       doc.fontSize(7).font('Helvetica');
-      doc.text(`Data Prevista: ${order.deliveryDeadline ? new Date(order.deliveryDeadline as string).toLocaleDateString('pt-BR') : '-'}`);
+      doc.text(
+        `Data Prevista: ${order.deliveryDeadline ? new Date(order.deliveryDeadline as string).toLocaleDateString('pt-BR') : '-'}`,
+      );
 
       doc.moveDown(0.3);
       this.drawLine(doc, 10, doc.page.width - 10);
@@ -105,7 +130,10 @@ export class LabelPdfService {
 
       doc.fontSize(6).font('Helvetica-Bold');
       for (let i = 0; i < headers.length; i++) {
-        doc.text(headers[i], x, doc.y, { width: colWidths[i], continued: false });
+        doc.text(headers[i], x, doc.y, {
+          width: colWidths[i],
+          continued: false,
+        });
         x += colWidths[i];
       }
 
@@ -117,17 +145,34 @@ export class LabelPdfService {
       for (const item of items) {
         x = 12;
         const y = doc.y + 2;
-        const product = item.product as Record<string, unknown> | null | undefined;
+        const product = item.product as
+          | Record<string, unknown>
+          | null
+          | undefined;
         const code = (product?.code as string) ?? '-';
         const name = (product?.name as string) ?? '-';
         const unit = '-';
 
-        doc.text(code, x, y, { width: colWidths[0] }); x += colWidths[0];
-        doc.text(name, x, y, { width: colWidths[1] }); x += colWidths[1];
-        doc.text(String(item.quantity as number), x, y, { width: colWidths[2] }); x += colWidths[2];
-        doc.text(unit, x, y, { width: colWidths[3] }); x += colWidths[3];
-        doc.text(item.pieces != null ? String(item.pieces as number) : '-', x, y, { width: colWidths[4] }); x += colWidths[4];
-        doc.text(item.size != null ? String(item.size as number) : '-', x, y, { width: colWidths[5] });
+        doc.text(code, x, y, { width: colWidths[0] });
+        x += colWidths[0];
+        doc.text(name, x, y, { width: colWidths[1] });
+        x += colWidths[1];
+        doc.text(String(item.quantity as number), x, y, {
+          width: colWidths[2],
+        });
+        x += colWidths[2];
+        doc.text(unit, x, y, { width: colWidths[3] });
+        x += colWidths[3];
+        doc.text(
+          item.pieces != null ? String(item.pieces as number) : '-',
+          x,
+          y,
+          { width: colWidths[4] },
+        );
+        x += colWidths[4];
+        doc.text(item.size != null ? String(item.size as number) : '-', x, y, {
+          width: colWidths[5],
+        });
         doc.moveDown(0.5);
         totalQtd += item.quantity as number;
       }
@@ -144,12 +189,18 @@ export class LabelPdfService {
       doc.moveDown(0.2);
       const client = order.client as Record<string, unknown>;
       doc.fontSize(7).font('Helvetica-Bold');
-      doc.text(`${(client.personType as string) === 'F' ? 'CONSUMIDOR' : 'EMPRESA'} - ${(client.personType as string) === 'F' ? 'CPF' : 'CNPJ'} ${client.cpfCnpj as string}`);
+      doc.text(
+        `${(client.personType as string) === 'F' ? 'CONSUMIDOR' : 'EMPRESA'} - ${(client.personType as string) === 'F' ? 'CPF' : 'CNPJ'} ${client.cpfCnpj as string}`,
+      );
       doc.fontSize(7).font('Helvetica');
       doc.text(client.name as string);
       doc.text(`Endereco Entrega:`);
-      doc.text(`${(order.deliveryAddress as string) ?? '-'}, ${(order.deliveryNeighborhood as string) ?? ''}`);
-      doc.text(`${(order.deliveryCity as string) ?? ''} - ${(order.deliveryState as string) ?? ''} CEP: ${(order.deliveryCep as string) ?? ''}`);
+      doc.text(
+        `${(order.deliveryAddress as string) ?? '-'}, ${(order.deliveryNeighborhood as string) ?? ''}`,
+      );
+      doc.text(
+        `${(order.deliveryCity as string) ?? ''} - ${(order.deliveryState as string) ?? ''} CEP: ${(order.deliveryCep as string) ?? ''}`,
+      );
 
       doc.moveDown(0.3);
       this.drawLine(doc, 10, doc.page.width - 10);
@@ -157,7 +208,9 @@ export class LabelPdfService {
       // --- RODAPE ---
       doc.moveDown(0.2);
       doc.fontSize(7).font('Helvetica');
-      doc.text(`Pedido n.: ${order.orderNumber as string} | Data: ${new Date(((order.issueDate ?? order.createdAt) as string)).toLocaleDateString('pt-BR')}`);
+      doc.text(
+        `Pedido n.: ${order.orderNumber as string} | Data: ${new Date((order.issueDate ?? order.createdAt) as string).toLocaleDateString('pt-BR')}`,
+      );
 
       doc.end();
     });

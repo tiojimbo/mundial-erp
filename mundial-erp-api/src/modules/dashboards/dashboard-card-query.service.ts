@@ -48,21 +48,80 @@ export type CardDataResult = LabelValue[] | XYPoint[] | TableData | KpiData;
 // Security: field allowlists per entity
 // ---------------------------------------------------------------------------
 
-const SUPPORTED_ENTITIES = ['orders', 'accounts_receivable', 'accounts_payable', 'products', 'production_orders', 'invoices', 'clients'] as const;
-type SupportedEntity = typeof SUPPORTED_ENTITIES[number];
+const SUPPORTED_ENTITIES = [
+  'orders',
+  'accounts_receivable',
+  'accounts_payable',
+  'products',
+  'production_orders',
+  'invoices',
+  'clients',
+] as const;
+type SupportedEntity = (typeof SUPPORTED_ENTITIES)[number];
 
 const ALLOWED_FIELDS: Record<SupportedEntity, Set<string>> = {
-  orders: new Set(['status', 'clientId', 'companyId', 'createdByUserId', 'assignedUserId', 'createdAt', 'totalCents', 'isResale', 'shouldProduce', 'orderTypeId']),
-  accounts_receivable: new Set(['status', 'clientId', 'dueDate', 'amountCents', 'categoryId', 'createdAt']),
-  accounts_payable: new Set(['status', 'supplierId', 'dueDate', 'amountCents', 'categoryId', 'createdAt']),
-  products: new Set(['departmentId', 'typeId', 'brandId', 'isActive', 'createdAt', 'name']),
+  orders: new Set([
+    'status',
+    'clientId',
+    'companyId',
+    'createdByUserId',
+    'assignedUserId',
+    'createdAt',
+    'totalCents',
+    'isResale',
+    'shouldProduce',
+    'orderTypeId',
+  ]),
+  accounts_receivable: new Set([
+    'status',
+    'clientId',
+    'dueDate',
+    'amountCents',
+    'categoryId',
+    'createdAt',
+  ]),
+  accounts_payable: new Set([
+    'status',
+    'supplierId',
+    'dueDate',
+    'amountCents',
+    'categoryId',
+    'createdAt',
+  ]),
+  products: new Set([
+    'departmentId',
+    'typeId',
+    'brandId',
+    'isActive',
+    'createdAt',
+    'name',
+  ]),
   production_orders: new Set(['status', 'orderId', 'createdAt']),
-  invoices: new Set(['status', 'orderId', 'issuedAt', 'totalCents', 'createdAt']),
-  clients: new Set(['classificationId', 'isActive', 'createdAt', 'city', 'state']),
+  invoices: new Set([
+    'status',
+    'orderId',
+    'issuedAt',
+    'totalCents',
+    'createdAt',
+  ]),
+  clients: new Set([
+    'classificationId',
+    'isActive',
+    'createdAt',
+    'city',
+    'state',
+  ]),
 };
 
 const ALLOWED_VALUE_FIELDS: Record<SupportedEntity, Set<string>> = {
-  orders: new Set(['totalCents', 'subtotalCents', 'freightCents', 'discountCents', 'paidAmountCents', 'id']),
+  orders: new Set([
+    'totalCents',
+    'subtotalCents',
+    'freightCents',
+    'discountCents',
+    'paidAmountCents',
+    'id',
+  ]),
   accounts_receivable: new Set(['amountCents', 'paidAmountCents', 'id']),
   accounts_payable: new Set(['amountCents', 'paidAmountCents', 'id']),
   products: new Set(['priceCents', 'costCents', 'stockQuantity', 'id']),
@@ -72,7 +131,14 @@ const ALLOWED_VALUE_FIELDS: Record<SupportedEntity, Set<string>> = {
 };
 
 const ALLOWED_GROUP_FIELDS: Record<SupportedEntity, Set<string>> = {
-  orders: new Set(['status', 'clientId', 'companyId', 'createdByUserId', 'orderTypeId', 'isResale']),
+  orders: new Set([
+    'status',
+    'clientId',
+    'companyId',
+    'createdByUserId',
+    'orderTypeId',
+    'isResale',
+  ]),
   accounts_receivable: new Set(['status', 'clientId', 'categoryId']),
   accounts_payable: new Set(['status', 'supplierId', 'categoryId']),
   products: new Set(['departmentId', 'typeId', 'brandId', 'isActive']),
@@ -99,7 +165,12 @@ export class DashboardCardQueryService {
     globalFilters: GlobalFilter[],
   ): Promise<CardDataResult> {
     const entity = this.normalizeEntity(dataSource.entity);
-    const where = this.buildWhere(entity, dataSource, cardFilters, globalFilters);
+    const where = this.buildWhere(
+      entity,
+      dataSource,
+      cardFilters,
+      globalFilters,
+    );
 
     switch (cardType) {
       case 'KPI_NUMBER':
@@ -115,7 +186,9 @@ export class DashboardCardQueryService {
       case 'AREA_CHART':
         return this.executeTimeSeries(entity, where, axisConfig);
       default:
-        throw new BadRequestException(`Tipo de card nao suportado: ${cardType}`);
+        throw new BadRequestException(
+          `Tipo de card nao suportado: ${cardType}`,
+        );
     }
   }
 
@@ -213,28 +286,41 @@ export class DashboardCardQueryService {
     const now = new Date();
     const ms = (days: number) => new Date(now.getTime() - days * 86_400_000);
     switch (range) {
-      case 'last_7d': return ms(7);
-      case 'last_30d': return ms(30);
-      case 'last_90d': return ms(90);
-      case 'last_365d': return ms(365);
-      case 'this_month': return new Date(now.getFullYear(), now.getMonth(), 1);
-      case 'this_year': return new Date(now.getFullYear(), 0, 1);
-      default: return ms(30);
+      case 'last_7d':
+        return ms(7);
+      case 'last_30d':
+        return ms(30);
+      case 'last_90d':
+        return ms(90);
+      case 'last_365d':
+        return ms(365);
+      case 'this_month':
+        return new Date(now.getFullYear(), now.getMonth(), 1);
+      case 'this_year':
+        return new Date(now.getFullYear(), 0, 1);
+      default:
+        return ms(30);
     }
   }
 
   private operatorToPrisma(operator: string, value: unknown): unknown {
     switch (operator) {
-      case 'EQUALS': return value;
-      case 'NOT_EQUALS': return { not: value };
-      case 'GREATER': return { gt: value };
-      case 'LESS': return { lt: value };
+      case 'EQUALS':
+        return value;
+      case 'NOT_EQUALS':
+        return { not: value };
+      case 'GREATER':
+        return { gt: value };
+      case 'LESS':
+        return { lt: value };
       case 'BETWEEN': {
         const arr = value as [unknown, unknown];
         return { gte: arr[0], lte: arr[1] };
       }
-      case 'IN': return { in: Array.isArray(value) ? value : [value] };
-      default: return value;
+      case 'IN':
+        return { in: Array.isArray(value) ? value : [value] };
+      default:
+        return value;
     }
   }
 
@@ -242,7 +328,6 @@ export class DashboardCardQueryService {
   // Prisma delegate resolver
   // ---------------------------------------------------------------------------
 
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any — dynamic delegate across 7 models
   private getDelegate(entity: SupportedEntity): any {
     const map = {
       orders: this.prisma.order,
@@ -269,18 +354,28 @@ export class DashboardCardQueryService {
     return map[entity];
   }
 
-  private resolveValueField(entity: SupportedEntity, axisConfig: AxisConfig | null): string {
+  private resolveValueField(
+    entity: SupportedEntity,
+    axisConfig: AxisConfig | null,
+  ): string {
     const field = axisConfig?.yField ?? this.getDefaultValueField(entity);
     if (!ALLOWED_VALUE_FIELDS[entity].has(field)) {
-      throw new BadRequestException(`Campo "${field}" nao permitido como valor para ${entity}`);
+      throw new BadRequestException(
+        `Campo "${field}" nao permitido como valor para ${entity}`,
+      );
     }
     return field;
   }
 
-  private resolveGroupField(entity: SupportedEntity, axisConfig: AxisConfig | null): string {
+  private resolveGroupField(
+    entity: SupportedEntity,
+    axisConfig: AxisConfig | null,
+  ): string {
     const field = axisConfig?.groupBy ?? axisConfig?.xField ?? 'status';
     if (!ALLOWED_GROUP_FIELDS[entity].has(field)) {
-      throw new BadRequestException(`Campo "${field}" nao permitido como agrupamento para ${entity}`);
+      throw new BadRequestException(
+        `Campo "${field}" nao permitido como agrupamento para ${entity}`,
+      );
     }
     return field;
   }
@@ -349,9 +444,7 @@ export class DashboardCardQueryService {
     const grouped = await delegate.groupBy({
       by: [groupField],
       where,
-      ...(isCountBased
-        ? { _count: true }
-        : { _sum: { [valueField]: true } }),
+      ...(isCountBased ? { _count: true } : { _sum: { [valueField]: true } }),
       orderBy: { [groupField]: 'asc' },
     });
 
@@ -377,7 +470,10 @@ export class DashboardCardQueryService {
     // For time-series we fetch records with select and aggregate in memory with a cap
     const records = await delegate.findMany({
       where,
-      select: { [dateField]: true, ...(isCountBased ? {} : { [valueField]: true }) },
+      select: {
+        [dateField]: true,
+        ...(isCountBased ? {} : { [valueField]: true }),
+      },
       orderBy: { [dateField]: 'asc' },
       take: 5000,
     });
@@ -387,7 +483,11 @@ export class DashboardCardQueryService {
       const d = rec[dateField];
       if (!d) continue;
       const key = new Date(d as string | number).toISOString().slice(0, 10);
-      const val = isCountBased ? 1 : (typeof rec[valueField] === 'number' ? (rec[valueField] as number) : 1);
+      const val = isCountBased
+        ? 1
+        : typeof rec[valueField] === 'number'
+          ? rec[valueField]
+          : 1;
       buckets.set(key, (buckets.get(key) ?? 0) + val);
     }
 

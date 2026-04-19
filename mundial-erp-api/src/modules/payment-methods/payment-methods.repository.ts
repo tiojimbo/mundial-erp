@@ -49,8 +49,13 @@ export class PaymentMethodsRepository {
       where: { proFinancasId, deletedAt: null },
     });
     if (existing) {
-      return this.prisma.paymentMethod.update({ where: { id: existing.id }, data });
+      return this.prisma.paymentMethod.update({
+        where: { id: existing.id },
+        data,
+      });
     }
-    return this.prisma.paymentMethod.create({ data: { ...data, proFinancasId } });
+    return this.prisma.paymentMethod.create({
+      data: { ...data, proFinancasId },
+    });
   }
 }

@@ -7,10 +7,19 @@ import {
   SalesReportFiltersDto,
 } from './dto';
 import { KpiSummaryResponseDto } from './dto/kpi-summary-response.dto';
-import { SalesChartResponseDto, SalesChartPointDto } from './dto/sales-chart-response.dto';
-import { CashflowResponseDto, CashflowPeriodDto } from './dto/cashflow-response.dto';
+import {
+  SalesChartResponseDto,
+  SalesChartPointDto,
+} from './dto/sales-chart-response.dto';
+import {
+  CashflowResponseDto,
+  CashflowPeriodDto,
+} from './dto/cashflow-response.dto';
 import { DreResponseDto, DreCategoryLineDto } from './dto/dre-response.dto';
-import { SalesReportResponseDto, SalesReportItemDto } from './dto/sales-report-response.dto';
+import {
+  SalesReportResponseDto,
+  SalesReportItemDto,
+} from './dto/sales-report-response.dto';
 
 const VALID_GROUP_BY = new Set(['day', 'week', 'month']);
 
@@ -24,15 +33,18 @@ export class ReportsService {
   // KPI Summary
   // ---------------------------------------------------------------------------
 
-  async getKpiSummary(filters: ReportFiltersDto): Promise<KpiSummaryResponseDto> {
+  async getKpiSummary(
+    workspaceId: string,
+    filters: ReportFiltersDto,
+  ): Promise<KpiSummaryResponseDto> {
     this.logger.log('Generating KPI summary report');
     const now = new Date();
 
     const [revenueAgg, expensesAgg, overdueAR, overdueAP] = await Promise.all([
-      this.repository.kpiRevenue(filters),
-      this.repository.kpiExpenses(filters),
-      this.repository.kpiOverdueReceivables(now),
-      this.repository.kpiOverduePayables(now),
+      this.repository.kpiRevenue(workspaceId, filters),
+      this.repository.kpiExpenses(workspaceId, filters),
+      this.repository.kpiOverdueReceivables(workspaceId, now),
+      this.repository.kpiOverduePayables(workspaceId, now),
     ]);
 
     const totalRevenueCents = revenueAgg._sum.totalCents ?? 0;
@@ -43,11 +55,16 @@ export class ReportsService {
     dto.totalRevenueCents = totalRevenueCents;
     dto.totalExpensesCents = totalExpensesCents;
     dto.grossMarginCents = totalRevenueCents - totalExpensesCents;
-    dto.grossMarginPercent = totalRevenueCents > 0
-      ? Math.round(((totalRevenueCents - totalExpensesCents) / totalRevenueCents) * 10000) / 100
-      : 0;
+    dto.grossMarginPercent =
+      totalRevenueCents > 0
+        ? Math.round(
+            ((totalRevenueCents - totalExpensesCents) / totalRevenueCents) *
+              10000,
+          ) / 100
+        : 0;
     dto.orderCount = orderCount;
-    dto.averageTicketCents = orderCount > 0 ? Math.round(totalRevenueCents / orderCount) : 0;
+    dto.averageTicketCents =
+      orderCount > 0 ? Math.round(totalRevenueCents / orderCount) : 0;
     dto.overdueReceivableCents = overdueAR._sum.amountCents ?? 0;
     dto.overduePayableCents = overdueAP._sum.amountCents ?? 0;
 
@@ -58,10 +75,19 @@ export class ReportsService {
   // Sales Chart
   // ---------------------------------------------------------------------------
 
-  async getSalesChart(filters: SalesChartFiltersDto): Promise<SalesChartResponseDto> {
-    this.logger.log(`Generating sales chart report (groupBy=${filters.groupBy})`);
+  async getSalesChart(
+    workspaceId: string,
+    filters: SalesChartFiltersDto,
+  ): Promise<SalesChartResponseDto> {
+    this.logger.log(
+      `Generating sales chart report (groupBy=${filters.groupBy})`,
+    );
     const truncExpr = this.resolveGroupBy(filters.groupBy);
-    const rows = await this.repository.salesByPeriod(filters, truncExpr);
+    const rows = await this.repository.salesByPeriod(
+      workspaceId,
+      filters,
+      truncExpr,
+    );
 
     const data: SalesChartPointDto[] = rows.map((r) => ({
       period: r.period,
@@ -79,20 +105,29 @@ export class ReportsService {
   // Cashflow
   // ---------------------------------------------------------------------------
 
-  async getCashflow(filters: CashflowFiltersDto): Promise<CashflowResponseDto> {
+  async getCashflow(
+    workspaceId: string,
+    filters: CashflowFiltersDto,
+  ): Promise<CashflowResponseDto> {
     this.logger.log(`Generating cashflow report (groupBy=${filters.groupBy})`);
     const truncExpr = this.resolveGroupBy(filters.groupBy);
 
     const [inflowRows, outflowRows] = await Promise.all([
-      this.repository.cashflowInflows(filters, truncExpr),
-      this.repository.cashflowOutflows(filters, truncExpr),
+      this.repository.cashflowInflows(workspaceId, filters, truncExpr),
+      this.repository.cashflowOutflows(workspaceId, filters, truncExpr),
     ]);
 
     // Merge both into a single timeline
-    const inflowMap = new Map(inflowRows.map((r) => [r.period, Number(r.totalCents)]));
-    const outflowMap = new Map(outflowRows.map((r) => [r.period, Number(r.totalCents)]));
+    const inflowMap = new Map(
+      inflowRows.map((r) => [r.period, Number(r.totalCents)]),
+    );
+    const outflowMap = new Map(
+      outflowRows.map((r) => [r.period, Number(r.totalCents)]),
+    );
 
-    const allPeriods = [...new Set([...inflowMap.keys(), ...outflowMap.keys()])].sort();
+    const allPeriods = [
+      ...new Set([...inflowMap.keys(), ...outflowMap.keys()]),
+    ].sort();
 
     let runningBalance = 0;
     let totalInflow = 0;
@@ -127,26 +162,35 @@ export class ReportsService {
   // DRE (Demonstrativo de Resultado do Exercicio)
   // ---------------------------------------------------------------------------
 
-  async getDre(filters: ReportFiltersDto): Promise<DreResponseDto> {
+  async getDre(
+    workspaceId: string,
+    filters: ReportFiltersDto,
+  ): Promise<DreResponseDto> {
     this.logger.log('Generating DRE report');
-    const [grossAgg, discountAgg, cancellationAgg, cogsAgg, opexTotal, opexBreakdown] =
-      await Promise.all([
-        this.repository.dreGrossRevenue(filters),
-        this.repository.dreDiscounts(filters),
-        this.repository.dreCancellations(filters),
-        this.repository.dreCogs(filters),
-        this.repository.dreOperatingExpensesTotal(filters),
-        this.repository.dreOperatingExpensesByCategory(filters),
-      ]);
+    const [
+      grossAgg,
+      discountAgg,
+      cancellationAgg,
+      cogsAgg,
+      opexTotal,
+      opexBreakdown,
+    ] = await Promise.all([
+      this.repository.dreGrossRevenue(workspaceId, filters),
+      this.repository.dreDiscounts(workspaceId, filters),
+      this.repository.dreCancellations(workspaceId, filters),
+      this.repository.dreCogs(workspaceId, filters),
+      this.repository.dreOperatingExpensesTotal(workspaceId, filters),
+      this.repository.dreOperatingExpensesByCategory(workspaceId, filters),
+    ]);
 
     // ST (Substituicao Tributaria) e repasse fiscal — nao entra na receita bruta
     const grossRevenueCents =
-      (grossAgg._sum.subtotalCents ?? 0) +
-      (grossAgg._sum.freightCents ?? 0);
+      (grossAgg._sum.subtotalCents ?? 0) + (grossAgg._sum.freightCents ?? 0);
 
     const discountsCents = discountAgg._sum.discountCents ?? 0;
     const cancellationsCents = cancellationAgg._sum.totalCents ?? 0;
-    const netRevenueCents = grossRevenueCents - discountsCents - cancellationsCents;
+    const netRevenueCents =
+      grossRevenueCents - discountsCents - cancellationsCents;
 
     const cogsCents = cogsAgg._sum.amountCents ?? 0;
     const grossProfitCents = netRevenueCents - cogsCents;
@@ -154,10 +198,12 @@ export class ReportsService {
     const operatingExpensesCents = opexTotal._sum.amountCents ?? 0;
     const operatingIncomeCents = grossProfitCents - operatingExpensesCents;
 
-    const operatingExpensesBreakdown: DreCategoryLineDto[] = opexBreakdown.map((row) => ({
-      name: row.name,
-      amountCents: Number(row.amountCents),
-    }));
+    const operatingExpensesBreakdown: DreCategoryLineDto[] = opexBreakdown.map(
+      (row) => ({
+        name: row.name,
+        amountCents: Number(row.amountCents),
+      }),
+    );
 
     return {
       grossRevenueCents,
@@ -177,16 +223,26 @@ export class ReportsService {
   // Sales Report (paginated)
   // ---------------------------------------------------------------------------
 
-  async getSalesReport(filters: SalesReportFiltersDto): Promise<SalesReportResponseDto> {
+  async getSalesReport(
+    workspaceId: string,
+    filters: SalesReportFiltersDto,
+  ): Promise<SalesReportResponseDto> {
     this.logger.log(`Generating sales report (page=${filters.page})`);
-    const { items, total, grandTotalCents } = await this.repository.salesReportItems(
-      filters,
-      filters.skip,
-      filters.limit,
-    );
+    const { items, total, grandTotalCents } =
+      await this.repository.salesReportItems(
+        workspaceId,
+        filters,
+        filters.skip,
+        filters.limit,
+      );
 
-    const mappedItems = items.map((o) => SalesReportItemDto.fromEntity(o as unknown as Record<string, unknown>));
-    const pageTotalCents = mappedItems.reduce((sum, i) => sum + i.totalCents, 0);
+    const mappedItems = items.map((o) =>
+      SalesReportItemDto.fromEntity(o as unknown as Record<string, unknown>),
+    );
+    const pageTotalCents = mappedItems.reduce(
+      (sum, i) => sum + i.totalCents,
+      0,
+    );
 
     return {
       items: mappedItems,
@@ -204,7 +260,9 @@ export class ReportsService {
 
   private resolveGroupBy(groupBy: string): string {
     if (!VALID_GROUP_BY.has(groupBy)) {
-      throw new BadRequestException(`groupBy invalido: "${groupBy}". Use: day, week, month`);
+      throw new BadRequestException(
+        `groupBy invalido: "${groupBy}". Use: day, week, month`,
+      );
     }
     return groupBy;
   }

@@ -49,8 +49,13 @@ export class DeliveryRoutesRepository {
       where: { proFinancasId, deletedAt: null },
     });
     if (existing) {
-      return this.prisma.deliveryRoute.update({ where: { id: existing.id }, data });
+      return this.prisma.deliveryRoute.update({
+        where: { id: existing.id },
+        data,
+      });
     }
-    return this.prisma.deliveryRoute.create({ data: { ...data, proFinancasId } });
+    return this.prisma.deliveryRoute.create({
+      data: { ...data, proFinancasId },
+    });
   }
 }

@@ -1,16 +1,4 @@
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
-import {
-  AccountPayable,
-  FinancialCategory,
-  PurchaseOrder,
-  Supplier,
-} from '@prisma/client';
-
-type AccountPayableWithRelations = AccountPayable & {
-  supplier?: Supplier | null;
-  purchaseOrder?: PurchaseOrder | null;
-  category?: FinancialCategory | null;
-};
 
 export class AccountPayableResponseDto {
   @ApiProperty()
@@ -55,7 +43,9 @@ export class AccountPayableResponseDto {
   @ApiProperty()
   updatedAt: Date;
 
-  static fromEntity(entity: Record<string, unknown>): AccountPayableResponseDto {
+  static fromEntity(
+    entity: Record<string, unknown>,
+  ): AccountPayableResponseDto {
     const dto = new AccountPayableResponseDto();
     dto.id = entity.id as string;
     dto.supplierId = (entity.supplierId as string) ?? null;
@@ -67,8 +57,10 @@ export class AccountPayableResponseDto {
     dto.paidDate = (entity.paidDate as Date) ?? null;
     dto.status = entity.status as string;
     dto.categoryId = (entity.categoryId as string) ?? null;
-    dto.supplierName = (entity.supplier as Record<string, unknown>)?.name as string ?? null;
-    dto.categoryName = (entity.category as Record<string, unknown>)?.name as string ?? null;
+    dto.supplierName =
+      ((entity.supplier as Record<string, unknown>)?.name as string) ?? null;
+    dto.categoryName =
+      ((entity.category as Record<string, unknown>)?.name as string) ?? null;
     dto.createdAt = entity.createdAt as Date;
     dto.updatedAt = entity.updatedAt as Date;
     return dto;

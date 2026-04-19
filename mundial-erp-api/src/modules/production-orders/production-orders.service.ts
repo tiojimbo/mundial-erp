@@ -29,14 +29,20 @@ export class ProductionOrdersService {
 
   // --- CRUD ---
 
-  async create(dto: CreateProductionOrderDto): Promise<ProductionOrderResponseDto> {
-    const order = await this.productionOrdersRepository.findOrderById(dto.orderId);
+  async create(
+    dto: CreateProductionOrderDto,
+  ): Promise<ProductionOrderResponseDto> {
+    const order = await this.productionOrdersRepository.findOrderById(
+      dto.orderId,
+    );
     if (!order) {
       throw new NotFoundException('Pedido não encontrado');
     }
 
     // Proteção contra código duplicado
-    const existing = await this.productionOrdersRepository.findByCode(`OP-${order.orderNumber}`);
+    const existing = await this.productionOrdersRepository.findByCode(
+      `OP-${order.orderNumber}`,
+    );
     if (existing) {
       throw new BadRequestException(
         `Ordem de produção OP-${order.orderNumber} já existe para este pedido`,
@@ -51,7 +57,9 @@ export class ProductionOrdersService {
       ...(dto.type !== undefined && { type: dto.type }),
       ...(dto.machineId !== undefined && { machineId: dto.machineId }),
       ...(dto.batch !== undefined && { batch: dto.batch }),
-      ...(dto.scheduledDate !== undefined && { scheduledDate: dto.scheduledDate }),
+      ...(dto.scheduledDate !== undefined && {
+        scheduledDate: dto.scheduledDate,
+      }),
       ...(dto.assignedUserId && {
         assignedUser: { connect: { id: dto.assignedUserId } },
       }),
@@ -117,7 +125,9 @@ export class ProductionOrdersService {
       ...(dto.type !== undefined && { type: dto.type }),
       ...(dto.machineId !== undefined && { machineId: dto.machineId }),
       ...(dto.batch !== undefined && { batch: dto.batch }),
-      ...(dto.scheduledDate !== undefined && { scheduledDate: dto.scheduledDate }),
+      ...(dto.scheduledDate !== undefined && {
+        scheduledDate: dto.scheduledDate,
+      }),
       ...(dto.assignedUserId !== undefined && {
         assignedUser: dto.assignedUserId
           ? { connect: { id: dto.assignedUserId } }
@@ -207,7 +217,8 @@ export class ProductionOrdersService {
     productionOrderId: string,
     dto: CreateConsumptionDto,
   ): Promise<ProductionConsumptionResponseDto> {
-    const order = await this.productionOrdersRepository.findById(productionOrderId);
+    const order =
+      await this.productionOrdersRepository.findById(productionOrderId);
     if (!order) {
       throw new NotFoundException('Ordem de produção não encontrada');
     }
@@ -216,11 +227,15 @@ export class ProductionOrdersService {
       productionOrder: { connect: { id: productionOrderId } },
       ingredient: { connect: { id: dto.ingredientId } },
       plannedQuantity: dto.plannedQuantity,
-      ...(dto.actualQuantity !== undefined && { actualQuantity: dto.actualQuantity }),
+      ...(dto.actualQuantity !== undefined && {
+        actualQuantity: dto.actualQuantity,
+      }),
       ...(dto.weightM3 !== undefined && { weightM3: dto.weightM3 }),
       ...(dto.weight !== undefined && { weight: dto.weight }),
       ...(dto.costCents !== undefined && { costCents: dto.costCents }),
-      ...(dto.totalCostCents !== undefined && { totalCostCents: dto.totalCostCents }),
+      ...(dto.totalCostCents !== undefined && {
+        totalCostCents: dto.totalCostCents,
+      }),
       ...(dto.unitMeasureId && {
         unitMeasure: { connect: { id: dto.unitMeasureId } },
       }),
@@ -234,27 +249,39 @@ export class ProductionOrdersService {
     consumptionId: string,
     dto: Partial<CreateConsumptionDto>,
   ): Promise<ProductionConsumptionResponseDto> {
-    const existing = await this.productionOrdersRepository.findConsumptionById(consumptionId);
+    const existing =
+      await this.productionOrdersRepository.findConsumptionById(consumptionId);
     if (!existing || existing.productionOrderId !== productionOrderId) {
-      throw new NotFoundException('Consumo não encontrado nesta ordem de produção');
+      throw new NotFoundException(
+        'Consumo não encontrado nesta ordem de produção',
+      );
     }
 
-    const updated = await this.productionOrdersRepository.updateConsumption(consumptionId, {
-      ...(dto.plannedQuantity !== undefined && { plannedQuantity: dto.plannedQuantity }),
-      ...(dto.actualQuantity !== undefined && { actualQuantity: dto.actualQuantity }),
-      ...(dto.weightM3 !== undefined && { weightM3: dto.weightM3 }),
-      ...(dto.weight !== undefined && { weight: dto.weight }),
-      ...(dto.costCents !== undefined && { costCents: dto.costCents }),
-      ...(dto.totalCostCents !== undefined && { totalCostCents: dto.totalCostCents }),
-      ...(dto.ingredientId && {
-        ingredient: { connect: { id: dto.ingredientId } },
-      }),
-      ...(dto.unitMeasureId !== undefined && {
-        unitMeasure: dto.unitMeasureId
-          ? { connect: { id: dto.unitMeasureId } }
-          : { disconnect: true },
-      }),
-    });
+    const updated = await this.productionOrdersRepository.updateConsumption(
+      consumptionId,
+      {
+        ...(dto.plannedQuantity !== undefined && {
+          plannedQuantity: dto.plannedQuantity,
+        }),
+        ...(dto.actualQuantity !== undefined && {
+          actualQuantity: dto.actualQuantity,
+        }),
+        ...(dto.weightM3 !== undefined && { weightM3: dto.weightM3 }),
+        ...(dto.weight !== undefined && { weight: dto.weight }),
+        ...(dto.costCents !== undefined && { costCents: dto.costCents }),
+        ...(dto.totalCostCents !== undefined && {
+          totalCostCents: dto.totalCostCents,
+        }),
+        ...(dto.ingredientId && {
+          ingredient: { connect: { id: dto.ingredientId } },
+        }),
+        ...(dto.unitMeasureId !== undefined && {
+          unitMeasure: dto.unitMeasureId
+            ? { connect: { id: dto.unitMeasureId } }
+            : { disconnect: true },
+        }),
+      },
+    );
 
     return ProductionConsumptionResponseDto.fromEntity(updated);
   }
@@ -263,9 +290,12 @@ export class ProductionOrdersService {
     productionOrderId: string,
     consumptionId: string,
   ): Promise<void> {
-    const existing = await this.productionOrdersRepository.findConsumptionById(consumptionId);
+    const existing =
+      await this.productionOrdersRepository.findConsumptionById(consumptionId);
     if (!existing || existing.productionOrderId !== productionOrderId) {
-      throw new NotFoundException('Consumo não encontrado nesta ordem de produção');
+      throw new NotFoundException(
+        'Consumo não encontrado nesta ordem de produção',
+      );
     }
     await this.productionOrdersRepository.removeConsumption(consumptionId);
   }
@@ -276,7 +306,8 @@ export class ProductionOrdersService {
     productionOrderId: string,
     dto: CreateOutputDto,
   ): Promise<ProductionOutputResponseDto> {
-    const order = await this.productionOrdersRepository.findById(productionOrderId);
+    const order =
+      await this.productionOrdersRepository.findById(productionOrderId);
     if (!order) {
       throw new NotFoundException('Ordem de produção não encontrada');
     }
@@ -298,22 +329,28 @@ export class ProductionOrdersService {
     outputId: string,
     dto: Partial<CreateOutputDto>,
   ): Promise<ProductionOutputResponseDto> {
-    const existing = await this.productionOrdersRepository.findOutputById(outputId);
+    const existing =
+      await this.productionOrdersRepository.findOutputById(outputId);
     if (!existing || existing.productionOrderId !== productionOrderId) {
-      throw new NotFoundException('Saída não encontrada nesta ordem de produção');
+      throw new NotFoundException(
+        'Saída não encontrada nesta ordem de produção',
+      );
     }
 
-    const updated = await this.productionOrdersRepository.updateOutput(outputId, {
-      ...(dto.quantity !== undefined && { quantity: dto.quantity }),
-      ...(dto.productId && {
-        product: { connect: { id: dto.productId } },
-      }),
-      ...(dto.unitMeasureId !== undefined && {
-        unitMeasure: dto.unitMeasureId
-          ? { connect: { id: dto.unitMeasureId } }
-          : { disconnect: true },
-      }),
-    });
+    const updated = await this.productionOrdersRepository.updateOutput(
+      outputId,
+      {
+        ...(dto.quantity !== undefined && { quantity: dto.quantity }),
+        ...(dto.productId && {
+          product: { connect: { id: dto.productId } },
+        }),
+        ...(dto.unitMeasureId !== undefined && {
+          unitMeasure: dto.unitMeasureId
+            ? { connect: { id: dto.unitMeasureId } }
+            : { disconnect: true },
+        }),
+      },
+    );
 
     return ProductionOutputResponseDto.fromEntity(updated);
   }
@@ -322,9 +359,12 @@ export class ProductionOrdersService {
     productionOrderId: string,
     outputId: string,
   ): Promise<void> {
-    const existing = await this.productionOrdersRepository.findOutputById(outputId);
+    const existing =
+      await this.productionOrdersRepository.findOutputById(outputId);
     if (!existing || existing.productionOrderId !== productionOrderId) {
-      throw new NotFoundException('Saída não encontrada nesta ordem de produção');
+      throw new NotFoundException(
+        'Saída não encontrada nesta ordem de produção',
+      );
     }
     await this.productionOrdersRepository.removeOutput(outputId);
   }
@@ -335,7 +375,8 @@ export class ProductionOrdersService {
     productionOrderId: string,
     dto: CreateLossDto,
   ): Promise<ProductionLossResponseDto> {
-    const order = await this.productionOrdersRepository.findById(productionOrderId);
+    const order =
+      await this.productionOrdersRepository.findById(productionOrderId);
     if (!order) {
       throw new NotFoundException('Ordem de produção não encontrada');
     }
@@ -357,7 +398,9 @@ export class ProductionOrdersService {
   ): Promise<ProductionLossResponseDto> {
     const existing = await this.productionOrdersRepository.findLossById(lossId);
     if (!existing || existing.productionOrderId !== productionOrderId) {
-      throw new NotFoundException('Perda não encontrada nesta ordem de produção');
+      throw new NotFoundException(
+        'Perda não encontrada nesta ordem de produção',
+      );
     }
 
     const updated = await this.productionOrdersRepository.updateLoss(lossId, {
@@ -369,13 +412,12 @@ export class ProductionOrdersService {
     return ProductionLossResponseDto.fromEntity(updated);
   }
 
-  async removeLoss(
-    productionOrderId: string,
-    lossId: string,
-  ): Promise<void> {
+  async removeLoss(productionOrderId: string, lossId: string): Promise<void> {
     const existing = await this.productionOrdersRepository.findLossById(lossId);
     if (!existing || existing.productionOrderId !== productionOrderId) {
-      throw new NotFoundException('Perda não encontrada nesta ordem de produção');
+      throw new NotFoundException(
+        'Perda não encontrada nesta ordem de produção',
+      );
     }
     await this.productionOrdersRepository.removeLoss(lossId);
   }

@@ -2,11 +2,13 @@ import { Prisma } from '@prisma/client';
 import { PfCompany } from '../pro-financas/dto/pro-financas.types';
 
 export class CompanyMapper {
-  static toCreateInput(pf: PfCompany): Omit<Prisma.CompanyCreateInput, 'proFinancasId'> {
+  static toCreateInput(
+    pf: PfCompany,
+  ): Omit<Prisma.CompanyCreateInput, 'proFinancasId'> {
     return {
       name: pf.razao_social,
       tradeName: pf.nome_fantasia || null,
-      cnpj: pf.cnpj?.replace(/[.\-\/]/g, '') || null,
+      cnpj: pf.cnpj?.replace(/[.\-/]/g, '') || null,
       ie: pf.ie || null,
       phone: pf.telefone || null,
       email: pf.email || null,

@@ -11,7 +11,10 @@ import {
 } from 'class-validator';
 
 export class CreateActivityDto {
-  @ApiProperty({ example: 'Emitir nota fiscal', description: 'Verbo infinitivo + objeto' })
+  @ApiProperty({
+    example: 'Emitir nota fiscal',
+    description: 'Verbo infinitivo + objeto',
+  })
   @IsString()
   @MinLength(3)
   name: string;

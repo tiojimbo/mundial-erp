@@ -6,26 +6,35 @@ import { PrismaService } from '../../database/prisma.service';
 export class CompaniesRepository {
   constructor(private readonly prisma: PrismaService) {}
 
-  async create(data: Prisma.CompanyCreateInput) {
-    return this.prisma.company.create({ data });
-  }
-
-  async findById(id: string) {
-    return this.prisma.company.findFirst({
-      where: { id, deletedAt: null },
+  async create(workspaceId: string, data: Prisma.CompanyCreateInput) {
+    return this.prisma.company.create({
+      data: {
+        ...data,
+        workspace: { connect: { id: workspaceId } },
+      },
     });
   }
 
-  async findByCnpj(cnpj: string) {
+  async findById(workspaceId: string, id: string) {
     return this.prisma.company.findFirst({
-      where: { cnpj, deletedAt: null },
+      where: { id, workspaceId, deletedAt: null },
     });
   }
 
-  async findMany(params: { skip?: number; take?: number; search?: string }) {
+  async findByCnpj(workspaceId: string, cnpj: string) {
+    return this.prisma.company.findFirst({
+      where: { cnpj, workspaceId, deletedAt: null },
+    });
+  }
+
+  async findMany(
+    workspaceId: string,
+    params: { skip?: number; take?: number; search?: string },
+  ) {
     const { skip = 0, take = 20, search } = params;
 
     const where: Prisma.CompanyWhereInput = {
+      workspaceId,
       deletedAt: null,
       ...(search && {
         OR: [
@@ -49,17 +58,24 @@ export class CompaniesRepository {
     return { items, total };
   }
 
-  async update(id: string, data: Prisma.CompanyUpdateInput) {
+  async update(
+    _workspaceId: string,
+    id: string,
+    data: Prisma.CompanyUpdateInput,
+  ) {
     return this.prisma.company.update({ where: { id }, data });
   }
 
-  async softDelete(id: string) {
+  async softDelete(_workspaceId: string, id: string) {
     return this.prisma.company.update({
       where: { id },
       data: { deletedAt: new Date() },
     });
   }
 
+  /**
+   * Sync-only: usado por SyncService. Não recebe workspaceId.
+   */
   async upsertByProFinancasId(
     proFinancasId: number,
     data: Omit<Prisma.CompanyCreateInput, 'proFinancasId'>,

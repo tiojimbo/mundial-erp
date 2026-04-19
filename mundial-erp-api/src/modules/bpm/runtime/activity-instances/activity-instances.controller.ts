@@ -85,10 +85,7 @@ export class ActivityInstancesController {
     status: 404,
     description: 'Instância de atividade não encontrada',
   })
-  assign(
-    @Param('id') id: string,
-    @Body() dto: AssignActivityInstanceDto,
-  ) {
+  assign(@Param('id') id: string, @Body() dto: AssignActivityInstanceDto) {
     return this.activityInstancesService.assign(id, dto.userId);
   }
 

@@ -6,32 +6,61 @@ import { PrismaService } from '../../database/prisma.service';
 export class InvoicesRepository {
   constructor(private readonly prisma: PrismaService) {}
 
-  async create(data: Prisma.InvoiceCreateInput) {
+  /**
+   * Invoice NÃO possui workspaceId direto. Escopo via order/company/client.
+   * Pelo menos UMA dessas relações deve estar presente para garantir o escopo.
+   */
+  private workspaceFilter(workspaceId: string): Prisma.InvoiceWhereInput {
+    return {
+      OR: [
+        { order: { workspaceId } },
+        { company: { workspaceId } },
+        { client: { workspaceId } },
+      ],
+    };
+  }
+
+  async create(_workspaceId: string, data: Prisma.InvoiceCreateInput) {
     return this.prisma.invoice.create({
       data,
       include: this.fullInclude(),
     });
   }
 
-  async findById(id: string) {
+  async findById(workspaceId: string, id: string) {
     return this.prisma.invoice.findFirst({
-      where: { id, deletedAt: null },
+      where: {
+        id,
+        deletedAt: null,
+        ...this.workspaceFilter(workspaceId),
+      },
       include: this.fullInclude(),
     });
   }
 
-  async findMany(params: {
-    skip?: number;
-    take?: number;
-    direction?: InvoiceDirection;
-    clientId?: string;
-    companyId?: string;
-    orderId?: string;
-  }) {
-    const { skip = 0, take = 20, direction, clientId, companyId, orderId } = params;
+  async findMany(
+    workspaceId: string,
+    params: {
+      skip?: number;
+      take?: number;
+      direction?: InvoiceDirection;
+      clientId?: string;
+      companyId?: string;
+      orderId?: string;
+    },
+  ) {
+    const {
+      skip = 0,
+      take = 20,
+      direction,
+      clientId,
+      companyId,
+      orderId,
+    } = params;
 
     const where: Prisma.InvoiceWhereInput = {
       deletedAt: null,
+      ...this.workspaceFilter(workspaceId),
       ...(direction && { direction }),
       ...(clientId && { clientId }),
       ...(companyId && { companyId }),
@@ -63,14 +92,22 @@ export class InvoicesRepository {
     return { items, total };
   }
 
-  async findByAccessKey(accessKey: string) {
+  async findByAccessKey(workspaceId: string, accessKey: string) {
     return this.prisma.invoice.findFirst({
-      where: { accessKey, deletedAt: null },
+      where: {
+        accessKey,
+        deletedAt: null,
+        ...this.workspaceFilter(workspaceId),
+      },
       include: this.fullInclude(),
     });
   }
 
-  async update(id: string, data: Prisma.InvoiceUpdateInput) {
+  async update(
+    _workspaceId: string,
+    id: string,
+    data: Prisma.InvoiceUpdateInput,
+  ) {
     return this.prisma.invoice.update({
       where: { id },
       data,
@@ -78,7 +115,7 @@ export class InvoicesRepository {
     });
   }
 
-  async softDelete(id: string) {
+  async softDelete(_workspaceId: string, id: string) {
     return this.prisma.invoice.update({
       where: { id },
       data: { deletedAt: new Date() },

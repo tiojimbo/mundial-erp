@@ -56,7 +56,9 @@ export class PurchaseQuotationResponseDto {
   @ApiProperty()
   updatedAt: Date;
 
-  static fromEntity(entity: PurchaseQuotationWithItems): PurchaseQuotationResponseDto {
+  static fromEntity(
+    entity: PurchaseQuotationWithItems,
+  ): PurchaseQuotationResponseDto {
     const dto = new PurchaseQuotationResponseDto();
     dto.id = entity.id;
     dto.supplierId = entity.supplierId;

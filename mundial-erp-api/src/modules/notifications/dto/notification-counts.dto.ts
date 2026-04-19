@@ -19,9 +19,15 @@ export class NotificationCountsDto {
 }
 
 export class NotificationsListResponseDto {
-  @ApiProperty({ type: [NotificationResponseDto], description: 'Lista de notificacoes' })
+  @ApiProperty({
+    type: [NotificationResponseDto],
+    description: 'Lista de notificacoes',
+  })
   items: NotificationResponseDto[];
 
-  @ApiProperty({ type: NotificationCountsDto, description: 'Contadores por visao' })
+  @ApiProperty({
+    type: NotificationCountsDto,
+    description: 'Contadores por visao',
+  })
   counts: NotificationCountsDto;
 }

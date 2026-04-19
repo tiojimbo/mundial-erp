@@ -132,31 +132,39 @@ export class OrderResponseDto {
   @ApiProperty()
   updatedAt: Date;
 
-  static fromEntity(entity: Record<string, unknown>, availableTransitions: OrderStatus[] = []): OrderResponseDto {
+  static fromEntity(
+    entity: Record<string, unknown>,
+    availableTransitions: OrderStatus[] = [],
+  ): OrderResponseDto {
     const dto = new OrderResponseDto();
     dto.id = entity.id as string;
     dto.orderNumber = entity.orderNumber as string;
     dto.title = (entity.title as string | null) ?? null;
     dto.status = entity.status as OrderStatus;
     dto.clientId = entity.clientId as string;
-    dto.clientName = (entity.client as Record<string, unknown>)?.name as string ?? null;
+    dto.clientName =
+      ((entity.client as Record<string, unknown>)?.name as string) ?? null;
     dto.companyId = (entity.companyId as string | null) ?? null;
     dto.paymentMethodId = (entity.paymentMethodId as string | null) ?? null;
     dto.carrierId = (entity.carrierId as string | null) ?? null;
     dto.priceTableId = (entity.priceTableId as string | null) ?? null;
     dto.createdByUserId = entity.createdByUserId as string;
-    dto.createdByName = (entity.createdBy as Record<string, unknown>)?.name as string ?? null;
+    dto.createdByName =
+      ((entity.createdBy as Record<string, unknown>)?.name as string) ?? null;
     dto.assignedUserId = (entity.assignedUserId as string | null) ?? null;
-    dto.assignedToName = (entity.assignedTo as Record<string, unknown>)?.name as string ?? null;
+    dto.assignedToName =
+      ((entity.assignedTo as Record<string, unknown>)?.name as string) ?? null;
     dto.issueDate = (entity.issueDate as Date | null) ?? null;
     dto.deliveryDeadline = (entity.deliveryDeadline as Date | null) ?? null;
     dto.proposalValidityDays = entity.proposalValidityDays as number;
     dto.deliveryAddress = (entity.deliveryAddress as string | null) ?? null;
-    dto.deliveryNeighborhood = (entity.deliveryNeighborhood as string | null) ?? null;
+    dto.deliveryNeighborhood =
+      (entity.deliveryNeighborhood as string | null) ?? null;
     dto.deliveryCity = (entity.deliveryCity as string | null) ?? null;
     dto.deliveryState = (entity.deliveryState as string | null) ?? null;
     dto.deliveryCep = (entity.deliveryCep as string | null) ?? null;
-    dto.deliveryReferencePoint = (entity.deliveryReferencePoint as string | null) ?? null;
+    dto.deliveryReferencePoint =
+      (entity.deliveryReferencePoint as string | null) ?? null;
     dto.contactName = (entity.contactName as string | null) ?? null;
     dto.subtotalCents = entity.subtotalCents as number;
     dto.freightCents = entity.freightCents as number;
@@ -173,7 +181,9 @@ export class OrderResponseDto {
     dto.orderFlowId = (entity.orderFlowId as string | null) ?? null;
     dto.orderModelId = (entity.orderModelId as string | null) ?? null;
     dto.proFinancasId = (entity.proFinancasId as number | null) ?? null;
-    dto.items = ((entity.items as Record<string, unknown>[]) ?? []).map(OrderItemResponseDto.fromEntity);
+    dto.items = ((entity.items as Record<string, unknown>[]) ?? []).map(
+      OrderItemResponseDto.fromEntity,
+    );
     dto.availableTransitions = availableTransitions;
     dto.createdAt = entity.createdAt as Date;
     dto.updatedAt = entity.updatedAt as Date;

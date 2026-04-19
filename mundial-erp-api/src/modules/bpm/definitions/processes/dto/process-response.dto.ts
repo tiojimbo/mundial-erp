@@ -54,7 +54,10 @@ export class ProcessResponseDto {
   updatedAt: Date;
 
   static fromEntity(
-    entity: Process & { sector?: { name: string } | null; _count?: { activities: number } },
+    entity: Process & {
+      sector?: { name: string } | null;
+      _count?: { activities: number };
+    },
   ): ProcessResponseDto {
     const dto = new ProcessResponseDto();
     dto.id = entity.id;

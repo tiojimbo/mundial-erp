@@ -22,7 +22,11 @@ export class AuditLogService {
     this.repository.create(data).catch((error: Error) => {
       this.logger.error(
         `Failed to write audit log: ${error.message}`,
-        JSON.stringify({ entity: data.entity, entityId: data.entityId, action: data.action }),
+        JSON.stringify({
+          entity: data.entity,
+          entityId: data.entityId,
+          action: data.action,
+        }),
       );
     });
   }

@@ -27,7 +27,9 @@ export class PurchaseOrderResponseDto {
   @ApiPropertyOptional()
   notes: string | null;
 
-  @ApiPropertyOptional({ description: 'ID do contas a pagar gerado automaticamente' })
+  @ApiPropertyOptional({
+    description: 'ID do contas a pagar gerado automaticamente',
+  })
   accountPayableId?: string | null;
 
   @ApiProperty()

@@ -38,7 +38,10 @@ export class CitiesRepository {
     return this.prisma.city.delete({ where: { id } });
   }
 
-  async upsertByProFinancasId(proFinancasId: number, data: Omit<Prisma.CityCreateInput, 'proFinancasId'>) {
+  async upsertByProFinancasId(
+    proFinancasId: number,
+    data: Omit<Prisma.CityCreateInput, 'proFinancasId'>,
+  ) {
     const existing = await this.prisma.city.findFirst({
       where: { proFinancasId },
     });
@@ -48,7 +51,10 @@ export class CitiesRepository {
     return this.prisma.city.create({ data: { ...data, proFinancasId } });
   }
 
-  async findNeighborhoodsByCity(cityId: string, params: { skip?: number; take?: number }) {
+  async findNeighborhoodsByCity(
+    cityId: string,
+    params: { skip?: number; take?: number },
+  ) {
     const { skip = 0, take = 20 } = params;
     const [items, total] = await Promise.all([
       this.prisma.neighborhood.findMany({

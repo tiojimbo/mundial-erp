@@ -1,6 +1,11 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { OnEvent } from '@nestjs/event-emitter';
-import { OrderStatus, PaymentStatus, ProductionOrderStatus, SeparationOrderStatus } from '@prisma/client';
+import {
+  OrderStatus,
+  PaymentStatus,
+  ProductionOrderStatus,
+  SeparationOrderStatus,
+} from '@prisma/client';
 import { PrismaService } from '../../../database/prisma.service';
 
 /**

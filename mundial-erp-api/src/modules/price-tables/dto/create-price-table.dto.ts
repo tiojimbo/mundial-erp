@@ -1,8 +1,18 @@
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
-import { IsBoolean, IsInt, IsNotEmpty, IsOptional, IsString, MaxLength } from 'class-validator';
+import {
+  IsBoolean,
+  IsInt,
+  IsNotEmpty,
+  IsOptional,
+  IsString,
+  MaxLength,
+} from 'class-validator';
 
 export class CreatePriceTableDto {
-  @ApiProperty({ example: 'Tabela Padrão', description: 'Nome da tabela de preço' })
+  @ApiProperty({
+    example: 'Tabela Padrão',
+    description: 'Nome da tabela de preço',
+  })
   @IsString()
   @IsNotEmpty()
   @MaxLength(255)
@@ -13,7 +23,10 @@ export class CreatePriceTableDto {
   @IsBoolean()
   isDefault?: boolean;
 
-  @ApiPropertyOptional({ example: 1, description: 'ID no Pro Finanças (legado)' })
+  @ApiPropertyOptional({
+    example: 1,
+    description: 'ID no Pro Finanças (legado)',
+  })
   @IsOptional()
   @IsInt()
   proFinancasId?: number;

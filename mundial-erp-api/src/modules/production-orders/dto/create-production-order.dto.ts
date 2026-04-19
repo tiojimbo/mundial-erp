@@ -38,7 +38,10 @@ export class CreateProductionOrderItemDto {
   @Min(0)
   size?: number;
 
-  @ApiPropertyOptional({ example: 'clxyzunit', description: 'ID da unidade de medida' })
+  @ApiPropertyOptional({
+    example: 'clxyzunit',
+    description: 'ID da unidade de medida',
+  })
   @IsOptional()
   @IsString()
   unitMeasureId?: string;
@@ -50,7 +53,10 @@ export class CreateProductionOrderDto {
   @IsNotEmpty()
   orderId: string;
 
-  @ApiPropertyOptional({ example: 'SIM', description: 'Tipo da ordem (SIM/NAO)' })
+  @ApiPropertyOptional({
+    example: 'SIM',
+    description: 'Tipo da ordem (SIM/NAO)',
+  })
   @IsOptional()
   @IsString()
   type?: string;
@@ -65,22 +71,34 @@ export class CreateProductionOrderDto {
   @IsString()
   batch?: string;
 
-  @ApiPropertyOptional({ example: '2026-04-15T00:00:00Z', description: 'Data programada' })
+  @ApiPropertyOptional({
+    example: '2026-04-15T00:00:00Z',
+    description: 'Data programada',
+  })
   @IsOptional()
   @Type(() => Date)
   scheduledDate?: Date;
 
-  @ApiPropertyOptional({ example: 'clxyzusr', description: 'ID do usuário responsável' })
+  @ApiPropertyOptional({
+    example: 'clxyzusr',
+    description: 'ID do usuário responsável',
+  })
   @IsOptional()
   @IsString()
   assignedUserId?: string;
 
-  @ApiPropertyOptional({ example: 'Observações da ordem', description: 'Notas/observações' })
+  @ApiPropertyOptional({
+    example: 'Observações da ordem',
+    description: 'Notas/observações',
+  })
   @IsOptional()
   @IsString()
   notes?: string;
 
-  @ApiPropertyOptional({ type: [CreateProductionOrderItemDto], description: 'Itens da ordem de produção' })
+  @ApiPropertyOptional({
+    type: [CreateProductionOrderItemDto],
+    description: 'Itens da ordem de produção',
+  })
   @IsOptional()
   @IsArray()
   @ValidateNested({ each: true })

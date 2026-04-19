@@ -3,8 +3,15 @@ import type { ApiResponse } from '@/types/api.types';
 import type {
   LoginPayload,
   LoginResponse,
+  LoginWorkspace,
   User,
 } from '@/types/auth.types';
+
+export type MeResponse = {
+  user: User;
+  workspace: LoginWorkspace | null;
+  availableWorkspaces: LoginWorkspace[];
+};
 
 export const authService = {
   async login(payload: LoginPayload): Promise<LoginResponse> {
@@ -15,11 +22,19 @@ export const authService = {
     return data.data;
   },
 
-  async me(): Promise<User> {
-    // API returns envelope: { data: User, meta: {...} }
-    // Axios unwraps response.data → we get the envelope → .data extracts User
-    const { data } = await api.get<ApiResponse<User>>('/auth/me');
-    return data.data;
+  async me(): Promise<MeResponse> {
+    // API returns envelope: { data: { user, workspace, availableWorkspaces }, meta: {...} }
+    // Backwards compat: backend legado pode ainda retornar apenas o User.
+    const { data } = await api.get<ApiResponse<MeResponse | User>>('/auth/me');
+    const payload = data.data;
+    if ('user' in payload) {
+      return payload;
+    }
+    return {
+      user: payload,
+      workspace: null,
+      availableWorkspaces: [],
+    };
   },
 
   async logout(): Promise<void> {

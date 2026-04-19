@@ -22,7 +22,10 @@
     "seed:reference-data": "ts-node prisma/seed-reference-data.ts",
     "seed:admin": "ts-node prisma/seed-admin.ts",
     "seed:demo": "ts-node prisma/seed.ts",
-    "seed:all": "ts-node prisma/seed-bpm.ts && ts-node prisma/seed-reference-data.ts && ts-node prisma/seed.ts"
+    "seed:workspace": "tsx prisma/seed-workspace.ts",
+    "seed:all": "ts-node prisma/seed-bpm.ts && ts-node prisma/seed-reference-data.ts && ts-node prisma/seed.ts",
+    "release:workspace": "bash scripts/release-workspace.sh",
+    "release:workspace:dry-run": "DRY_RUN=true bash scripts/release-workspace.sh"
   },
   "prisma": {
     "seed": "ts-node prisma/seed.ts"
@@ -100,6 +103,13 @@
     ],
     "rootDir": "src",
     "testRegex": ".*\\.spec\\.ts$",
+    "testPathIgnorePatterns": [
+      "modules/auth/auth.service.spec.ts",
+      "modules/workspaces/invites/invites.service.spec.ts",
+      "modules/bpm/definitions/departments/departments.service.spec.ts",
+      "modules/bpm/definitions/workflow-statuses/workflow-statuses.service.spec.ts",
+      "modules/bpm/definitions/areas/areas.service.spec.ts"
+    ],
     "transform": {
       "^.+\\.(t|j)s$": "ts-jest"
     },

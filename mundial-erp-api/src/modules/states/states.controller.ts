@@ -58,7 +58,10 @@ export class StatesController {
   @Get(':id/cities')
   @Roles(Role.ADMIN, Role.MANAGER, Role.OPERATOR, Role.VIEWER)
   @ApiOperation({ summary: 'Listar cidades do estado' })
-  findCitiesByState(@Param('id') id: string, @Query() pagination: PaginationDto) {
+  findCitiesByState(
+    @Param('id') id: string,
+    @Query() pagination: PaginationDto,
+  ) {
     return this.statesService.findCitiesByState(id, pagination);
   }
 

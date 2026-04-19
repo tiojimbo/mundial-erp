@@ -234,11 +234,13 @@ export class ProductResponseDto {
     dto.updatedAt = entity.updatedAt;
     // Relations
     if (entity.productType) dto.productType = entity.productType;
-    if (entity.departmentCategory) dto.departmentCategory = entity.departmentCategory;
+    if (entity.departmentCategory)
+      dto.departmentCategory = entity.departmentCategory;
     if (entity.brand) dto.brand = entity.brand;
     if (entity.unitMeasure) dto.unitMeasure = entity.unitMeasure;
     if (entity.boxUnitMeasure) dto.boxUnitMeasure = entity.boxUnitMeasure;
-    if (entity.defaultPriceTable) dto.defaultPriceTable = entity.defaultPriceTable;
+    if (entity.defaultPriceTable)
+      dto.defaultPriceTable = entity.defaultPriceTable;
     if (entity.formula) dto.formula = entity.formula;
     if (entity.images) dto.images = entity.images;
     return dto;

@@ -36,7 +36,10 @@ export class OrderModelsService {
     return OrderModelResponseDto.fromEntity(entity);
   }
 
-  async update(id: string, dto: UpdateOrderModelDto): Promise<OrderModelResponseDto> {
+  async update(
+    id: string,
+    dto: UpdateOrderModelDto,
+  ): Promise<OrderModelResponseDto> {
     const entity = await this.orderModelsRepository.findById(id);
     if (!entity) {
       throw new NotFoundException('Modelo de pedido não encontrado');

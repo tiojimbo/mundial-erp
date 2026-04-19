@@ -21,15 +21,21 @@ export class ClientsService {
     private readonly eventEmitter: EventEmitter2,
   ) {}
 
-  async create(dto: CreateClientDto): Promise<ClientResponseDto> {
+  async create(
+    workspaceId: string,
+    dto: CreateClientDto,
+  ): Promise<ClientResponseDto> {
     this.validateCpfCnpj(dto.cpfCnpj, dto.personType);
 
-    const existing = await this.clientsRepository.findByCpfCnpj(dto.cpfCnpj);
+    const existing = await this.clientsRepository.findByCpfCnpj(
+      workspaceId,
+      dto.cpfCnpj,
+    );
     if (existing) {
       throw new ConflictException('Cliente com este CPF/CNPJ já existe');
     }
 
-    const entity = await this.clientsRepository.create({
+    const entity = await this.clientsRepository.create(workspaceId, {
       personType: dto.personType,
       cpfCnpj: dto.cpfCnpj,
       name: dto.name,
@@ -64,28 +70,39 @@ export class ClientsService {
     return ClientResponseDto.fromEntity(entity);
   }
 
-  async findAll(pagination: PaginationDto, search?: string) {
-    const { items, total } = await this.clientsRepository.findMany({
-      skip: pagination.skip,
-      take: pagination.limit,
-      search,
-    });
+  async findAll(
+    workspaceId: string,
+    pagination: PaginationDto,
+    search?: string,
+  ) {
+    const { items, total } = await this.clientsRepository.findMany(
+      workspaceId,
+      {
+        skip: pagination.skip,
+        take: pagination.limit,
+        search,
+      },
+    );
     return {
       items: items.map(ClientResponseDto.fromEntity),
       total,
     };
   }
 
-  async findById(id: string): Promise<ClientResponseDto> {
-    const entity = await this.clientsRepository.findById(id);
+  async findById(workspaceId: string, id: string): Promise<ClientResponseDto> {
+    const entity = await this.clientsRepository.findById(workspaceId, id);
     if (!entity) {
       throw new NotFoundException('Cliente não encontrado');
     }
     return ClientResponseDto.fromEntity(entity);
   }
 
-  async update(id: string, dto: UpdateClientDto): Promise<ClientResponseDto> {
-    const entity = await this.clientsRepository.findById(id);
+  async update(
+    workspaceId: string,
+    id: string,
+    dto: UpdateClientDto,
+  ): Promise<ClientResponseDto> {
+    const entity = await this.clientsRepository.findById(workspaceId, id);
     if (!entity) {
       throw new NotFoundException('Cliente não encontrado');
     }
@@ -94,7 +111,10 @@ export class ClientsService {
       const personType = dto.personType ?? entity.personType;
       this.validateCpfCnpj(dto.cpfCnpj, personType);
 
-      const existing = await this.clientsRepository.findByCpfCnpj(dto.cpfCnpj);
+      const existing = await this.clientsRepository.findByCpfCnpj(
+        workspaceId,
+        dto.cpfCnpj,
+      );
       if (existing && existing.id !== id) {
         throw new ConflictException('Cliente com este CPF/CNPJ já existe');
       }
@@ -110,13 +130,16 @@ export class ClientsService {
     if (dto.email !== undefined) updateData.email = dto.email;
     if (dto.phone !== undefined) updateData.phone = dto.phone;
     if (dto.address !== undefined) updateData.address = dto.address;
-    if (dto.addressNumber !== undefined) updateData.addressNumber = dto.addressNumber;
-    if (dto.neighborhood !== undefined) updateData.neighborhood = dto.neighborhood;
+    if (dto.addressNumber !== undefined)
+      updateData.addressNumber = dto.addressNumber;
+    if (dto.neighborhood !== undefined)
+      updateData.neighborhood = dto.neighborhood;
     if (dto.complement !== undefined) updateData.complement = dto.complement;
     if (dto.city !== undefined) updateData.city = dto.city;
     if (dto.state !== undefined) updateData.state = dto.state;
     if (dto.zipCode !== undefined) updateData.zipCode = dto.zipCode;
-    if (dto.proFinancasId !== undefined) updateData.proFinancasId = dto.proFinancasId;
+    if (dto.proFinancasId !== undefined)
+      updateData.proFinancasId = dto.proFinancasId;
 
     if (dto.classificationId !== undefined) {
       updateData.classification = dto.classificationId
@@ -139,41 +162,52 @@ export class ClientsService {
         : { disconnect: true };
     }
 
-    const updated = await this.clientsRepository.update(id, updateData);
+    const updated = await this.clientsRepository.update(
+      workspaceId,
+      id,
+      updateData,
+    );
     this.eventEmitter.emit('client.updated', { clientId: id });
     return ClientResponseDto.fromEntity(updated);
   }
 
-  async remove(id: string): Promise<void> {
-    const entity = await this.clientsRepository.findById(id);
+  async remove(workspaceId: string, id: string): Promise<void> {
+    const entity = await this.clientsRepository.findById(workspaceId, id);
     if (!entity) {
       throw new NotFoundException('Cliente não encontrado');
     }
-    await this.clientsRepository.softDelete(id);
+    await this.clientsRepository.softDelete(workspaceId, id);
     this.eventEmitter.emit('client.deleted', { clientId: id });
   }
 
-  async findOrders(id: string, pagination: PaginationDto) {
-    const clientExists = await this.clientsRepository.exists(id);
+  async findOrders(workspaceId: string, id: string, pagination: PaginationDto) {
+    const clientExists = await this.clientsRepository.exists(workspaceId, id);
     if (!clientExists) {
       throw new NotFoundException('Cliente não encontrado');
     }
-    const { items, total } = await this.clientsRepository.findOrdersByClientId(id, {
-      skip: pagination.skip,
-      take: pagination.limit,
-    });
+    const { items, total } = await this.clientsRepository.findOrdersByClientId(
+      workspaceId,
+      id,
+      {
+        skip: pagination.skip,
+        take: pagination.limit,
+      },
+    );
     return {
       items: items.map(ClientOrderResponseDto.fromEntity),
       total,
     };
   }
 
-  async getFinancials(id: string): Promise<ClientFinancialResponseDto> {
-    const clientExists = await this.clientsRepository.exists(id);
+  async getFinancials(
+    workspaceId: string,
+    id: string,
+  ): Promise<ClientFinancialResponseDto> {
+    const clientExists = await this.clientsRepository.exists(workspaceId, id);
     if (!clientExists) {
       throw new NotFoundException('Cliente não encontrado');
     }
-    return this.clientsRepository.getFinancialSummary(id);
+    return this.clientsRepository.getFinancialSummary(workspaceId, id);
   }
 
   private validateCpfCnpj(cpfCnpj: string, personType: PersonType): void {

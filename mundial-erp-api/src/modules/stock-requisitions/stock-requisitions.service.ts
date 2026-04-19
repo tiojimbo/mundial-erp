@@ -4,7 +4,11 @@ import {
   Logger,
   NotFoundException,
 } from '@nestjs/common';
-import { StockRequisitionStatus, StockRequisitionType, Prisma } from '@prisma/client';
+import {
+  StockRequisitionStatus,
+  StockRequisitionType,
+  Prisma,
+} from '@prisma/client';
 import { StockRequisitionsRepository } from './stock-requisitions.repository';
 import { CreateStockRequisitionDto } from './dto/create-stock-requisition.dto';
 import { ProcessItemDto } from './dto/process-item.dto';
@@ -15,17 +19,20 @@ import { PaginationDto } from '../../common/dtos/pagination.dto';
 export class StockRequisitionsService {
   private readonly logger = new Logger(StockRequisitionsService.name);
 
-  constructor(
-    private readonly repository: StockRequisitionsRepository,
-  ) {}
+  constructor(private readonly repository: StockRequisitionsRepository) {}
 
   // ---------------------------------------------------------------------------
   // CREATE
   // ---------------------------------------------------------------------------
 
-  async create(dto: CreateStockRequisitionDto, userId: string): Promise<StockRequisitionResponseDto> {
+  async create(
+    dto: CreateStockRequisitionDto,
+    userId: string,
+  ): Promise<StockRequisitionResponseDto> {
     if (dto.type === StockRequisitionType.VENDA && !dto.orderId) {
-      throw new BadRequestException('orderId e obrigatorio para requisicoes do tipo VENDA');
+      throw new BadRequestException(
+        'orderId e obrigatorio para requisicoes do tipo VENDA',
+      );
     }
 
     if (dto.orderId) {
@@ -50,7 +57,9 @@ export class StockRequisitionsService {
     const foundIds = new Set(foundProducts.map((p) => p.id));
     const missingIds = productIds.filter((id) => !foundIds.has(id));
     if (missingIds.length > 0) {
-      throw new BadRequestException(`Produtos nao encontrados: ${missingIds.join(', ')}`);
+      throw new BadRequestException(
+        `Produtos nao encontrados: ${missingIds.join(', ')}`,
+      );
     }
 
     const code = await this.repository.generateCode();
@@ -131,7 +140,10 @@ export class StockRequisitionsService {
   // APPROVE + PROCESS (scan único do código de barras da requisição)
   // ---------------------------------------------------------------------------
 
-  async approve(id: string, userId: string): Promise<StockRequisitionResponseDto> {
+  async approve(
+    id: string,
+    userId: string,
+  ): Promise<StockRequisitionResponseDto> {
     const entity = await this.repository.findById(id);
     if (!entity) {
       throw new NotFoundException('Requisicao nao encontrada');
@@ -145,28 +157,45 @@ export class StockRequisitionsService {
 
     const activeItems = entity.items
       .filter((i: { deletedAt: Date | null }) => !i.deletedAt)
-      .map((i: { id: string; productId: string; requestedQuantity: number; unitType: string; unitsPerBox: number | null; quantityInBaseUnit: number }) => ({
-        id: i.id,
-        productId: i.productId,
-        requestedQuantity: i.requestedQuantity,
-        unitType: i.unitType,
-        unitsPerBox: i.unitsPerBox,
-        quantityInBaseUnit: i.quantityInBaseUnit,
-      }));
+      .map(
+        (i: {
+          id: string;
+          productId: string;
+          requestedQuantity: number;
+          unitType: string;
+          unitsPerBox: number | null;
+          quantityInBaseUnit: number;
+        }) => ({
+          id: i.id,
+          productId: i.productId,
+          requestedQuantity: i.requestedQuantity,
+          unitType: i.unitType,
+          unitsPerBox: i.unitsPerBox,
+          quantityInBaseUnit: i.quantityInBaseUnit,
+        }),
+      );
 
     if (activeItems.length === 0) {
-      throw new BadRequestException('Requisicao nao possui itens para processar');
+      throw new BadRequestException(
+        'Requisicao nao possui itens para processar',
+      );
     }
 
     try {
-      const updated = await this.repository.approveAndDeductStock(id, userId, activeItems);
+      const updated = await this.repository.approveAndDeductStock(
+        id,
+        userId,
+        activeItems,
+      );
       this.logger.log(
         `Requisicao ${entity.code} aprovada e processada por ${userId} — ${activeItems.length} itens, estoque deduzido`,
       );
       return StockRequisitionResponseDto.fromEntity(updated);
     } catch (err) {
       if (err instanceof Error && err.message === 'NOT_PENDING') {
-        throw new BadRequestException('Requisicao ja foi processada ou cancelada');
+        throw new BadRequestException(
+          'Requisicao ja foi processada ou cancelada',
+        );
       }
       throw err;
     }
@@ -203,7 +232,10 @@ export class StockRequisitionsService {
 
     // Calculate base unit deduction
     const product = item.product;
-    const unitsPerBox = dto.unitType === 'CX' ? (product?.unitsPerBox ?? item.unitsPerBox ?? 1) : 1;
+    const unitsPerBox =
+      dto.unitType === 'CX'
+        ? (product?.unitsPerBox ?? item.unitsPerBox ?? 1)
+        : 1;
     const quantityToDeduct = dto.actualQuantity * unitsPerBox;
 
     // Atomic transaction: re-check + update item + deduct stock (prevents race condition)
@@ -248,15 +280,24 @@ export class StockRequisitionsService {
     }
 
     if (entity.status === StockRequisitionStatus.CANCELLED) {
-      throw new BadRequestException('Requisicao cancelada nao pode ser finalizada');
+      throw new BadRequestException(
+        'Requisicao cancelada nao pode ser finalizada',
+      );
     }
 
-    const activeItems = entity.items.filter((i: { deletedAt: Date | null }) => !i.deletedAt);
-    const pendingItems = activeItems.filter((i: { actualQuantity: number | null }) => i.actualQuantity == null);
+    const activeItems = entity.items.filter(
+      (i: { deletedAt: Date | null }) => !i.deletedAt,
+    );
+    const pendingItems = activeItems.filter(
+      (i: { actualQuantity: number | null }) => i.actualQuantity == null,
+    );
 
     if (pendingItems.length > 0) {
       const pendingNames = pendingItems
-        .map((i: { product?: { name: string }; productId: string }) => i.product?.name ?? i.productId)
+        .map(
+          (i: { product?: { name: string }; productId: string }) =>
+            i.product?.name ?? i.productId,
+        )
         .join(', ');
       throw new BadRequestException(
         `Itens ainda nao processados: ${pendingNames}`,
@@ -283,7 +324,9 @@ export class StockRequisitionsService {
     }
 
     if (entity.status === StockRequisitionStatus.PROCESSED) {
-      throw new BadRequestException('Requisicao ja processada nao pode ser cancelada');
+      throw new BadRequestException(
+        'Requisicao ja processada nao pode ser cancelada',
+      );
     }
 
     await this.repository.update(id, {
@@ -304,7 +347,9 @@ export class StockRequisitionsService {
     }
 
     if (entity.status === StockRequisitionStatus.PROCESSED) {
-      throw new BadRequestException('Requisicao ja processada nao pode ser excluida');
+      throw new BadRequestException(
+        'Requisicao ja processada nao pode ser excluida',
+      );
     }
 
     await this.repository.hardDelete(id);

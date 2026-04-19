@@ -21,9 +21,7 @@ import type {
 } from '../types/chat-event-payloads';
 
 @WebSocketGateway({ namespace: '/chat' })
-export class ChatGateway
-  implements OnGatewayConnection, OnGatewayDisconnect
-{
+export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
   @WebSocketServer() server: Server;
   private readonly logger = new Logger(ChatGateway.name);
   private onlineUsers = new Map<string, Set<string>>();
@@ -34,7 +32,7 @@ export class ChatGateway
   ) {}
 
   async handleConnection(client: Socket) {
-    const user = await this.wsAuthGuard.authenticate(client);
+    const user = this.wsAuthGuard.authenticate(client);
     if (!user) {
       client.disconnect();
       return;
@@ -42,10 +40,11 @@ export class ChatGateway
 
     client.data.user = user;
 
-    const channelIds =
-      await this.channelsService.findChannelIdsForUser(user.sub);
+    const channelIds = await this.channelsService.findChannelIdsForUser(
+      user.sub,
+    );
     for (const id of channelIds) {
-      client.join(`channel:${id}`);
+      void client.join(`channel:${id}`);
     }
 
     if (!this.onlineUsers.has(user.sub)) {
@@ -57,7 +56,7 @@ export class ChatGateway
     this.logger.log(`WS connected: ${user.email} (${client.id})`);
   }
 
-  async handleDisconnect(client: Socket) {
+  handleDisconnect(client: Socket) {
     const user = client.data.user;
     if (!user) return;
 

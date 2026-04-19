@@ -5,7 +5,9 @@ export class PurchaseHistoryResponseDto {
   @ApiProperty()
   id: string;
 
-  @ApiPropertyOptional({ description: 'ID da cotação que originou este pedido' })
+  @ApiPropertyOptional({
+    description: 'ID da cotação que originou este pedido',
+  })
   quotationId: string | null;
 
   @ApiProperty()

@@ -64,7 +64,8 @@ export class StatesService {
     const updateData: Record<string, any> = {};
     if (dto.name !== undefined) updateData.name = dto.name;
     if (dto.uf !== undefined) updateData.uf = dto.uf;
-    if (dto.proFinancasId !== undefined) updateData.proFinancasId = dto.proFinancasId;
+    if (dto.proFinancasId !== undefined)
+      updateData.proFinancasId = dto.proFinancasId;
 
     const updated = await this.statesRepository.update(id, updateData);
     return StateResponseDto.fromEntity(updated);

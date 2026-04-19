@@ -25,6 +25,7 @@ import { ProductResponseDto } from './dto/product-response.dto';
 import { ListProductsQueryDto } from './dto/list-products-query.dto';
 import { ProductionFormulaResponseDto } from '../production-formulas/dto/production-formula-response.dto';
 import { Roles } from '../auth/decorators';
+import { WorkspaceId } from '../workspaces/decorators/workspace-id.decorator';
 
 @ApiTags('Products')
 @ApiBearerAuth()
@@ -44,15 +45,18 @@ export class ProductsController {
       'O produto inicia com status DRAFT.',
   })
   @ApiResponse({ status: 201, type: ProductResponseDto })
-  create(@Body() dto: CreateProductDto) {
-    return this.productsService.create(dto);
+  create(@WorkspaceId() workspaceId: string, @Body() dto: CreateProductDto) {
+    return this.productsService.create(workspaceId, dto);
   }
 
   @Get()
   @Roles(Role.ADMIN, Role.MANAGER, Role.OPERATOR)
   @ApiOperation({ summary: 'Listar produtos com filtros' })
-  findAll(@Query() query: ListProductsQueryDto) {
-    return this.productsService.findAll(query, {
+  findAll(
+    @WorkspaceId() workspaceId: string,
+    @Query() query: ListProductsQueryDto,
+  ) {
+    return this.productsService.findAll(workspaceId, query, {
       search: query.search,
       status: query.status,
       classification: query.classification,
@@ -70,8 +74,8 @@ export class ProductsController {
   })
   @ApiResponse({ status: 200, type: ProductResponseDto })
   @ApiResponse({ status: 404, description: 'Produto não encontrado' })
-  findByBarcode(@Param('ean') ean: string) {
-    return this.productsService.findByBarcode(ean);
+  findByBarcode(@WorkspaceId() workspaceId: string, @Param('ean') ean: string) {
+    return this.productsService.findByBarcode(workspaceId, ean);
   }
 
   @Get(':id/formula')
@@ -92,8 +96,8 @@ export class ProductsController {
   })
   @ApiResponse({ status: 200, type: ProductResponseDto })
   @ApiResponse({ status: 404, description: 'Produto não encontrado' })
-  findOne(@Param('id') id: string) {
-    return this.productsService.findById(id);
+  findOne(@WorkspaceId() workspaceId: string, @Param('id') id: string) {
+    return this.productsService.findById(workspaceId, id);
   }
 
   @Patch(':id')
@@ -105,8 +109,12 @@ export class ProductsController {
       'Quando todas as 4 etapas estiverem completas, o status muda de DRAFT para ACTIVE.',
   })
   @ApiResponse({ status: 200, type: ProductResponseDto })
-  update(@Param('id') id: string, @Body() dto: UpdateProductDto) {
-    return this.productsService.update(id, dto);
+  update(
+    @WorkspaceId() workspaceId: string,
+    @Param('id') id: string,
+    @Body() dto: UpdateProductDto,
+  ) {
+    return this.productsService.update(workspaceId, id, dto);
   }
 
   @Patch(':id/activate')
@@ -116,16 +124,16 @@ export class ProductsController {
     description: 'Requer todas as 4 etapas completas.',
   })
   @ApiResponse({ status: 200, type: ProductResponseDto })
-  activate(@Param('id') id: string) {
-    return this.productsService.activate(id);
+  activate(@WorkspaceId() workspaceId: string, @Param('id') id: string) {
+    return this.productsService.activate(workspaceId, id);
   }
 
   @Patch(':id/deactivate')
   @Roles(Role.ADMIN, Role.MANAGER)
   @ApiOperation({ summary: 'Desativar produto' })
   @ApiResponse({ status: 200, type: ProductResponseDto })
-  deactivate(@Param('id') id: string) {
-    return this.productsService.deactivate(id);
+  deactivate(@WorkspaceId() workspaceId: string, @Param('id') id: string) {
+    return this.productsService.deactivate(workspaceId, id);
   }
 
   @Delete(':id')
@@ -133,7 +141,7 @@ export class ProductsController {
   @HttpCode(HttpStatus.NO_CONTENT)
   @ApiOperation({ summary: 'Remover produto (soft delete)' })
   @ApiResponse({ status: 204 })
-  remove(@Param('id') id: string) {
-    return this.productsService.remove(id);
+  remove(@WorkspaceId() workspaceId: string, @Param('id') id: string) {
+    return this.productsService.remove(workspaceId, id);
   }
 }

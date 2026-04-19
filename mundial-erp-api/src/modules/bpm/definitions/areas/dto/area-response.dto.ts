@@ -44,7 +44,9 @@ export class AreaResponseDto {
   @ApiProperty()
   updatedAt: Date;
 
-  static fromEntity(entity: Area & { department?: { name: string } }): AreaResponseDto {
+  static fromEntity(
+    entity: Area & { department?: { name: string } },
+  ): AreaResponseDto {
     const dto = new AreaResponseDto();
     dto.id = entity.id;
     dto.name = entity.name;

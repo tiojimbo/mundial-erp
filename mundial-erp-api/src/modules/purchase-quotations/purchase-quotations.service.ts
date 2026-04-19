@@ -38,16 +38,19 @@ export class PurchaseQuotationsService {
     dto: CreatePurchaseQuotationDto,
   ): Promise<PurchaseQuotationResponseDto> {
     // Validate supplier exists
-    const supplier = await this.quotationsRepository.findSupplierById(dto.supplierId);
+    const supplier = await this.quotationsRepository.findSupplierById(
+      dto.supplierId,
+    );
     if (!supplier) {
       throw new NotFoundException('Fornecedor não encontrado');
     }
 
     // Auto-calculate totalCents from items if provided
-    const totalCents = dto.items?.reduce(
-      (sum, item) => sum + Math.round(item.quantity * item.unitPriceCents),
-      0,
-    ) ?? 0;
+    const totalCents =
+      dto.items?.reduce(
+        (sum, item) => sum + Math.round(item.quantity * item.unitPriceCents),
+        0,
+      ) ?? 0;
 
     const entity = await this.quotationsRepository.create(
       {

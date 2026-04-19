@@ -11,11 +11,15 @@ export class ProductDepartmentsRepository {
   }
 
   async findById(id: string) {
-    return this.prisma.productDepartment.findFirst({ where: { id, deletedAt: null } });
+    return this.prisma.productDepartment.findFirst({
+      where: { id, deletedAt: null },
+    });
   }
 
   async findByName(name: string) {
-    return this.prisma.productDepartment.findFirst({ where: { name, deletedAt: null } });
+    return this.prisma.productDepartment.findFirst({
+      where: { name, deletedAt: null },
+    });
   }
 
   async findMany(params: { skip?: number; take?: number; search?: string }) {
@@ -27,7 +31,12 @@ export class ProductDepartmentsRepository {
       }),
     };
     const [items, total] = await Promise.all([
-      this.prisma.productDepartment.findMany({ where, skip, take, orderBy: { name: 'asc' } }),
+      this.prisma.productDepartment.findMany({
+        where,
+        skip,
+        take,
+        orderBy: { name: 'asc' },
+      }),
       this.prisma.productDepartment.count({ where }),
     ]);
     return { items, total };
@@ -38,6 +47,9 @@ export class ProductDepartmentsRepository {
   }
 
   async softDelete(id: string) {
-    return this.prisma.productDepartment.update({ where: { id }, data: { deletedAt: new Date() } });
+    return this.prisma.productDepartment.update({
+      where: { id },
+      data: { deletedAt: new Date() },
+    });
   }
 }

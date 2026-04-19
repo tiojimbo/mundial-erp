@@ -1,6 +1,13 @@
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 import { OrderStatus } from '@prisma/client';
-import { IsBoolean, IsEnum, IsObject, IsOptional, IsString, MinLength } from 'class-validator';
+import {
+  IsBoolean,
+  IsEnum,
+  IsObject,
+  IsOptional,
+  IsString,
+  MinLength,
+} from 'class-validator';
 
 export class CreateHandoffDto {
   @ApiProperty({ description: 'ID do processo de origem' })

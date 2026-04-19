@@ -9,9 +9,7 @@ import { ELASTICSEARCH_CLIENT } from './search.constants';
 
 @Injectable()
 export class SearchHealthIndicator extends HealthIndicator {
-  constructor(
-    @Inject(ELASTICSEARCH_CLIENT) private readonly esClient: Client,
-  ) {
+  constructor(@Inject(ELASTICSEARCH_CLIENT) private readonly esClient: Client) {
     super();
   }
 

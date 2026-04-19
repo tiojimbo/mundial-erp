@@ -1,9 +1,6 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { OnEvent } from '@nestjs/event-emitter';
-import {
-  NotificationType,
-  NotificationCategory,
-} from '@prisma/client';
+import { NotificationType, NotificationCategory } from '@prisma/client';
 import { NotificationsService } from './notifications.service';
 
 @Injectable()

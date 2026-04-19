@@ -1,13 +1,25 @@
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
-import { IsNotEmpty, IsNumber, IsOptional, IsString, Min } from 'class-validator';
+import {
+  IsNotEmpty,
+  IsNumber,
+  IsOptional,
+  IsString,
+  Min,
+} from 'class-validator';
 
 export class CreateConsumptionDto {
-  @ApiProperty({ example: 'clxyz123', description: 'ID do ingrediente (produto matéria-prima)' })
+  @ApiProperty({
+    example: 'clxyz123',
+    description: 'ID do ingrediente (produto matéria-prima)',
+  })
   @IsString()
   @IsNotEmpty()
   ingredientId: string;
 
-  @ApiPropertyOptional({ example: 'clxyzunit', description: 'ID da unidade de medida' })
+  @ApiPropertyOptional({
+    example: 'clxyzunit',
+    description: 'ID da unidade de medida',
+  })
   @IsOptional()
   @IsString()
   unitMeasureId?: string;
@@ -17,7 +29,10 @@ export class CreateConsumptionDto {
   @Min(0)
   plannedQuantity: number;
 
-  @ApiPropertyOptional({ example: 48.5, description: 'Quantidade real consumida' })
+  @ApiPropertyOptional({
+    example: 48.5,
+    description: 'Quantidade real consumida',
+  })
   @IsOptional()
   @IsNumber()
   @Min(0)
@@ -33,12 +48,18 @@ export class CreateConsumptionDto {
   @IsNumber()
   weight?: number;
 
-  @ApiPropertyOptional({ example: 1500, description: 'Custo unitário em centavos' })
+  @ApiPropertyOptional({
+    example: 1500,
+    description: 'Custo unitário em centavos',
+  })
   @IsOptional()
   @IsNumber()
   costCents?: number;
 
-  @ApiPropertyOptional({ example: 75000, description: 'Custo total em centavos' })
+  @ApiPropertyOptional({
+    example: 75000,
+    description: 'Custo total em centavos',
+  })
   @IsOptional()
   @IsNumber()
   totalCostCents?: number;

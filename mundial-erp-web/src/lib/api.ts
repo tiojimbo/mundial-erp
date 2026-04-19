@@ -1,6 +1,8 @@
 import axios, { isAxiosError, type AxiosError } from 'axios';
 import type { LoginResponse } from '@/types/auth.types';
 import type { ApiResponse } from '@/types/api.types';
+import { getQueryClient } from '@/lib/query-client';
+import { useWorkspaceStore } from '@/stores/workspace.store';
 
 /** Mensagem amigável para falhas de rede / API offline (PLANO: backend :3001). */
 export function getApiErrorMessage(error: unknown): string {
@@ -125,8 +127,22 @@ api.interceptors.response.use(
         return api(originalRequest);
       } catch (refreshError) {
         processQueue(refreshError, null);
+
+        // Limpeza SÍNCRONA antes do dispatchEvent — fecha a janela de leak
+        // entre tokens removidos e o handler do AuthProvider rodar.
+        if (typeof window !== 'undefined') {
+          try {
+            getQueryClient().clear();
+            useWorkspaceStore.getState().clear();
+          } catch {
+            // Best-effort em SSR/edge — handler do AuthProvider faz fallback.
+          }
+        }
+
         localStorage.removeItem('access_token');
         localStorage.removeItem('refresh_token');
+        localStorage.removeItem('current_workspace');
+        localStorage.removeItem('current_workspace_id');
         if (typeof document !== 'undefined') {
           document.cookie = 'auth_token=; path=/; expires=Thu, 01 Jan 1970 00:00:00 GMT';
         }

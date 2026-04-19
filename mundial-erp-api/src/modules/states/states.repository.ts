@@ -39,7 +39,10 @@ export class StatesRepository {
     return this.prisma.state.delete({ where: { id } });
   }
 
-  async upsertByProFinancasId(proFinancasId: number, data: Omit<Prisma.StateCreateInput, 'proFinancasId'>) {
+  async upsertByProFinancasId(
+    proFinancasId: number,
+    data: Omit<Prisma.StateCreateInput, 'proFinancasId'>,
+  ) {
     const existing = await this.prisma.state.findFirst({
       where: { proFinancasId },
     });
@@ -49,7 +52,10 @@ export class StatesRepository {
     return this.prisma.state.create({ data: { ...data, proFinancasId } });
   }
 
-  async findCitiesByState(stateId: string, params: { skip?: number; take?: number }) {
+  async findCitiesByState(
+    stateId: string,
+    params: { skip?: number; take?: number },
+  ) {
     const { skip = 0, take = 20 } = params;
     const [items, total] = await Promise.all([
       this.prisma.city.findMany({

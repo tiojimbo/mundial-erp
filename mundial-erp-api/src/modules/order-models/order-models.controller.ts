@@ -65,7 +65,9 @@ export class OrderModelsController {
   @Delete(':id')
   @Roles(Role.ADMIN)
   @HttpCode(HttpStatus.NO_CONTENT)
-  @ApiOperation({ summary: 'Remover modelo de pedido (soft delete, somente ADMIN)' })
+  @ApiOperation({
+    summary: 'Remover modelo de pedido (soft delete, somente ADMIN)',
+  })
   @ApiResponse({ status: 204 })
   remove(@Param('id') id: string) {
     return this.orderModelsService.remove(id);

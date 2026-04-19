@@ -36,7 +36,10 @@ export class OrderTypesService {
     return OrderTypeResponseDto.fromEntity(entity);
   }
 
-  async update(id: string, dto: UpdateOrderTypeDto): Promise<OrderTypeResponseDto> {
+  async update(
+    id: string,
+    dto: UpdateOrderTypeDto,
+  ): Promise<OrderTypeResponseDto> {
     const entity = await this.orderTypesRepository.findById(id);
     if (!entity) {
       throw new NotFoundException('Tipo de pedido não encontrado');

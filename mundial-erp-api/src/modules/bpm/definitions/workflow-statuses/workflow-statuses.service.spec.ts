@@ -50,7 +50,12 @@ const mockStatusClosed = {
   sortOrder: 3,
 };
 
-const allStatuses = [mockStatus, mockStatusActive, mockStatusDone, mockStatusClosed];
+const allStatuses = [
+  mockStatus,
+  mockStatusActive,
+  mockStatusDone,
+  mockStatusClosed,
+];
 
 const mockAreaStatusOwn = {
   ...mockStatus,
@@ -155,7 +160,7 @@ describe('WorkflowStatusesService', () => {
     it('should return department statuses when areaId is not provided', async () => {
       repository.findByDepartment.mockResolvedValue(allStatuses);
 
-      const result = await service.findByDepartment('dept-1');
+      await service.findByDepartment('dept-1');
 
       expect(repository.findByDepartment).toHaveBeenCalledWith('dept-1');
       expect(repository.findAreaById).not.toHaveBeenCalled();
@@ -179,9 +184,10 @@ describe('WorkflowStatusesService', () => {
 
       await service.copyStatusesToArea('dept-1', 'area-1');
 
-      expect(
-        repository.copyDepartmentStatusesToArea,
-      ).toHaveBeenCalledWith('dept-1', 'area-1');
+      expect(repository.copyDepartmentStatusesToArea).toHaveBeenCalledWith(
+        'dept-1',
+        'area-1',
+      );
     });
   });
 
@@ -206,9 +212,9 @@ describe('WorkflowStatusesService', () => {
     it('should throw NotFoundException if status not found', async () => {
       repository.findById.mockResolvedValue(null);
 
-      await expect(
-        service.update('bad-id', { name: 'Test' }),
-      ).rejects.toThrow(NotFoundException);
+      await expect(service.update('bad-id', { name: 'Test' })).rejects.toThrow(
+        NotFoundException,
+      );
     });
   });
 
@@ -226,18 +232,14 @@ describe('WorkflowStatusesService', () => {
     it('should throw NotFoundException if status not found', async () => {
       repository.findById.mockResolvedValue(null);
 
-      await expect(service.remove('bad-id')).rejects.toThrow(
-        NotFoundException,
-      );
+      await expect(service.remove('bad-id')).rejects.toThrow(NotFoundException);
     });
 
     it('should throw ConflictException if last status of category', async () => {
       repository.findById.mockResolvedValue(mockStatus);
       repository.countByCategoryAndDepartment.mockResolvedValue(1);
 
-      await expect(service.remove('ws-1')).rejects.toThrow(
-        ConflictException,
-      );
+      await expect(service.remove('ws-1')).rejects.toThrow(ConflictException);
     });
 
     it('should throw BadRequestException if has work items but no migration target', async () => {
@@ -245,9 +247,7 @@ describe('WorkflowStatusesService', () => {
       repository.countByCategoryAndDepartment.mockResolvedValue(2);
       repository.countWorkItemsByStatusId.mockResolvedValue(5);
 
-      await expect(service.remove('ws-1')).rejects.toThrow(
-        BadRequestException,
-      );
+      await expect(service.remove('ws-1')).rejects.toThrow(BadRequestException);
     });
 
     it('should migrate work items and delete when target provided', async () => {

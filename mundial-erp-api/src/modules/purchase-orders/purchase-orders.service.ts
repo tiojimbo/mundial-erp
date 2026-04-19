@@ -67,7 +67,10 @@ export class PurchaseOrdersService {
 
       return PurchaseOrderResponseDto.fromEntity(entity);
     } catch (error) {
-      if (error instanceof Error && error.message === 'QUOTATION_ALREADY_CONSUMED') {
+      if (
+        error instanceof Error &&
+        error.message === 'QUOTATION_ALREADY_CONSUMED'
+      ) {
         throw new ConflictException(
           'Esta cotação já foi utilizada para gerar um pedido de compra',
         );

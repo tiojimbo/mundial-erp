@@ -2,7 +2,11 @@ import { Logger, Module } from '@nestjs/common';
 import { BullModule } from '@nestjs/bullmq';
 import { ConfigService } from '@nestjs/config';
 import Redis, { RedisOptions } from 'ioredis';
-import { QUEUE_SYNC, QUEUE_REPORTS, QUEUE_SEARCH_REINDEX } from './queue.constants';
+import {
+  QUEUE_SYNC,
+  QUEUE_REPORTS,
+  QUEUE_SEARCH_REINDEX,
+} from './queue.constants';
 
 function buildRedisOptions(config: ConfigService): RedisOptions {
   const url = config.get<string>('REDIS_URL');
@@ -46,7 +50,9 @@ function createBullConnection(config: ConfigService): Redis {
   });
 
   connection.connect().catch((err) => {
-    logger.warn(`BullMQ Redis unavailable: ${err.message}. Queues will be offline.`);
+    logger.warn(
+      `BullMQ Redis unavailable: ${err.message}. Queues will be offline.`,
+    );
   });
 
   return connection;

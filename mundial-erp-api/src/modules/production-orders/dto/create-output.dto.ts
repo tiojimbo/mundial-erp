@@ -1,5 +1,11 @@
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
-import { IsNotEmpty, IsNumber, IsOptional, IsString, Min } from 'class-validator';
+import {
+  IsNotEmpty,
+  IsNumber,
+  IsOptional,
+  IsString,
+  Min,
+} from 'class-validator';
 
 export class CreateOutputDto {
   @ApiProperty({ example: 'clxyz456', description: 'ID do produto produzido' })
@@ -7,7 +13,10 @@ export class CreateOutputDto {
   @IsNotEmpty()
   productId: string;
 
-  @ApiPropertyOptional({ example: 'clxyzunit', description: 'ID da unidade de medida' })
+  @ApiPropertyOptional({
+    example: 'clxyzunit',
+    description: 'ID da unidade de medida',
+  })
   @IsOptional()
   @IsString()
   unitMeasureId?: string;

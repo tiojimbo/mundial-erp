@@ -6,26 +6,35 @@ import { PrismaService } from '../../database/prisma.service';
 export class SuppliersRepository {
   constructor(private readonly prisma: PrismaService) {}
 
-  async create(data: Prisma.SupplierCreateInput) {
-    return this.prisma.supplier.create({ data });
-  }
-
-  async findById(id: string) {
-    return this.prisma.supplier.findFirst({
-      where: { id, deletedAt: null },
+  async create(workspaceId: string, data: Prisma.SupplierCreateInput) {
+    return this.prisma.supplier.create({
+      data: {
+        ...data,
+        workspace: { connect: { id: workspaceId } },
+      },
     });
   }
 
-  async findByCpfCnpj(cpfCnpj: string) {
+  async findById(workspaceId: string, id: string) {
     return this.prisma.supplier.findFirst({
-      where: { cpfCnpj, deletedAt: null },
+      where: { id, workspaceId, deletedAt: null },
     });
   }
 
-  async findMany(params: { skip?: number; take?: number; search?: string }) {
+  async findByCpfCnpj(workspaceId: string, cpfCnpj: string) {
+    return this.prisma.supplier.findFirst({
+      where: { cpfCnpj, workspaceId, deletedAt: null },
+    });
+  }
+
+  async findMany(
+    workspaceId: string,
+    params: { skip?: number; take?: number; search?: string },
+  ) {
     const { skip = 0, take = 20, search } = params;
 
     const where: Prisma.SupplierWhereInput = {
+      workspaceId,
       deletedAt: null,
       ...(search && {
         OR: [
@@ -49,22 +58,31 @@ export class SuppliersRepository {
     return { items, total };
   }
 
-  async update(id: string, data: Prisma.SupplierUpdateInput) {
+  async update(
+    _workspaceId: string,
+    id: string,
+    data: Prisma.SupplierUpdateInput,
+  ) {
     return this.prisma.supplier.update({ where: { id }, data });
   }
 
-  async softDelete(id: string) {
+  async softDelete(_workspaceId: string, id: string) {
     return this.prisma.supplier.update({
       where: { id },
       data: { deletedAt: new Date() },
     });
   }
 
-  async findPurchaseHistory(supplierId: string, params: { skip?: number; take?: number }) {
+  async findPurchaseHistory(
+    workspaceId: string,
+    supplierId: string,
+    params: { skip?: number; take?: number },
+  ) {
     const { skip = 0, take = 20 } = params;
 
     const where: Prisma.PurchaseOrderWhereInput = {
       supplierId,
+      supplier: { workspaceId },
       deletedAt: null,
     };
 
@@ -81,6 +99,9 @@ export class SuppliersRepository {
     return { items, total };
   }
 
+  /**
+   * Sync-only: usado por SyncService. Não recebe workspaceId.
+   */
   async upsertByProFinancasId(
     proFinancasId: number,
     data: Omit<Prisma.SupplierCreateInput, 'proFinancasId'>,

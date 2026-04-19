@@ -29,7 +29,9 @@ export class OrderItemSupplyResponseDto {
   @ApiProperty()
   createdAt: Date;
 
-  static fromEntity(entity: Record<string, unknown>): OrderItemSupplyResponseDto {
+  static fromEntity(
+    entity: Record<string, unknown>,
+  ): OrderItemSupplyResponseDto {
     const dto = new OrderItemSupplyResponseDto();
     dto.id = entity.id as string;
     dto.orderItemId = entity.orderItemId as string;

@@ -44,7 +44,9 @@ export class FormulaIngredientResponseDto {
   @ApiProperty()
   updatedAt: Date;
 
-  static fromEntity(entity: IngredientWithRelations): FormulaIngredientResponseDto {
+  static fromEntity(
+    entity: IngredientWithRelations,
+  ): FormulaIngredientResponseDto {
     const dto = new FormulaIngredientResponseDto();
     dto.id = entity.id;
     dto.formulaId = entity.formulaId;
@@ -81,7 +83,9 @@ export class ProductionFormulaResponseDto {
   @ApiProperty()
   updatedAt: Date;
 
-  static fromEntity(entity: FormulaWithRelations): ProductionFormulaResponseDto {
+  static fromEntity(
+    entity: FormulaWithRelations,
+  ): ProductionFormulaResponseDto {
     const dto = new ProductionFormulaResponseDto();
     dto.id = entity.id;
     dto.name = entity.name;
@@ -90,7 +94,9 @@ export class ProductionFormulaResponseDto {
     dto.updatedAt = entity.updatedAt;
     if (entity.product) dto.product = entity.product;
     if (entity.ingredients) {
-      dto.ingredients = entity.ingredients.map(FormulaIngredientResponseDto.fromEntity);
+      dto.ingredients = entity.ingredients.map(
+        FormulaIngredientResponseDto.fromEntity,
+      );
     }
     return dto;
   }

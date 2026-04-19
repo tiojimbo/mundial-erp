@@ -45,12 +45,11 @@ export class ActivityInstancesService {
       status?: ActivityStatus;
     },
   ) {
-    const { items, total } =
-      await this.activityInstancesRepository.findMany({
-        skip: pagination.skip,
-        take: pagination.limit,
-        ...filters,
-      });
+    const { items, total } = await this.activityInstancesRepository.findMany({
+      skip: pagination.skip,
+      take: pagination.limit,
+      ...filters,
+    });
 
     return {
       items: items.map(ActivityInstanceResponseDto.fromEntity),

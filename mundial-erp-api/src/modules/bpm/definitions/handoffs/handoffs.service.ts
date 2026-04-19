@@ -78,7 +78,8 @@ export class HandoffsService {
     if (dto.toProcessId !== undefined) {
       updateData.toProcess = { connect: { id: dto.toProcessId } };
     }
-    if (dto.triggerOnStatus !== undefined) updateData.triggerOnStatus = dto.triggerOnStatus;
+    if (dto.triggerOnStatus !== undefined)
+      updateData.triggerOnStatus = dto.triggerOnStatus;
     if (dto.validationRules !== undefined) {
       updateData.validationRules = dto.validationRules as Prisma.InputJsonValue;
     }

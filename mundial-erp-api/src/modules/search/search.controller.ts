@@ -14,6 +14,7 @@ import { SearchQueryDto } from './dto/search-query.dto';
 import { QUEUE_SEARCH_REINDEX } from '../queue/queue.constants';
 import { Roles } from '../auth/decorators';
 import { Role } from '@prisma/client';
+import { WorkspaceId } from '../workspaces/decorators/workspace-id.decorator';
 
 @ApiTags('Search')
 @Controller('search')
@@ -25,8 +26,11 @@ export class SearchController {
 
   @Get()
   @ApiOperation({ summary: 'Busca global full-text (Cmd+K)' })
-  async search(@Query() dto: SearchQueryDto) {
-    return this.searchService.search(dto);
+  async search(
+    @WorkspaceId() workspaceId: string,
+    @Query() dto: SearchQueryDto,
+  ) {
+    return this.searchService.search(workspaceId, dto);
   }
 
   @Post('reindex')
@@ -36,10 +40,14 @@ export class SearchController {
     summary: 'Reindexar todas as entidades no Elasticsearch (async via fila)',
   })
   async reindex() {
-    const job = await this.reindexQueue.add('reindex-all', {}, {
-      removeOnComplete: 10,
-      removeOnFail: 5,
-    });
+    const job = await this.reindexQueue.add(
+      'reindex-all',
+      {},
+      {
+        removeOnComplete: 10,
+        removeOnFail: 5,
+      },
+    );
     return { jobId: job.id, message: 'Reindexação enfileirada com sucesso' };
   }
 

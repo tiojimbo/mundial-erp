@@ -34,7 +34,11 @@ export const ENTITY_INDEX_MAP: Record<SearchEntityType, string> = {
 export const INDEX_MAPPINGS: Record<string, Record<string, unknown>> = {
   [ES_INDEX_CLIENTS]: {
     properties: {
-      name: { type: 'text', analyzer: 'standard', fields: { keyword: { type: 'keyword' } } },
+      name: {
+        type: 'text',
+        analyzer: 'standard',
+        fields: { keyword: { type: 'keyword' } },
+      },
       tradeName: { type: 'text', analyzer: 'standard' },
       cpfCnpj: { type: 'keyword' },
       email: { type: 'keyword' },
@@ -47,7 +51,11 @@ export const INDEX_MAPPINGS: Record<string, Record<string, unknown>> = {
   },
   [ES_INDEX_PRODUCTS]: {
     properties: {
-      name: { type: 'text', analyzer: 'standard', fields: { keyword: { type: 'keyword' } } },
+      name: {
+        type: 'text',
+        analyzer: 'standard',
+        fields: { keyword: { type: 'keyword' } },
+      },
       code: { type: 'keyword' },
       barcode: { type: 'keyword' },
       status: { type: 'keyword' },
@@ -59,7 +67,11 @@ export const INDEX_MAPPINGS: Record<string, Record<string, unknown>> = {
     properties: {
       orderNumber: { type: 'keyword' },
       title: { type: 'text', analyzer: 'standard' },
-      clientName: { type: 'text', analyzer: 'standard', fields: { keyword: { type: 'keyword' } } },
+      clientName: {
+        type: 'text',
+        analyzer: 'standard',
+        fields: { keyword: { type: 'keyword' } },
+      },
       status: { type: 'keyword' },
       deletedAt: { type: 'date' },
       updatedAt: { type: 'date' },
@@ -69,7 +81,11 @@ export const INDEX_MAPPINGS: Record<string, Record<string, unknown>> = {
     properties: {
       invoiceNumber: { type: 'keyword' },
       accessKey: { type: 'keyword' },
-      clientName: { type: 'text', analyzer: 'standard', fields: { keyword: { type: 'keyword' } } },
+      clientName: {
+        type: 'text',
+        analyzer: 'standard',
+        fields: { keyword: { type: 'keyword' } },
+      },
       direction: { type: 'keyword' },
       deletedAt: { type: 'date' },
       updatedAt: { type: 'date' },
@@ -77,7 +93,11 @@ export const INDEX_MAPPINGS: Record<string, Record<string, unknown>> = {
   },
   [ES_INDEX_SUPPLIERS]: {
     properties: {
-      name: { type: 'text', analyzer: 'standard', fields: { keyword: { type: 'keyword' } } },
+      name: {
+        type: 'text',
+        analyzer: 'standard',
+        fields: { keyword: { type: 'keyword' } },
+      },
       tradeName: { type: 'text', analyzer: 'standard' },
       cpfCnpj: { type: 'keyword' },
       email: { type: 'keyword' },

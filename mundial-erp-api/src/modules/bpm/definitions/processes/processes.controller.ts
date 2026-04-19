@@ -23,6 +23,7 @@ import { UpdateProcessDto } from './dto/update-process.dto';
 import { ProcessResponseDto } from './dto/process-response.dto';
 import { PaginationDto } from '../../../../common/dtos/pagination.dto';
 import { Roles } from '../../../auth/decorators';
+import { WorkspaceId } from '../../../workspaces/decorators/workspace-id.decorator';
 
 @ApiTags('BPM - Processes')
 @ApiBearerAuth()
@@ -35,15 +36,18 @@ export class ProcessesController {
   @ApiOperation({ summary: 'Criar processo (somente ADMIN)' })
   @ApiResponse({ status: 201, type: ProcessResponseDto })
   @ApiResponse({ status: 409, description: 'Processo com este nome já existe' })
-  create(@Body() dto: CreateProcessDto) {
-    return this.processesService.create(dto);
+  create(@WorkspaceId() workspaceId: string, @Body() dto: CreateProcessDto) {
+    return this.processesService.create(workspaceId, dto);
   }
 
   @Get()
   @Roles(Role.ADMIN, Role.MANAGER)
   @ApiOperation({ summary: 'Listar processos' })
-  findAll(@Query() pagination: PaginationDto) {
-    return this.processesService.findAll(pagination);
+  findAll(
+    @WorkspaceId() workspaceId: string,
+    @Query() pagination: PaginationDto,
+  ) {
+    return this.processesService.findAll(workspaceId, pagination);
   }
 
   @Get(':id')
@@ -51,16 +55,20 @@ export class ProcessesController {
   @ApiOperation({ summary: 'Buscar processo por ID' })
   @ApiResponse({ status: 200, type: ProcessResponseDto })
   @ApiResponse({ status: 404, description: 'Processo não encontrado' })
-  findOne(@Param('id') id: string) {
-    return this.processesService.findById(id);
+  findOne(@WorkspaceId() workspaceId: string, @Param('id') id: string) {
+    return this.processesService.findById(workspaceId, id);
   }
 
   @Patch(':id')
   @Roles(Role.ADMIN)
   @ApiOperation({ summary: 'Atualizar processo (somente ADMIN)' })
   @ApiResponse({ status: 200, type: ProcessResponseDto })
-  update(@Param('id') id: string, @Body() dto: UpdateProcessDto) {
-    return this.processesService.update(id, dto);
+  update(
+    @WorkspaceId() workspaceId: string,
+    @Param('id') id: string,
+    @Body() dto: UpdateProcessDto,
+  ) {
+    return this.processesService.update(workspaceId, id, dto);
   }
 
   @Delete(':id')
@@ -68,7 +76,7 @@ export class ProcessesController {
   @HttpCode(HttpStatus.NO_CONTENT)
   @ApiOperation({ summary: 'Remover processo (soft delete, somente ADMIN)' })
   @ApiResponse({ status: 204 })
-  remove(@Param('id') id: string) {
-    return this.processesService.remove(id);
+  remove(@WorkspaceId() workspaceId: string, @Param('id') id: string) {
+    return this.processesService.remove(workspaceId, id);
   }
 }

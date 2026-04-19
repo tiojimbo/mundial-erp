@@ -610,6 +610,19 @@ const config = {
         border: 'var(--border)',
         input: 'var(--input)',
         ring: 'var(--ring)',
+        sidebar: {
+          DEFAULT: 'var(--sidebar)',
+          foreground: 'var(--sidebar-foreground)',
+          accent: 'var(--sidebar-accent)',
+          'accent-foreground': 'var(--sidebar-accent-foreground)',
+          border: 'var(--sidebar-border)',
+          ring: 'var(--sidebar-ring)',
+        },
+        popover: {
+          DEFAULT: 'var(--popover)',
+          foreground: 'var(--popover-foreground)',
+        },
+        destructive: 'var(--destructive)',
       },
       fontFamily: {
         sans: ['var(--font-sans)'],

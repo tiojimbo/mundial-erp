@@ -22,7 +22,9 @@ export class AccountsReceivableService {
     private readonly eventEmitter: EventEmitter2,
   ) {}
 
-  async create(dto: CreateAccountReceivableDto): Promise<AccountReceivableResponseDto> {
+  async create(
+    dto: CreateAccountReceivableDto,
+  ): Promise<AccountReceivableResponseDto> {
     const entity = await this.repository.create({
       client: { connect: { id: dto.clientId } },
       description: dto.description,
@@ -39,7 +41,9 @@ export class AccountsReceivableService {
       clientId: entity.clientId,
     });
 
-    this.logger.log(`Conta a receber criada (ID: ${entity.id}, Cliente: ${entity.clientId})`);
+    this.logger.log(
+      `Conta a receber criada (ID: ${entity.id}, Cliente: ${entity.clientId})`,
+    );
 
     return AccountReceivableResponseDto.fromEntity(entity);
   }
@@ -80,7 +84,10 @@ export class AccountsReceivableService {
     };
   }
 
-  async update(id: string, dto: UpdateAccountReceivableDto): Promise<AccountReceivableResponseDto> {
+  async update(
+    id: string,
+    dto: UpdateAccountReceivableDto,
+  ): Promise<AccountReceivableResponseDto> {
     const entity = await this.repository.findById(id);
     if (!entity) {
       throw new NotFoundException('Conta a receber não encontrada');
@@ -115,7 +122,10 @@ export class AccountsReceivableService {
     return AccountReceivableResponseDto.fromEntity(updated);
   }
 
-  async registerPayment(id: string, dto: RegisterPaymentDto): Promise<AccountReceivableResponseDto> {
+  async registerPayment(
+    id: string,
+    dto: RegisterPaymentDto,
+  ): Promise<AccountReceivableResponseDto> {
     // Validate status before entering transaction
     const entity = await this.repository.findById(id);
     if (!entity) {
@@ -127,7 +137,9 @@ export class AccountsReceivableService {
     }
 
     if (entity.status === PaymentStatus.CANCELLED) {
-      throw new BadRequestException('Não é possível registrar pagamento em conta cancelada');
+      throw new BadRequestException(
+        'Não é possível registrar pagamento em conta cancelada',
+      );
     }
 
     // Atomic read-update inside transaction to prevent race conditions

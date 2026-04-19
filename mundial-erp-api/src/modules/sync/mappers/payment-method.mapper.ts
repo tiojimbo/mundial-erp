@@ -2,7 +2,9 @@ import { Prisma } from '@prisma/client';
 import { PfPaymentMethod } from '../pro-financas/dto/pro-financas.types';
 
 export class PaymentMethodMapper {
-  static toCreateInput(pf: PfPaymentMethod): Omit<Prisma.PaymentMethodCreateInput, 'proFinancasId'> {
+  static toCreateInput(
+    pf: PfPaymentMethod,
+  ): Omit<Prisma.PaymentMethodCreateInput, 'proFinancasId'> {
     return {
       name: pf.nome,
       isActive: pf.ativo !== false,

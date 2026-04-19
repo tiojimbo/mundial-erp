@@ -49,7 +49,10 @@ export class OrderModelsRepository {
       where: { proFinancasId, deletedAt: null },
     });
     if (existing) {
-      return this.prisma.orderModel.update({ where: { id: existing.id }, data });
+      return this.prisma.orderModel.update({
+        where: { id: existing.id },
+        data,
+      });
     }
     return this.prisma.orderModel.create({ data: { ...data, proFinancasId } });
   }

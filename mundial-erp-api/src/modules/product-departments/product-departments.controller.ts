@@ -1,5 +1,21 @@
-import { Body, Controller, Delete, Get, HttpCode, HttpStatus, Param, Patch, Post, Query } from '@nestjs/common';
-import { ApiBearerAuth, ApiOperation, ApiResponse, ApiTags } from '@nestjs/swagger';
+import {
+  Body,
+  Controller,
+  Delete,
+  Get,
+  HttpCode,
+  HttpStatus,
+  Param,
+  Patch,
+  Post,
+  Query,
+} from '@nestjs/common';
+import {
+  ApiBearerAuth,
+  ApiOperation,
+  ApiResponse,
+  ApiTags,
+} from '@nestjs/swagger';
 import { Role } from '@prisma/client';
 import { ProductDepartmentsService } from './product-departments.service';
 import { CreateProductDepartmentDto } from './dto/create-product-department.dto';
@@ -12,7 +28,9 @@ import { Roles } from '../auth/decorators';
 @ApiBearerAuth()
 @Controller('product-departments')
 export class ProductDepartmentsController {
-  constructor(private readonly productDepartmentsService: ProductDepartmentsService) {}
+  constructor(
+    private readonly productDepartmentsService: ProductDepartmentsService,
+  ) {}
 
   @Post()
   @Roles(Role.ADMIN, Role.MANAGER)
@@ -26,7 +44,10 @@ export class ProductDepartmentsController {
   @Get()
   @Roles(Role.ADMIN, Role.MANAGER, Role.OPERATOR)
   @ApiOperation({ summary: 'Listar departamentos de produto' })
-  findAll(@Query() pagination: PaginationDto, @Query('search') search?: string) {
+  findAll(
+    @Query() pagination: PaginationDto,
+    @Query('search') search?: string,
+  ) {
     return this.productDepartmentsService.findAll(pagination, search);
   }
 

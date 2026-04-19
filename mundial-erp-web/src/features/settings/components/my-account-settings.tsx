@@ -39,7 +39,7 @@ export function MyAccountSettings() {
   const {
     register,
     handleSubmit,
-    formState: { errors, isDirty },
+    formState: { errors },
   } = useForm<AccountFormData>({
     resolver: zodResolver(accountSchema),
     defaultValues: {

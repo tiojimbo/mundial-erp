@@ -49,8 +49,13 @@ export class ClientClassificationsRepository {
       where: { proFinancasId, deletedAt: null },
     });
     if (existing) {
-      return this.prisma.clientClassification.update({ where: { id: existing.id }, data });
+      return this.prisma.clientClassification.update({
+        where: { id: existing.id },
+        data,
+      });
     }
-    return this.prisma.clientClassification.create({ data: { ...data, proFinancasId } });
+    return this.prisma.clientClassification.create({
+      data: { ...data, proFinancasId },
+    });
   }
 }

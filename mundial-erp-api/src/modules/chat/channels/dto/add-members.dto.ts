@@ -19,7 +19,10 @@ export class AddMembersDto {
   @ArrayMinSize(1)
   @ArrayMaxSize(100)
   @IsString({ each: true })
-  @Matches(/^c[a-z0-9]{20,30}$/, { each: true, message: 'Cada userId deve ser um CUID valido' })
+  @Matches(/^c[a-z0-9]{20,30}$/, {
+    each: true,
+    message: 'Cada userId deve ser um CUID valido',
+  })
   userIds: string[];
 
   @ApiPropertyOptional({ enum: ChannelMemberRole, default: 'MEMBER' })

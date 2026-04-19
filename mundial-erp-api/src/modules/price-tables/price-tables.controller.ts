@@ -1,13 +1,33 @@
-import { Body, Controller, Delete, Get, HttpCode, HttpStatus, Param, Patch, Post, Query } from '@nestjs/common';
-import { ApiBearerAuth, ApiOperation, ApiResponse, ApiTags } from '@nestjs/swagger';
+import {
+  Body,
+  Controller,
+  Delete,
+  Get,
+  HttpCode,
+  HttpStatus,
+  Param,
+  Patch,
+  Post,
+  Query,
+} from '@nestjs/common';
+import {
+  ApiBearerAuth,
+  ApiOperation,
+  ApiResponse,
+  ApiTags,
+} from '@nestjs/swagger';
 import { Role } from '@prisma/client';
 import { PriceTablesService } from './price-tables.service';
 import { CreatePriceTableDto } from './dto/create-price-table.dto';
 import { UpdatePriceTableDto } from './dto/update-price-table.dto';
 import { UpsertPriceTableItemDto } from './dto/upsert-price-table-item.dto';
-import { PriceTableResponseDto, PriceTableItemResponseDto } from './dto/price-table-response.dto';
+import {
+  PriceTableResponseDto,
+  PriceTableItemResponseDto,
+} from './dto/price-table-response.dto';
 import { PaginationDto } from '../../common/dtos/pagination.dto';
 import { Roles } from '../auth/decorators';
+import { WorkspaceId } from '../workspaces/decorators/workspace-id.decorator';
 
 @ApiTags('Price Tables')
 @ApiBearerAuth()
@@ -19,15 +39,19 @@ export class PriceTablesController {
   @Roles(Role.ADMIN, Role.MANAGER)
   @ApiOperation({ summary: 'Criar tabela de preço' })
   @ApiResponse({ status: 201, type: PriceTableResponseDto })
-  create(@Body() dto: CreatePriceTableDto) {
-    return this.priceTablesService.create(dto);
+  create(@WorkspaceId() workspaceId: string, @Body() dto: CreatePriceTableDto) {
+    return this.priceTablesService.create(workspaceId, dto);
   }
 
   @Get()
   @Roles(Role.ADMIN, Role.MANAGER, Role.OPERATOR)
   @ApiOperation({ summary: 'Listar tabelas de preço' })
-  findAll(@Query() pagination: PaginationDto, @Query('search') search?: string) {
-    return this.priceTablesService.findAll(pagination, search);
+  findAll(
+    @WorkspaceId() workspaceId: string,
+    @Query() pagination: PaginationDto,
+    @Query('search') search?: string,
+  ) {
+    return this.priceTablesService.findAll(workspaceId, pagination, search);
   }
 
   @Get(':id')
@@ -35,16 +59,20 @@ export class PriceTablesController {
   @ApiOperation({ summary: 'Buscar tabela de preço por ID (com itens)' })
   @ApiResponse({ status: 200, type: PriceTableResponseDto })
   @ApiResponse({ status: 404, description: 'Não encontrada' })
-  findOne(@Param('id') id: string) {
-    return this.priceTablesService.findById(id);
+  findOne(@WorkspaceId() workspaceId: string, @Param('id') id: string) {
+    return this.priceTablesService.findById(workspaceId, id);
   }
 
   @Patch(':id')
   @Roles(Role.ADMIN, Role.MANAGER)
   @ApiOperation({ summary: 'Atualizar tabela de preço' })
   @ApiResponse({ status: 200, type: PriceTableResponseDto })
-  update(@Param('id') id: string, @Body() dto: UpdatePriceTableDto) {
-    return this.priceTablesService.update(id, dto);
+  update(
+    @WorkspaceId() workspaceId: string,
+    @Param('id') id: string,
+    @Body() dto: UpdatePriceTableDto,
+  ) {
+    return this.priceTablesService.update(workspaceId, id, dto);
   }
 
   @Delete(':id')
@@ -52,24 +80,34 @@ export class PriceTablesController {
   @HttpCode(HttpStatus.NO_CONTENT)
   @ApiOperation({ summary: 'Remover tabela de preço (soft delete)' })
   @ApiResponse({ status: 204 })
-  remove(@Param('id') id: string) {
-    return this.priceTablesService.remove(id);
+  remove(@WorkspaceId() workspaceId: string, @Param('id') id: string) {
+    return this.priceTablesService.remove(workspaceId, id);
   }
 
   // --- Items ---
   @Post(':id/items')
   @Roles(Role.ADMIN, Role.MANAGER)
-  @ApiOperation({ summary: 'Adicionar/atualizar item na tabela de preço (upsert)' })
+  @ApiOperation({
+    summary: 'Adicionar/atualizar item na tabela de preço (upsert)',
+  })
   @ApiResponse({ status: 201, type: PriceTableItemResponseDto })
-  upsertItem(@Param('id') id: string, @Body() dto: UpsertPriceTableItemDto) {
-    return this.priceTablesService.upsertItem(id, dto);
+  upsertItem(
+    @WorkspaceId() workspaceId: string,
+    @Param('id') id: string,
+    @Body() dto: UpsertPriceTableItemDto,
+  ) {
+    return this.priceTablesService.upsertItem(workspaceId, id, dto);
   }
 
   @Get(':id/items')
   @Roles(Role.ADMIN, Role.MANAGER, Role.OPERATOR)
   @ApiOperation({ summary: 'Listar itens da tabela de preço' })
-  findItems(@Param('id') id: string, @Query() pagination: PaginationDto) {
-    return this.priceTablesService.findItems(id, pagination);
+  findItems(
+    @WorkspaceId() workspaceId: string,
+    @Param('id') id: string,
+    @Query() pagination: PaginationDto,
+  ) {
+    return this.priceTablesService.findItems(workspaceId, id, pagination);
   }
 
   @Delete(':id/items/:itemId')
@@ -77,7 +115,11 @@ export class PriceTablesController {
   @HttpCode(HttpStatus.NO_CONTENT)
   @ApiOperation({ summary: 'Remover item da tabela de preço' })
   @ApiResponse({ status: 204 })
-  removeItem(@Param('id') id: string, @Param('itemId') itemId: string) {
-    return this.priceTablesService.removeItem(id, itemId);
+  removeItem(
+    @WorkspaceId() workspaceId: string,
+    @Param('id') id: string,
+    @Param('itemId') itemId: string,
+  ) {
+    return this.priceTablesService.removeItem(workspaceId, id, itemId);
   }
 }

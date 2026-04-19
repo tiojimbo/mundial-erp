@@ -57,16 +57,16 @@ export function InboxTabs({ view, counts, onViewChange }: InboxTabsProps) {
             aria-selected={isActive}
             aria-controls={`tabpanel-${tab.key}`}
             onClick={() => onViewChange(tab.key)}
-            className={`flex items-center gap-1.5 px-3 py-2.5 text-sm font-medium transition-colors ${
+            className={`flex items-center gap-1.5 px-3 py-2.5 text-label-sm transition-colors ${
               isActive
-                ? 'border-b-2 border-[oklch(14.5%_0_0)] text-[oklch(14.5%_0_0)]'
-                : 'text-[oklch(55.6%_0_0)] hover:text-[oklch(14.5%_0_0)]'
+                ? 'border-b-2 border-foreground text-foreground'
+                : 'text-muted-foreground hover:text-foreground'
             }`}
           >
-            <Icon className='size-4' />
+            <Icon className='h-[15px] w-[15px]' />
             {tab.label}
             {tab.showBadge && count > 0 && (
-              <span className='flex h-5 min-w-5 items-center justify-center rounded-full bg-[oklch(70%_0.15_350)] px-1.5 text-xs font-medium text-white'>
+              <span className='flex h-5 min-w-5 items-center justify-center rounded-full bg-[oklch(70%_0.15_350)] px-1.5 text-label-xs text-white'>
                 {count}
               </span>
             )}

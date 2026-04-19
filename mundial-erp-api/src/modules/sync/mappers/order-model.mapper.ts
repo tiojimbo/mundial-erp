@@ -2,7 +2,9 @@ import { Prisma } from '@prisma/client';
 import { PfOrderModel } from '../pro-financas/dto/pro-financas.types';
 
 export class OrderModelMapper {
-  static toCreateInput(pf: PfOrderModel): Omit<Prisma.OrderModelCreateInput, 'proFinancasId'> {
+  static toCreateInput(
+    pf: PfOrderModel,
+  ): Omit<Prisma.OrderModelCreateInput, 'proFinancasId'> {
     return { name: pf.nome };
   }
 

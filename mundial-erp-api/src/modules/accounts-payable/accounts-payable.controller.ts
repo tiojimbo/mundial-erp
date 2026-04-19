@@ -38,7 +38,9 @@ import { IdempotencyInterceptor } from '../../common/interceptors/idempotency.in
 @ApiBearerAuth()
 @Controller('accounts-payable')
 export class AccountsPayableController {
-  constructor(private readonly accountsPayableService: AccountsPayableService) {}
+  constructor(
+    private readonly accountsPayableService: AccountsPayableService,
+  ) {}
 
   @Post()
   @Roles(Role.ADMIN, Role.MANAGER, Role.OPERATOR)
@@ -56,10 +58,28 @@ export class AccountsPayableController {
   @Get()
   @Roles(Role.ADMIN, Role.MANAGER, Role.OPERATOR)
   @ApiOperation({ summary: 'Listar contas a pagar' })
-  @ApiQuery({ name: 'supplierId', required: false, description: 'Filtrar por fornecedor' })
-  @ApiQuery({ name: 'status', required: false, enum: PaymentStatus, description: 'Filtrar por status' })
-  @ApiQuery({ name: 'categoryId', required: false, description: 'Filtrar por categoria financeira' })
-  @ApiQuery({ name: 'overdue', required: false, type: Boolean, description: 'Somente vencidas (dueDate < hoje e PENDING/PARTIAL)' })
+  @ApiQuery({
+    name: 'supplierId',
+    required: false,
+    description: 'Filtrar por fornecedor',
+  })
+  @ApiQuery({
+    name: 'status',
+    required: false,
+    enum: PaymentStatus,
+    description: 'Filtrar por status',
+  })
+  @ApiQuery({
+    name: 'categoryId',
+    required: false,
+    description: 'Filtrar por categoria financeira',
+  })
+  @ApiQuery({
+    name: 'overdue',
+    required: false,
+    type: Boolean,
+    description: 'Somente vencidas (dueDate < hoje e PENDING/PARTIAL)',
+  })
   @ApiResponse({ status: 200, type: AccountPayableResponseDto, isArray: true })
   findAll(
     @Query() pagination: PaginationDto,

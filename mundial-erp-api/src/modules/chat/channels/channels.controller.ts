@@ -42,10 +42,7 @@ export class ChannelsController {
     status: 200,
     description: 'Canal com mesmo nome ja existe, retornado',
   })
-  create(
-    @Body() dto: CreateChannelDto,
-    @CurrentUser('sub') userId: string,
-  ) {
+  create(@Body() dto: CreateChannelDto, @CurrentUser('sub') userId: string) {
     return this.channelsService.createChannel(dto, userId);
   }
 
@@ -62,10 +59,7 @@ export class ChannelsController {
   @Post('direct-message')
   @ApiOperation({ summary: 'Criar DM idempotente (ClickUp #9)' })
   @ApiResponse({ status: 201, type: ChannelResponseDto })
-  createDm(
-    @Body() dto: CreateDmDto,
-    @CurrentUser('sub') userId: string,
-  ) {
+  createDm(@Body() dto: CreateDmDto, @CurrentUser('sub') userId: string) {
     return this.channelsService.createDm(dto, userId);
   }
 

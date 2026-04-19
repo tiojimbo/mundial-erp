@@ -47,13 +47,17 @@ export class OrderProduzirListener {
       where: { orderId: event.orderId, deletedAt: null },
     });
     if (existingPO) {
-      this.logger.warn(`ProductionOrder ja existe para pedido ${order.orderNumber}. Ignorando.`);
+      this.logger.warn(
+        `ProductionOrder ja existe para pedido ${order.orderNumber}. Ignorando.`,
+      );
       return;
     }
 
     // Split: separar itens por classificacao
     const fabricacaoItems = order.items.filter(
-      (item) => item.classificationSnapshot === ProductClassification.FABRICACAO_PROPRIA,
+      (item) =>
+        item.classificationSnapshot ===
+        ProductClassification.FABRICACAO_PROPRIA,
     );
     const revendaItems = order.items.filter(
       (item) =>

@@ -23,6 +23,7 @@ import { UpdateProcessViewDto } from './dto/update-process-view.dto';
 import { ProcessViewResponseDto } from './dto/process-view-response.dto';
 import { PaginationDto } from '../../common/dtos/pagination.dto';
 import { Roles } from '../auth/decorators';
+import { WorkspaceId } from '../workspaces/decorators/workspace-id.decorator';
 
 @ApiTags('Process Views')
 @ApiBearerAuth()
@@ -34,15 +35,26 @@ export class ProcessViewsController {
   @Roles(Role.ADMIN, Role.MANAGER)
   @ApiOperation({ summary: 'Criar visão de processo' })
   @ApiResponse({ status: 201, type: ProcessViewResponseDto })
-  create(@Body() dto: CreateProcessViewDto) {
-    return this.processViewsService.create(dto);
+  create(
+    @WorkspaceId() workspaceId: string,
+    @Body() dto: CreateProcessViewDto,
+  ) {
+    return this.processViewsService.create(workspaceId, dto);
   }
 
   @Get()
   @Roles(Role.ADMIN, Role.MANAGER, Role.OPERATOR)
   @ApiOperation({ summary: 'Listar visões de um processo' })
-  findAll(@Query('processId') processId: string, @Query() pagination: PaginationDto) {
-    return this.processViewsService.findAllByProcess(processId, pagination);
+  findAll(
+    @WorkspaceId() workspaceId: string,
+    @Query('processId') processId: string,
+    @Query() pagination: PaginationDto,
+  ) {
+    return this.processViewsService.findAllByProcess(
+      workspaceId,
+      processId,
+      pagination,
+    );
   }
 
   @Patch(':id')
@@ -50,17 +62,23 @@ export class ProcessViewsController {
   @ApiOperation({ summary: 'Atualizar visão (nome/config)' })
   @ApiResponse({ status: 200, type: ProcessViewResponseDto })
   @ApiResponse({ status: 404, description: 'Visão não encontrada' })
-  update(@Param('id') id: string, @Body() dto: UpdateProcessViewDto) {
-    return this.processViewsService.update(id, dto);
+  update(
+    @WorkspaceId() workspaceId: string,
+    @Param('id') id: string,
+    @Body() dto: UpdateProcessViewDto,
+  ) {
+    return this.processViewsService.update(workspaceId, id, dto);
   }
 
   @Patch(':id/pin')
   @Roles(Role.ADMIN, Role.MANAGER)
-  @ApiOperation({ summary: 'Fixar visão como padrão (desfixa as demais do processo)' })
+  @ApiOperation({
+    summary: 'Fixar visão como padrão (desfixa as demais do processo)',
+  })
   @ApiResponse({ status: 200, type: ProcessViewResponseDto })
   @ApiResponse({ status: 404, description: 'Visão não encontrada' })
-  pin(@Param('id') id: string) {
-    return this.processViewsService.pin(id);
+  pin(@WorkspaceId() workspaceId: string, @Param('id') id: string) {
+    return this.processViewsService.pin(workspaceId, id);
   }
 
   @Delete(':id')
@@ -68,7 +86,7 @@ export class ProcessViewsController {
   @HttpCode(HttpStatus.NO_CONTENT)
   @ApiOperation({ summary: 'Remover visão (soft delete)' })
   @ApiResponse({ status: 204 })
-  remove(@Param('id') id: string) {
-    return this.processViewsService.remove(id);
+  remove(@WorkspaceId() workspaceId: string, @Param('id') id: string) {
+    return this.processViewsService.remove(workspaceId, id);
   }
 }

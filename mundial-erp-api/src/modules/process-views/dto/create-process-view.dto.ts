@@ -1,6 +1,12 @@
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 import { ViewType } from '@prisma/client';
-import { IsEnum, IsObject, IsOptional, IsString, MinLength } from 'class-validator';
+import {
+  IsEnum,
+  IsObject,
+  IsOptional,
+  IsString,
+  MinLength,
+} from 'class-validator';
 
 export class CreateProcessViewDto {
   @ApiProperty({ example: 'cuid-do-processo' })

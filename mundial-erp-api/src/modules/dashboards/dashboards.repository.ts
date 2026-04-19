@@ -10,24 +10,31 @@ export class DashboardsRepository {
   // Dashboard CRUD
   // ---------------------------------------------------------------------------
 
-  async create(data: Prisma.DashboardCreateInput) {
+  async create(workspaceId: string, data: Prisma.DashboardCreateInput) {
     return this.prisma.dashboard.create({
-      data,
+      data: {
+        ...data,
+        workspace: { connect: { id: workspaceId } },
+      },
       include: this.fullInclude(),
     });
   }
 
-  async findById(id: string) {
+  async findById(workspaceId: string, id: string) {
     return this.prisma.dashboard.findFirst({
-      where: { id, deletedAt: null },
+      where: { id, workspaceId, deletedAt: null },
       include: this.fullInclude(),
     });
   }
 
-  async findMany(params: { skip?: number; take?: number; ownerId: string }) {
+  async findMany(
+    workspaceId: string,
+    params: { skip?: number; take?: number; ownerId: string },
+  ) {
     const { skip = 0, take = 20, ownerId } = params;
 
     const where: Prisma.DashboardWhereInput = {
+      workspaceId,
       deletedAt: null,
       OR: [{ ownerId }, { isPublic: true }],
     };
@@ -55,7 +62,11 @@ export class DashboardsRepository {
     return { items, total };
   }
 
-  async update(id: string, data: Prisma.DashboardUpdateInput) {
+  async update(
+    _workspaceId: string,
+    id: string,
+    data: Prisma.DashboardUpdateInput,
+  ) {
     return this.prisma.dashboard.update({
       where: { id },
       data,
@@ -63,7 +74,7 @@ export class DashboardsRepository {
     });
   }
 
-  async softDelete(id: string) {
+  async softDelete(_workspaceId: string, id: string) {
     return this.prisma.dashboard.update({
       where: { id },
       data: { deletedAt: new Date() },
@@ -78,10 +89,12 @@ export class DashboardsRepository {
     return this.prisma.dashboardCard.create({ data });
   }
 
-  async findCardById(id: string) {
-    return this.prisma.dashboardCard.findUnique({
-      where: { id },
-      include: { dashboard: { select: { id: true, ownerId: true, deletedAt: true } } },
+  async findCardById(workspaceId: string, id: string) {
+    return this.prisma.dashboardCard.findFirst({
+      where: { id, dashboard: { workspaceId } },
+      include: {
+        dashboard: { select: { id: true, ownerId: true, deletedAt: true } },
+      },
     });
   }
 
@@ -93,7 +106,15 @@ export class DashboardsRepository {
     return this.prisma.dashboardCard.delete({ where: { id } });
   }
 
-  async updateLayoutBatch(cards: { cardId: string; layoutX: number; layoutY: number; layoutW: number; layoutH: number }[]) {
+  async updateLayoutBatch(
+    cards: {
+      cardId: string;
+      layoutX: number;
+      layoutY: number;
+      layoutW: number;
+      layoutH: number;
+    }[],
+  ) {
     return this.prisma.$transaction(
       cards.map((c) =>
         this.prisma.dashboardCard.update({
@@ -117,10 +138,12 @@ export class DashboardsRepository {
     return this.prisma.dashboardFilter.create({ data });
   }
 
-  async findFilterById(id: string) {
-    return this.prisma.dashboardFilter.findUnique({
-      where: { id },
-      include: { dashboard: { select: { id: true, ownerId: true, deletedAt: true } } },
+  async findFilterById(workspaceId: string, id: string) {
+    return this.prisma.dashboardFilter.findFirst({
+      where: { id, dashboard: { workspaceId } },
+      include: {
+        dashboard: { select: { id: true, ownerId: true, deletedAt: true } },
+      },
     });
   }
 

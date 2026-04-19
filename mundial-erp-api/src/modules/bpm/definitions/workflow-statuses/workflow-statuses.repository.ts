@@ -6,22 +6,30 @@ import { PrismaService } from '../../../../database/prisma.service';
 export class WorkflowStatusesRepository {
   constructor(private readonly prisma: PrismaService) {}
 
-  async create(data: Prisma.WorkflowStatusCreateInput) {
+  /**
+   * WorkflowStatus NÃO possui workspaceId direto. Escopo via department.
+   */
+  async create(_workspaceId: string, data: Prisma.WorkflowStatusCreateInput) {
     return this.prisma.workflowStatus.create({ data });
   }
 
-  async findById(id: string) {
+  async findById(workspaceId: string, id: string) {
     return this.prisma.workflowStatus.findFirst({
-      where: { id, deletedAt: null },
+      where: { id, deletedAt: null, department: { workspaceId } },
       include: {
         department: { select: { id: true, name: true } },
       },
     });
   }
 
-  async findByDepartment(departmentId: string) {
+  async findByDepartment(workspaceId: string, departmentId: string) {
     return this.prisma.workflowStatus.findMany({
-      where: { departmentId, areaId: null, deletedAt: null },
+      where: {
+        departmentId,
+        areaId: null,
+        deletedAt: null,
+        department: { workspaceId },
+      },
       orderBy: { sortOrder: 'asc' },
       include: {
         department: { select: { id: true, name: true } },
@@ -29,9 +37,13 @@ export class WorkflowStatusesRepository {
     });
   }
 
-  async findByArea(areaId: string) {
+  async findByArea(workspaceId: string, areaId: string) {
     return this.prisma.workflowStatus.findMany({
-      where: { areaId, deletedAt: null },
+      where: {
+        areaId,
+        deletedAt: null,
+        area: { department: { workspaceId } },
+      },
       orderBy: { sortOrder: 'asc' },
       include: {
         department: { select: { id: true, name: true } },
@@ -40,11 +52,17 @@ export class WorkflowStatusesRepository {
   }
 
   async copyDepartmentStatusesToArea(
+    workspaceId: string,
     departmentId: string,
     areaId: string,
   ) {
     const deptStatuses = await this.prisma.workflowStatus.findMany({
-      where: { departmentId, areaId: null, deletedAt: null },
+      where: {
+        departmentId,
+        areaId: null,
+        deletedAt: null,
+        department: { workspaceId },
+      },
       orderBy: { sortOrder: 'asc' },
     });
 
@@ -67,37 +85,65 @@ export class WorkflowStatusesRepository {
   }
 
   async countByCategoryAndDepartment(
+    workspaceId: string,
     category: StatusCategory,
     departmentId: string,
   ): Promise<number> {
     return this.prisma.workflowStatus.count({
-      where: { category, departmentId, deletedAt: null },
+      where: {
+        category,
+        departmentId,
+        deletedAt: null,
+        department: { workspaceId },
+      },
     });
   }
 
-  async countWorkItemsByStatusId(statusId: string): Promise<number> {
+  async countWorkItemsByStatusId(
+    workspaceId: string,
+    statusId: string,
+  ): Promise<number> {
     return this.prisma.workItem.count({
-      where: { statusId, deletedAt: null },
+      where: {
+        statusId,
+        deletedAt: null,
+        process: { department: { workspaceId } },
+      },
     });
   }
 
-  async migrateWorkItems(fromStatusId: string, toStatusId: string) {
+  async migrateWorkItems(
+    workspaceId: string,
+    fromStatusId: string,
+    toStatusId: string,
+  ) {
     return this.prisma.workItem.updateMany({
-      where: { statusId: fromStatusId, deletedAt: null },
+      where: {
+        statusId: fromStatusId,
+        deletedAt: null,
+        process: { department: { workspaceId } },
+      },
       data: { statusId: toStatusId },
     });
   }
 
-  async getMaxSortOrder(departmentId: string): Promise<number> {
+  async getMaxSortOrder(
+    workspaceId: string,
+    departmentId: string,
+  ): Promise<number> {
     const result = await this.prisma.workflowStatus.findFirst({
-      where: { departmentId, deletedAt: null },
+      where: { departmentId, deletedAt: null, department: { workspaceId } },
       orderBy: { sortOrder: 'desc' },
       select: { sortOrder: true },
     });
     return result?.sortOrder ?? -1;
   }
 
-  async update(id: string, data: Prisma.WorkflowStatusUpdateInput) {
+  async update(
+    _workspaceId: string,
+    id: string,
+    data: Prisma.WorkflowStatusUpdateInput,
+  ) {
     return this.prisma.workflowStatus.update({
       where: { id },
       data,
@@ -107,21 +153,24 @@ export class WorkflowStatusesRepository {
     });
   }
 
-  async softDelete(id: string) {
+  async softDelete(_workspaceId: string, id: string) {
     return this.prisma.workflowStatus.update({
       where: { id },
       data: { deletedAt: new Date() },
     });
   }
 
-  async findAreaById(areaId: string) {
+  async findAreaById(workspaceId: string, areaId: string) {
     return this.prisma.area.findFirst({
-      where: { id: areaId, deletedAt: null },
+      where: { id: areaId, deletedAt: null, department: { workspaceId } },
       select: { id: true, departmentId: true, useSpaceStatuses: true },
     });
   }
 
-  async updateManySortOrder(items: Array<{ id: string; sortOrder: number }>) {
+  async updateManySortOrder(
+    _workspaceId: string,
+    items: Array<{ id: string; sortOrder: number }>,
+  ) {
     return this.prisma.$transaction(
       items.map((item) =>
         this.prisma.workflowStatus.update({

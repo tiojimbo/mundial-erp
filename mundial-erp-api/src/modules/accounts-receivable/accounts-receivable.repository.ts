@@ -53,7 +53,10 @@ export class AccountsReceivableRepository {
     return { items, total };
   }
 
-  async findByClientId(clientId: string, params: { skip?: number; take?: number }) {
+  async findByClientId(
+    clientId: string,
+    params: { skip?: number; take?: number },
+  ) {
     const { skip = 0, take = 20 } = params;
 
     const where: Prisma.AccountReceivableWhereInput = {

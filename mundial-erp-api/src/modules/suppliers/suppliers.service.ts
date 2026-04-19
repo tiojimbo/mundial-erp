@@ -19,13 +19,19 @@ export class SuppliersService {
     private readonly eventEmitter: EventEmitter2,
   ) {}
 
-  async create(dto: CreateSupplierDto): Promise<SupplierResponseDto> {
-    const existing = await this.suppliersRepository.findByCpfCnpj(dto.cpfCnpj);
+  async create(
+    workspaceId: string,
+    dto: CreateSupplierDto,
+  ): Promise<SupplierResponseDto> {
+    const existing = await this.suppliersRepository.findByCpfCnpj(
+      workspaceId,
+      dto.cpfCnpj,
+    );
     if (existing) {
       throw new ConflictException('Fornecedor com este CPF/CNPJ já existe');
     }
 
-    const entity = await this.suppliersRepository.create({
+    const entity = await this.suppliersRepository.create(workspaceId, {
       personType: dto.personType,
       cpfCnpj: dto.cpfCnpj,
       name: dto.name,
@@ -45,34 +51,51 @@ export class SuppliersService {
     return SupplierResponseDto.fromEntity(entity);
   }
 
-  async findAll(pagination: PaginationDto, search?: string) {
-    const { items, total } = await this.suppliersRepository.findMany({
-      skip: pagination.skip,
-      take: pagination.limit,
-      search,
-    });
+  async findAll(
+    workspaceId: string,
+    pagination: PaginationDto,
+    search?: string,
+  ) {
+    const { items, total } = await this.suppliersRepository.findMany(
+      workspaceId,
+      {
+        skip: pagination.skip,
+        take: pagination.limit,
+        search,
+      },
+    );
     return {
       items: items.map(SupplierResponseDto.fromEntity),
       total,
     };
   }
 
-  async findById(id: string): Promise<SupplierResponseDto> {
-    const entity = await this.suppliersRepository.findById(id);
+  async findById(
+    workspaceId: string,
+    id: string,
+  ): Promise<SupplierResponseDto> {
+    const entity = await this.suppliersRepository.findById(workspaceId, id);
     if (!entity) {
       throw new NotFoundException('Fornecedor não encontrado');
     }
     return SupplierResponseDto.fromEntity(entity);
   }
 
-  async update(id: string, dto: UpdateSupplierDto): Promise<SupplierResponseDto> {
-    const entity = await this.suppliersRepository.findById(id);
+  async update(
+    workspaceId: string,
+    id: string,
+    dto: UpdateSupplierDto,
+  ): Promise<SupplierResponseDto> {
+    const entity = await this.suppliersRepository.findById(workspaceId, id);
     if (!entity) {
       throw new NotFoundException('Fornecedor não encontrado');
     }
 
     if (dto.cpfCnpj) {
-      const existing = await this.suppliersRepository.findByCpfCnpj(dto.cpfCnpj);
+      const existing = await this.suppliersRepository.findByCpfCnpj(
+        workspaceId,
+        dto.cpfCnpj,
+      );
       if (existing && existing.id !== id) {
         throw new ConflictException('Fornecedor com este CPF/CNPJ já existe');
       }
@@ -91,32 +114,45 @@ export class SuppliersService {
     if (dto.state !== undefined) updateData.state = dto.state;
     if (dto.zipCode !== undefined) updateData.zipCode = dto.zipCode;
     if (dto.isActive !== undefined) updateData.isActive = dto.isActive;
-    if (dto.proFinancasId !== undefined) updateData.proFinancasId = dto.proFinancasId;
+    if (dto.proFinancasId !== undefined)
+      updateData.proFinancasId = dto.proFinancasId;
 
-    const updated = await this.suppliersRepository.update(id, updateData);
+    const updated = await this.suppliersRepository.update(
+      workspaceId,
+      id,
+      updateData,
+    );
     this.eventEmitter.emit('supplier.updated', { supplierId: id });
     return SupplierResponseDto.fromEntity(updated);
   }
 
-  async remove(id: string): Promise<void> {
-    const entity = await this.suppliersRepository.findById(id);
+  async remove(workspaceId: string, id: string): Promise<void> {
+    const entity = await this.suppliersRepository.findById(workspaceId, id);
     if (!entity) {
       throw new NotFoundException('Fornecedor não encontrado');
     }
-    await this.suppliersRepository.softDelete(id);
+    await this.suppliersRepository.softDelete(workspaceId, id);
     this.eventEmitter.emit('supplier.deleted', { supplierId: id });
   }
 
-  async findPurchaseHistory(id: string, pagination: PaginationDto) {
-    const entity = await this.suppliersRepository.findById(id);
+  async findPurchaseHistory(
+    workspaceId: string,
+    id: string,
+    pagination: PaginationDto,
+  ) {
+    const entity = await this.suppliersRepository.findById(workspaceId, id);
     if (!entity) {
       throw new NotFoundException('Fornecedor não encontrado');
     }
 
-    const { items, total } = await this.suppliersRepository.findPurchaseHistory(id, {
-      skip: pagination.skip,
-      take: pagination.limit,
-    });
+    const { items, total } = await this.suppliersRepository.findPurchaseHistory(
+      workspaceId,
+      id,
+      {
+        skip: pagination.skip,
+        take: pagination.limit,
+      },
+    );
 
     return {
       items: items.map(PurchaseHistoryResponseDto.fromEntity),

@@ -1,6 +1,14 @@
 import { ApiPropertyOptional } from '@nestjs/swagger';
 import { Type } from 'class-transformer';
-import { IsDate, IsIn, IsInt, IsOptional, IsString, Max, Min } from 'class-validator';
+import {
+  IsDate,
+  IsIn,
+  IsInt,
+  IsOptional,
+  IsString,
+  Max,
+  Min,
+} from 'class-validator';
 
 export class ReportFiltersDto {
   @ApiPropertyOptional({ description: 'Data inicial do periodo' })

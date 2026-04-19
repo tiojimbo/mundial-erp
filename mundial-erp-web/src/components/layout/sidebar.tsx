@@ -45,6 +45,7 @@ import { useChannels } from '@/features/chat/hooks/use-channels';
 import { useChatStore } from '@/stores/chat.store';
 import { CreateChannelDialog } from '@/features/chat/components/create-channel-dialog';
 import { CreateDmDialog } from '@/features/chat/components/create-dm-dialog';
+import { WorkspaceSwitcher } from '@/features/workspaces/components/workspace-switcher';
 import { CreateDepartmentDialog } from '@/features/work-items/components/create-department-dialog';
 import { CreateAreaDialog } from '@/features/work-items/components/create-area-dialog';
 import { CreateProcessDialog } from '@/features/work-items/components/create-process-dialog';
@@ -322,17 +323,15 @@ function SidebarContent({
 
   return (
     <>
-      {/* Header */}
-      <div className='flex h-14 items-center justify-between px-4'>
-        {isExpanded ? (
-          <span className='text-[14px] font-semibold text-[oklch(14.5%_0_0)]'>
-            Mundial ERP
-          </span>
-        ) : (
-          <div className='flex w-full justify-center'>
-            <span className='text-[14px] font-semibold text-[oklch(14.5%_0_0)]'>M</span>
-          </div>
+      {/* Header — Workspace Switcher */}
+      <div
+        data-collapsible={!isExpanded ? 'icon' : undefined}
+        className={cn(
+          'group flex h-14 items-center',
+          isExpanded ? 'px-2' : 'justify-center px-0',
         )}
+      >
+        <WorkspaceSwitcher collapsed={!isExpanded} />
       </div>
 
       {/* Scrollable nav */}
@@ -874,7 +873,7 @@ function AreaItem({
   onCreateProcess,
   isCreatingProcess,
   onInvalidateSidebar,
-  onOpenCreateProcessDialog,
+  onOpenCreateProcessDialog: _onOpenCreateProcessDialog,
 }: {
   area: SidebarArea;
   deptSlug: string;
@@ -1050,7 +1049,7 @@ function DeptItem({
   onOpenStatusConfig,
   onDeleteDept,
   addingAreaForDeptId,
-  onStartAddArea,
+  onStartAddArea: _onStartAddArea,
   onCancelAddArea,
   onCreateArea,
   isCreatingArea,

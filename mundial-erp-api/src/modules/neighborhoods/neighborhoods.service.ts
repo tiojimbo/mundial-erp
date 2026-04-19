@@ -1,7 +1,4 @@
-import {
-  Injectable,
-  NotFoundException,
-} from '@nestjs/common';
+import { Injectable, NotFoundException } from '@nestjs/common';
 import { NeighborhoodsRepository } from './neighborhoods.repository';
 import { CreateNeighborhoodDto } from './dto/create-neighborhood.dto';
 import { UpdateNeighborhoodDto } from './dto/update-neighborhood.dto';
@@ -10,7 +7,9 @@ import { PaginationDto } from '../../common/dtos/pagination.dto';
 
 @Injectable()
 export class NeighborhoodsService {
-  constructor(private readonly neighborhoodsRepository: NeighborhoodsRepository) {}
+  constructor(
+    private readonly neighborhoodsRepository: NeighborhoodsRepository,
+  ) {}
 
   async create(dto: CreateNeighborhoodDto): Promise<NeighborhoodResponseDto> {
     const entity = await this.neighborhoodsRepository.create({
@@ -41,7 +40,10 @@ export class NeighborhoodsService {
     return NeighborhoodResponseDto.fromEntity(entity);
   }
 
-  async update(id: string, dto: UpdateNeighborhoodDto): Promise<NeighborhoodResponseDto> {
+  async update(
+    id: string,
+    dto: UpdateNeighborhoodDto,
+  ): Promise<NeighborhoodResponseDto> {
     const entity = await this.neighborhoodsRepository.findById(id);
     if (!entity) {
       throw new NotFoundException('Bairro não encontrado');
@@ -49,8 +51,10 @@ export class NeighborhoodsService {
 
     const updateData: Record<string, any> = {};
     if (dto.name !== undefined) updateData.name = dto.name;
-    if (dto.cityId !== undefined) updateData.city = { connect: { id: dto.cityId } };
-    if (dto.proFinancasId !== undefined) updateData.proFinancasId = dto.proFinancasId;
+    if (dto.cityId !== undefined)
+      updateData.city = { connect: { id: dto.cityId } };
+    if (dto.proFinancasId !== undefined)
+      updateData.proFinancasId = dto.proFinancasId;
 
     const updated = await this.neighborhoodsRepository.update(id, updateData);
     return NeighborhoodResponseDto.fromEntity(updated);

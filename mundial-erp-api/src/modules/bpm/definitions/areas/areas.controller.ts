@@ -23,6 +23,7 @@ import { UpdateAreaDto } from './dto/update-area.dto';
 import { AreaResponseDto } from './dto/area-response.dto';
 import { PaginationDto } from '../../../../common/dtos/pagination.dto';
 import { Roles } from '../../../auth/decorators';
+import { WorkspaceId } from '../../../workspaces/decorators/workspace-id.decorator';
 
 @ApiTags('BPM - Areas')
 @ApiBearerAuth()
@@ -35,24 +36,29 @@ export class AreasController {
   @ApiOperation({ summary: 'Criar área' })
   @ApiResponse({ status: 201, type: AreaResponseDto })
   @ApiResponse({ status: 409, description: 'Área com este nome já existe' })
-  create(@Body() dto: CreateAreaDto) {
-    return this.areasService.create(dto);
+  create(@WorkspaceId() workspaceId: string, @Body() dto: CreateAreaDto) {
+    return this.areasService.create(workspaceId, dto);
   }
 
   @Get()
   @Roles(Role.ADMIN, Role.MANAGER, Role.OPERATOR, Role.VIEWER)
   @ApiOperation({ summary: 'Listar áreas' })
-  findAll(@Query() pagination: PaginationDto) {
-    return this.areasService.findAll(pagination);
+  findAll(
+    @WorkspaceId() workspaceId: string,
+    @Query() pagination: PaginationDto,
+  ) {
+    return this.areasService.findAll(workspaceId, pagination);
   }
 
   @Get('by-slug/:slug')
   @Roles(Role.ADMIN, Role.MANAGER, Role.OPERATOR, Role.VIEWER)
-  @ApiOperation({ summary: 'Buscar área por slug (com processos e dados do departamento)' })
+  @ApiOperation({
+    summary: 'Buscar área por slug (com processos e dados do departamento)',
+  })
   @ApiResponse({ status: 200 })
   @ApiResponse({ status: 404, description: 'Área não encontrada' })
-  findBySlug(@Param('slug') slug: string) {
-    return this.areasService.findBySlug(slug);
+  findBySlug(@WorkspaceId() workspaceId: string, @Param('slug') slug: string) {
+    return this.areasService.findBySlug(workspaceId, slug);
   }
 
   @Get(':id/process-summaries')
@@ -62,10 +68,15 @@ export class AreasController {
   })
   @ApiResponse({ status: 200 })
   getAreaProcessSummaries(
+    @WorkspaceId() workspaceId: string,
     @Param('id') id: string,
     @Query('showClosed') showClosed?: string,
   ) {
-    return this.areasService.getProcessSummaries(id, showClosed === 'true');
+    return this.areasService.getProcessSummaries(
+      workspaceId,
+      id,
+      showClosed === 'true',
+    );
   }
 
   @Get(':id')
@@ -73,16 +84,20 @@ export class AreasController {
   @ApiOperation({ summary: 'Buscar área por ID' })
   @ApiResponse({ status: 200, type: AreaResponseDto })
   @ApiResponse({ status: 404, description: 'Área não encontrada' })
-  findOne(@Param('id') id: string) {
-    return this.areasService.findById(id);
+  findOne(@WorkspaceId() workspaceId: string, @Param('id') id: string) {
+    return this.areasService.findById(workspaceId, id);
   }
 
   @Patch(':id')
   @Roles(Role.ADMIN, Role.MANAGER)
   @ApiOperation({ summary: 'Atualizar área' })
   @ApiResponse({ status: 200, type: AreaResponseDto })
-  update(@Param('id') id: string, @Body() dto: UpdateAreaDto) {
-    return this.areasService.update(id, dto);
+  update(
+    @WorkspaceId() workspaceId: string,
+    @Param('id') id: string,
+    @Body() dto: UpdateAreaDto,
+  ) {
+    return this.areasService.update(workspaceId, id, dto);
   }
 
   @Delete(':id')
@@ -90,8 +105,11 @@ export class AreasController {
   @HttpCode(HttpStatus.NO_CONTENT)
   @ApiOperation({ summary: 'Remover área (soft delete)' })
   @ApiResponse({ status: 204 })
-  @ApiResponse({ status: 400, description: 'Não é possível excluir uma área padrão' })
-  remove(@Param('id') id: string) {
-    return this.areasService.remove(id);
+  @ApiResponse({
+    status: 400,
+    description: 'Não é possível excluir uma área padrão',
+  })
+  remove(@WorkspaceId() workspaceId: string, @Param('id') id: string) {
+    return this.areasService.remove(workspaceId, id);
   }
 }

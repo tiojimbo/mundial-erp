@@ -9,7 +9,10 @@ import {
 } from 'class-validator';
 
 export class CreateAccountReceivableDto {
-  @ApiPropertyOptional({ example: 'cuid-order-id', description: 'ID do pedido vinculado' })
+  @ApiPropertyOptional({
+    example: 'cuid-order-id',
+    description: 'ID do pedido vinculado',
+  })
   @IsOptional()
   @IsString()
   orderId?: string;
@@ -19,7 +22,10 @@ export class CreateAccountReceivableDto {
   @IsNotEmpty()
   clientId: string;
 
-  @ApiPropertyOptional({ example: 'Parcela 1/3 - Pedido 0042', description: 'Descrição da conta' })
+  @ApiPropertyOptional({
+    example: 'Parcela 1/3 - Pedido 0042',
+    description: 'Descrição da conta',
+  })
   @IsOptional()
   @IsString()
   description?: string;
@@ -30,12 +36,18 @@ export class CreateAccountReceivableDto {
   @Min(1)
   amountCents: number;
 
-  @ApiProperty({ example: '2026-05-15', description: 'Data de vencimento (ISO 8601)' })
+  @ApiProperty({
+    example: '2026-05-15',
+    description: 'Data de vencimento (ISO 8601)',
+  })
   @IsDateString()
   @IsNotEmpty()
   dueDate: string;
 
-  @ApiPropertyOptional({ example: 'cuid-invoice-id', description: 'ID da nota fiscal vinculada' })
+  @ApiPropertyOptional({
+    example: 'cuid-invoice-id',
+    description: 'ID da nota fiscal vinculada',
+  })
   @IsOptional()
   @IsString()
   invoiceId?: string;

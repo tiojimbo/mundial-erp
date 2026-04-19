@@ -11,7 +11,7 @@ import * as Badge from '@/components/ui/badge';
 import * as Button from '@/components/ui/button';
 import * as Modal from '@/components/ui/modal';
 import * as Input from '@/components/ui/input';
-import { formatCents, formatDate, formatDateTime } from '@/lib/formatters';
+import { formatCents, formatDateTime } from '@/lib/formatters';
 import {
   useCashRegisters,
   useOpenCashRegister,

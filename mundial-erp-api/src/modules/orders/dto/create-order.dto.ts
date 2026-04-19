@@ -101,13 +101,19 @@ export class CreateOrderDto {
   @Min(0)
   freightCents?: number;
 
-  @ApiPropertyOptional({ example: 0, description: 'Desconto global em centavos' })
+  @ApiPropertyOptional({
+    example: 0,
+    description: 'Desconto global em centavos',
+  })
   @IsOptional()
   @IsInt()
   @Min(0)
   discountCents?: number;
 
-  @ApiPropertyOptional({ example: 0, description: 'Substituicao tributaria em centavos' })
+  @ApiPropertyOptional({
+    example: 0,
+    description: 'Substituicao tributaria em centavos',
+  })
   @IsOptional()
   @IsInt()
   @Min(0)

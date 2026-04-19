@@ -30,7 +30,9 @@ function buildRedisOptions(config: ConfigService): RedisOptions {
       useFactory: (config: ConfigService) => {
         const logger = new Logger('RedisModule');
         const opts = buildRedisOptions(config);
-        logger.log(`Redis config: host=${opts.host}, port=${opts.port}, hasPassword=${!!opts.password}`);
+        logger.log(
+          `Redis config: host=${opts.host}, port=${opts.port}, hasPassword=${!!opts.password}`,
+        );
         const client = new Redis({
           ...opts,
           maxRetriesPerRequest: 3,
@@ -60,7 +62,9 @@ function buildRedisOptions(config: ConfigService): RedisOptions {
         });
 
         client.connect().catch((err) => {
-          logger.warn(`Redis unavailable at startup: ${err.message}. App will continue without Redis.`);
+          logger.warn(
+            `Redis unavailable at startup: ${err.message}. App will continue without Redis.`,
+          );
         });
 
         return client;

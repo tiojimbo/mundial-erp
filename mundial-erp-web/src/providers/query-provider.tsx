@@ -1,11 +1,12 @@
 'use client';
 
-import { useState } from 'react';
 import { QueryClientProvider } from '@tanstack/react-query';
-import { makeQueryClient } from '@/lib/query-client';
+import { getQueryClient } from '@/lib/query-client';
 
 export function QueryProvider({ children }: { children: React.ReactNode }) {
-  const [queryClient] = useState(() => makeQueryClient());
+  // Usa singleton (browser) — mesma instância do interceptor axios.
+  // Em SSR cada request recebe instância nova (getQueryClient lida).
+  const queryClient = getQueryClient();
 
   return (
     <QueryClientProvider client={queryClient}>{children}</QueryClientProvider>

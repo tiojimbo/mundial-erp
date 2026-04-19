@@ -49,7 +49,10 @@ export class PaymentMethodsController {
   @Roles(Role.ADMIN, Role.MANAGER)
   @ApiOperation({ summary: 'Buscar método de pagamento por ID' })
   @ApiResponse({ status: 200, type: PaymentMethodResponseDto })
-  @ApiResponse({ status: 404, description: 'Método de pagamento não encontrado' })
+  @ApiResponse({
+    status: 404,
+    description: 'Método de pagamento não encontrado',
+  })
   findOne(@Param('id') id: string) {
     return this.paymentMethodsService.findById(id);
   }
@@ -65,7 +68,9 @@ export class PaymentMethodsController {
   @Delete(':id')
   @Roles(Role.ADMIN)
   @HttpCode(HttpStatus.NO_CONTENT)
-  @ApiOperation({ summary: 'Remover método de pagamento (soft delete, somente ADMIN)' })
+  @ApiOperation({
+    summary: 'Remover método de pagamento (soft delete, somente ADMIN)',
+  })
   @ApiResponse({ status: 204 })
   remove(@Param('id') id: string) {
     return this.paymentMethodsService.remove(id);

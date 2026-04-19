@@ -16,17 +16,23 @@ export class CreateProcessDto {
   @MinLength(2)
   name: string;
 
-  @ApiPropertyOptional({ description: 'ID do setor (legado, opcional para novos processos)' })
+  @ApiPropertyOptional({
+    description: 'ID do setor (legado, opcional para novos processos)',
+  })
   @IsOptional()
   @IsString()
   sectorId?: string;
 
-  @ApiPropertyOptional({ description: 'ID da área (processo dentro de uma área)' })
+  @ApiPropertyOptional({
+    description: 'ID da área (processo dentro de uma área)',
+  })
   @IsOptional()
   @IsString()
   areaId?: string;
 
-  @ApiPropertyOptional({ description: 'ID do departamento (processo direto, sem área)' })
+  @ApiPropertyOptional({
+    description: 'ID do departamento (processo direto, sem área)',
+  })
   @IsOptional()
   @IsString()
   departmentId?: string;

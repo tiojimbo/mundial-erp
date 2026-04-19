@@ -13,17 +13,26 @@ import { Type } from 'class-transformer';
 import { CreatePurchaseQuotationItemDto } from './create-purchase-quotation-item.dto';
 
 export class UpdatePurchaseQuotationDto {
-  @ApiPropertyOptional({ enum: ['DRAFT', 'SENT', 'RECEIVED'], description: 'Status da cotação' })
+  @ApiPropertyOptional({
+    enum: ['DRAFT', 'SENT', 'RECEIVED'],
+    description: 'Status da cotação',
+  })
   @IsOptional()
   @IsIn(['DRAFT', 'SENT', 'RECEIVED'])
   status?: string;
 
-  @ApiPropertyOptional({ example: '2026-04-10T00:00:00.000Z', description: 'Data de recebimento da proposta' })
+  @ApiPropertyOptional({
+    example: '2026-04-10T00:00:00.000Z',
+    description: 'Data de recebimento da proposta',
+  })
   @IsOptional()
   @IsDateString()
   receivedAt?: string;
 
-  @ApiPropertyOptional({ example: 50000, description: 'Valor total em centavos' })
+  @ApiPropertyOptional({
+    example: 50000,
+    description: 'Valor total em centavos',
+  })
   @IsOptional()
   @IsInt()
   @Min(0)
@@ -34,7 +43,10 @@ export class UpdatePurchaseQuotationDto {
   @IsString()
   notes?: string;
 
-  @ApiPropertyOptional({ type: [CreatePurchaseQuotationItemDto], description: 'Itens atualizados da cotação' })
+  @ApiPropertyOptional({
+    type: [CreatePurchaseQuotationItemDto],
+    description: 'Itens atualizados da cotação',
+  })
   @IsOptional()
   @IsArray()
   @ValidateNested({ each: true })

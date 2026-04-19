@@ -34,7 +34,10 @@ export class ActivitiesController {
   @Roles(Role.ADMIN)
   @ApiOperation({ summary: 'Criar atividade (somente ADMIN)' })
   @ApiResponse({ status: 201, type: ActivityResponseDto })
-  @ApiResponse({ status: 409, description: 'Atividade com este nome já existe' })
+  @ApiResponse({
+    status: 409,
+    description: 'Atividade com este nome já existe',
+  })
   create(@Body() dto: CreateActivityDto) {
     return this.activitiesService.create(dto);
   }

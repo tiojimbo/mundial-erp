@@ -89,6 +89,9 @@ export class SidebarDepartmentDto {
   @ApiProperty({ type: [SidebarAreaDto] })
   areas: SidebarAreaDto[];
 
-  @ApiProperty({ type: [SidebarProcessDto], description: 'Processos diretos no departamento (sem área)' })
+  @ApiProperty({
+    type: [SidebarProcessDto],
+    description: 'Processos diretos no departamento (sem área)',
+  })
   directProcesses: SidebarProcessDto[];
 }

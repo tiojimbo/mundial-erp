@@ -1,49 +1,84 @@
 import { Injectable } from '@nestjs/common';
 import { PrismaService } from '../../database/prisma.service';
 
-/**
- * Repository that abstracts PostgreSQL access for the Search module.
- * Used by:
- * - SearchService (fallback queries when ES is down)
- * - SearchIndexerService (fetching entity data to index)
- * - SearchReindexProcessor (batch fetching for reindexation)
- */
+// SCOPE: métodos públicos exigem workspaceId. forIndexer e *Batch(undefined)
+// são USO INTERNO — confiam no caller (event listener / admin reindex).
 @Injectable()
 export class SearchDataRepository {
   constructor(private readonly prisma: PrismaService) {}
 
-  // ==================== Fetch single entity (for indexing) ====================
-
-  async findClientById(id: string) {
+  async findClientByIdForIndexer(id: string) {
     return this.prisma.client.findUnique({ where: { id } });
   }
 
-  async findProductById(id: string) {
+  async findProductByIdForIndexer(id: string) {
     return this.prisma.product.findUnique({ where: { id } });
   }
 
-  async findOrderById(id: string) {
+  async findOrderByIdForIndexer(id: string) {
     return this.prisma.order.findUnique({
       where: { id },
       include: { client: { select: { name: true } } },
     });
   }
 
-  async findInvoiceById(id: string) {
+  async findInvoiceByIdForIndexer(id: string) {
     return this.prisma.invoice.findUnique({
       where: { id },
+      include: {
+        client: { select: { name: true } },
+        order: { select: { workspaceId: true } },
+        company: { select: { workspaceId: true } },
+      },
+    });
+  }
+
+  async findSupplierByIdForIndexer(id: string) {
+    return this.prisma.supplier.findUnique({ where: { id } });
+  }
+
+  async findClientById(workspaceId: string, id: string) {
+    return this.prisma.client.findFirst({ where: { id, workspaceId } });
+  }
+
+  async findProductById(workspaceId: string, id: string) {
+    return this.prisma.product.findFirst({ where: { id, workspaceId } });
+  }
+
+  async findOrderById(workspaceId: string, id: string) {
+    return this.prisma.order.findFirst({
+      where: { id, workspaceId },
       include: { client: { select: { name: true } } },
     });
   }
 
-  async findSupplierById(id: string) {
-    return this.prisma.supplier.findUnique({ where: { id } });
+  async findInvoiceById(workspaceId: string, id: string) {
+    // Invoice e transitivo: workspaceId via order/company/client.
+    return this.prisma.invoice.findFirst({
+      where: {
+        id,
+        OR: [
+          { order: { workspaceId } },
+          { company: { workspaceId } },
+          { client: { workspaceId } },
+        ],
+      },
+      include: { client: { select: { name: true } } },
+    });
   }
 
-  // ==================== Fallback search (ILIKE on PostgreSQL) ====================
+  async findSupplierById(workspaceId: string, id: string) {
+    return this.prisma.supplier.findFirst({ where: { id, workspaceId } });
+  }
 
-  async searchClients(query: string, skip: number, take: number) {
+  async searchClients(
+    workspaceId: string,
+    query: string,
+    skip: number,
+    take: number,
+  ) {
     const where = {
+      workspaceId,
       deletedAt: null,
       OR: [
         { name: { contains: query, mode: 'insensitive' as const } },
@@ -55,14 +90,25 @@ export class SearchDataRepository {
       ],
     };
     const [items, total] = await Promise.all([
-      this.prisma.client.findMany({ where, skip, take, orderBy: { updatedAt: 'desc' } }),
+      this.prisma.client.findMany({
+        where,
+        skip,
+        take,
+        orderBy: { updatedAt: 'desc' },
+      }),
       this.prisma.client.count({ where }),
     ]);
     return { items, total };
   }
 
-  async searchProducts(query: string, skip: number, take: number) {
+  async searchProducts(
+    workspaceId: string,
+    query: string,
+    skip: number,
+    take: number,
+  ) {
     const where = {
+      workspaceId,
       deletedAt: null,
       OR: [
         { name: { contains: query, mode: 'insensitive' as const } },
@@ -71,14 +117,25 @@ export class SearchDataRepository {
       ],
     };
     const [items, total] = await Promise.all([
-      this.prisma.product.findMany({ where, skip, take, orderBy: { updatedAt: 'desc' } }),
+      this.prisma.product.findMany({
+        where,
+        skip,
+        take,
+        orderBy: { updatedAt: 'desc' },
+      }),
       this.prisma.product.count({ where }),
     ]);
     return { items, total };
   }
 
-  async searchOrders(query: string, skip: number, take: number) {
+  async searchOrders(
+    workspaceId: string,
+    query: string,
+    skip: number,
+    take: number,
+  ) {
     const where = {
+      workspaceId,
       deletedAt: null,
       OR: [
         { orderNumber: { contains: query, mode: 'insensitive' as const } },
@@ -98,13 +155,26 @@ export class SearchDataRepository {
     return { items, total };
   }
 
-  async searchInvoices(query: string, skip: number, take: number) {
+  async searchInvoices(
+    workspaceId: string,
+    query: string,
+    skip: number,
+    take: number,
+  ) {
+    // Invoice transitivo via order/company/client.
     const where = {
-      deletedAt: null,
       OR: [
-        { invoiceNumber: { contains: query, mode: 'insensitive' as const } },
-        { accessKey: { contains: query, mode: 'insensitive' as const } },
+        { order: { workspaceId } },
+        { company: { workspaceId } },
+        { client: { workspaceId } },
       ],
+      deletedAt: null,
+      AND: {
+        OR: [
+          { invoiceNumber: { contains: query, mode: 'insensitive' as const } },
+          { accessKey: { contains: query, mode: 'insensitive' as const } },
+        ],
+      },
     };
     const [items, total] = await Promise.all([
       this.prisma.invoice.findMany({
@@ -119,8 +189,14 @@ export class SearchDataRepository {
     return { items, total };
   }
 
-  async searchSuppliers(query: string, skip: number, take: number) {
+  async searchSuppliers(
+    workspaceId: string,
+    query: string,
+    skip: number,
+    take: number,
+  ) {
     const where = {
+      workspaceId,
       deletedAt: null,
       OR: [
         { name: { contains: query, mode: 'insensitive' as const } },
@@ -130,36 +206,55 @@ export class SearchDataRepository {
       ],
     };
     const [items, total] = await Promise.all([
-      this.prisma.supplier.findMany({ where, skip, take, orderBy: { updatedAt: 'desc' } }),
+      this.prisma.supplier.findMany({
+        where,
+        skip,
+        take,
+        orderBy: { updatedAt: 'desc' },
+      }),
       this.prisma.supplier.count({ where }),
     ]);
     return { items, total };
   }
 
-  // ==================== Batch fetch (for reindexation) ====================
-
-  async countClients() {
-    return this.prisma.client.count();
+  // workspaceId undefined = reindex GLOBAL admin; demais chamadas passam id.
+  private maybeWs(workspaceId?: string) {
+    return workspaceId ? { workspaceId } : {};
   }
 
-  async findClientsBatch(skip: number, take: number) {
-    return this.prisma.client.findMany({ skip, take, orderBy: { createdAt: 'asc' } });
+  async countClients(workspaceId?: string) {
+    return this.prisma.client.count({ where: this.maybeWs(workspaceId) });
   }
 
-  async countProducts() {
-    return this.prisma.product.count();
+  async findClientsBatch(skip: number, take: number, workspaceId?: string) {
+    return this.prisma.client.findMany({
+      where: this.maybeWs(workspaceId),
+      skip,
+      take,
+      orderBy: { createdAt: 'asc' },
+    });
   }
 
-  async findProductsBatch(skip: number, take: number) {
-    return this.prisma.product.findMany({ skip, take, orderBy: { createdAt: 'asc' } });
+  async countProducts(workspaceId?: string) {
+    return this.prisma.product.count({ where: this.maybeWs(workspaceId) });
   }
 
-  async countOrders() {
-    return this.prisma.order.count();
+  async findProductsBatch(skip: number, take: number, workspaceId?: string) {
+    return this.prisma.product.findMany({
+      where: this.maybeWs(workspaceId),
+      skip,
+      take,
+      orderBy: { createdAt: 'asc' },
+    });
   }
 
-  async findOrdersBatch(skip: number, take: number) {
+  async countOrders(workspaceId?: string) {
+    return this.prisma.order.count({ where: this.maybeWs(workspaceId) });
+  }
+
+  async findOrdersBatch(skip: number, take: number, workspaceId?: string) {
     return this.prisma.order.findMany({
+      where: this.maybeWs(workspaceId),
       skip,
       take,
       include: { client: { select: { name: true } } },
@@ -167,24 +262,51 @@ export class SearchDataRepository {
     });
   }
 
-  async countInvoices() {
-    return this.prisma.invoice.count();
+  async countInvoices(workspaceId?: string) {
+    if (!workspaceId) return this.prisma.invoice.count();
+    return this.prisma.invoice.count({
+      where: {
+        OR: [
+          { order: { workspaceId } },
+          { company: { workspaceId } },
+          { client: { workspaceId } },
+        ],
+      },
+    });
   }
 
-  async findInvoicesBatch(skip: number, take: number) {
+  async findInvoicesBatch(skip: number, take: number, workspaceId?: string) {
     return this.prisma.invoice.findMany({
+      where: workspaceId
+        ? {
+            OR: [
+              { order: { workspaceId } },
+              { company: { workspaceId } },
+              { client: { workspaceId } },
+            ],
+          }
+        : {},
       skip,
       take,
-      include: { client: { select: { name: true } } },
+      include: {
+        client: { select: { name: true } },
+        order: { select: { workspaceId: true } },
+        company: { select: { workspaceId: true } },
+      },
       orderBy: { createdAt: 'asc' },
     });
   }
 
-  async countSuppliers() {
-    return this.prisma.supplier.count();
+  async countSuppliers(workspaceId?: string) {
+    return this.prisma.supplier.count({ where: this.maybeWs(workspaceId) });
   }
 
-  async findSuppliersBatch(skip: number, take: number) {
-    return this.prisma.supplier.findMany({ skip, take, orderBy: { createdAt: 'asc' } });
+  async findSuppliersBatch(skip: number, take: number, workspaceId?: string) {
+    return this.prisma.supplier.findMany({
+      where: this.maybeWs(workspaceId),
+      skip,
+      take,
+      orderBy: { createdAt: 'asc' },
+    });
   }
 }

@@ -29,7 +29,7 @@ export class ClientMapper {
   ): ClientMappedData {
     return {
       personType: pf.tipo === 'J' ? PersonType.J : PersonType.F,
-      cpfCnpj: (pf.cnpj_cpf || '').replace(/[.\-\/]/g, ''),
+      cpfCnpj: (pf.cnpj_cpf || '').replace(/[.\-/]/g, ''),
       name: pf.razao_social,
       tradeName: pf.nome_fantasia || null,
       ie: pf.ie || null,

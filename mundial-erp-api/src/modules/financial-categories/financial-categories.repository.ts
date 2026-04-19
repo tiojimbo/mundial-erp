@@ -6,26 +6,35 @@ import { PrismaService } from '../../database/prisma.service';
 export class FinancialCategoriesRepository {
   constructor(private readonly prisma: PrismaService) {}
 
-  async create(data: Prisma.FinancialCategoryCreateInput) {
-    return this.prisma.financialCategory.create({ data });
+  async create(workspaceId: string, data: Prisma.FinancialCategoryCreateInput) {
+    return this.prisma.financialCategory.create({
+      data: {
+        ...data,
+        workspace: { connect: { id: workspaceId } },
+      },
+    });
   }
 
-  async findById(id: string) {
+  async findById(workspaceId: string, id: string) {
     return this.prisma.financialCategory.findFirst({
-      where: { id, deletedAt: null },
+      where: { id, workspaceId, deletedAt: null },
       include: { children: { where: { deletedAt: null } } },
     });
   }
 
-  async findMany(params: {
-    skip?: number;
-    take?: number;
-    search?: string;
-    type?: string;
-  }) {
+  async findMany(
+    workspaceId: string,
+    params: {
+      skip?: number;
+      take?: number;
+      search?: string;
+      type?: string;
+    },
+  ) {
     const { skip = 0, take = 20, search, type } = params;
 
     const where: Prisma.FinancialCategoryWhereInput = {
+      workspaceId,
       deletedAt: null,
       ...(search && {
         name: { contains: search, mode: 'insensitive' as const },
@@ -47,10 +56,14 @@ export class FinancialCategoriesRepository {
     return { items, total };
   }
 
-  async findRoots(params: { skip?: number; take?: number }) {
+  async findRoots(
+    workspaceId: string,
+    params: { skip?: number; take?: number },
+  ) {
     const { skip = 0, take = 20 } = params;
 
     const where: Prisma.FinancialCategoryWhereInput = {
+      workspaceId,
       deletedAt: null,
       parentId: null,
     };
@@ -69,11 +82,15 @@ export class FinancialCategoriesRepository {
     return { items, total };
   }
 
-  async update(id: string, data: Prisma.FinancialCategoryUpdateInput) {
+  async update(
+    _workspaceId: string,
+    id: string,
+    data: Prisma.FinancialCategoryUpdateInput,
+  ) {
     return this.prisma.financialCategory.update({ where: { id }, data });
   }
 
-  async softDelete(id: string) {
+  async softDelete(_workspaceId: string, id: string) {
     return this.prisma.financialCategory.update({
       where: { id },
       data: { deletedAt: new Date() },

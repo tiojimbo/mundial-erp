@@ -24,22 +24,28 @@ export class DepartmentsService {
       .replace(/(^-|-$)/g, '');
   }
 
-  private async resolveUniqueSlug(baseSlug: string): Promise<string> {
+  private async resolveUniqueSlug(
+    workspaceId: string,
+    baseSlug: string,
+  ): Promise<string> {
     let slug = baseSlug;
     let suffix = 0;
-    while (await this.departmentsRepository.slugExists(slug)) {
+    while (await this.departmentsRepository.slugExists(workspaceId, slug)) {
       suffix++;
       slug = `${baseSlug}-${suffix}`;
     }
     return slug;
   }
 
-  async create(dto: CreateDepartmentDto): Promise<DepartmentResponseDto> {
+  async create(
+    workspaceId: string,
+    dto: CreateDepartmentDto,
+  ): Promise<DepartmentResponseDto> {
     const baseSlug = this.generateSlug(dto.name);
-    const slug = await this.resolveUniqueSlug(baseSlug);
+    const slug = await this.resolveUniqueSlug(workspaceId, baseSlug);
 
     try {
-      const entity = await this.departmentsRepository.create({
+      const entity = await this.departmentsRepository.create(workspaceId, {
         name: dto.name,
         slug,
         description: dto.description,
@@ -61,27 +67,37 @@ export class DepartmentsService {
     }
   }
 
-  async findAll(pagination: PaginationDto) {
-    const { items, total } = await this.departmentsRepository.findMany({
-      skip: pagination.skip,
-      take: pagination.limit,
-    });
+  async findAll(workspaceId: string, pagination: PaginationDto) {
+    const { items, total } = await this.departmentsRepository.findMany(
+      workspaceId,
+      {
+        skip: pagination.skip,
+        take: pagination.limit,
+      },
+    );
     return {
       items: items.map(DepartmentResponseDto.fromEntity),
       total,
     };
   }
 
-  async findById(id: string): Promise<DepartmentResponseDto> {
-    const entity = await this.departmentsRepository.findById(id);
+  async findById(
+    workspaceId: string,
+    id: string,
+  ): Promise<DepartmentResponseDto> {
+    const entity = await this.departmentsRepository.findById(workspaceId, id);
     if (!entity) {
       throw new NotFoundException('Departamento não encontrado');
     }
     return DepartmentResponseDto.fromEntity(entity);
   }
 
-  async update(id: string, dto: UpdateDepartmentDto): Promise<DepartmentResponseDto> {
-    const entity = await this.departmentsRepository.findById(id);
+  async update(
+    workspaceId: string,
+    id: string,
+    dto: UpdateDepartmentDto,
+  ): Promise<DepartmentResponseDto> {
+    const entity = await this.departmentsRepository.findById(workspaceId, id);
     if (!entity) {
       throw new NotFoundException('Departamento não encontrado');
     }
@@ -90,9 +106,10 @@ export class DepartmentsService {
     if (dto.name !== undefined) {
       updateData.name = dto.name;
       const baseSlug = this.generateSlug(dto.name);
-      updateData.slug = entity.slug === baseSlug
-        ? baseSlug
-        : await this.resolveUniqueSlug(baseSlug);
+      updateData.slug =
+        entity.slug === baseSlug
+          ? baseSlug
+          : await this.resolveUniqueSlug(workspaceId, baseSlug);
     }
     if (dto.description !== undefined) updateData.description = dto.description;
     if (dto.icon !== undefined) updateData.icon = dto.icon;
@@ -101,7 +118,11 @@ export class DepartmentsService {
     if (dto.sortOrder !== undefined) updateData.sortOrder = dto.sortOrder;
 
     try {
-      const updated = await this.departmentsRepository.update(id, updateData);
+      const updated = await this.departmentsRepository.update(
+        workspaceId,
+        id,
+        updateData,
+      );
       return DepartmentResponseDto.fromEntity(updated);
     } catch (error) {
       if (
@@ -114,19 +135,22 @@ export class DepartmentsService {
     }
   }
 
-  async remove(id: string): Promise<void> {
-    const entity = await this.departmentsRepository.findById(id);
+  async remove(workspaceId: string, id: string): Promise<void> {
+    const entity = await this.departmentsRepository.findById(workspaceId, id);
     if (!entity) {
       throw new NotFoundException('Departamento não encontrado');
     }
     if (entity.isProtected) {
-      throw new ForbiddenException('Departamento protegido não pode ser removido');
+      throw new ForbiddenException(
+        'Departamento protegido não pode ser removido',
+      );
     }
-    await this.departmentsRepository.softDelete(id);
+    await this.departmentsRepository.softDelete(workspaceId, id);
   }
 
-  async getSidebarTree() {
-    const departments = await this.departmentsRepository.getSidebarTree();
+  async getSidebarTree(workspaceId: string) {
+    const departments =
+      await this.departmentsRepository.getSidebarTree(workspaceId);
     return departments.map((dept) => ({
       id: dept.id,
       name: dept.name,
@@ -143,19 +167,30 @@ export class DepartmentsService {
     }));
   }
 
-  async getProcessSummaries(departmentId: string, showClosed = false) {
-    const entity = await this.departmentsRepository.findById(departmentId);
+  async getProcessSummaries(
+    workspaceId: string,
+    departmentId: string,
+    showClosed = false,
+  ) {
+    const entity = await this.departmentsRepository.findById(
+      workspaceId,
+      departmentId,
+    );
     if (!entity) {
       throw new NotFoundException('Departamento não encontrado');
     }
     return this.departmentsRepository.getProcessSummaries(
+      workspaceId,
       departmentId,
       showClosed,
     );
   }
 
-  async findBySlug(slug: string) {
-    const entity = await this.departmentsRepository.findBySlugWithDetails(slug);
+  async findBySlug(workspaceId: string, slug: string) {
+    const entity = await this.departmentsRepository.findBySlugWithDetails(
+      workspaceId,
+      slug,
+    );
     if (!entity) {
       throw new NotFoundException('Departamento não encontrado');
     }

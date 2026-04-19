@@ -62,7 +62,7 @@ function BoardColumn({ group }: { group: WorkItemGroup }) {
 
 export function WorkItemBoardView({
   processId,
-  departmentId,
+  departmentId: _departmentId,
 }: {
   processId: string;
   departmentId: string;

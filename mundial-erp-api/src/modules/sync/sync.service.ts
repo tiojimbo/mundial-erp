@@ -107,14 +107,28 @@ export class SyncService {
           const checksum = SyncMappingRepository.computeChecksum(
             CompanyMapper.checksumFields(pf),
           );
-          if (!(await this.syncMappingRepo.hasChanged(SyncEntity.COMPANY, pf.id, checksum))) {
+          if (
+            !(await this.syncMappingRepo.hasChanged(
+              SyncEntity.COMPANY,
+              pf.id,
+              checksum,
+            ))
+          ) {
             await this.syncLogRepo.incrementSynced(syncLog.id);
             continue;
           }
 
           const data = CompanyMapper.toCreateInput(pf);
-          const record = await this.companiesRepo.upsertByProFinancasId(pf.id, data);
-          await this.syncMappingRepo.upsert(SyncEntity.COMPANY, pf.id, record.id, checksum);
+          const record = await this.companiesRepo.upsertByProFinancasId(
+            pf.id,
+            data,
+          );
+          await this.syncMappingRepo.upsert(
+            SyncEntity.COMPANY,
+            pf.id,
+            record.id,
+            checksum,
+          );
           await this.syncLogRepo.incrementSynced(syncLog.id);
         } catch (err) {
           this.logger.error(`Company PF#${pf.id}: ${(err as Error).message}`);
@@ -150,8 +164,12 @@ export class SyncService {
     }
   }
 
-  async syncClientClassifications(onProgress?: (msg: string) => void): Promise<void> {
-    const syncLog = await this.syncLogRepo.create(SyncEntity.CLIENT_CLASSIFICATION);
+  async syncClientClassifications(
+    onProgress?: (msg: string) => void,
+  ): Promise<void> {
+    const syncLog = await this.syncLogRepo.create(
+      SyncEntity.CLIENT_CLASSIFICATION,
+    );
     try {
       const pfData = await this.pfClient.listClientClassifications();
       await this.syncLogRepo.markInProgress(syncLog.id, pfData.length);
@@ -162,17 +180,33 @@ export class SyncService {
           const checksum = SyncMappingRepository.computeChecksum(
             ClientClassificationMapper.checksumFields(pf),
           );
-          if (!(await this.syncMappingRepo.hasChanged(SyncEntity.CLIENT_CLASSIFICATION, pf.id, checksum))) {
+          if (
+            !(await this.syncMappingRepo.hasChanged(
+              SyncEntity.CLIENT_CLASSIFICATION,
+              pf.id,
+              checksum,
+            ))
+          ) {
             await this.syncLogRepo.incrementSynced(syncLog.id);
             continue;
           }
 
           const data = ClientClassificationMapper.toCreateInput(pf);
-          const record = await this.classificationsRepo.upsertByProFinancasId(pf.id, data);
-          await this.syncMappingRepo.upsert(SyncEntity.CLIENT_CLASSIFICATION, pf.id, record.id, checksum);
+          const record = await this.classificationsRepo.upsertByProFinancasId(
+            pf.id,
+            data,
+          );
+          await this.syncMappingRepo.upsert(
+            SyncEntity.CLIENT_CLASSIFICATION,
+            pf.id,
+            record.id,
+            checksum,
+          );
           await this.syncLogRepo.incrementSynced(syncLog.id);
         } catch (err) {
-          this.logger.error(`Classification PF#${pf.id}: ${(err as Error).message}`);
+          this.logger.error(
+            `Classification PF#${pf.id}: ${(err as Error).message}`,
+          );
           await this.syncLogRepo.incrementFailed(syncLog.id);
         }
       }
@@ -196,17 +230,33 @@ export class SyncService {
           const checksum = SyncMappingRepository.computeChecksum(
             DeliveryRouteMapper.checksumFields(pf),
           );
-          if (!(await this.syncMappingRepo.hasChanged(SyncEntity.DELIVERY_ROUTE, pf.id, checksum))) {
+          if (
+            !(await this.syncMappingRepo.hasChanged(
+              SyncEntity.DELIVERY_ROUTE,
+              pf.id,
+              checksum,
+            ))
+          ) {
             await this.syncLogRepo.incrementSynced(syncLog.id);
             continue;
           }
 
           const data = DeliveryRouteMapper.toCreateInput(pf);
-          const record = await this.deliveryRoutesRepo.upsertByProFinancasId(pf.id, data);
-          await this.syncMappingRepo.upsert(SyncEntity.DELIVERY_ROUTE, pf.id, record.id, checksum);
+          const record = await this.deliveryRoutesRepo.upsertByProFinancasId(
+            pf.id,
+            data,
+          );
+          await this.syncMappingRepo.upsert(
+            SyncEntity.DELIVERY_ROUTE,
+            pf.id,
+            record.id,
+            checksum,
+          );
           await this.syncLogRepo.incrementSynced(syncLog.id);
         } catch (err) {
-          this.logger.error(`DeliveryRoute PF#${pf.id}: ${(err as Error).message}`);
+          this.logger.error(
+            `DeliveryRoute PF#${pf.id}: ${(err as Error).message}`,
+          );
           await this.syncLogRepo.incrementFailed(syncLog.id);
         }
       }
@@ -230,17 +280,33 @@ export class SyncService {
           const checksum = SyncMappingRepository.computeChecksum(
             PaymentMethodMapper.checksumFields(pf),
           );
-          if (!(await this.syncMappingRepo.hasChanged(SyncEntity.PAYMENT_METHOD, pf.id, checksum))) {
+          if (
+            !(await this.syncMappingRepo.hasChanged(
+              SyncEntity.PAYMENT_METHOD,
+              pf.id,
+              checksum,
+            ))
+          ) {
             await this.syncLogRepo.incrementSynced(syncLog.id);
             continue;
           }
 
           const data = PaymentMethodMapper.toCreateInput(pf);
-          const record = await this.paymentMethodsRepo.upsertByProFinancasId(pf.id, data);
-          await this.syncMappingRepo.upsert(SyncEntity.PAYMENT_METHOD, pf.id, record.id, checksum);
+          const record = await this.paymentMethodsRepo.upsertByProFinancasId(
+            pf.id,
+            data,
+          );
+          await this.syncMappingRepo.upsert(
+            SyncEntity.PAYMENT_METHOD,
+            pf.id,
+            record.id,
+            checksum,
+          );
           await this.syncLogRepo.incrementSynced(syncLog.id);
         } catch (err) {
-          this.logger.error(`PaymentMethod PF#${pf.id}: ${(err as Error).message}`);
+          this.logger.error(
+            `PaymentMethod PF#${pf.id}: ${(err as Error).message}`,
+          );
           await this.syncLogRepo.incrementFailed(syncLog.id);
         }
       }
@@ -264,14 +330,28 @@ export class SyncService {
           const checksum = SyncMappingRepository.computeChecksum(
             CarrierMapper.checksumFields(pf),
           );
-          if (!(await this.syncMappingRepo.hasChanged(SyncEntity.CARRIER, pf.id, checksum))) {
+          if (
+            !(await this.syncMappingRepo.hasChanged(
+              SyncEntity.CARRIER,
+              pf.id,
+              checksum,
+            ))
+          ) {
             await this.syncLogRepo.incrementSynced(syncLog.id);
             continue;
           }
 
           const data = CarrierMapper.toCreateInput(pf);
-          const record = await this.carriersRepo.upsertByProFinancasId(pf.id, data);
-          await this.syncMappingRepo.upsert(SyncEntity.CARRIER, pf.id, record.id, checksum);
+          const record = await this.carriersRepo.upsertByProFinancasId(
+            pf.id,
+            data,
+          );
+          await this.syncMappingRepo.upsert(
+            SyncEntity.CARRIER,
+            pf.id,
+            record.id,
+            checksum,
+          );
           await this.syncLogRepo.incrementSynced(syncLog.id);
         } catch (err) {
           this.logger.error(`Carrier PF#${pf.id}: ${(err as Error).message}`);
@@ -298,14 +378,28 @@ export class SyncService {
           const checksum = SyncMappingRepository.computeChecksum(
             OrderTypeMapper.checksumFields(pf),
           );
-          if (!(await this.syncMappingRepo.hasChanged(SyncEntity.ORDER_TYPE, pf.id, checksum))) {
+          if (
+            !(await this.syncMappingRepo.hasChanged(
+              SyncEntity.ORDER_TYPE,
+              pf.id,
+              checksum,
+            ))
+          ) {
             await this.syncLogRepo.incrementSynced(syncLog.id);
             continue;
           }
 
           const data = OrderTypeMapper.toCreateInput(pf);
-          const record = await this.orderTypesRepo.upsertByProFinancasId(pf.id, data);
-          await this.syncMappingRepo.upsert(SyncEntity.ORDER_TYPE, pf.id, record.id, checksum);
+          const record = await this.orderTypesRepo.upsertByProFinancasId(
+            pf.id,
+            data,
+          );
+          await this.syncMappingRepo.upsert(
+            SyncEntity.ORDER_TYPE,
+            pf.id,
+            record.id,
+            checksum,
+          );
           await this.syncLogRepo.incrementSynced(syncLog.id);
         } catch (err) {
           this.logger.error(`OrderType PF#${pf.id}: ${(err as Error).message}`);
@@ -332,14 +426,28 @@ export class SyncService {
           const checksum = SyncMappingRepository.computeChecksum(
             OrderFlowMapper.checksumFields(pf),
           );
-          if (!(await this.syncMappingRepo.hasChanged(SyncEntity.ORDER_FLOW, pf.id, checksum))) {
+          if (
+            !(await this.syncMappingRepo.hasChanged(
+              SyncEntity.ORDER_FLOW,
+              pf.id,
+              checksum,
+            ))
+          ) {
             await this.syncLogRepo.incrementSynced(syncLog.id);
             continue;
           }
 
           const data = OrderFlowMapper.toCreateInput(pf);
-          const record = await this.orderFlowsRepo.upsertByProFinancasId(pf.id, data);
-          await this.syncMappingRepo.upsert(SyncEntity.ORDER_FLOW, pf.id, record.id, checksum);
+          const record = await this.orderFlowsRepo.upsertByProFinancasId(
+            pf.id,
+            data,
+          );
+          await this.syncMappingRepo.upsert(
+            SyncEntity.ORDER_FLOW,
+            pf.id,
+            record.id,
+            checksum,
+          );
           await this.syncLogRepo.incrementSynced(syncLog.id);
         } catch (err) {
           this.logger.error(`OrderFlow PF#${pf.id}: ${(err as Error).message}`);
@@ -366,17 +474,33 @@ export class SyncService {
           const checksum = SyncMappingRepository.computeChecksum(
             OrderModelMapper.checksumFields(pf),
           );
-          if (!(await this.syncMappingRepo.hasChanged(SyncEntity.ORDER_MODEL, pf.id, checksum))) {
+          if (
+            !(await this.syncMappingRepo.hasChanged(
+              SyncEntity.ORDER_MODEL,
+              pf.id,
+              checksum,
+            ))
+          ) {
             await this.syncLogRepo.incrementSynced(syncLog.id);
             continue;
           }
 
           const data = OrderModelMapper.toCreateInput(pf);
-          const record = await this.orderModelsRepo.upsertByProFinancasId(pf.id, data);
-          await this.syncMappingRepo.upsert(SyncEntity.ORDER_MODEL, pf.id, record.id, checksum);
+          const record = await this.orderModelsRepo.upsertByProFinancasId(
+            pf.id,
+            data,
+          );
+          await this.syncMappingRepo.upsert(
+            SyncEntity.ORDER_MODEL,
+            pf.id,
+            record.id,
+            checksum,
+          );
           await this.syncLogRepo.incrementSynced(syncLog.id);
         } catch (err) {
-          this.logger.error(`OrderModel PF#${pf.id}: ${(err as Error).message}`);
+          this.logger.error(
+            `OrderModel PF#${pf.id}: ${(err as Error).message}`,
+          );
           await this.syncLogRepo.incrementFailed(syncLog.id);
         }
       }
@@ -400,7 +524,13 @@ export class SyncService {
           const checksum = SyncMappingRepository.computeChecksum(
             ClientMapper.checksumFields(pf),
           );
-          if (!(await this.syncMappingRepo.hasChanged(SyncEntity.CLIENT, pf.id, checksum))) {
+          if (
+            !(await this.syncMappingRepo.hasChanged(
+              SyncEntity.CLIENT,
+              pf.id,
+              checksum,
+            ))
+          ) {
             await this.syncLogRepo.incrementSynced(syncLog.id);
             continue;
           }
@@ -420,9 +550,21 @@ export class SyncService {
               )
             : null;
 
-          const mapped = ClientMapper.toMappedData(pf, classificationErpId, deliveryRouteErpId);
-          const record = await this.clientsRepo.upsertByProFinancasId(pf.id, mapped);
-          await this.syncMappingRepo.upsert(SyncEntity.CLIENT, pf.id, record.id, checksum);
+          const mapped = ClientMapper.toMappedData(
+            pf,
+            classificationErpId,
+            deliveryRouteErpId,
+          );
+          const record = await this.clientsRepo.upsertByProFinancasId(
+            pf.id,
+            mapped,
+          );
+          await this.syncMappingRepo.upsert(
+            SyncEntity.CLIENT,
+            pf.id,
+            record.id,
+            checksum,
+          );
           await this.syncLogRepo.incrementSynced(syncLog.id);
         } catch (err) {
           this.logger.error(`Client PF#${pf.id}: ${(err as Error).message}`);
@@ -468,28 +610,60 @@ export class SyncService {
           const checksum = SyncMappingRepository.computeChecksum(
             OrderMapper.checksumFields(pf),
           );
-          if (!(await this.syncMappingRepo.hasChanged(SyncEntity.ORDER, pf.id, checksum))) {
+          if (
+            !(await this.syncMappingRepo.hasChanged(
+              SyncEntity.ORDER,
+              pf.id,
+              checksum,
+            ))
+          ) {
             if (pf.codigo > maxOrderNumber) maxOrderNumber = pf.codigo;
             await this.syncLogRepo.incrementSynced(syncLog.id);
             continue;
           }
 
           // Resolve FK references from pre-loaded cache
-          const clientErpId = mappingCache.get(SyncEntity.CLIENT)?.get(pf.cliente_id) ?? null;
+          const clientErpId =
+            mappingCache.get(SyncEntity.CLIENT)?.get(pf.cliente_id) ?? null;
           if (!clientErpId) {
-            this.logger.warn(`Order PF#${pf.id}: client PF#${pf.cliente_id} not found, skipping`);
+            this.logger.warn(
+              `Order PF#${pf.id}: client PF#${pf.cliente_id} not found, skipping`,
+            );
             await this.syncLogRepo.incrementFailed(syncLog.id);
             continue;
           }
 
           const mapped = OrderMapper.toMappedData(pf, {
             clientId: clientErpId,
-            companyId: pf.empresa_id ? mappingCache.get(SyncEntity.COMPANY)?.get(pf.empresa_id) ?? null : null,
-            paymentMethodId: pf.pedido_forma_pagamento_id ? mappingCache.get(SyncEntity.PAYMENT_METHOD)?.get(pf.pedido_forma_pagamento_id) ?? null : null,
-            carrierId: pf.transportadora_id ? mappingCache.get(SyncEntity.CARRIER)?.get(pf.transportadora_id) ?? null : null,
-            orderTypeId: pf.pedido_tipo_id ? mappingCache.get(SyncEntity.ORDER_TYPE)?.get(pf.pedido_tipo_id) ?? null : null,
-            orderFlowId: pf.pedido_fluxo_id ? mappingCache.get(SyncEntity.ORDER_FLOW)?.get(pf.pedido_fluxo_id) ?? null : null,
-            orderModelId: pf.pedido_modelo_id ? mappingCache.get(SyncEntity.ORDER_MODEL)?.get(pf.pedido_modelo_id) ?? null : null,
+            companyId: pf.empresa_id
+              ? (mappingCache.get(SyncEntity.COMPANY)?.get(pf.empresa_id) ??
+                null)
+              : null,
+            paymentMethodId: pf.pedido_forma_pagamento_id
+              ? (mappingCache
+                  .get(SyncEntity.PAYMENT_METHOD)
+                  ?.get(pf.pedido_forma_pagamento_id) ?? null)
+              : null,
+            carrierId: pf.transportadora_id
+              ? (mappingCache
+                  .get(SyncEntity.CARRIER)
+                  ?.get(pf.transportadora_id) ?? null)
+              : null,
+            orderTypeId: pf.pedido_tipo_id
+              ? (mappingCache
+                  .get(SyncEntity.ORDER_TYPE)
+                  ?.get(pf.pedido_tipo_id) ?? null)
+              : null,
+            orderFlowId: pf.pedido_fluxo_id
+              ? (mappingCache
+                  .get(SyncEntity.ORDER_FLOW)
+                  ?.get(pf.pedido_fluxo_id) ?? null)
+              : null,
+            orderModelId: pf.pedido_modelo_id
+              ? (mappingCache
+                  .get(SyncEntity.ORDER_MODEL)
+                  ?.get(pf.pedido_modelo_id) ?? null)
+              : null,
           });
 
           // Upsert order + items in transaction (C3 fix: atomic delete+create)
@@ -508,7 +682,9 @@ export class SyncService {
               id = existing.id;
             } else {
               if (!systemUser) {
-                throw new Error(`No system user found — cannot create order PF#${pf.id}`);
+                throw new Error(
+                  `No system user found — cannot create order PF#${pf.id}`,
+                );
               }
               const created = await tx.order.create({
                 data: {
@@ -543,7 +719,12 @@ export class SyncService {
             return id;
           });
 
-          await this.syncMappingRepo.upsert(SyncEntity.ORDER, pf.id, orderId, checksum);
+          await this.syncMappingRepo.upsert(
+            SyncEntity.ORDER,
+            pf.id,
+            orderId,
+            checksum,
+          );
           if (pf.codigo > maxOrderNumber) maxOrderNumber = pf.codigo;
           await this.syncLogRepo.incrementSynced(syncLog.id);
         } catch (err) {

@@ -43,10 +43,20 @@ export class SeparationOrdersController {
   // GET /separation-orders
   @Get()
   @Roles(Role.ADMIN, Role.MANAGER, Role.OPERATOR)
-  @ApiOperation({ summary: 'Listar ordens de separacao (filtro por orderId, status, search)' })
-  @ApiQuery({ name: 'orderId', required: false, description: 'Filtrar por pedido' })
+  @ApiOperation({
+    summary: 'Listar ordens de separacao (filtro por orderId, status, search)',
+  })
+  @ApiQuery({
+    name: 'orderId',
+    required: false,
+    description: 'Filtrar por pedido',
+  })
   @ApiQuery({ name: 'status', required: false, enum: SeparationOrderStatus })
-  @ApiQuery({ name: 'search', required: false, description: 'Buscar por codigo' })
+  @ApiQuery({
+    name: 'search',
+    required: false,
+    description: 'Buscar por codigo',
+  })
   @ApiResponse({ status: 200, type: SeparationOrderResponseDto, isArray: true })
   findAll(
     @Query() pagination: PaginationDto,
@@ -62,7 +72,10 @@ export class SeparationOrdersController {
   @Roles(Role.ADMIN, Role.MANAGER, Role.OPERATOR)
   @ApiOperation({ summary: 'Detalhe da ordem de separacao' })
   @ApiResponse({ status: 200, type: SeparationOrderResponseDto })
-  @ApiResponse({ status: 404, description: 'Ordem de separacao nao encontrada' })
+  @ApiResponse({
+    status: 404,
+    description: 'Ordem de separacao nao encontrada',
+  })
   findOne(@Param('id') id: string) {
     return this.service.findById(id);
   }
@@ -72,7 +85,10 @@ export class SeparationOrdersController {
   @Roles(Role.ADMIN, Role.MANAGER, Role.OPERATOR)
   @ApiOperation({ summary: 'Atualizar ordem de separacao' })
   @ApiResponse({ status: 200, type: SeparationOrderResponseDto })
-  @ApiResponse({ status: 404, description: 'Ordem de separacao nao encontrada' })
+  @ApiResponse({
+    status: 404,
+    description: 'Ordem de separacao nao encontrada',
+  })
   update(@Param('id') id: string, @Body() dto: UpdateSeparationOrderDto) {
     return this.service.update(id, dto);
   }
@@ -83,7 +99,10 @@ export class SeparationOrdersController {
   @HttpCode(HttpStatus.NO_CONTENT)
   @ApiOperation({ summary: 'Remover ordem de separacao (soft delete)' })
   @ApiResponse({ status: 204 })
-  @ApiResponse({ status: 404, description: 'Ordem de separacao nao encontrada' })
+  @ApiResponse({
+    status: 404,
+    description: 'Ordem de separacao nao encontrada',
+  })
   remove(@Param('id') id: string) {
     return this.service.remove(id);
   }
@@ -103,11 +122,11 @@ export class SeparationOrdersController {
   @Roles(Role.ADMIN, Role.MANAGER, Role.OPERATOR)
   @ApiOperation({ summary: 'Marcar item como separado' })
   @ApiResponse({ status: 200, type: SeparationOrderResponseDto })
-  @ApiResponse({ status: 400, description: 'Item ja separado ou status invalido' })
-  separateItem(
-    @Param('id') id: string,
-    @Param('itemId') itemId: string,
-  ) {
+  @ApiResponse({
+    status: 400,
+    description: 'Item ja separado ou status invalido',
+  })
+  separateItem(@Param('id') id: string, @Param('itemId') itemId: string) {
     return this.service.separateItem(id, itemId);
   }
 
@@ -116,11 +135,11 @@ export class SeparationOrdersController {
   @Roles(Role.ADMIN, Role.MANAGER, Role.OPERATOR)
   @ApiOperation({ summary: 'Marcar item como conferido' })
   @ApiResponse({ status: 200, type: SeparationOrderResponseDto })
-  @ApiResponse({ status: 400, description: 'Item ja conferido ou status invalido' })
-  checkItem(
-    @Param('id') id: string,
-    @Param('itemId') itemId: string,
-  ) {
+  @ApiResponse({
+    status: 400,
+    description: 'Item ja conferido ou status invalido',
+  })
+  checkItem(@Param('id') id: string, @Param('itemId') itemId: string) {
     return this.service.checkItem(id, itemId);
   }
 }

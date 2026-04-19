@@ -25,12 +25,12 @@ export function EmptyState({ view }: EmptyStateProps) {
 
   return (
     <div className='flex flex-1 flex-col items-center justify-center py-16'>
-      <div className='flex size-16 items-center justify-center rounded-full bg-bg-soft-200'>
-        <RiNotification3Line className='size-6 text-text-sub-600' />
+      <div className='flex h-16 w-16 items-center justify-center rounded-full bg-muted'>
+        <RiNotification3Line className='h-6 w-6 text-muted-foreground' />
       </div>
-      <p className='mt-4 text-sm font-medium text-muted-foreground'>{title}</p>
+      <p className='mt-4 text-label-sm text-muted-foreground'>{title}</p>
       {subtitle && (
-        <p className='mt-1 text-sm font-normal text-muted-foreground'>{subtitle}</p>
+        <p className='mt-1 text-paragraph-sm text-muted-foreground'>{subtitle}</p>
       )}
     </div>
   );

@@ -1,7 +1,10 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
 import { Prisma } from '@prisma/client';
 import { ProductionFormulasRepository } from './production-formulas.repository';
-import { CreateProductionFormulaDto, CreateFormulaIngredientDto } from './dto/create-production-formula.dto';
+import {
+  CreateProductionFormulaDto,
+  CreateFormulaIngredientDto,
+} from './dto/create-production-formula.dto';
 import { UpdateProductionFormulaDto } from './dto/update-production-formula.dto';
 import {
   ProductionFormulaResponseDto,
@@ -15,7 +18,9 @@ export class ProductionFormulasService {
     private readonly productionFormulasRepository: ProductionFormulasRepository,
   ) {}
 
-  async create(dto: CreateProductionFormulaDto): Promise<ProductionFormulaResponseDto> {
+  async create(
+    dto: CreateProductionFormulaDto,
+  ): Promise<ProductionFormulaResponseDto> {
     const createData: Prisma.ProductionFormulaCreateInput = {
       name: dto.name,
       yieldQuantity: dto.yieldQuantity,
@@ -56,8 +61,11 @@ export class ProductionFormulasService {
     return ProductionFormulaResponseDto.fromEntity(entity);
   }
 
-  async findByProductId(productId: string): Promise<ProductionFormulaResponseDto> {
-    const entity = await this.productionFormulasRepository.findByProductId(productId);
+  async findByProductId(
+    productId: string,
+  ): Promise<ProductionFormulaResponseDto> {
+    const entity =
+      await this.productionFormulasRepository.findByProductId(productId);
     if (!entity) {
       throw new NotFoundException('Fórmula não encontrada para este produto');
     }
@@ -75,7 +83,9 @@ export class ProductionFormulasService {
 
     const updated = await this.productionFormulasRepository.update(id, {
       ...(dto.name !== undefined && { name: dto.name }),
-      ...(dto.yieldQuantity !== undefined && { yieldQuantity: dto.yieldQuantity }),
+      ...(dto.yieldQuantity !== undefined && {
+        yieldQuantity: dto.yieldQuantity,
+      }),
     });
     return ProductionFormulaResponseDto.fromEntity(updated);
   }
@@ -114,7 +124,8 @@ export class ProductionFormulasService {
     ingredientId: string,
     dto: Partial<CreateFormulaIngredientDto>,
   ): Promise<FormulaIngredientResponseDto> {
-    const existing = await this.productionFormulasRepository.findIngredientById(ingredientId);
+    const existing =
+      await this.productionFormulasRepository.findIngredientById(ingredientId);
     if (!existing || existing.formulaId !== formulaId) {
       throw new NotFoundException('Ingrediente não encontrado nesta fórmula');
     }
@@ -136,8 +147,12 @@ export class ProductionFormulasService {
     return FormulaIngredientResponseDto.fromEntity(updated);
   }
 
-  async removeIngredient(formulaId: string, ingredientId: string): Promise<void> {
-    const existing = await this.productionFormulasRepository.findIngredientById(ingredientId);
+  async removeIngredient(
+    formulaId: string,
+    ingredientId: string,
+  ): Promise<void> {
+    const existing =
+      await this.productionFormulasRepository.findIngredientById(ingredientId);
     if (!existing || existing.formulaId !== formulaId) {
       throw new NotFoundException('Ingrediente não encontrado nesta fórmula');
     }

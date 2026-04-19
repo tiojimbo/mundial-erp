@@ -94,4 +94,4 @@ async function bootstrap() {
   logger.log(`Mundial ERP API running on http://localhost:${port}`);
   logger.log(`Swagger docs: http://localhost:${port}/docs`);
 }
-bootstrap();
+void bootstrap();

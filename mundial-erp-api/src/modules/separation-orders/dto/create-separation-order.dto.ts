@@ -54,7 +54,10 @@ export class CreateSeparationOrderDto {
   @Type(() => Date)
   scheduledDate?: Date;
 
-  @ApiPropertyOptional({ type: [CreateSeparationOrderItemDto], description: 'Itens da ordem de separacao' })
+  @ApiPropertyOptional({
+    type: [CreateSeparationOrderItemDto],
+    description: 'Itens da ordem de separacao',
+  })
   @IsOptional()
   @IsArray()
   @ValidateNested({ each: true })

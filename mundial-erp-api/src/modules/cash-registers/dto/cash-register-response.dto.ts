@@ -1,5 +1,4 @@
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
-import { CashRegister } from '@prisma/client';
 
 export class CashRegisterResponseDto {
   @ApiProperty()

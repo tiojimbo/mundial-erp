@@ -27,9 +27,21 @@ export type LoginPayload = {
   password: string;
 };
 
+export type LoginWorkspace = {
+  id: string;
+  name: string;
+  slug: string;
+  logoUrl?: string | null;
+  color?: string | null;
+  plan: 'FREE' | 'PRO' | 'ENTERPRISE';
+  createdAt: string;
+};
+
 export type LoginResponse = {
   user: User;
   tokens: AuthTokens;
+  workspace: LoginWorkspace | null;
+  availableWorkspaces: LoginWorkspace[];
 };
 
 export type RefreshResponse = {

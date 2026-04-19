@@ -11,11 +11,15 @@ export class ProductTypesRepository {
   }
 
   async findById(id: string) {
-    return this.prisma.productType.findFirst({ where: { id, deletedAt: null } });
+    return this.prisma.productType.findFirst({
+      where: { id, deletedAt: null },
+    });
   }
 
   async findByPrefix(prefix: string) {
-    return this.prisma.productType.findFirst({ where: { prefix, deletedAt: null } });
+    return this.prisma.productType.findFirst({
+      where: { prefix, deletedAt: null },
+    });
   }
 
   async findMany(params: { skip?: number; take?: number }) {

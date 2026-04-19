@@ -27,7 +27,9 @@ export class FinancialCategoryResponseDto {
   @ApiPropertyOptional({ type: () => [FinancialCategoryResponseDto] })
   children?: FinancialCategoryResponseDto[];
 
-  static fromEntity(entity: FinancialCategoryWithChildren): FinancialCategoryResponseDto {
+  static fromEntity(
+    entity: FinancialCategoryWithChildren,
+  ): FinancialCategoryResponseDto {
     const dto = new FinancialCategoryResponseDto();
     dto.id = entity.id;
     dto.name = entity.name;
@@ -36,7 +38,9 @@ export class FinancialCategoryResponseDto {
     dto.createdAt = entity.createdAt;
     dto.updatedAt = entity.updatedAt;
     if (entity.children) {
-      dto.children = entity.children.map(FinancialCategoryResponseDto.fromEntity);
+      dto.children = entity.children.map(
+        FinancialCategoryResponseDto.fromEntity,
+      );
     }
     return dto;
   }

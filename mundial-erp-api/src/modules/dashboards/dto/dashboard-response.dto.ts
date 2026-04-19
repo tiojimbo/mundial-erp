@@ -8,7 +8,9 @@ export class DashboardFilterResponseDto {
   @ApiProperty() value: unknown;
   @ApiPropertyOptional() label: string | null;
 
-  static fromEntity(entity: Record<string, unknown>): DashboardFilterResponseDto {
+  static fromEntity(
+    entity: Record<string, unknown>,
+  ): DashboardFilterResponseDto {
     const dto = new DashboardFilterResponseDto();
     dto.id = entity.id as string;
     dto.field = entity.field as string;
@@ -62,8 +64,10 @@ export class DashboardResponseDto {
   @ApiProperty() sortOrder: number;
   @ApiProperty() createdAt: Date;
   @ApiProperty() updatedAt: Date;
-  @ApiProperty({ type: [DashboardCardResponseDto] }) cards: DashboardCardResponseDto[];
-  @ApiProperty({ type: [DashboardFilterResponseDto] }) filters: DashboardFilterResponseDto[];
+  @ApiProperty({ type: [DashboardCardResponseDto] })
+  cards: DashboardCardResponseDto[];
+  @ApiProperty({ type: [DashboardFilterResponseDto] })
+  filters: DashboardFilterResponseDto[];
 
   static fromEntity(entity: Record<string, unknown>): DashboardResponseDto {
     const dto = new DashboardResponseDto();
@@ -71,14 +75,19 @@ export class DashboardResponseDto {
     dto.name = entity.name as string;
     dto.description = (entity.description as string) ?? null;
     dto.ownerId = entity.ownerId as string;
-    dto.ownerName = ((entity.owner as Record<string, unknown>)?.name as string) ?? null;
+    dto.ownerName =
+      ((entity.owner as Record<string, unknown>)?.name as string) ?? null;
     dto.isPublic = entity.isPublic as boolean;
     dto.autoRefreshSeconds = (entity.autoRefreshSeconds as number) ?? null;
     dto.sortOrder = entity.sortOrder as number;
     dto.createdAt = entity.createdAt as Date;
     dto.updatedAt = entity.updatedAt as Date;
-    dto.cards = ((entity.cards as Record<string, unknown>[]) ?? []).map(DashboardCardResponseDto.fromEntity);
-    dto.filters = ((entity.filters as Record<string, unknown>[]) ?? []).map(DashboardFilterResponseDto.fromEntity);
+    dto.cards = ((entity.cards as Record<string, unknown>[]) ?? []).map(
+      DashboardCardResponseDto.fromEntity,
+    );
+    dto.filters = ((entity.filters as Record<string, unknown>[]) ?? []).map(
+      DashboardFilterResponseDto.fromEntity,
+    );
     return dto;
   }
 }

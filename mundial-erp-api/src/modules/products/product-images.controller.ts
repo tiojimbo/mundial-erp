@@ -21,6 +21,7 @@ import { ProductImagesService } from './product-images.service';
 import { CreateProductImageDto } from './dto/create-product-image.dto';
 import { ProductImageResponseDto } from './dto/product-image-response.dto';
 import { Roles } from '../auth/decorators';
+import { WorkspaceId } from '../workspaces/decorators/workspace-id.decorator';
 
 @ApiTags('Product Images')
 @ApiBearerAuth()
@@ -33,30 +34,40 @@ export class ProductImagesController {
   @ApiOperation({ summary: 'Adicionar imagem ao produto' })
   @ApiResponse({ status: 201, type: ProductImageResponseDto })
   create(
+    @WorkspaceId() workspaceId: string,
     @Param('productId') productId: string,
     @Body() dto: CreateProductImageDto,
   ) {
-    return this.productImagesService.create(productId, dto);
+    return this.productImagesService.create(workspaceId, productId, dto);
   }
 
   @Get()
   @Roles(Role.ADMIN, Role.MANAGER, Role.OPERATOR)
   @ApiOperation({ summary: 'Listar imagens do produto' })
   @ApiResponse({ status: 200, type: [ProductImageResponseDto] })
-  findAll(@Param('productId') productId: string) {
-    return this.productImagesService.findByProductId(productId);
+  findAll(
+    @WorkspaceId() workspaceId: string,
+    @Param('productId') productId: string,
+  ) {
+    return this.productImagesService.findByProductId(workspaceId, productId);
   }
 
   @Patch('reorder')
   @Roles(Role.ADMIN, Role.MANAGER, Role.OPERATOR)
   @ApiOperation({ summary: 'Reordenar imagens do produto' })
-  @ApiBody({ schema: { type: 'object', properties: { imageIds: { type: 'array', items: { type: 'string' } } } } })
+  @ApiBody({
+    schema: {
+      type: 'object',
+      properties: { imageIds: { type: 'array', items: { type: 'string' } } },
+    },
+  })
   @ApiResponse({ status: 200, type: [ProductImageResponseDto] })
   reorder(
+    @WorkspaceId() workspaceId: string,
     @Param('productId') productId: string,
     @Body('imageIds') imageIds: string[],
   ) {
-    return this.productImagesService.reorder(productId, imageIds);
+    return this.productImagesService.reorder(workspaceId, productId, imageIds);
   }
 
   @Delete(':imageId')
@@ -65,9 +76,10 @@ export class ProductImagesController {
   @ApiOperation({ summary: 'Remover imagem do produto' })
   @ApiResponse({ status: 204 })
   remove(
+    @WorkspaceId() workspaceId: string,
     @Param('productId') productId: string,
     @Param('imageId') imageId: string,
   ) {
-    return this.productImagesService.remove(productId, imageId);
+    return this.productImagesService.remove(workspaceId, productId, imageId);
   }
 }

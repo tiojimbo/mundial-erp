@@ -66,14 +66,18 @@ export class AuditInterceptor implements NestInterceptor {
           entity,
           entityId: resolvedEntityId,
           changes: method !== 'DELETE' ? this.sanitizeBody(body) : undefined,
-          ipAddress: (request.headers['x-forwarded-for'] as string) || request.ip,
+          ipAddress:
+            (request.headers['x-forwarded-for'] as string) || request.ip,
           userAgent: request.headers['user-agent'],
         });
       }),
     );
   }
 
-  private extractEntityFromUrl(url: string): { entity: string | null; entityId: string | null } {
+  private extractEntityFromUrl(url: string): {
+    entity: string | null;
+    entityId: string | null;
+  } {
     // Parse: /api/v1/clients/abc123 → entity=Client, entityId=abc123
     const match = url.match(/\/api\/v1\/([a-z-]+)(?:\/([a-zA-Z0-9_-]+))?/);
     if (!match) return { entity: null, entityId: null };
@@ -117,7 +121,14 @@ export class AuditInterceptor implements NestInterceptor {
     const sanitized = { ...body } as Record<string, unknown>;
 
     // Remove sensitive fields
-    const sensitiveFields = ['password', 'currentPassword', 'newPassword', 'token', 'refreshToken', 'secret'];
+    const sensitiveFields = [
+      'password',
+      'currentPassword',
+      'newPassword',
+      'token',
+      'refreshToken',
+      'secret',
+    ];
     for (const field of sensitiveFields) {
       if (field in sanitized) {
         sanitized[field] = '[REDACTED]';

@@ -6,54 +6,70 @@ import { PrismaService } from '../../../../database/prisma.service';
 export class DepartmentsRepository {
   constructor(private readonly prisma: PrismaService) {}
 
-  async create(data: Prisma.DepartmentCreateInput) {
-    return this.prisma.department.create({ data });
+  async create(workspaceId: string, data: Prisma.DepartmentCreateInput) {
+    return this.prisma.department.create({
+      data: {
+        ...data,
+        workspace: { connect: { id: workspaceId } },
+      },
+    });
   }
 
-  async findById(id: string) {
+  async findById(workspaceId: string, id: string) {
     return this.prisma.department.findFirst({
-      where: { id, deletedAt: null },
+      where: { id, workspaceId, deletedAt: null },
       include: { sectors: { where: { deletedAt: null } } },
     });
   }
 
-  async findBySlug(slug: string) {
+  async findBySlug(workspaceId: string, slug: string) {
     return this.prisma.department.findFirst({
-      where: { slug, deletedAt: null },
+      where: { slug, workspaceId, deletedAt: null },
     });
   }
 
-  async slugExists(slug: string): Promise<boolean> {
-    const count = await this.prisma.department.count({ where: { slug } });
+  async slugExists(workspaceId: string, slug: string): Promise<boolean> {
+    const count = await this.prisma.department.count({
+      where: { slug, workspaceId },
+    });
     return count > 0;
   }
 
-  async findMany(params: { skip?: number; take?: number }) {
+  async findMany(
+    workspaceId: string,
+    params: { skip?: number; take?: number },
+  ) {
     const { skip = 0, take = 20 } = params;
+    const where: Prisma.DepartmentWhereInput = { workspaceId, deletedAt: null };
     const [items, total] = await Promise.all([
       this.prisma.department.findMany({
-        where: { deletedAt: null },
+        where,
         skip,
         take,
         orderBy: { sortOrder: 'asc' },
       }),
-      this.prisma.department.count({ where: { deletedAt: null } }),
+      this.prisma.department.count({ where }),
     ]);
     return { items, total };
   }
 
-  async update(id: string, data: Prisma.DepartmentUpdateInput) {
+  async update(
+    _workspaceId: string,
+    id: string,
+    data: Prisma.DepartmentUpdateInput,
+  ) {
+    // Ownership já validada via findById(workspaceId, id) pelo service.
     return this.prisma.department.update({ where: { id }, data });
   }
 
-  async softDelete(id: string) {
+  async softDelete(_workspaceId: string, id: string) {
     return this.prisma.department.update({
       where: { id },
       data: { deletedAt: new Date() },
     });
   }
 
-  async getSidebarTree() {
+  async getSidebarTree(workspaceId: string) {
     const processSelect = {
       id: true,
       name: true,
@@ -67,7 +83,7 @@ export class DepartmentsRepository {
     } as const;
 
     return this.prisma.department.findMany({
-      where: { deletedAt: null },
+      where: { workspaceId, deletedAt: null },
       orderBy: { sortOrder: 'asc' },
       select: {
         id: true,
@@ -107,9 +123,9 @@ export class DepartmentsRepository {
     });
   }
 
-  async findBySlugWithDetails(slug: string) {
+  async findBySlugWithDetails(workspaceId: string, slug: string) {
     return this.prisma.department.findFirst({
-      where: { slug, deletedAt: null },
+      where: { slug, workspaceId, deletedAt: null },
       include: {
         areas: {
           where: { deletedAt: null },
@@ -146,14 +162,25 @@ export class DepartmentsRepository {
    * Busca resumos de todos os processos de um departamento em batch.
    * Evita N+1: uma query por tipo (LIST items, BPM counts) em vez de uma por processo.
    */
-  async getProcessSummaries(departmentId: string, showClosed = false) {
+  async getProcessSummaries(
+    workspaceId: string,
+    departmentId: string,
+    showClosed = false,
+  ) {
     // 1. Buscar todos os processos do departamento (diretos + via areas)
+    // Department já está escopado por workspace na chamada anterior (validação no service)
     const processes = await this.prisma.process.findMany({
       where: {
         deletedAt: null,
         OR: [
-          { departmentId, areaId: null },
-          { area: { departmentId, deletedAt: null } },
+          { departmentId, department: { workspaceId }, areaId: null },
+          {
+            area: {
+              departmentId,
+              deletedAt: null,
+              department: { workspaceId },
+            },
+          },
         ],
       },
       orderBy: { sortOrder: 'asc' },
@@ -181,6 +208,7 @@ export class DepartmentsRepository {
     // 2. Batch: WorkItems agrupados por processo+status para processos LIST
     const workItemWhere: Prisma.WorkItemWhereInput = {
       processId: { in: listProcessIds },
+      process: { department: { workspaceId } },
       deletedAt: null,
       parentId: null,
     };
@@ -215,7 +243,11 @@ export class DepartmentsRepository {
             },
           }),
           this.prisma.workflowStatus.findMany({
-            where: { departmentId, deletedAt: null },
+            where: {
+              departmentId,
+              department: { workspaceId },
+              deletedAt: null,
+            },
             orderBy: { sortOrder: 'asc' },
             select: {
               id: true,
@@ -228,9 +260,14 @@ export class DepartmentsRepository {
       : [[], []];
 
     // 3. Batch: Contagens BPM para processos BPM
-    let processInstances: Array<{ processId: string; order: { status: string } }> = [];
-    let pendingActivities: Array<{ processInstance: { processId: string } }> = [];
-    let pendingHandoffs: Array<{ fromProcessInstance: { processId: string } }> = [];
+    let processInstances: Array<{
+      processId: string;
+      order: { status: string };
+    }> = [];
+    let pendingActivities: Array<{ processInstance: { processId: string } }> =
+      [];
+    let pendingHandoffs: Array<{ fromProcessInstance: { processId: string } }> =
+      [];
 
     if (bpmProcessIds.length > 0) {
       [processInstances, pendingActivities, pendingHandoffs] =
@@ -238,6 +275,7 @@ export class DepartmentsRepository {
           this.prisma.processInstance.findMany({
             where: {
               processId: { in: bpmProcessIds },
+              process: { department: { workspaceId } },
               deletedAt: null,
             },
             select: {
@@ -249,6 +287,7 @@ export class DepartmentsRepository {
             where: {
               processInstance: {
                 processId: { in: bpmProcessIds },
+                process: { department: { workspaceId } },
                 deletedAt: null,
               },
               status: { in: ['PENDING', 'IN_PROGRESS'] },
@@ -262,6 +301,7 @@ export class DepartmentsRepository {
             where: {
               fromProcessInstance: {
                 processId: { in: bpmProcessIds },
+                process: { department: { workspaceId } },
                 deletedAt: null,
               },
               status: 'PENDING',
@@ -335,5 +375,4 @@ export class DepartmentsRepository {
       };
     });
   }
-
 }

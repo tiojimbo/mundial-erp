@@ -18,7 +18,11 @@ import {
   ApiResponse,
   ApiTags,
 } from '@nestjs/swagger';
-import { Role, StockRequisitionStatus, StockRequisitionType } from '@prisma/client';
+import {
+  Role,
+  StockRequisitionStatus,
+  StockRequisitionType,
+} from '@prisma/client';
 import * as express from 'express';
 import { StockRequisitionsService } from './stock-requisitions.service';
 import { CreateStockRequisitionDto } from './dto/create-stock-requisition.dto';
@@ -52,12 +56,26 @@ export class StockRequisitionsController {
   // GET /stock-requisitions
   @Get()
   @Roles(Role.ADMIN, Role.MANAGER, Role.OPERATOR)
-  @ApiOperation({ summary: 'Listar requisicoes (filtro por type, status, data)' })
+  @ApiOperation({
+    summary: 'Listar requisicoes (filtro por type, status, data)',
+  })
   @ApiQuery({ name: 'type', required: false, enum: StockRequisitionType })
   @ApiQuery({ name: 'status', required: false, enum: StockRequisitionStatus })
-  @ApiQuery({ name: 'startDate', required: false, description: 'Data inicial (ISO)' })
-  @ApiQuery({ name: 'endDate', required: false, description: 'Data final (ISO)' })
-  @ApiResponse({ status: 200, type: StockRequisitionResponseDto, isArray: true })
+  @ApiQuery({
+    name: 'startDate',
+    required: false,
+    description: 'Data inicial (ISO)',
+  })
+  @ApiQuery({
+    name: 'endDate',
+    required: false,
+    description: 'Data final (ISO)',
+  })
+  @ApiResponse({
+    status: 200,
+    type: StockRequisitionResponseDto,
+    isArray: true,
+  })
   findAll(
     @Query() pagination: PaginationDto,
     @Query('type') type?: StockRequisitionType,
@@ -65,7 +83,12 @@ export class StockRequisitionsController {
     @Query('startDate') startDate?: string,
     @Query('endDate') endDate?: string,
   ) {
-    return this.service.findAll(pagination, { type, status, startDate, endDate });
+    return this.service.findAll(pagination, {
+      type,
+      status,
+      startDate,
+      endDate,
+    });
   }
 
   // GET /stock-requisitions/code/:code (buscar por codigo — usado pelo scanner)
@@ -81,7 +104,9 @@ export class StockRequisitionsController {
   // GET /stock-requisitions/:id
   @Get(':id')
   @Roles(Role.ADMIN, Role.MANAGER, Role.OPERATOR)
-  @ApiOperation({ summary: 'Detalhe da requisicao com itens e status de processamento' })
+  @ApiOperation({
+    summary: 'Detalhe da requisicao com itens e status de processamento',
+  })
   @ApiResponse({ status: 200, type: StockRequisitionResponseDto })
   @ApiResponse({ status: 404, description: 'Requisicao nao encontrada' })
   findOne(@Param('id') id: string) {
@@ -94,19 +119,21 @@ export class StockRequisitionsController {
   @ApiOperation({ summary: 'Aprovar requisicao' })
   @ApiResponse({ status: 200, type: StockRequisitionResponseDto })
   @ApiResponse({ status: 400, description: 'Status invalido para aprovacao' })
-  approve(
-    @Param('id') id: string,
-    @CurrentUser('sub') userId: string,
-  ) {
+  approve(@Param('id') id: string, @CurrentUser('sub') userId: string) {
     return this.service.approve(id, userId);
   }
 
   // PATCH /stock-requisitions/:id/items/:itemId/process
   @Patch(':id/items/:itemId/process')
   @Roles(Role.ADMIN, Role.MANAGER, Role.OPERATOR)
-  @ApiOperation({ summary: 'Processar item individual (apos scan EAN): baixa estoque' })
+  @ApiOperation({
+    summary: 'Processar item individual (apos scan EAN): baixa estoque',
+  })
   @ApiResponse({ status: 200, type: StockRequisitionResponseDto })
-  @ApiResponse({ status: 400, description: 'Item ja processado ou status invalido' })
+  @ApiResponse({
+    status: 400,
+    description: 'Item ja processado ou status invalido',
+  })
   processItem(
     @Param('id') id: string,
     @Param('itemId') itemId: string,
@@ -120,7 +147,10 @@ export class StockRequisitionsController {
   @Roles(Role.ADMIN, Role.MANAGER, Role.OPERATOR)
   @ApiOperation({ summary: 'Marcar como PROCESSED (todos itens processados)' })
   @ApiResponse({ status: 200, type: StockRequisitionResponseDto })
-  @ApiResponse({ status: 400, description: 'Itens pendentes ou status invalido' })
+  @ApiResponse({
+    status: 400,
+    description: 'Itens pendentes ou status invalido',
+  })
   complete(@Param('id') id: string) {
     return this.service.complete(id);
   }

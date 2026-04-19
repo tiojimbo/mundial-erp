@@ -11,11 +11,18 @@ import {
 import { PersonType } from '@prisma/client';
 
 export class CreateClientDto {
-  @ApiProperty({ enum: PersonType, example: 'F', description: 'F = Pessoa Física, J = Pessoa Jurídica' })
+  @ApiProperty({
+    enum: PersonType,
+    example: 'F',
+    description: 'F = Pessoa Física, J = Pessoa Jurídica',
+  })
   @IsEnum(PersonType)
   personType: PersonType;
 
-  @ApiProperty({ example: '123.456.789-00', description: 'CPF (PF) ou CNPJ (PJ)' })
+  @ApiProperty({
+    example: '123.456.789-00',
+    description: 'CPF (PF) ou CNPJ (PJ)',
+  })
   @IsString()
   @IsNotEmpty()
   @MaxLength(18)
@@ -33,12 +40,18 @@ export class CreateClientDto {
   @MaxLength(255)
   tradeName?: string;
 
-  @ApiPropertyOptional({ example: '123456789', description: 'Inscrição Estadual' })
+  @ApiPropertyOptional({
+    example: '123456789',
+    description: 'Inscrição Estadual',
+  })
   @IsOptional()
   @IsString()
   ie?: string;
 
-  @ApiPropertyOptional({ example: '12.345.678-9', description: 'RG (apenas PF)' })
+  @ApiPropertyOptional({
+    example: '12.345.678-9',
+    description: 'RG (apenas PF)',
+  })
   @IsOptional()
   @IsString()
   rg?: string;

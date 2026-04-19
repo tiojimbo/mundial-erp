@@ -18,7 +18,10 @@ import {
 } from '@nestjs/swagger';
 import { Role } from '@prisma/client';
 import { ProductionFormulasService } from './production-formulas.service';
-import { CreateProductionFormulaDto, CreateFormulaIngredientDto } from './dto/create-production-formula.dto';
+import {
+  CreateProductionFormulaDto,
+  CreateFormulaIngredientDto,
+} from './dto/create-production-formula.dto';
 import { UpdateProductionFormulaDto } from './dto/update-production-formula.dto';
 import {
   ProductionFormulaResponseDto,
@@ -46,7 +49,10 @@ export class ProductionFormulasController {
   @Get()
   @Roles(Role.ADMIN, Role.MANAGER, Role.OPERATOR)
   @ApiOperation({ summary: 'Listar fórmulas de produção' })
-  findAll(@Query() pagination: PaginationDto, @Query('search') search?: string) {
+  findAll(
+    @Query() pagination: PaginationDto,
+    @Query('search') search?: string,
+  ) {
     return this.productionFormulasService.findAll(pagination, search);
   }
 
@@ -97,7 +103,11 @@ export class ProductionFormulasController {
     @Param('ingredientId') ingredientId: string,
     @Body() dto: Partial<CreateFormulaIngredientDto>,
   ) {
-    return this.productionFormulasService.updateIngredient(id, ingredientId, dto);
+    return this.productionFormulasService.updateIngredient(
+      id,
+      ingredientId,
+      dto,
+    );
   }
 
   @Delete(':id/ingredients/:ingredientId')

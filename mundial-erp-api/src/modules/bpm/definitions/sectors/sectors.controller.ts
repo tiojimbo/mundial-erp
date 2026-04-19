@@ -23,6 +23,7 @@ import { UpdateSectorDto } from './dto/update-sector.dto';
 import { SectorResponseDto } from './dto/sector-response.dto';
 import { PaginationDto } from '../../../../common/dtos/pagination.dto';
 import { Roles } from '../../../auth/decorators';
+import { WorkspaceId } from '../../../workspaces/decorators/workspace-id.decorator';
 
 @ApiTags('BPM - Sectors')
 @ApiBearerAuth()
@@ -35,15 +36,18 @@ export class SectorsController {
   @ApiOperation({ summary: 'Criar setor (somente ADMIN)' })
   @ApiResponse({ status: 201, type: SectorResponseDto })
   @ApiResponse({ status: 409, description: 'Setor com este nome já existe' })
-  create(@Body() dto: CreateSectorDto) {
-    return this.sectorsService.create(dto);
+  create(@WorkspaceId() workspaceId: string, @Body() dto: CreateSectorDto) {
+    return this.sectorsService.create(workspaceId, dto);
   }
 
   @Get()
   @Roles(Role.ADMIN, Role.MANAGER)
   @ApiOperation({ summary: 'Listar setores' })
-  findAll(@Query() pagination: PaginationDto) {
-    return this.sectorsService.findAll(pagination);
+  findAll(
+    @WorkspaceId() workspaceId: string,
+    @Query() pagination: PaginationDto,
+  ) {
+    return this.sectorsService.findAll(workspaceId, pagination);
   }
 
   @Get(':id')
@@ -51,16 +55,20 @@ export class SectorsController {
   @ApiOperation({ summary: 'Buscar setor por ID' })
   @ApiResponse({ status: 200, type: SectorResponseDto })
   @ApiResponse({ status: 404, description: 'Setor não encontrado' })
-  findOne(@Param('id') id: string) {
-    return this.sectorsService.findById(id);
+  findOne(@WorkspaceId() workspaceId: string, @Param('id') id: string) {
+    return this.sectorsService.findById(workspaceId, id);
   }
 
   @Patch(':id')
   @Roles(Role.ADMIN)
   @ApiOperation({ summary: 'Atualizar setor (somente ADMIN)' })
   @ApiResponse({ status: 200, type: SectorResponseDto })
-  update(@Param('id') id: string, @Body() dto: UpdateSectorDto) {
-    return this.sectorsService.update(id, dto);
+  update(
+    @WorkspaceId() workspaceId: string,
+    @Param('id') id: string,
+    @Body() dto: UpdateSectorDto,
+  ) {
+    return this.sectorsService.update(workspaceId, id, dto);
   }
 
   @Delete(':id')
@@ -68,7 +76,7 @@ export class SectorsController {
   @HttpCode(HttpStatus.NO_CONTENT)
   @ApiOperation({ summary: 'Remover setor (soft delete, somente ADMIN)' })
   @ApiResponse({ status: 204 })
-  remove(@Param('id') id: string) {
-    return this.sectorsService.remove(id);
+  remove(@WorkspaceId() workspaceId: string, @Param('id') id: string) {
+    return this.sectorsService.remove(workspaceId, id);
   }
 }

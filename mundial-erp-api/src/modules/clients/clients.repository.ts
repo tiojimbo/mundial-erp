@@ -6,20 +6,25 @@ import { PrismaService } from '../../database/prisma.service';
 export class ClientsRepository {
   constructor(private readonly prisma: PrismaService) {}
 
-  async create(data: Prisma.ClientCreateInput) {
-    return this.prisma.client.create({ data });
+  async create(workspaceId: string, data: Prisma.ClientCreateInput) {
+    return this.prisma.client.create({
+      data: {
+        ...data,
+        workspace: { connect: { id: workspaceId } },
+      },
+    });
   }
 
-  async exists(id: string): Promise<boolean> {
+  async exists(workspaceId: string, id: string): Promise<boolean> {
     const count = await this.prisma.client.count({
-      where: { id, deletedAt: null },
+      where: { id, workspaceId, deletedAt: null },
     });
     return count > 0;
   }
 
-  async findById(id: string) {
+  async findById(workspaceId: string, id: string) {
     return this.prisma.client.findFirst({
-      where: { id, deletedAt: null },
+      where: { id, workspaceId, deletedAt: null },
       include: {
         classification: true,
         deliveryRoute: true,
@@ -29,16 +34,20 @@ export class ClientsRepository {
     });
   }
 
-  async findByCpfCnpj(cpfCnpj: string) {
+  async findByCpfCnpj(workspaceId: string, cpfCnpj: string) {
     return this.prisma.client.findFirst({
-      where: { cpfCnpj, deletedAt: null },
+      where: { cpfCnpj, workspaceId, deletedAt: null },
     });
   }
 
-  async findMany(params: { skip?: number; take?: number; search?: string }) {
+  async findMany(
+    workspaceId: string,
+    params: { skip?: number; take?: number; search?: string },
+  ) {
     const { skip = 0, take = 20, search } = params;
 
     const where: Prisma.ClientWhereInput = {
+      workspaceId,
       deletedAt: null,
       ...(search && {
         OR: [
@@ -75,22 +84,31 @@ export class ClientsRepository {
     return { items, total };
   }
 
-  async update(id: string, data: Prisma.ClientUpdateInput) {
+  async update(
+    _workspaceId: string,
+    id: string,
+    data: Prisma.ClientUpdateInput,
+  ) {
     return this.prisma.client.update({ where: { id }, data });
   }
 
-  async softDelete(id: string) {
+  async softDelete(_workspaceId: string, id: string) {
     return this.prisma.client.update({
       where: { id },
       data: { deletedAt: new Date() },
     });
   }
 
-  async findOrdersByClientId(clientId: string, params: { skip?: number; take?: number }) {
+  async findOrdersByClientId(
+    workspaceId: string,
+    clientId: string,
+    params: { skip?: number; take?: number },
+  ) {
     const { skip = 0, take = 20 } = params;
 
     const where: Prisma.OrderWhereInput = {
       clientId,
+      workspaceId,
       deletedAt: null,
     };
 
@@ -107,10 +125,10 @@ export class ClientsRepository {
     return { items, total };
   }
 
-  async getFinancialSummary(clientId: string) {
+  async getFinancialSummary(workspaceId: string, clientId: string) {
     const result = await this.prisma.accountReceivable.groupBy({
       by: ['status'],
-      where: { clientId, deletedAt: null },
+      where: { clientId, client: { workspaceId }, deletedAt: null },
       _sum: { amountCents: true, paidAmountCents: true },
       _count: true,
     });
@@ -154,6 +172,12 @@ export class ClientsRepository {
     };
   }
 
+  /**
+   * Sync-only: usado por SyncService para mapear entidades do Pro Finanças.
+   * Não recebe workspaceId — sync é um processo global de migração.
+   * Quando workspaceId for required, sync deve ser refatorado para receber
+   * o workspace alvo como parâmetro.
+   */
   async upsertByProFinancasId(
     proFinancasId: number,
     data: Omit<Prisma.ClientCreateInput, 'proFinancasId'>,

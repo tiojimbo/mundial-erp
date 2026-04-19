@@ -8,10 +8,14 @@ import { CreateSectorDto } from './dto/create-sector.dto';
 import { UpdateSectorDto } from './dto/update-sector.dto';
 import { SectorResponseDto } from './dto/sector-response.dto';
 import { PaginationDto } from '../../../../common/dtos/pagination.dto';
+import { DepartmentsRepository } from '../departments/departments.repository';
 
 @Injectable()
 export class SectorsService {
-  constructor(private readonly sectorsRepository: SectorsRepository) {}
+  constructor(
+    private readonly sectorsRepository: SectorsRepository,
+    private readonly departmentsRepository: DepartmentsRepository,
+  ) {}
 
   private generateSlug(name: string): string {
     return name
@@ -22,15 +26,33 @@ export class SectorsService {
       .replace(/(^-|-$)/g, '');
   }
 
-  async create(dto: CreateSectorDto): Promise<SectorResponseDto> {
+  private async assertDepartmentInWorkspace(
+    workspaceId: string,
+    departmentId: string,
+  ) {
+    const dept = await this.departmentsRepository.findById(
+      workspaceId,
+      departmentId,
+    );
+    if (!dept) {
+      throw new NotFoundException('Departamento não encontrado');
+    }
+  }
+
+  async create(
+    workspaceId: string,
+    dto: CreateSectorDto,
+  ): Promise<SectorResponseDto> {
+    await this.assertDepartmentInWorkspace(workspaceId, dto.departmentId);
+
     const slug = this.generateSlug(dto.name);
 
-    const existing = await this.sectorsRepository.findBySlug(slug);
+    const existing = await this.sectorsRepository.findBySlug(workspaceId, slug);
     if (existing) {
       throw new ConflictException('Setor com este nome já existe');
     }
 
-    const entity = await this.sectorsRepository.create({
+    const entity = await this.sectorsRepository.create(workspaceId, {
       name: dto.name,
       slug,
       department: { connect: { id: dto.departmentId } },
@@ -39,27 +61,34 @@ export class SectorsService {
     return SectorResponseDto.fromEntity(entity);
   }
 
-  async findAll(pagination: PaginationDto) {
-    const { items, total } = await this.sectorsRepository.findMany({
-      skip: pagination.skip,
-      take: pagination.limit,
-    });
+  async findAll(workspaceId: string, pagination: PaginationDto) {
+    const { items, total } = await this.sectorsRepository.findMany(
+      workspaceId,
+      {
+        skip: pagination.skip,
+        take: pagination.limit,
+      },
+    );
     return {
       items: items.map(SectorResponseDto.fromEntity),
       total,
     };
   }
 
-  async findById(id: string): Promise<SectorResponseDto> {
-    const entity = await this.sectorsRepository.findById(id);
+  async findById(workspaceId: string, id: string): Promise<SectorResponseDto> {
+    const entity = await this.sectorsRepository.findById(workspaceId, id);
     if (!entity) {
       throw new NotFoundException('Setor não encontrado');
     }
     return SectorResponseDto.fromEntity(entity);
   }
 
-  async update(id: string, dto: UpdateSectorDto): Promise<SectorResponseDto> {
-    const entity = await this.sectorsRepository.findById(id);
+  async update(
+    workspaceId: string,
+    id: string,
+    dto: UpdateSectorDto,
+  ): Promise<SectorResponseDto> {
+    const entity = await this.sectorsRepository.findById(workspaceId, id);
     if (!entity) {
       throw new NotFoundException('Setor não encontrado');
     }
@@ -68,24 +97,32 @@ export class SectorsService {
     if (dto.name !== undefined) {
       updateData.name = dto.name;
       updateData.slug = this.generateSlug(dto.name);
-      const existingSlug = await this.sectorsRepository.findBySlug(updateData.slug);
+      const existingSlug = await this.sectorsRepository.findBySlug(
+        workspaceId,
+        updateData.slug,
+      );
       if (existingSlug && existingSlug.id !== id) {
         throw new ConflictException('Setor com este nome já existe');
       }
     }
     if (dto.departmentId !== undefined) {
+      await this.assertDepartmentInWorkspace(workspaceId, dto.departmentId);
       updateData.department = { connect: { id: dto.departmentId } };
     }
 
-    const updated = await this.sectorsRepository.update(id, updateData);
+    const updated = await this.sectorsRepository.update(
+      workspaceId,
+      id,
+      updateData,
+    );
     return SectorResponseDto.fromEntity(updated);
   }
 
-  async remove(id: string): Promise<void> {
-    const entity = await this.sectorsRepository.findById(id);
+  async remove(workspaceId: string, id: string): Promise<void> {
+    const entity = await this.sectorsRepository.findById(workspaceId, id);
     if (!entity) {
       throw new NotFoundException('Setor não encontrado');
     }
-    await this.sectorsRepository.softDelete(id);
+    await this.sectorsRepository.softDelete(workspaceId, id);
   }
 }

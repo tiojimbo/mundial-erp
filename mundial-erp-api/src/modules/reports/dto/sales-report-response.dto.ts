@@ -20,8 +20,10 @@ export class SalesReportItemDto {
     dto.orderNumber = order.orderNumber as string;
     dto.title = (order.title as string) ?? null;
     dto.status = order.status as string;
-    dto.clientName = (order.client as Record<string, unknown>)?.name as string ?? '';
-    dto.companyName = (order.company as Record<string, unknown>)?.name as string ?? null;
+    dto.clientName =
+      ((order.client as Record<string, unknown>)?.name as string) ?? '';
+    dto.companyName =
+      ((order.company as Record<string, unknown>)?.name as string) ?? null;
     dto.totalCents = order.totalCents as number;
     dto.discountCents = order.discountCents as number;
     dto.freightCents = order.freightCents as number;

@@ -4,6 +4,7 @@ import { ThrottlerModule, ThrottlerGuard } from '@nestjs/throttler';
 import { EventEmitterModule } from '@nestjs/event-emitter';
 import { APP_GUARD, APP_INTERCEPTOR, APP_FILTER } from '@nestjs/core';
 import { validate } from './config/env.validation';
+import { featureFlagsConfig } from './config/feature-flags.config';
 import { DatabaseModule } from './database/database.module';
 import { RedisModule } from './common/redis/redis.module';
 import { HealthModule } from './modules/health/health.module';
@@ -46,6 +47,7 @@ import { DashboardsModule } from './modules/dashboards/dashboards.module';
 import { ReportsModule } from './modules/reports/reports.module';
 import { JwtAuthGuard } from './modules/auth/guards';
 import { RolesGuard } from './modules/auth/guards';
+import { WorkspaceGuard } from './modules/workspaces/guards/workspace.guard';
 import { ResponseInterceptor } from './common/interceptors/response.interceptor';
 import { LoggingInterceptor } from './common/interceptors/logging.interceptor';
 import { RequestIdInterceptor } from './common/interceptors/request-id.interceptor';
@@ -57,6 +59,7 @@ import { ChatModule } from './modules/chat/chat.module';
 import { ProcessViewsModule } from './modules/process-views/process-views.module';
 import { WorkItemsModule } from './modules/work-items/work-items.module';
 import { NotificationsModule } from './modules/notifications/notifications.module';
+import { WorkspacesModule } from './modules/workspaces/workspaces.module';
 
 @Module({
   imports: [
@@ -64,6 +67,7 @@ import { NotificationsModule } from './modules/notifications/notifications.modul
     ConfigModule.forRoot({
       isGlobal: true,
       validate,
+      load: [featureFlagsConfig],
     }),
 
     // Rate limiting
@@ -187,11 +191,15 @@ import { NotificationsModule } from './modules/notifications/notifications.modul
 
     // Notifications (Notificacoes Inbox)
     NotificationsModule,
+
+    // Workspaces (Multi-tenancy — Squad Workspace F1.4)
+    WorkspacesModule,
   ],
   providers: [
-    // Global guards (order: Throttler → JWT Auth → Roles)
+    // Global guards (order: Throttler → JWT Auth → Workspace → Roles)
     { provide: APP_GUARD, useClass: ThrottlerGuard },
     { provide: APP_GUARD, useClass: JwtAuthGuard },
+    { provide: APP_GUARD, useClass: WorkspaceGuard },
     { provide: APP_GUARD, useClass: RolesGuard },
 
     // Global interceptors (order matters: RequestId first)

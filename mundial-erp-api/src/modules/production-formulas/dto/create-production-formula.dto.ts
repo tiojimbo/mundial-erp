@@ -12,7 +12,10 @@ import {
 import { Type } from 'class-transformer';
 
 export class CreateFormulaIngredientDto {
-  @ApiProperty({ example: 'clxyz123', description: 'ID do produto ingrediente (matéria-prima)' })
+  @ApiProperty({
+    example: 'clxyz123',
+    description: 'ID do produto ingrediente (matéria-prima)',
+  })
   @IsString()
   @IsNotEmpty()
   ingredientId: string;
@@ -22,25 +25,37 @@ export class CreateFormulaIngredientDto {
   @Min(0)
   quantity: number;
 
-  @ApiPropertyOptional({ example: 'clxyzunit', description: 'ID da unidade de medida' })
+  @ApiPropertyOptional({
+    example: 'clxyzunit',
+    description: 'ID da unidade de medida',
+  })
   @IsOptional()
   @IsString()
   unitMeasureId?: string;
 }
 
 export class CreateProductionFormulaDto {
-  @ApiProperty({ example: 'Fórmula Telha 40mm', description: 'Nome da fórmula' })
+  @ApiProperty({
+    example: 'Fórmula Telha 40mm',
+    description: 'Nome da fórmula',
+  })
   @IsString()
   @IsNotEmpty()
   @MaxLength(255)
   name: string;
 
-  @ApiProperty({ example: 100, description: 'Quantidade produzida por execução da fórmula' })
+  @ApiProperty({
+    example: 100,
+    description: 'Quantidade produzida por execução da fórmula',
+  })
   @IsNumber()
   @Min(0)
   yieldQuantity: number;
 
-  @ApiPropertyOptional({ type: [CreateFormulaIngredientDto], description: 'Ingredientes da fórmula' })
+  @ApiPropertyOptional({
+    type: [CreateFormulaIngredientDto],
+    description: 'Ingredientes da fórmula',
+  })
   @IsOptional()
   @IsArray()
   @ValidateNested({ each: true })

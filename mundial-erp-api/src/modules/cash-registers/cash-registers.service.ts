@@ -21,11 +21,12 @@ export class CashRegistersService {
   ) {}
 
   async open(
+    workspaceId: string,
     dto: OpenCashRegisterDto,
     userId: string,
   ): Promise<CashRegisterResponseDto> {
-    // Atomic check-then-create inside transaction to prevent race conditions
     const entity = await this.cashRegistersRepository.openAtomically(
+      workspaceId,
       dto.companyId,
       userId,
       dto.openingBalanceCents,
@@ -33,7 +34,7 @@ export class CashRegistersService {
 
     if (!entity) {
       throw new ConflictException(
-        'Já existe um caixa aberto para esta empresa',
+        'Empresa não encontrada ou já existe um caixa aberto para esta empresa',
       );
     }
 
@@ -41,21 +42,27 @@ export class CashRegistersService {
       cashRegisterId: entity.id,
     });
 
-    this.logger.log(`Caixa aberto (ID: ${entity.id}, Empresa: ${dto.companyId})`);
+    this.logger.log(
+      `Caixa aberto (ID: ${entity.id}, Empresa: ${dto.companyId})`,
+    );
 
     return CashRegisterResponseDto.fromEntity(entity);
   }
 
   async findAll(
+    workspaceId: string,
     pagination: PaginationDto,
     filters: { companyId?: string; isOpen?: boolean },
   ) {
-    const { items, total } = await this.cashRegistersRepository.findMany({
-      skip: pagination.skip,
-      take: pagination.limit,
-      companyId: filters.companyId,
-      isOpen: filters.isOpen,
-    });
+    const { items, total } = await this.cashRegistersRepository.findMany(
+      workspaceId,
+      {
+        skip: pagination.skip,
+        take: pagination.limit,
+        companyId: filters.companyId,
+        isOpen: filters.isOpen,
+      },
+    );
 
     return {
       items: items.map(CashRegisterResponseDto.fromEntity),
@@ -63,8 +70,11 @@ export class CashRegistersService {
     };
   }
 
-  async findById(id: string): Promise<CashRegisterResponseDto> {
-    const entity = await this.cashRegistersRepository.findById(id);
+  async findById(
+    workspaceId: string,
+    id: string,
+  ): Promise<CashRegisterResponseDto> {
+    const entity = await this.cashRegistersRepository.findById(workspaceId, id);
     if (!entity) {
       throw new NotFoundException('Caixa não encontrado');
     }
@@ -72,11 +82,12 @@ export class CashRegistersService {
   }
 
   async close(
+    workspaceId: string,
     id: string,
     dto: CloseCashRegisterDto,
     userId: string,
   ): Promise<CashRegisterResponseDto> {
-    const entity = await this.cashRegistersRepository.findById(id);
+    const entity = await this.cashRegistersRepository.findById(workspaceId, id);
     if (!entity) {
       throw new NotFoundException('Caixa não encontrado');
     }
@@ -84,7 +95,7 @@ export class CashRegistersService {
       throw new ConflictException('Caixa já está fechado');
     }
 
-    const updated = await this.cashRegistersRepository.update(id, {
+    const updated = await this.cashRegistersRepository.update(workspaceId, id, {
       closedAt: new Date(),
       closedBy: { connect: { id: userId } },
       closingBalanceCents: dto.closingBalanceCents,
@@ -97,12 +108,12 @@ export class CashRegistersService {
     return CashRegisterResponseDto.fromEntity(updated);
   }
 
-  async remove(id: string): Promise<void> {
-    const entity = await this.cashRegistersRepository.findById(id);
+  async remove(workspaceId: string, id: string): Promise<void> {
+    const entity = await this.cashRegistersRepository.findById(workspaceId, id);
     if (!entity) {
       throw new NotFoundException('Caixa não encontrado');
     }
-    await this.cashRegistersRepository.softDelete(id);
+    await this.cashRegistersRepository.softDelete(workspaceId, id);
     this.eventEmitter.emit('cash-register.deleted', {
       cashRegisterId: id,
     });

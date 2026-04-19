@@ -30,19 +30,25 @@ export class SearchService {
   /**
    * Main search: tries Elasticsearch first, falls back to PostgreSQL.
    */
-  async search(dto: SearchQueryDto): Promise<SearchResultDto> {
+  async search(
+    workspaceId: string,
+    dto: SearchQueryDto,
+  ): Promise<SearchResultDto> {
     if (this.isCircuitOpen()) {
       this.logger.warn('Circuit breaker OPEN — using PostgreSQL fallback');
-      return this.fallbackSearch(dto);
+      return this.fallbackSearch(workspaceId, dto);
     }
 
     try {
       const indices = this.resolveIndices(dto.type);
+      // SCOPE: filtro de workspaceId injetado na query ES via term filter.
+      // O reindexer ja indexa workspaceId em todos os documentos.
       const result = await this.searchRepository.search(
         indices,
         dto.q,
         dto.from,
         dto.size,
+        workspaceId,
       );
 
       this.onSuccess();
@@ -54,7 +60,7 @@ export class SearchService {
       this.logger.warn(
         `ES search failed, falling back to PostgreSQL: ${(error as Error).message}`,
       );
-      return this.fallbackSearch(dto);
+      return this.fallbackSearch(workspaceId, dto);
     }
   }
 
@@ -68,7 +74,10 @@ export class SearchService {
   /**
    * Fallback: ILIKE search on PostgreSQL (slower but functional).
    */
-  private async fallbackSearch(dto: SearchQueryDto): Promise<SearchResultDto> {
+  private async fallbackSearch(
+    workspaceId: string,
+    dto: SearchQueryDto,
+  ): Promise<SearchResultDto> {
     const skip = dto.from;
     const take = dto.size;
     const items: SearchHitDto[] = [];
@@ -78,7 +87,12 @@ export class SearchService {
       dto.type === 'all' || dto.type === type;
 
     if (shouldSearch('clients')) {
-      const { items: rows, total } = await this.dataRepository.searchClients(dto.q, skip, take);
+      const { items: rows, total } = await this.dataRepository.searchClients(
+        workspaceId,
+        dto.q,
+        skip,
+        take,
+      );
       totalCount += total;
       for (const row of rows) {
         const hit = new SearchHitDto();
@@ -86,13 +100,25 @@ export class SearchService {
         hit.entityType = 'clients';
         hit.index = 'mundial_clients';
         hit.score = 0;
-        hit.source = { name: row.name, tradeName: row.tradeName, cpfCnpj: row.cpfCnpj, email: row.email, phone: row.phone, city: row.city };
+        hit.source = {
+          name: row.name,
+          tradeName: row.tradeName,
+          cpfCnpj: row.cpfCnpj,
+          email: row.email,
+          phone: row.phone,
+          city: row.city,
+        };
         items.push(hit);
       }
     }
 
     if (shouldSearch('products')) {
-      const { items: rows, total } = await this.dataRepository.searchProducts(dto.q, skip, take);
+      const { items: rows, total } = await this.dataRepository.searchProducts(
+        workspaceId,
+        dto.q,
+        skip,
+        take,
+      );
       totalCount += total;
       for (const row of rows) {
         const hit = new SearchHitDto();
@@ -106,7 +132,12 @@ export class SearchService {
     }
 
     if (shouldSearch('orders')) {
-      const { items: rows, total } = await this.dataRepository.searchOrders(dto.q, skip, take);
+      const { items: rows, total } = await this.dataRepository.searchOrders(
+        workspaceId,
+        dto.q,
+        skip,
+        take,
+      );
       totalCount += total;
       for (const row of rows) {
         const hit = new SearchHitDto();
@@ -125,7 +156,12 @@ export class SearchService {
     }
 
     if (shouldSearch('invoices')) {
-      const { items: rows, total } = await this.dataRepository.searchInvoices(dto.q, skip, take);
+      const { items: rows, total } = await this.dataRepository.searchInvoices(
+        workspaceId,
+        dto.q,
+        skip,
+        take,
+      );
       totalCount += total;
       for (const row of rows) {
         const hit = new SearchHitDto();
@@ -143,7 +179,12 @@ export class SearchService {
     }
 
     if (shouldSearch('suppliers')) {
-      const { items: rows, total } = await this.dataRepository.searchSuppliers(dto.q, skip, take);
+      const { items: rows, total } = await this.dataRepository.searchSuppliers(
+        workspaceId,
+        dto.q,
+        skip,
+        take,
+      );
       totalCount += total;
       for (const row of rows) {
         const hit = new SearchHitDto();
@@ -151,7 +192,12 @@ export class SearchService {
         hit.entityType = 'suppliers';
         hit.index = 'mundial_suppliers';
         hit.score = 0;
-        hit.source = { name: row.name, tradeName: row.tradeName, cpfCnpj: row.cpfCnpj, email: row.email };
+        hit.source = {
+          name: row.name,
+          tradeName: row.tradeName,
+          cpfCnpj: row.cpfCnpj,
+          email: row.email,
+        };
         items.push(hit);
       }
     }

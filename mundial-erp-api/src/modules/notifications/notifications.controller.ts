@@ -56,16 +56,15 @@ export class NotificationsController {
   @HttpCode(HttpStatus.NO_CONTENT)
   @ApiOperation({ summary: 'Limpar todas as notificacoes' })
   @ApiResponse({ status: 204 })
-  clearAll(
-    @CurrentUser('sub') userId: string,
-    @Body() dto: BulkActionDto,
-  ) {
+  clearAll(@CurrentUser('sub') userId: string, @Body() dto: BulkActionDto) {
     return this.notificationsService.clearAll(userId, dto);
   }
 
   @Post('delete-all-cleared')
   @HttpCode(HttpStatus.NO_CONTENT)
-  @ApiOperation({ summary: 'Excluir permanentemente todas as notificacoes limpas' })
+  @ApiOperation({
+    summary: 'Excluir permanentemente todas as notificacoes limpas',
+  })
   @ApiResponse({ status: 204 })
   deleteAllCleared(@CurrentUser('sub') userId: string) {
     return this.notificationsService.deleteAllCleared(userId);

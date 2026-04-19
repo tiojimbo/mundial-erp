@@ -1,6 +1,15 @@
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 import { CardType } from '@prisma/client';
-import { IsEnum, IsInt, IsNotEmpty, IsObject, IsOptional, IsString, MaxLength, Min } from 'class-validator';
+import {
+  IsEnum,
+  IsInt,
+  IsNotEmpty,
+  IsObject,
+  IsOptional,
+  IsString,
+  MaxLength,
+  Min,
+} from 'class-validator';
 
 export class CreateCardDto {
   @ApiProperty({ enum: CardType, example: 'KPI_NUMBER' })
@@ -14,8 +23,13 @@ export class CreateCardDto {
   title: string;
 
   @ApiProperty({
-    example: { entity: 'orders', statusFilter: 'ENTREGUE', dateRange: 'last_30d' },
-    description: 'Data source config: { entity, processId?, departmentId?, statusFilter?, dateRange? }',
+    example: {
+      entity: 'orders',
+      statusFilter: 'ENTREGUE',
+      dateRange: 'last_30d',
+    },
+    description:
+      'Data source config: { entity, processId?, departmentId?, statusFilter?, dateRange? }',
   })
   @IsObject()
   dataSource: Record<string, any>;
@@ -52,7 +66,9 @@ export class CreateCardDto {
   @Min(1)
   layoutH: number;
 
-  @ApiPropertyOptional({ description: 'Card-type specific settings (colors, labels, etc)' })
+  @ApiPropertyOptional({
+    description: 'Card-type specific settings (colors, labels, etc)',
+  })
   @IsOptional()
   @IsObject()
   config?: Record<string, any>;

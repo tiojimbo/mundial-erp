@@ -27,7 +27,12 @@ export class BrandsRepository {
       }),
     };
     const [items, total] = await Promise.all([
-      this.prisma.brand.findMany({ where, skip, take, orderBy: { name: 'asc' } }),
+      this.prisma.brand.findMany({
+        where,
+        skip,
+        take,
+        orderBy: { name: 'asc' },
+      }),
       this.prisma.brand.count({ where }),
     ]);
     return { items, total };
@@ -38,6 +43,9 @@ export class BrandsRepository {
   }
 
   async softDelete(id: string) {
-    return this.prisma.brand.update({ where: { id }, data: { deletedAt: new Date() } });
+    return this.prisma.brand.update({
+      where: { id },
+      data: { deletedAt: new Date() },
+    });
   }
 }

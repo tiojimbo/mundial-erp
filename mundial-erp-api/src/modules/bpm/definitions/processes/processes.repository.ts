@@ -6,13 +6,29 @@ import { PrismaService } from '../../../../database/prisma.service';
 export class ProcessesRepository {
   constructor(private readonly prisma: PrismaService) {}
 
-  async create(data: Prisma.ProcessCreateInput) {
+  /**
+   * Process NÃO possui workspaceId direto. Escopo via department (direto OU via area).
+   */
+  private workspaceFilter(workspaceId: string): Prisma.ProcessWhereInput {
+    return {
+      OR: [
+        { department: { workspaceId } },
+        { area: { department: { workspaceId } } },
+      ],
+    };
+  }
+
+  async create(_workspaceId: string, data: Prisma.ProcessCreateInput) {
     return this.prisma.process.create({ data });
   }
 
-  async findById(id: string) {
+  async findById(workspaceId: string, id: string) {
     return this.prisma.process.findFirst({
-      where: { id, deletedAt: null },
+      where: {
+        id,
+        deletedAt: null,
+        ...this.workspaceFilter(workspaceId),
+      },
       include: {
         sector: { select: { id: true, name: true, slug: true } },
         _count: { select: { activities: { where: { deletedAt: null } } } },
@@ -20,17 +36,28 @@ export class ProcessesRepository {
     });
   }
 
-  async findBySlug(slug: string) {
+  async findBySlug(workspaceId: string, slug: string) {
     return this.prisma.process.findFirst({
-      where: { slug, deletedAt: null },
+      where: {
+        slug,
+        deletedAt: null,
+        ...this.workspaceFilter(workspaceId),
+      },
     });
   }
 
-  async findMany(params: { skip?: number; take?: number }) {
+  async findMany(
+    workspaceId: string,
+    params: { skip?: number; take?: number },
+  ) {
     const { skip = 0, take = 20 } = params;
+    const where: Prisma.ProcessWhereInput = {
+      deletedAt: null,
+      ...this.workspaceFilter(workspaceId),
+    };
     const [items, total] = await Promise.all([
       this.prisma.process.findMany({
-        where: { deletedAt: null },
+        where,
         skip,
         take,
         orderBy: { sortOrder: 'asc' },
@@ -38,30 +65,37 @@ export class ProcessesRepository {
           sector: { select: { id: true, name: true } },
         },
       }),
-      this.prisma.process.count({ where: { deletedAt: null } }),
+      this.prisma.process.count({ where }),
     ]);
     return { items, total };
   }
 
-  async update(id: string, data: Prisma.ProcessUpdateInput) {
+  async update(
+    _workspaceId: string,
+    id: string,
+    data: Prisma.ProcessUpdateInput,
+  ) {
     return this.prisma.process.update({ where: { id }, data });
   }
 
-  async softDelete(id: string) {
+  async softDelete(_workspaceId: string, id: string) {
     return this.prisma.process.update({
       where: { id },
       data: { deletedAt: new Date() },
     });
   }
 
-  async findAreaById(areaId: string) {
+  async findAreaById(workspaceId: string, areaId: string) {
     return this.prisma.area.findFirst({
-      where: { id: areaId, deletedAt: null },
+      where: { id: areaId, deletedAt: null, department: { workspaceId } },
       select: { id: true, departmentId: true },
     });
   }
 
-  async createWithDefaultView(data: Prisma.ProcessCreateInput) {
+  async createWithDefaultView(
+    _workspaceId: string,
+    data: Prisma.ProcessCreateInput,
+  ) {
     return this.prisma.$transaction(async (tx) => {
       const process = await tx.process.create({ data });
       await tx.processView.create({
@@ -76,9 +110,13 @@ export class ProcessesRepository {
     });
   }
 
-  async findBySlugWithDetails(slug: string) {
+  async findBySlugWithDetails(workspaceId: string, slug: string) {
     return this.prisma.process.findFirst({
-      where: { slug, deletedAt: null },
+      where: {
+        slug,
+        deletedAt: null,
+        ...this.workspaceFilter(workspaceId),
+      },
       include: {
         sector: { select: { id: true, name: true, slug: true } },
         area: {

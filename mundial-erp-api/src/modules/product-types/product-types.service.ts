@@ -11,7 +11,9 @@ import { PaginationDto } from '../../common/dtos/pagination.dto';
 
 @Injectable()
 export class ProductTypesService {
-  constructor(private readonly productTypesRepository: ProductTypesRepository) {}
+  constructor(
+    private readonly productTypesRepository: ProductTypesRepository,
+  ) {}
 
   async create(dto: CreateProductTypeDto): Promise<ProductTypeResponseDto> {
     const existing = await this.productTypesRepository.findByPrefix(dto.prefix);
@@ -47,14 +49,19 @@ export class ProductTypesService {
     return ProductTypeResponseDto.fromEntity(productType);
   }
 
-  async update(id: string, dto: UpdateProductTypeDto): Promise<ProductTypeResponseDto> {
+  async update(
+    id: string,
+    dto: UpdateProductTypeDto,
+  ): Promise<ProductTypeResponseDto> {
     const productType = await this.productTypesRepository.findById(id);
     if (!productType) {
       throw new NotFoundException('Tipo de produto não encontrado');
     }
 
     if (dto.prefix && dto.prefix !== productType.prefix) {
-      const existing = await this.productTypesRepository.findByPrefix(dto.prefix);
+      const existing = await this.productTypesRepository.findByPrefix(
+        dto.prefix,
+      );
       if (existing) {
         throw new ConflictException('Prefixo já cadastrado');
       }

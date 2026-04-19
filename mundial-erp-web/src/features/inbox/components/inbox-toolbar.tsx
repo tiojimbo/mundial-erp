@@ -6,8 +6,6 @@ import {
   RiDeleteBinLine,
   RiCheckLine,
 } from '@remixicon/react';
-import * as CompactButton from '@/components/ui/compact-button';
-
 import { InboxFilterPopover } from './inbox-filter-popover';
 import { ConfirmDialog } from './confirm-dialog';
 import type { InboxView, NotificationFilters } from '../types/notification.types';
@@ -43,7 +41,7 @@ export function InboxToolbar({
   const isCleared = view === 'cleared';
 
   return (
-    <div className='flex items-center justify-between border-b border-stroke-soft-200 px-4 py-2'>
+    <div className='flex items-center justify-between border-b border-border px-4 py-2'>
       <div className='flex items-center gap-2'>
         <InboxFilterPopover
           filters={filters}
@@ -55,31 +53,31 @@ export function InboxToolbar({
       <div className='flex items-center gap-1'>
         {!isCleared && (
           <button
-            className='inline-flex items-center gap-1.5 rounded-lg px-2.5 py-1.5 text-xs font-medium text-text-sub-600 transition duration-200 ease-out hover:bg-bg-weak-50 hover:text-text-strong-950'
+            className='inline-flex items-center gap-1.5 rounded-lg px-2.5 py-1.5 text-label-xs text-muted-foreground transition-colors hover:bg-muted hover:text-foreground disabled:pointer-events-none disabled:text-muted-foreground/40'
             onClick={onMarkAllRead}
             disabled={isEmpty}
           >
-            <RiCheckDoubleLine className='size-4' />
+            <RiCheckDoubleLine className='h-4 w-4' />
             Marcar tudo como lido
           </button>
         )}
 
         {isCleared ? (
           <button
-            className='inline-flex items-center gap-1.5 rounded-lg px-2.5 py-1.5 text-xs font-medium text-error-base transition duration-200 ease-out hover:bg-red-alpha-10 disabled:pointer-events-none disabled:text-text-disabled-300'
+            className='inline-flex items-center gap-1.5 rounded-lg px-2.5 py-1.5 text-label-xs text-destructive transition-colors hover:bg-destructive/10 disabled:pointer-events-none disabled:text-muted-foreground/40'
             onClick={() => setShowDeleteDialog(true)}
             disabled={isEmpty}
           >
-            <RiDeleteBinLine className='size-4' />
+            <RiDeleteBinLine className='h-4 w-4' />
             Excluir tudo
           </button>
         ) : (
           <button
-            className='inline-flex items-center gap-1.5 rounded-lg px-2.5 py-1.5 text-xs font-medium text-text-sub-600 transition duration-200 ease-out hover:bg-bg-weak-50 hover:text-text-strong-950 disabled:pointer-events-none disabled:text-text-disabled-300'
+            className='inline-flex items-center gap-1.5 rounded-lg px-2.5 py-1.5 text-label-xs text-muted-foreground transition-colors hover:bg-muted hover:text-foreground disabled:pointer-events-none disabled:text-muted-foreground/40'
             onClick={() => setShowClearDialog(true)}
             disabled={isEmpty}
           >
-            <RiCheckLine className='size-4' />
+            <RiCheckLine className='h-4 w-4' />
             Limpar tudo
           </button>
         )}

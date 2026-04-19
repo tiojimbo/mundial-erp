@@ -7,7 +7,9 @@ import { PaginationDto } from '../../common/dtos/pagination.dto';
 
 @Injectable()
 export class DeliveryRoutesService {
-  constructor(private readonly deliveryRoutesRepository: DeliveryRoutesRepository) {}
+  constructor(
+    private readonly deliveryRoutesRepository: DeliveryRoutesRepository,
+  ) {}
 
   async create(dto: CreateDeliveryRouteDto): Promise<DeliveryRouteResponseDto> {
     const entity = await this.deliveryRoutesRepository.create({
@@ -36,7 +38,10 @@ export class DeliveryRoutesService {
     return DeliveryRouteResponseDto.fromEntity(entity);
   }
 
-  async update(id: string, dto: UpdateDeliveryRouteDto): Promise<DeliveryRouteResponseDto> {
+  async update(
+    id: string,
+    dto: UpdateDeliveryRouteDto,
+  ): Promise<DeliveryRouteResponseDto> {
     const entity = await this.deliveryRoutesRepository.findById(id);
     if (!entity) {
       throw new NotFoundException('Rota de entrega não encontrada');

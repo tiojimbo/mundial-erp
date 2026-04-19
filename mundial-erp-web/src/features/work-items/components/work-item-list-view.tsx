@@ -154,7 +154,7 @@ function GroupSection({
 
 export function WorkItemListView({
   processId,
-  departmentId,
+  departmentId: _departmentId,
 }: {
   processId: string;
   departmentId: string;

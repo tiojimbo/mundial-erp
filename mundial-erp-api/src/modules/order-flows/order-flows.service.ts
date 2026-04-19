@@ -36,7 +36,10 @@ export class OrderFlowsService {
     return OrderFlowResponseDto.fromEntity(entity);
   }
 
-  async update(id: string, dto: UpdateOrderFlowDto): Promise<OrderFlowResponseDto> {
+  async update(
+    id: string,
+    dto: UpdateOrderFlowDto,
+  ): Promise<OrderFlowResponseDto> {
     const entity = await this.orderFlowsRepository.findById(id);
     if (!entity) {
       throw new NotFoundException('Fluxo de pedido não encontrado');

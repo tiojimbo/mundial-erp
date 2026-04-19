@@ -25,7 +25,9 @@ export class FinancialSummaryResponseDto {
   @ApiProperty({ description: 'Quantidade de contas a pagar vencidas' })
   overduePayableCount: number;
 
-  @ApiProperty({ description: 'Saldo projetado (recebíveis - pagáveis pendentes, cents)' })
+  @ApiProperty({
+    description: 'Saldo projetado (recebíveis - pagáveis pendentes, cents)',
+  })
   projectedBalanceCents: number;
 
   @ApiProperty({ description: 'Quantidade de NF-e emitidas' })

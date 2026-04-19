@@ -2,7 +2,6 @@
 
 import { useState } from 'react';
 import {
-  RiHashtag,
   RiAddLine,
   RiSearchLine,
 } from '@remixicon/react';

@@ -8,7 +8,7 @@ export class FinancialSummaryService {
 
   constructor(private readonly repository: FinancialSummaryRepository) {}
 
-  async getSummary(): Promise<FinancialSummaryResponseDto> {
+  async getSummary(workspaceId: string): Promise<FinancialSummaryResponseDto> {
     const now = new Date();
 
     const [
@@ -18,11 +18,11 @@ export class FinancialSummaryService {
       overduePayable,
       invoiceAgg,
     ] = await Promise.all([
-      this.repository.aggregateReceivables(),
-      this.repository.aggregateOverdueReceivables(now),
-      this.repository.aggregatePayables(),
-      this.repository.aggregateOverduePayables(now),
-      this.repository.aggregateInvoices(),
+      this.repository.aggregateReceivables(workspaceId),
+      this.repository.aggregateOverdueReceivables(workspaceId, now),
+      this.repository.aggregatePayables(workspaceId),
+      this.repository.aggregateOverduePayables(workspaceId, now),
+      this.repository.aggregateInvoices(workspaceId),
     ]);
 
     const totalReceivableCents = receivableAgg._sum.amountCents ?? 0;

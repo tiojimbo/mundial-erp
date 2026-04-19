@@ -1,11 +1,5 @@
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
-import { Client, Company, Invoice, InvoiceDirection, Order } from '@prisma/client';
-
-type InvoiceWithRelations = Invoice & {
-  client?: Client | null;
-  order?: Order | null;
-  company?: Company | null;
-};
+import { InvoiceDirection } from '@prisma/client';
 
 export class InvoiceResponseDto {
   @ApiProperty()
@@ -66,10 +60,15 @@ export class InvoiceResponseDto {
     dto.direction = entity.direction as InvoiceDirection;
     dto.orderId = (entity.orderId as string) ?? null;
     dto.clientId = (entity.clientId as string) ?? null;
-    dto.clientName = (entity.client as Record<string, unknown>)?.name as string ?? null;
+    dto.clientName =
+      ((entity.client as Record<string, unknown>)?.name as string) ?? null;
     dto.companyId = (entity.companyId as string) ?? null;
-    const company = entity.company as Record<string, unknown> | null | undefined;
-    dto.companyName = (company?.tradeName as string) ?? (company?.name as string) ?? null;
+    const company = entity.company as
+      | Record<string, unknown>
+      | null
+      | undefined;
+    dto.companyName =
+      (company?.tradeName as string) ?? (company?.name as string) ?? null;
     dto.totalCents = entity.totalCents as number;
     dto.issuedAt = (entity.issuedAt as Date) ?? null;
     dto.cancelledAt = (entity.cancelledAt as Date) ?? null;

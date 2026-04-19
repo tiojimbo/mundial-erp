@@ -7,9 +7,13 @@ import { PaginationDto } from '../../common/dtos/pagination.dto';
 
 @Injectable()
 export class ClientClassificationsService {
-  constructor(private readonly clientClassificationsRepository: ClientClassificationsRepository) {}
+  constructor(
+    private readonly clientClassificationsRepository: ClientClassificationsRepository,
+  ) {}
 
-  async create(dto: CreateClientClassificationDto): Promise<ClientClassificationResponseDto> {
+  async create(
+    dto: CreateClientClassificationDto,
+  ): Promise<ClientClassificationResponseDto> {
     const entity = await this.clientClassificationsRepository.create({
       name: dto.name,
       proFinancasId: dto.proFinancasId,
@@ -18,10 +22,11 @@ export class ClientClassificationsService {
   }
 
   async findAll(pagination: PaginationDto) {
-    const { items, total } = await this.clientClassificationsRepository.findMany({
-      skip: pagination.skip,
-      take: pagination.limit,
-    });
+    const { items, total } =
+      await this.clientClassificationsRepository.findMany({
+        skip: pagination.skip,
+        take: pagination.limit,
+      });
     return {
       items: items.map(ClientClassificationResponseDto.fromEntity),
       total,
@@ -36,7 +41,10 @@ export class ClientClassificationsService {
     return ClientClassificationResponseDto.fromEntity(entity);
   }
 
-  async update(id: string, dto: UpdateClientClassificationDto): Promise<ClientClassificationResponseDto> {
+  async update(
+    id: string,
+    dto: UpdateClientClassificationDto,
+  ): Promise<ClientClassificationResponseDto> {
     const entity = await this.clientClassificationsRepository.findById(id);
     if (!entity) {
       throw new NotFoundException('Classificação de cliente não encontrada');

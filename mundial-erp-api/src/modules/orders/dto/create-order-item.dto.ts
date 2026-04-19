@@ -50,7 +50,10 @@ export class CreateOrderItemDto {
   @IsNumber()
   size?: number;
 
-  @ApiPropertyOptional({ type: [CreateOrderItemSupplyDto], description: 'Insumos/acabamentos do item' })
+  @ApiPropertyOptional({
+    type: [CreateOrderItemSupplyDto],
+    description: 'Insumos/acabamentos do item',
+  })
   @IsOptional()
   @IsArray()
   @ValidateNested({ each: true })

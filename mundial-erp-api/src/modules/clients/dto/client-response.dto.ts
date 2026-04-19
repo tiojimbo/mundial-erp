@@ -1,5 +1,5 @@
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
-import { Client, PersonType } from '@prisma/client';
+import { PersonType } from '@prisma/client';
 
 export class ClientResponseDto {
   @ApiProperty()
@@ -92,7 +92,8 @@ export class ClientResponseDto {
     dto.classificationId = (entity.classificationId as string) ?? null;
     dto.deliveryRouteId = (entity.deliveryRouteId as string) ?? null;
     dto.defaultPriceTableId = (entity.defaultPriceTableId as string) ?? null;
-    dto.defaultPaymentMethodId = (entity.defaultPaymentMethodId as string) ?? null;
+    dto.defaultPaymentMethodId =
+      (entity.defaultPaymentMethodId as string) ?? null;
     dto.proFinancasId = (entity.proFinancasId as number) ?? null;
     dto.createdAt = entity.createdAt as Date;
     dto.updatedAt = entity.updatedAt as Date;

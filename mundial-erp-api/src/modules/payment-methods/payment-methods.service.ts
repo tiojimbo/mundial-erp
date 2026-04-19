@@ -7,7 +7,9 @@ import { PaginationDto } from '../../common/dtos/pagination.dto';
 
 @Injectable()
 export class PaymentMethodsService {
-  constructor(private readonly paymentMethodsRepository: PaymentMethodsRepository) {}
+  constructor(
+    private readonly paymentMethodsRepository: PaymentMethodsRepository,
+  ) {}
 
   async create(dto: CreatePaymentMethodDto): Promise<PaymentMethodResponseDto> {
     const entity = await this.paymentMethodsRepository.create({
@@ -37,7 +39,10 @@ export class PaymentMethodsService {
     return PaymentMethodResponseDto.fromEntity(entity);
   }
 
-  async update(id: string, dto: UpdatePaymentMethodDto): Promise<PaymentMethodResponseDto> {
+  async update(
+    id: string,
+    dto: UpdatePaymentMethodDto,
+  ): Promise<PaymentMethodResponseDto> {
     const entity = await this.paymentMethodsRepository.findById(id);
     if (!entity) {
       throw new NotFoundException('Método de pagamento não encontrado');

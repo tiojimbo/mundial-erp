@@ -48,7 +48,11 @@ export class RequisitionPdfService {
     });
   }
 
-  private buildPdf(requisition: Record<string, unknown>, company: Record<string, unknown> | null, barcodePng: Buffer): Promise<Buffer> {
+  private buildPdf(
+    requisition: Record<string, unknown>,
+    company: Record<string, unknown> | null,
+    barcodePng: Buffer,
+  ): Promise<Buffer> {
     return new Promise<Buffer>((resolve, reject) => {
       const doc = new PDFDocument({ size: 'A4', margin: 40 });
       const chunks: Buffer[] = [];
@@ -59,10 +63,19 @@ export class RequisitionPdfService {
 
       // --- CABECALHO EMPRESA ---
       if (company) {
-        doc.fontSize(14).font('Helvetica-Bold').text(company.name as string, { align: 'center' });
+        doc
+          .fontSize(14)
+          .font('Helvetica-Bold')
+          .text(company.name as string, { align: 'center' });
         doc.fontSize(9).font('Helvetica');
-        doc.text(`CNPJ: ${(company.cnpj as string) ?? ''}  IE: ${(company.ie as string) ?? ''}`, { align: 'center' });
-        doc.text(`${(company.address as string) ?? ''}, ${(company.city as string) ?? ''} - ${(company.state as string) ?? ''}`, { align: 'center' });
+        doc.text(
+          `CNPJ: ${(company.cnpj as string) ?? ''}  IE: ${(company.ie as string) ?? ''}`,
+          { align: 'center' },
+        );
+        doc.text(
+          `${(company.address as string) ?? ''}, ${(company.city as string) ?? ''} - ${(company.state as string) ?? ''}`,
+          { align: 'center' },
+        );
       }
 
       doc.moveDown(0.5);
@@ -74,11 +87,19 @@ export class RequisitionPdfService {
       doc.text(`Requisicao de Estoque`, { align: 'center' });
       doc.fontSize(10).font('Helvetica');
       doc.text(`Codigo: ${requisition.code as string}`, { align: 'center' });
-      doc.text(`Data: ${new Date(requisition.requestedAt as string).toLocaleDateString('pt-BR')}`, { align: 'center' });
-      doc.text(`Tipo: ${(requisition.type as string) === 'VENDA' ? 'Venda' : 'Interno'}`, { align: 'center' });
+      doc.text(
+        `Data: ${new Date(requisition.requestedAt as string).toLocaleDateString('pt-BR')}`,
+        { align: 'center' },
+      );
+      doc.text(
+        `Tipo: ${(requisition.type as string) === 'VENDA' ? 'Venda' : 'Interno'}`,
+        { align: 'center' },
+      );
       const reqOrder = requisition.order as Record<string, unknown> | null;
       if (reqOrder) {
-        doc.text(`Pedido: ${reqOrder.orderNumber as string}`, { align: 'center' });
+        doc.text(`Pedido: ${reqOrder.orderNumber as string}`, {
+          align: 'center',
+        });
       }
 
       // --- BARCODE CODE-128 ---
@@ -95,12 +116,22 @@ export class RequisitionPdfService {
       doc.moveDown(0.5);
       const tableLeft = 40;
       const colWidths = [60, 220, 60, 40, 60, 80];
-      const headers = ['Codigo', 'Descricao', 'Qtde', 'Un', 'Un/Cx', 'Qtde Base'];
+      const headers = [
+        'Codigo',
+        'Descricao',
+        'Qtde',
+        'Un',
+        'Un/Cx',
+        'Qtde Base',
+      ];
 
       doc.fontSize(9).font('Helvetica-Bold');
       let x = tableLeft;
       for (let i = 0; i < headers.length; i++) {
-        doc.text(headers[i], x, doc.y, { width: colWidths[i], continued: false });
+        doc.text(headers[i], x, doc.y, {
+          width: colWidths[i],
+          continued: false,
+        });
         x += colWidths[i];
       }
 
@@ -114,13 +145,34 @@ export class RequisitionPdfService {
       for (const item of reqItems) {
         x = tableLeft;
         const y = doc.y;
-        const product = item.product as Record<string, unknown> | null | undefined;
-        doc.text((product?.code as string) ?? '-', x, y, { width: colWidths[0] }); x += colWidths[0];
-        doc.text((product?.name as string) ?? '-', x, y, { width: colWidths[1] }); x += colWidths[1];
-        doc.text(String(item.requestedQuantity as number), x, y, { width: colWidths[2] }); x += colWidths[2];
-        doc.text(item.unitType as string, x, y, { width: colWidths[3] }); x += colWidths[3];
-        doc.text(item.unitsPerBox != null ? String(item.unitsPerBox as number) : '-', x, y, { width: colWidths[4] }); x += colWidths[4];
-        doc.text(String(item.quantityInBaseUnit as number), x, y, { width: colWidths[5] });
+        const product = item.product as
+          | Record<string, unknown>
+          | null
+          | undefined;
+        doc.text((product?.code as string) ?? '-', x, y, {
+          width: colWidths[0],
+        });
+        x += colWidths[0];
+        doc.text((product?.name as string) ?? '-', x, y, {
+          width: colWidths[1],
+        });
+        x += colWidths[1];
+        doc.text(String(item.requestedQuantity as number), x, y, {
+          width: colWidths[2],
+        });
+        x += colWidths[2];
+        doc.text(item.unitType as string, x, y, { width: colWidths[3] });
+        x += colWidths[3];
+        doc.text(
+          item.unitsPerBox != null ? String(item.unitsPerBox as number) : '-',
+          x,
+          y,
+          { width: colWidths[4] },
+        );
+        x += colWidths[4];
+        doc.text(String(item.quantityInBaseUnit as number), x, y, {
+          width: colWidths[5],
+        });
         doc.moveDown(0.8);
         totalQtd += item.quantityInBaseUnit as number;
       }
@@ -136,7 +188,10 @@ export class RequisitionPdfService {
       // --- DADOS DO SOLICITANTE ---
       doc.moveDown(0.5);
       doc.fontSize(10).font('Helvetica');
-      const requestedBy = requisition.requestedBy as Record<string, unknown> | null | undefined;
+      const requestedBy = requisition.requestedBy as
+        | Record<string, unknown>
+        | null
+        | undefined;
       doc.text(`Solicitante: ${(requestedBy?.name as string) ?? '-'}`);
       if (requisition.notes) {
         doc.text(`Observacoes: ${requisition.notes as string}`);
@@ -149,11 +204,23 @@ export class RequisitionPdfService {
       const rightSignX = 320;
       const lineWidth = 180;
 
-      doc.moveTo(leftSignX, signY).lineTo(leftSignX + lineWidth, signY).stroke();
-      doc.fontSize(9).text('Solicitante', leftSignX, signY + 5, { width: lineWidth, align: 'center' });
+      doc
+        .moveTo(leftSignX, signY)
+        .lineTo(leftSignX + lineWidth, signY)
+        .stroke();
+      doc.fontSize(9).text('Solicitante', leftSignX, signY + 5, {
+        width: lineWidth,
+        align: 'center',
+      });
 
-      doc.moveTo(rightSignX, signY).lineTo(rightSignX + lineWidth, signY).stroke();
-      doc.text('Resp. Estoque', rightSignX, signY + 5, { width: lineWidth, align: 'center' });
+      doc
+        .moveTo(rightSignX, signY)
+        .lineTo(rightSignX + lineWidth, signY)
+        .stroke();
+      doc.text('Resp. Estoque', rightSignX, signY + 5, {
+        width: lineWidth,
+        align: 'center',
+      });
 
       doc.end();
     });
@@ -161,7 +228,10 @@ export class RequisitionPdfService {
 
   private drawLine(doc: PDFKit.PDFDocument) {
     const y = doc.y;
-    doc.moveTo(40, y).lineTo(doc.page.width - 40, y).stroke();
+    doc
+      .moveTo(40, y)
+      .lineTo(doc.page.width - 40, y)
+      .stroke();
     doc.moveDown(0.1);
   }
 }

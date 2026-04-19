@@ -12,7 +12,11 @@ import {
 import { PersonType } from '@prisma/client';
 
 export class CreateSupplierDto {
-  @ApiProperty({ enum: PersonType, example: 'J', description: 'F = Pessoa Física, J = Pessoa Jurídica' })
+  @ApiProperty({
+    enum: PersonType,
+    example: 'J',
+    description: 'F = Pessoa Física, J = Pessoa Jurídica',
+  })
   @IsEnum(PersonType)
   personType: PersonType;
 
@@ -34,7 +38,10 @@ export class CreateSupplierDto {
   @MaxLength(255)
   tradeName?: string;
 
-  @ApiPropertyOptional({ example: '123456789', description: 'Inscrição Estadual' })
+  @ApiPropertyOptional({
+    example: '123456789',
+    description: 'Inscrição Estadual',
+  })
   @IsOptional()
   @IsString()
   ie?: string;

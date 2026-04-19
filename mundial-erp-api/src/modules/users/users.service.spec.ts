@@ -16,6 +16,7 @@ const mockUser = {
   role: 'OPERATOR' as const,
   isActive: true,
   departmentId: null,
+  lastAccessedWorkspaceId: null,
   createdAt: new Date(),
   updatedAt: new Date(),
   deletedAt: null,
@@ -70,13 +71,20 @@ describe('UsersService', () => {
       repository.findByEmail.mockResolvedValue(mockUser);
 
       await expect(
-        service.create({ email: 'test@mundial.com', name: 'Test', password: 'pass123' }),
+        service.create({
+          email: 'test@mundial.com',
+          name: 'Test',
+          password: 'pass123',
+        }),
       ).rejects.toThrow(ConflictException);
     });
 
     it('should assign role when provided', async () => {
       repository.findByEmail.mockResolvedValue(null);
-      repository.create.mockResolvedValue({ ...mockUser, role: 'ADMIN' as const });
+      repository.create.mockResolvedValue({
+        ...mockUser,
+        role: 'ADMIN' as const,
+      });
       (bcrypt.hash as jest.Mock).mockResolvedValue('hashed');
 
       const result = await service.create({
@@ -116,14 +124,19 @@ describe('UsersService', () => {
     it('should throw NotFoundException if user not found', async () => {
       repository.findById.mockResolvedValue(null);
 
-      await expect(service.findById('bad-id')).rejects.toThrow(NotFoundException);
+      await expect(service.findById('bad-id')).rejects.toThrow(
+        NotFoundException,
+      );
     });
   });
 
   describe('update', () => {
     it('should update user fields', async () => {
       repository.findById.mockResolvedValue(mockUser);
-      repository.update.mockResolvedValue({ ...mockUser, name: 'Updated Name' });
+      repository.update.mockResolvedValue({
+        ...mockUser,
+        name: 'Updated Name',
+      });
 
       const result = await service.update('user-1', { name: 'Updated Name' });
 
@@ -133,7 +146,9 @@ describe('UsersService', () => {
     it('should throw NotFoundException if user not found', async () => {
       repository.findById.mockResolvedValue(null);
 
-      await expect(service.update('bad-id', { name: 'Test' })).rejects.toThrow(NotFoundException);
+      await expect(service.update('bad-id', { name: 'Test' })).rejects.toThrow(
+        NotFoundException,
+      );
     });
 
     it('should throw ConflictException if new email is taken', async () => {
@@ -163,7 +178,10 @@ describe('UsersService', () => {
   describe('remove', () => {
     it('should soft delete user', async () => {
       repository.findById.mockResolvedValue(mockUser);
-      repository.softDelete.mockResolvedValue({ ...mockUser, deletedAt: new Date() });
+      repository.softDelete.mockResolvedValue({
+        ...mockUser,
+        deletedAt: new Date(),
+      });
 
       await service.remove('user-1');
 

@@ -1,23 +1,4 @@
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
-import type {
-  Order,
-  OrderItem,
-  Product,
-  SeparationOrder,
-  SeparationOrderItem,
-} from '@prisma/client';
-
-// --- Typed entity shapes ---
-
-type SeparationOrderItemWithRelations = SeparationOrderItem & {
-  product?: Product;
-  orderItem?: OrderItem;
-};
-
-type SeparationOrderWithRelations = SeparationOrder & {
-  order?: Order;
-  items?: SeparationOrderItemWithRelations[];
-};
 
 // --- Item Response DTO ---
 
@@ -36,7 +17,9 @@ export class SeparationOrderItemResponseDto {
   @ApiProperty() createdAt: Date;
   @ApiProperty() updatedAt: Date;
 
-  static fromEntity(entity: Record<string, unknown>): SeparationOrderItemResponseDto {
+  static fromEntity(
+    entity: Record<string, unknown>,
+  ): SeparationOrderItemResponseDto {
     const dto = new SeparationOrderItemResponseDto();
     dto.id = entity.id as string;
     dto.separationOrderId = entity.separationOrderId as string;
@@ -50,7 +33,8 @@ export class SeparationOrderItemResponseDto {
     dto.createdAt = entity.createdAt as Date;
     dto.updatedAt = entity.updatedAt as Date;
     if (entity.product) dto.product = entity.product as Record<string, unknown>;
-    if (entity.orderItem) dto.orderItem = entity.orderItem as Record<string, unknown>;
+    if (entity.orderItem)
+      dto.orderItem = entity.orderItem as Record<string, unknown>;
     return dto;
   }
 }
@@ -71,7 +55,9 @@ export class SeparationOrderResponseDto {
   @ApiProperty() createdAt: Date;
   @ApiProperty() updatedAt: Date;
 
-  static fromEntity(entity: Record<string, unknown>): SeparationOrderResponseDto {
+  static fromEntity(
+    entity: Record<string, unknown>,
+  ): SeparationOrderResponseDto {
     const dto = new SeparationOrderResponseDto();
     dto.id = entity.id as string;
     dto.orderId = entity.orderId as string;
@@ -84,7 +70,9 @@ export class SeparationOrderResponseDto {
     dto.updatedAt = entity.updatedAt as Date;
     if (entity.order) dto.order = entity.order as Record<string, unknown>;
     if (entity.items) {
-      dto.items = (entity.items as Record<string, unknown>[]).map(SeparationOrderItemResponseDto.fromEntity);
+      dto.items = (entity.items as Record<string, unknown>[]).map(
+        SeparationOrderItemResponseDto.fromEntity,
+      );
     }
     return dto;
   }

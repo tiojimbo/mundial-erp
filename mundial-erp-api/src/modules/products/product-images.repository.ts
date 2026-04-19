@@ -11,7 +11,9 @@ export class ProductImagesRepository {
   }
 
   async findById(id: string) {
-    return this.prisma.productImage.findFirst({ where: { id, deletedAt: null } });
+    return this.prisma.productImage.findFirst({
+      where: { id, deletedAt: null },
+    });
   }
 
   async findByProductId(productId: string) {

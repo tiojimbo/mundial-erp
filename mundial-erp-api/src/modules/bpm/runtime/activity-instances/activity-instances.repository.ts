@@ -36,8 +36,13 @@ export class ActivityInstancesRepository {
     assignedUserId?: string;
     status?: ActivityStatus;
   }) {
-    const { skip = 0, take = 20, processInstanceId, assignedUserId, status } =
-      params;
+    const {
+      skip = 0,
+      take = 20,
+      processInstanceId,
+      assignedUserId,
+      status,
+    } = params;
 
     const where: Prisma.ActivityInstanceWhereInput = {
       deletedAt: null,

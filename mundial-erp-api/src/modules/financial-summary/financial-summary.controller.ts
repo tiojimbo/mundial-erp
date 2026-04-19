@@ -1,7 +1,13 @@
 import { Controller, Get } from '@nestjs/common';
-import { ApiBearerAuth, ApiOperation, ApiResponse, ApiTags } from '@nestjs/swagger';
+import {
+  ApiBearerAuth,
+  ApiOperation,
+  ApiResponse,
+  ApiTags,
+} from '@nestjs/swagger';
 import { Role } from '@prisma/client';
 import { Roles } from '../auth/decorators';
+import { WorkspaceId } from '../workspaces/decorators/workspace-id.decorator';
 import { FinancialSummaryService } from './financial-summary.service';
 import { FinancialSummaryResponseDto } from './dto/financial-summary-response.dto';
 
@@ -9,13 +15,17 @@ import { FinancialSummaryResponseDto } from './dto/financial-summary-response.dt
 @ApiBearerAuth()
 @Controller('financial-summary')
 export class FinancialSummaryController {
-  constructor(private readonly financialSummaryService: FinancialSummaryService) {}
+  constructor(
+    private readonly financialSummaryService: FinancialSummaryService,
+  ) {}
 
   @Get()
   @Roles(Role.ADMIN, Role.MANAGER, Role.OPERATOR)
-  @ApiOperation({ summary: 'Dashboard financeiro — totais, vencidos, projeção' })
+  @ApiOperation({
+    summary: 'Dashboard financeiro — totais, vencidos, projeção',
+  })
   @ApiResponse({ status: 200, type: FinancialSummaryResponseDto })
-  getSummary() {
-    return this.financialSummaryService.getSummary();
+  getSummary(@WorkspaceId() workspaceId: string) {
+    return this.financialSummaryService.getSummary(workspaceId);
   }
 }

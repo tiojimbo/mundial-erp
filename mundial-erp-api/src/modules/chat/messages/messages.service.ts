@@ -27,7 +27,10 @@ export class MessagesService {
     dto: CreateMessageDto,
     userId: string,
   ): Promise<MessageResponseDto> {
-    await this.channelAccessService.ensureMembershipOrAutoJoin(channelId, userId);
+    await this.channelAccessService.ensureMembershipOrAutoJoin(
+      channelId,
+      userId,
+    );
 
     const entity = await this.messagesRepository.create({
       content: dto.content,
@@ -62,9 +65,7 @@ export class MessagesService {
       );
     }
 
-    const response = MessageResponseDto.fromEntity(
-      entity,
-    );
+    const response = MessageResponseDto.fromEntity(entity);
     this.eventEmitter.emit(CHAT_EVENTS.MESSAGE_CREATED, {
       message: response,
       channelId,
@@ -85,9 +86,7 @@ export class MessagesService {
     });
     return {
       ...result,
-      items: result.items.map((item) =>
-        MessageResponseDto.fromEntity(item),
-      ),
+      items: result.items.map((item) => MessageResponseDto.fromEntity(item)),
     };
   }
 
@@ -99,9 +98,7 @@ export class MessagesService {
     if (!entity) throw new NotFoundException('Mensagem nao encontrada');
 
     await this.channelAccessService.assertMembership(entity.channelId, userId);
-    return MessageResponseDto.fromEntity(
-      entity,
-    );
+    return MessageResponseDto.fromEntity(entity);
   }
 
   async update(
@@ -144,9 +141,7 @@ export class MessagesService {
       await this.messagesRepository.createMentions(messageId, mentionIds);
     }
 
-    const response = MessageResponseDto.fromEntity(
-      updated,
-    );
+    const response = MessageResponseDto.fromEntity(updated);
     this.eventEmitter.emit(CHAT_EVENTS.MESSAGE_UPDATED, {
       message: response,
       channelId: entity.channelId,
@@ -193,9 +188,7 @@ export class MessagesService {
     });
     return {
       ...result,
-      items: result.items.map((item) =>
-        MessageResponseDto.fromEntity(item),
-      ),
+      items: result.items.map((item) => MessageResponseDto.fromEntity(item)),
     };
   }
 

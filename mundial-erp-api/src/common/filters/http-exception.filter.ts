@@ -31,7 +31,8 @@ export class GlobalExceptionFilter implements ExceptionFilter {
       errorMessage = 'Internal server error';
       this.logger.error(
         JSON.stringify({
-          message: exception instanceof Error ? exception.message : 'Unknown error',
+          message:
+            exception instanceof Error ? exception.message : 'Unknown error',
           requestId,
           path: request.url,
           method: request.method,
@@ -42,7 +43,10 @@ export class GlobalExceptionFilter implements ExceptionFilter {
       const exceptionResponse = exception.getResponse();
       if (typeof exceptionResponse === 'string') {
         errorMessage = exceptionResponse;
-      } else if (typeof exceptionResponse === 'object' && exceptionResponse !== null) {
+      } else if (
+        typeof exceptionResponse === 'object' &&
+        exceptionResponse !== null
+      ) {
         const body = exceptionResponse as Record<string, unknown>;
         errorMessage = (body.message as string | string[]) || exception.message;
       } else {

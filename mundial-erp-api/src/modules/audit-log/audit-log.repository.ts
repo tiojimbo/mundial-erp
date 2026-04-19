@@ -38,7 +38,16 @@ export class AuditLogRepository {
     dateFrom?: Date;
     dateTo?: Date;
   }) {
-    const { skip = 0, take = 20, entity, entityId, userId, action, dateFrom, dateTo } = params;
+    const {
+      skip = 0,
+      take = 20,
+      entity,
+      entityId,
+      userId,
+      action,
+      dateFrom,
+      dateTo,
+    } = params;
 
     const where: Prisma.AuditLogWhereInput = {
       ...(entity && { entity }),

@@ -17,9 +17,7 @@ import type { JwtPayload } from '../../../auth/decorators';
 @ApiBearerAuth()
 @Controller('task-instances')
 export class TaskInstancesController {
-  constructor(
-    private readonly taskInstancesService: TaskInstancesService,
-  ) {}
+  constructor(private readonly taskInstancesService: TaskInstancesService) {}
 
   @Get()
   @Roles(Role.ADMIN, Role.MANAGER, Role.OPERATOR)
@@ -56,10 +54,7 @@ export class TaskInstancesController {
     status: 404,
     description: 'Instância de tarefa não encontrada',
   })
-  toggle(
-    @Param('id') id: string,
-    @CurrentUser() user: JwtPayload,
-  ) {
+  toggle(@Param('id') id: string, @CurrentUser() user: JwtPayload) {
     return this.taskInstancesService.toggle(id, user.sub);
   }
 }

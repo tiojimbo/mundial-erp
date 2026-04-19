@@ -6,15 +6,29 @@ import { PrismaService } from '../../database/prisma.service';
 export class CashRegistersRepository {
   constructor(private readonly prisma: PrismaService) {}
 
-  async create(data: Prisma.CashRegisterCreateInput) {
+  /**
+   * CashRegister NÃO possui workspaceId direto. Escopo via company.
+   */
+  async create(_workspaceId: string, data: Prisma.CashRegisterCreateInput) {
     return this.prisma.cashRegister.create({
       data,
       include: { company: true, openedBy: true, closedBy: true },
     });
   }
 
-  async openAtomically(companyId: string, userId: string, openingBalanceCents: number) {
+  async openAtomically(
+    workspaceId: string,
+    companyId: string,
+    userId: string,
+    openingBalanceCents: number,
+  ) {
     return this.prisma.$transaction(async (tx) => {
+      // Validar que company pertence ao workspace
+      const company = await tx.company.findFirst({
+        where: { id: companyId, workspaceId, deletedAt: null },
+      });
+      if (!company) return null;
+
       const existing = await tx.cashRegister.findFirst({
         where: { companyId, closedAt: null, deletedAt: null },
       });
@@ -33,22 +47,28 @@ export class CashRegistersRepository {
     });
   }
 
-  async findById(id: string) {
+  async findById(workspaceId: string, id: string) {
     return this.prisma.cashRegister.findFirst({
-      where: { id, deletedAt: null },
+      where: { id, deletedAt: null, company: { workspaceId } },
       include: { company: true, openedBy: true, closedBy: true },
     });
   }
 
-  async findMany(params: {
-    skip?: number;
-    take?: number;
-    companyId?: string;
-    isOpen?: boolean;
-  }) {
+  async findMany(
+    workspaceId: string,
+    params: {
+      skip?: number;
+      take?: number;
+      companyId?: string;
+      isOpen?: boolean;
+    },
+  ) {
     const { skip = 0, take = 20, companyId, isOpen } = params;
 
-    const where: Prisma.CashRegisterWhereInput = { deletedAt: null };
+    const where: Prisma.CashRegisterWhereInput = {
+      deletedAt: null,
+      company: { workspaceId },
+    };
 
     if (companyId) {
       where.companyId = companyId;
@@ -83,13 +103,22 @@ export class CashRegistersRepository {
     return { items, total };
   }
 
-  async findOpenByCompany(companyId: string) {
+  async findOpenByCompany(workspaceId: string, companyId: string) {
     return this.prisma.cashRegister.findFirst({
-      where: { companyId, closedAt: null, deletedAt: null },
+      where: {
+        companyId,
+        closedAt: null,
+        deletedAt: null,
+        company: { workspaceId },
+      },
     });
   }
 
-  async update(id: string, data: Prisma.CashRegisterUpdateInput) {
+  async update(
+    _workspaceId: string,
+    id: string,
+    data: Prisma.CashRegisterUpdateInput,
+  ) {
     return this.prisma.cashRegister.update({
       where: { id },
       data,
@@ -97,7 +126,7 @@ export class CashRegistersRepository {
     });
   }
 
-  async softDelete(id: string) {
+  async softDelete(_workspaceId: string, id: string) {
     return this.prisma.cashRegister.update({
       where: { id },
       data: { deletedAt: new Date() },

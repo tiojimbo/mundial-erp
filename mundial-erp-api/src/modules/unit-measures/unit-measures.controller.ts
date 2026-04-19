@@ -1,5 +1,21 @@
-import { Body, Controller, Delete, Get, HttpCode, HttpStatus, Param, Patch, Post, Query } from '@nestjs/common';
-import { ApiBearerAuth, ApiOperation, ApiResponse, ApiTags } from '@nestjs/swagger';
+import {
+  Body,
+  Controller,
+  Delete,
+  Get,
+  HttpCode,
+  HttpStatus,
+  Param,
+  Patch,
+  Post,
+  Query,
+} from '@nestjs/common';
+import {
+  ApiBearerAuth,
+  ApiOperation,
+  ApiResponse,
+  ApiTags,
+} from '@nestjs/swagger';
 import { Role } from '@prisma/client';
 import { UnitMeasuresService } from './unit-measures.service';
 import { CreateUnitMeasureDto } from './dto/create-unit-measure.dto';
@@ -26,7 +42,10 @@ export class UnitMeasuresController {
   @Get()
   @Roles(Role.ADMIN, Role.MANAGER, Role.OPERATOR)
   @ApiOperation({ summary: 'Listar unidades de medida' })
-  findAll(@Query() pagination: PaginationDto, @Query('search') search?: string) {
+  findAll(
+    @Query() pagination: PaginationDto,
+    @Query('search') search?: string,
+  ) {
     return this.unitMeasuresService.findAll(pagination, search);
   }
 

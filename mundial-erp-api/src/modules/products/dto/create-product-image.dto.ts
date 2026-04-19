@@ -2,7 +2,10 @@ import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 import { IsInt, IsNotEmpty, IsOptional, IsString, Min } from 'class-validator';
 
 export class CreateProductImageDto {
-  @ApiProperty({ example: 'https://cdn.example.com/products/telha-40mm.jpg', description: 'URL da imagem' })
+  @ApiProperty({
+    example: 'https://cdn.example.com/products/telha-40mm.jpg',
+    description: 'URL da imagem',
+  })
   @IsString()
   @IsNotEmpty()
   url: string;

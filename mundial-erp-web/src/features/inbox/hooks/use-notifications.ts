@@ -168,7 +168,7 @@ export function useSnoozeNotification() {
   return useMutation({
     mutationFn: ({ id, payload }: { id: string; payload: SnoozePayload }) =>
       notificationService.snoozeNotification(id, payload),
-    onMutate: async ({ id, payload }) => {
+    onMutate: async ({ id, payload: _payload }) => {
       await qc.cancelQueries({ queryKey: NOTIFICATIONS_KEY });
       const previousData = qc.getQueriesData<NotificationsResponse>({
         queryKey: NOTIFICATIONS_KEY,
@@ -241,7 +241,7 @@ export function useMarkAllRead() {
   return useMutation({
     mutationFn: (payload: BulkActionPayload) =>
       notificationService.markAllRead(payload),
-    onMutate: async ({ view }) => {
+    onMutate: async ({ view: _view }) => {
       await qc.cancelQueries({ queryKey: NOTIFICATIONS_KEY });
       const previousData = qc.getQueriesData<NotificationsResponse>({
         queryKey: NOTIFICATIONS_KEY,

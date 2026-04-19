@@ -67,7 +67,12 @@ export class ProductionOrdersController {
     @Query('orderId') orderId?: string,
     @Query('status') status?: ProductionOrderStatus,
   ) {
-    return this.productionOrdersService.findAll(pagination, search, orderId, status);
+    return this.productionOrdersService.findAll(
+      pagination,
+      search,
+      orderId,
+      status,
+    );
   }
 
   @Get(':id')
@@ -116,7 +121,9 @@ export class ProductionOrdersController {
 
   @Patch(':id/cancel')
   @Roles(Role.ADMIN, Role.MANAGER)
-  @ApiOperation({ summary: 'Cancelar ordem de produção (PENDING/IN_PROGRESS → CANCELLED)' })
+  @ApiOperation({
+    summary: 'Cancelar ordem de produção (PENDING/IN_PROGRESS → CANCELLED)',
+  })
   @ApiResponse({ status: 200, type: ProductionOrderResponseDto })
   cancel(@Param('id') id: string) {
     return this.productionOrdersService.cancel(id);
@@ -126,7 +133,9 @@ export class ProductionOrdersController {
 
   @Get(':id/pdf')
   @Roles(Role.ADMIN, Role.MANAGER, Role.OPERATOR)
-  @ApiOperation({ summary: 'Gerar PDF Ficha da Ordem de Produção (PLANO 4.2d)' })
+  @ApiOperation({
+    summary: 'Gerar PDF Ficha da Ordem de Produção (PLANO 4.2d)',
+  })
   @ApiResponse({ status: 200, description: 'PDF binário' })
   async getPdf(@Param('id') id: string, @Res() res: express.Response) {
     const buffer = await this.productionOrderPdfService.generate(id);
@@ -144,10 +153,7 @@ export class ProductionOrdersController {
   @Roles(Role.ADMIN, Role.MANAGER, Role.OPERATOR)
   @ApiOperation({ summary: 'Adicionar consumo à ordem de produção' })
   @ApiResponse({ status: 201, type: ProductionConsumptionResponseDto })
-  addConsumption(
-    @Param('id') id: string,
-    @Body() dto: CreateConsumptionDto,
-  ) {
+  addConsumption(@Param('id') id: string, @Body() dto: CreateConsumptionDto) {
     return this.productionOrdersService.addConsumption(id, dto);
   }
 
@@ -160,7 +166,11 @@ export class ProductionOrdersController {
     @Param('consumptionId') consumptionId: string,
     @Body() dto: Partial<CreateConsumptionDto>,
   ) {
-    return this.productionOrdersService.updateConsumption(id, consumptionId, dto);
+    return this.productionOrdersService.updateConsumption(
+      id,
+      consumptionId,
+      dto,
+    );
   }
 
   @Delete(':id/consumptions/:consumptionId')
@@ -181,10 +191,7 @@ export class ProductionOrdersController {
   @Roles(Role.ADMIN, Role.MANAGER, Role.OPERATOR)
   @ApiOperation({ summary: 'Adicionar saída/produção à ordem' })
   @ApiResponse({ status: 201, type: ProductionOutputResponseDto })
-  addOutput(
-    @Param('id') id: string,
-    @Body() dto: CreateOutputDto,
-  ) {
+  addOutput(@Param('id') id: string, @Body() dto: CreateOutputDto) {
     return this.productionOrdersService.addOutput(id, dto);
   }
 
@@ -205,10 +212,7 @@ export class ProductionOrdersController {
   @HttpCode(HttpStatus.NO_CONTENT)
   @ApiOperation({ summary: 'Remover saída/produção da ordem' })
   @ApiResponse({ status: 204 })
-  removeOutput(
-    @Param('id') id: string,
-    @Param('outputId') outputId: string,
-  ) {
+  removeOutput(@Param('id') id: string, @Param('outputId') outputId: string) {
     return this.productionOrdersService.removeOutput(id, outputId);
   }
 
@@ -218,10 +222,7 @@ export class ProductionOrdersController {
   @Roles(Role.ADMIN, Role.MANAGER, Role.OPERATOR)
   @ApiOperation({ summary: 'Registrar perda na ordem de produção' })
   @ApiResponse({ status: 201, type: ProductionLossResponseDto })
-  addLoss(
-    @Param('id') id: string,
-    @Body() dto: CreateLossDto,
-  ) {
+  addLoss(@Param('id') id: string, @Body() dto: CreateLossDto) {
     return this.productionOrdersService.addLoss(id, dto);
   }
 
@@ -242,10 +243,7 @@ export class ProductionOrdersController {
   @HttpCode(HttpStatus.NO_CONTENT)
   @ApiOperation({ summary: 'Remover perda da ordem de produção' })
   @ApiResponse({ status: 204 })
-  removeLoss(
-    @Param('id') id: string,
-    @Param('lossId') lossId: string,
-  ) {
+  removeLoss(@Param('id') id: string, @Param('lossId') lossId: string) {
     return this.productionOrdersService.removeLoss(id, lossId);
   }
 }

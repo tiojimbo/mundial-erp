@@ -240,32 +240,62 @@ enum ChannelMemberRole {
   MEMBER
 }
 
+// --- Workspace (Multi-tenancy) ---
+
+enum WorkspaceMemberRole {
+  OWNER
+  ADMIN
+  MEMBER
+  GUEST
+}
+
+enum WorkspacePlan {
+  FREE
+  PRO
+  ENTERPRISE
+}
+
+enum InviteStatus {
+  PENDING
+  ACCEPTED
+  EXPIRED
+  REVOKED
+}
+
 // ============================================================================
 // 1.2 — Auth & Organization
 // ============================================================================
 
 model User {
-  id           String    @id @default(cuid())
-  email        String    @unique
-  name         String
-  passwordHash String    @map("password_hash")
-  refreshToken String?   @map("refresh_token")
-  role         Role      @default(OPERATOR)
-  isActive     Boolean   @default(true) @map("is_active")
-  departmentId String?   @map("department_id")
-  createdAt    DateTime  @default(now()) @map("created_at")
-  updatedAt    DateTime  @updatedAt @map("updated_at")
-  deletedAt    DateTime? @map("deleted_at")
+  id                      String    @id @default(cuid())
+  email                   String    @unique
+  name                    String
+  passwordHash            String    @map("password_hash")
+  refreshToken            String?   @map("refresh_token")
+  role                    Role      @default(OPERATOR)
+  isActive                Boolean   @default(true) @map("is_active")
+  departmentId            String?   @map("department_id")
+  lastAccessedWorkspaceId String?   @map("last_accessed_workspace_id")
+  createdAt               DateTime  @default(now()) @map("created_at")
+  updatedAt               DateTime  @updatedAt @map("updated_at")
+  deletedAt               DateTime? @map("deleted_at")
 
-  department          Department?          @relation(fields: [departmentId], references: [id])
-  activityInstances   ActivityInstance[]
-  taskInstances       TaskInstance[]
-  createdOrders       Order[]              @relation("OrderCreatedBy")
-  assignedOrders      Order[]              @relation("OrderAssignedTo")
-  dashboards          Dashboard[]
-  cashRegistersOpened CashRegister[]       @relation("CashOpenedBy")
-  cashRegistersClosed CashRegister[]       @relation("CashClosedBy")
-  auditLogs           AuditLog[]
+  department Department? @relation(fields: [departmentId], references: [id])
+
+  // --- Workspace ---
+  lastAccessedWorkspace Workspace?        @relation("LastAccessedWorkspace", fields: [lastAccessedWorkspaceId], references: [id])
+  workspaceMembers      WorkspaceMember[]
+  ownedWorkspaces       Workspace[]       @relation("WorkspaceOwner")
+  workspaceInvites      WorkspaceInvite[] @relation("InvitedBy")
+
+  activityInstances          ActivityInstance[]
+  taskInstances              TaskInstance[]
+  createdOrders              Order[]            @relation("OrderCreatedBy")
+  assignedOrders             Order[]            @relation("OrderAssignedTo")
+  dashboards                 Dashboard[]
+  cashRegistersOpened        CashRegister[]     @relation("CashOpenedBy")
+  cashRegistersClosed        CashRegister[]     @relation("CashClosedBy")
+  auditLogs                  AuditLog[]
   stockRequisitionsRequested StockRequisition[] @relation("RequisitionRequestedBy")
   stockRequisitionsApproved  StockRequisition[] @relation("RequisitionApprovedBy")
   orderItemSuppliesChecked   OrderItemSupply[]
@@ -291,7 +321,7 @@ model User {
 }
 
 model Permission {
-  id          String @id @default(cuid())
+  id          String  @id @default(cuid())
   action      String // e.g. "order:create"
   resource    String
   description String?
@@ -317,6 +347,7 @@ model RolePermission {
 
 model Department {
   id          String    @id @default(cuid())
+  workspaceId String?   @map("workspace_id")
   name        String
   slug        String    @unique
   description String?
@@ -330,12 +361,15 @@ model Department {
   updatedAt   DateTime  @updatedAt @map("updated_at")
   deletedAt   DateTime? @map("deleted_at")
 
-  sectors  Sector[]
-  areas    Area[]
-  users    User[]
-  statuses WorkflowStatus[]
-  processes Process[] @relation("ProcessDepartment")
+  workspace Workspace?       @relation(fields: [workspaceId], references: [id])
+  sectors   Sector[]
+  areas     Area[]
+  users     User[]
+  statuses  WorkflowStatus[]
+  processes Process[]        @relation("ProcessDepartment")
 
+  @@index([workspaceId])
+  @@index([workspaceId, deletedAt], name: "idx_departments_ws_deleted")
   @@map("departments")
 }
 
@@ -371,7 +405,7 @@ model Area {
   deletedAt        DateTime? @map("deleted_at")
 
   department Department       @relation(fields: [departmentId], references: [id])
-  processes  Process[]         @relation("ProcessArea")
+  processes  Process[]        @relation("ProcessArea")
   statuses   WorkflowStatus[] @relation("AreaStatuses")
 
   @@index([departmentId], name: "idx_areas_department")
@@ -396,15 +430,15 @@ model Process {
   updatedAt    DateTime      @updatedAt @map("updated_at")
   deletedAt    DateTime?     @map("deleted_at")
 
-  sector            Sector?            @relation("ProcessSector", fields: [sectorId], references: [id])
-  department        Department?        @relation("ProcessDepartment", fields: [departmentId], references: [id])
-  area              Area?              @relation("ProcessArea", fields: [areaId], references: [id])
-  activities        Activity[]
-  handoffsFrom      Handoff[]          @relation("HandoffFrom")
-  handoffsTo        Handoff[]          @relation("HandoffTo")
-  processInstances  ProcessInstance[]
-  workItems         WorkItem[]
-  views             ProcessView[]
+  sector           Sector?           @relation("ProcessSector", fields: [sectorId], references: [id])
+  department       Department?       @relation("ProcessDepartment", fields: [departmentId], references: [id])
+  area             Area?             @relation("ProcessArea", fields: [areaId], references: [id])
+  activities       Activity[]
+  handoffsFrom     Handoff[]         @relation("HandoffFrom")
+  handoffsTo       Handoff[]         @relation("HandoffTo")
+  processInstances ProcessInstance[]
+  workItems        WorkItem[]
+  views            ProcessView[]
 
   @@index([departmentId], name: "idx_processes_department")
   @@index([areaId], name: "idx_processes_area")
@@ -412,21 +446,21 @@ model Process {
 }
 
 model Activity {
-  id               String       @id @default(cuid())
-  name             String // verbo infinitivo + objeto
-  slug             String       @unique
-  processId        String       @map("process_id")
-  ownerRole        Role         @map("owner_role")
-  inputDescription String?      @map("input_description")
-  outputDescription String?     @map("output_description")
-  slaMinutes       Int?         @map("sla_minutes")
-  exceptions       String?
-  sortOrder        Int          @default(0) @map("sort_order")
-  isAutomatic      Boolean      @default(false) @map("is_automatic")
-  triggerOnStatus  OrderStatus? @map("trigger_on_status")
-  createdAt        DateTime     @default(now()) @map("created_at")
-  updatedAt        DateTime     @updatedAt @map("updated_at")
-  deletedAt        DateTime?    @map("deleted_at")
+  id                String       @id @default(cuid())
+  name              String // verbo infinitivo + objeto
+  slug              String       @unique
+  processId         String       @map("process_id")
+  ownerRole         Role         @map("owner_role")
+  inputDescription  String?      @map("input_description")
+  outputDescription String?      @map("output_description")
+  slaMinutes        Int?         @map("sla_minutes")
+  exceptions        String?
+  sortOrder         Int          @default(0) @map("sort_order")
+  isAutomatic       Boolean      @default(false) @map("is_automatic")
+  triggerOnStatus   OrderStatus? @map("trigger_on_status")
+  createdAt         DateTime     @default(now()) @map("created_at")
+  updatedAt         DateTime     @updatedAt @map("updated_at")
+  deletedAt         DateTime?    @map("deleted_at")
 
   process           Process            @relation(fields: [processId], references: [id])
   tasks             Task[]
@@ -484,9 +518,9 @@ model ProcessInstance {
   updatedAt   DateTime      @updatedAt @map("updated_at")
   deletedAt   DateTime?     @map("deleted_at")
 
-  process            Process              @relation(fields: [processId], references: [id])
-  order              Order                @relation(fields: [orderId], references: [id])
-  activityInstances  ActivityInstance[]
+  process              Process            @relation(fields: [processId], references: [id])
+  order                Order              @relation(fields: [orderId], references: [id])
+  activityInstances    ActivityInstance[]
   handoffInstancesFrom HandoffInstance[]  @relation("HandoffInstanceFrom")
   handoffInstancesTo   HandoffInstance[]  @relation("HandoffInstanceTo")
 
@@ -582,13 +616,16 @@ model WorkflowStatus {
 }
 
 model StatusTemplate {
-  id        String               @id @default(cuid())
-  name      String
-  createdAt DateTime             @default(now()) @map("created_at")
-  updatedAt DateTime             @updatedAt @map("updated_at")
+  id          String   @id @default(cuid())
+  workspaceId String?  @map("workspace_id")
+  name        String
+  createdAt   DateTime @default(now()) @map("created_at")
+  updatedAt   DateTime @updatedAt @map("updated_at")
 
-  items StatusTemplateItem[]
+  workspace Workspace?           @relation(fields: [workspaceId], references: [id])
+  items     StatusTemplateItem[]
 
+  @@index([workspaceId])
   @@map("status_templates")
 }
 
@@ -611,38 +648,39 @@ model StatusTemplateItem {
 // ============================================================================
 
 model WorkItem {
-  id               String        @id @default(cuid())
-  processId        String        @map("process_id")
+  id               String       @id @default(cuid())
+  processId        String       @map("process_id")
   title            String
-  description      String?       @db.Text
-  statusId         String        @map("status_id")
-  itemType         WorkItemType  @default(TASK) @map("item_type")
-  priority         TaskPriority  @default(NONE)
-  assigneeId       String?       @map("assignee_id")
-  creatorId        String        @map("creator_id")
-  parentId         String?       @map("parent_id")
-  startDate        DateTime?     @map("start_date")
-  dueDate          DateTime?     @map("due_date")
-  completedAt      DateTime?     @map("completed_at")
-  closedAt         DateTime?     @map("closed_at")
-  estimatedMinutes Int?          @map("estimated_minutes")
-  trackedMinutes   Int           @default(0) @map("tracked_minutes")
-  sortOrder        Int           @default(0) @map("sort_order")
-  createdAt        DateTime      @default(now()) @map("created_at")
-  updatedAt        DateTime      @updatedAt @map("updated_at")
-  deletedAt        DateTime?     @map("deleted_at")
+  description      String?      @db.Text
+  statusId         String       @map("status_id")
+  itemType         WorkItemType @default(TASK) @map("item_type")
+  priority         TaskPriority @default(NONE)
+  assigneeId       String?      @map("assignee_id")
+  creatorId        String       @map("creator_id")
+  parentId         String?      @map("parent_id")
+  startDate        DateTime?    @map("start_date")
+  dueDate          DateTime?    @map("due_date")
+  completedAt      DateTime?    @map("completed_at")
+  closedAt         DateTime?    @map("closed_at")
+  estimatedMinutes Int?         @map("estimated_minutes")
+  trackedMinutes   Int          @default(0) @map("tracked_minutes")
+  sortOrder        Int          @default(0) @map("sort_order")
+  createdAt        DateTime     @default(now()) @map("created_at")
+  updatedAt        DateTime     @updatedAt @map("updated_at")
+  deletedAt        DateTime?    @map("deleted_at")
 
-  process  Process         @relation(fields: [processId], references: [id])
-  status   WorkflowStatus  @relation(fields: [statusId], references: [id])
-  assignee User?           @relation("WorkItemAssignee", fields: [assigneeId], references: [id])
-  creator  User            @relation("WorkItemCreator", fields: [creatorId], references: [id])
-  parent   WorkItem?       @relation("Subtasks", fields: [parentId], references: [id])
-  children WorkItem[]      @relation("Subtasks")
+  process  Process        @relation(fields: [processId], references: [id])
+  status   WorkflowStatus @relation(fields: [statusId], references: [id])
+  assignee User?          @relation("WorkItemAssignee", fields: [assigneeId], references: [id])
+  creator  User           @relation("WorkItemCreator", fields: [creatorId], references: [id])
+  parent   WorkItem?      @relation("Subtasks", fields: [parentId], references: [id])
+  children WorkItem[]     @relation("Subtasks")
 
   @@index([processId, statusId], name: "idx_work_items_process_status")
   @@index([assigneeId, statusId], name: "idx_work_items_assignee_status")
   @@index([dueDate], name: "idx_work_items_due_date")
   @@index([parentId], name: "idx_work_items_parent")
+  @@index([processId, deletedAt, parentId], name: "idx_workitems_process_deleted_parent")
   @@map("work_items")
 }
 
@@ -674,6 +712,7 @@ model ProcessView {
 
 model Client {
   id                     String     @id @default(cuid())
+  workspaceId            String?    @map("workspace_id")
   personType             PersonType @map("person_type")
   cpfCnpj                String     @unique @map("cpf_cnpj")
   name                   String
@@ -698,6 +737,7 @@ model Client {
   updatedAt              DateTime   @updatedAt @map("updated_at")
   deletedAt              DateTime?  @map("deleted_at")
 
+  workspace            Workspace?            @relation(fields: [workspaceId], references: [id])
   classification       ClientClassification? @relation(fields: [classificationId], references: [id])
   deliveryRoute        DeliveryRoute?        @relation(fields: [deliveryRouteId], references: [id])
   defaultPriceTable    PriceTable?           @relation(fields: [defaultPriceTableId], references: [id])
@@ -706,6 +746,8 @@ model Client {
   accountsReceivable   AccountReceivable[]
   invoices             Invoice[]
 
+  @@index([workspaceId])
+  @@index([workspaceId, deletedAt], name: "idx_clients_ws_deleted")
   @@index([name], name: "idx_clients_name")
   @@index([cpfCnpj], name: "idx_clients_cpf_cnpj")
   @@index([proFinancasId], name: "idx_clients_pf_id")
@@ -714,27 +756,35 @@ model Client {
 
 model ClientClassification {
   id            String    @id @default(cuid())
+  workspaceId   String?   @map("workspace_id")
   name          String
   proFinancasId Int?      @map("pro_financas_id")
   createdAt     DateTime  @default(now()) @map("created_at")
   updatedAt     DateTime  @updatedAt @map("updated_at")
   deletedAt     DateTime? @map("deleted_at")
 
-  clients Client[]
+  workspace Workspace? @relation(fields: [workspaceId], references: [id])
+  clients   Client[]
 
+  @@index([workspaceId])
+  @@index([workspaceId, deletedAt], name: "idx_client_classifications_ws_deleted")
   @@map("client_classifications")
 }
 
 model DeliveryRoute {
   id            String    @id @default(cuid())
+  workspaceId   String?   @map("workspace_id")
   name          String
   proFinancasId Int?      @map("pro_financas_id")
   createdAt     DateTime  @default(now()) @map("created_at")
   updatedAt     DateTime  @updatedAt @map("updated_at")
   deletedAt     DateTime? @map("deleted_at")
 
-  clients Client[]
+  workspace Workspace? @relation(fields: [workspaceId], references: [id])
+  clients   Client[]
 
+  @@index([workspaceId])
+  @@index([workspaceId, deletedAt], name: "idx_delivery_routes_ws_deleted")
   @@map("delivery_routes")
 }
 
@@ -744,6 +794,7 @@ model DeliveryRoute {
 
 model Supplier {
   id            String     @id @default(cuid())
+  workspaceId   String?    @map("workspace_id")
   personType    PersonType @map("person_type")
   cpfCnpj       String     @unique @map("cpf_cnpj")
   name          String
@@ -761,15 +812,19 @@ model Supplier {
   updatedAt     DateTime   @updatedAt @map("updated_at")
   deletedAt     DateTime?  @map("deleted_at")
 
+  workspace          Workspace?          @relation(fields: [workspaceId], references: [id])
   purchaseQuotations PurchaseQuotation[]
   purchaseOrders     PurchaseOrder[]
   accountsPayable    AccountPayable[]
 
+  @@index([workspaceId])
+  @@index([workspaceId, deletedAt], name: "idx_suppliers_ws_deleted")
   @@map("suppliers")
 }
 
 model ProductType {
   id             String    @id @default(cuid())
+  workspaceId    String?   @map("workspace_id")
   prefix         String    @unique // 2 chars, e.g. "TT"
   name           String
   eanDeptCode    String    @map("ean_dept_code") // 4 digits
@@ -778,73 +833,78 @@ model ProductType {
   updatedAt      DateTime  @updatedAt @map("updated_at")
   deletedAt      DateTime? @map("deleted_at")
 
-  products Product[]
+  workspace Workspace? @relation(fields: [workspaceId], references: [id])
+  products  Product[]
 
+  @@index([workspaceId])
+  @@index([workspaceId, deletedAt], name: "idx_product_types_ws_deleted")
   @@map("product_types")
 }
 
 model Product {
-  id                   String                @id @default(cuid())
+  id                   String                 @id @default(cuid())
+  workspaceId          String?                @map("workspace_id")
   // Step 1 — Identification
-  productTypeId        String                @map("product_type_id")
-  code                 String                @unique
-  barcode              String?               @unique
+  productTypeId        String                 @map("product_type_id")
+  code                 String                 @unique
+  barcode              String?                @unique
   name                 String
-  departmentCategoryId String?               @map("department_category_id")
-  brandId              String?               @map("brand_id")
-  unitMeasureId        String?               @map("unit_measure_id")
-  boxUnitMeasureId     String?               @map("box_unit_measure_id")
-  unitsPerBox          Int?                  @map("units_per_box")
-  step1Complete        Boolean               @default(false) @map("step1_complete")
+  departmentCategoryId String?                @map("department_category_id")
+  brandId              String?                @map("brand_id")
+  unitMeasureId        String?                @map("unit_measure_id")
+  boxUnitMeasureId     String?                @map("box_unit_measure_id")
+  unitsPerBox          Int?                   @map("units_per_box")
+  step1Complete        Boolean                @default(false) @map("step1_complete")
   // Step 2 — Technical Specification
   weight               Float?
   width                Float?
   height               Float?
   length               Float?
-  weightM3             Float?                @map("weight_m3")
-  productionCapacity   Float?                @map("production_capacity")
-  stockLocation        String?               @map("stock_location")
-  minStock             Float                 @default(0) @map("min_stock")
-  currentStock         Float                 @default(0) @map("current_stock")
-  piecesPerUnit        Float?                @map("pieces_per_unit")
+  weightM3             Float?                 @map("weight_m3")
+  productionCapacity   Float?                 @map("production_capacity")
+  stockLocation        String?                @map("stock_location")
+  minStock             Float                  @default(0) @map("min_stock")
+  currentStock         Float                  @default(0) @map("current_stock")
+  piecesPerUnit        Float?                 @map("pieces_per_unit")
   size                 Float?
   classification       ProductClassification?
-  loadCapacity         Float?                @map("load_capacity")
+  loadCapacity         Float?                 @map("load_capacity")
   beta                 Float?
-  fckMpa               Float?                @map("fck_mpa")
-  step2Complete        Boolean               @default(false) @map("step2_complete")
+  fckMpa               Float?                 @map("fck_mpa")
+  step2Complete        Boolean                @default(false) @map("step2_complete")
   // Step 3 — Fiscal & Tax
-  ncmCode              String?               @map("ncm_code")
-  nfeOriginId          String?               @map("nfe_origin_id")
-  cfopDefault          String?               @map("cfop_default")
-  ipiRate              Float?                @map("ipi_rate")
-  taxBasketId          String?               @map("tax_basket_id")
-  step3Complete        Boolean               @default(false) @map("step3_complete")
+  ncmCode              String?                @map("ncm_code")
+  nfeOriginId          String?                @map("nfe_origin_id")
+  cfopDefault          String?                @map("cfop_default")
+  ipiRate              Float?                 @map("ipi_rate")
+  taxBasketId          String?                @map("tax_basket_id")
+  step3Complete        Boolean                @default(false) @map("step3_complete")
   // Step 4 — Pricing & Formula
-  costPrice            Int                   @default(0) @map("cost_price")
-  salePrice            Int                   @default(0) @map("sale_price")
-  minSalePrice         Int                   @default(0) @map("min_sale_price")
-  defaultPriceTableId  String?               @map("default_price_table_id")
-  formulaId            String?               @unique @map("formula_id")
-  step4Complete        Boolean               @default(false) @map("step4_complete")
+  costPrice            Int                    @default(0) @map("cost_price")
+  salePrice            Int                    @default(0) @map("sale_price")
+  minSalePrice         Int                    @default(0) @map("min_sale_price")
+  defaultPriceTableId  String?                @map("default_price_table_id")
+  formulaId            String?                @unique @map("formula_id")
+  step4Complete        Boolean                @default(false) @map("step4_complete")
   // Status
-  status               ProductStatus         @default(DRAFT)
-  proFinancasId        Int?                  @map("pro_financas_id")
-  createdAt            DateTime              @default(now()) @map("created_at")
-  updatedAt            DateTime              @updatedAt @map("updated_at")
-  deletedAt            DateTime?             @map("deleted_at")
+  status               ProductStatus          @default(DRAFT)
+  proFinancasId        Int?                   @map("pro_financas_id")
+  createdAt            DateTime               @default(now()) @map("created_at")
+  updatedAt            DateTime               @updatedAt @map("updated_at")
+  deletedAt            DateTime?              @map("deleted_at")
 
-  productType         ProductType           @relation(fields: [productTypeId], references: [id])
-  departmentCategory  ProductDepartment?    @relation(fields: [departmentCategoryId], references: [id])
-  brand               Brand?                @relation(fields: [brandId], references: [id])
-  unitMeasure         UnitMeasure?          @relation("ProductUnit", fields: [unitMeasureId], references: [id])
-  boxUnitMeasure      UnitMeasure?          @relation("ProductBoxUnit", fields: [boxUnitMeasureId], references: [id])
-  defaultPriceTable   PriceTable?           @relation(fields: [defaultPriceTableId], references: [id])
-  formula             ProductionFormula?    @relation(fields: [formulaId], references: [id])
-  images              ProductImage[]
-  priceTableItems     PriceTableItem[]
-  orderItems          OrderItem[]
-  orderItemSupplies   OrderItemSupply[]
+  workspace              Workspace?                    @relation(fields: [workspaceId], references: [id])
+  productType            ProductType                   @relation(fields: [productTypeId], references: [id])
+  departmentCategory     ProductDepartment?            @relation(fields: [departmentCategoryId], references: [id])
+  brand                  Brand?                        @relation(fields: [brandId], references: [id])
+  unitMeasure            UnitMeasure?                  @relation("ProductUnit", fields: [unitMeasureId], references: [id])
+  boxUnitMeasure         UnitMeasure?                  @relation("ProductBoxUnit", fields: [boxUnitMeasureId], references: [id])
+  defaultPriceTable      PriceTable?                   @relation(fields: [defaultPriceTableId], references: [id])
+  formula                ProductionFormula?            @relation(fields: [formulaId], references: [id])
+  images                 ProductImage[]
+  priceTableItems        PriceTableItem[]
+  orderItems             OrderItem[]
+  orderItemSupplies      OrderItemSupply[]
   purchaseQuotationItems PurchaseQuotationItem[]
   productionOrderItems   ProductionOrderItem[]
   productionConsumptions ProductionConsumption[]
@@ -853,6 +913,8 @@ model Product {
   stockRequisitionItems  StockRequisitionItem[]
   formulaIngredients     ProductionFormulaIngredient[] @relation("FormulaIngredient")
 
+  @@index([workspaceId])
+  @@index([workspaceId, deletedAt], name: "idx_products_ws_deleted")
   @@index([name], name: "idx_products_name")
   @@index([code], name: "idx_products_code")
   @@index([proFinancasId], name: "idx_products_pf_id")
@@ -875,50 +937,63 @@ model ProductImage {
 
 model UnitMeasure {
   id            String    @id @default(cuid())
+  workspaceId   String?   @map("workspace_id")
   name          String
   proFinancasId Int?      @map("pro_financas_id")
   createdAt     DateTime  @default(now()) @map("created_at")
   updatedAt     DateTime  @updatedAt @map("updated_at")
   deletedAt     DateTime? @map("deleted_at")
 
-  productsAsUnit    Product[]                     @relation("ProductUnit")
-  productsAsBoxUnit Product[]                     @relation("ProductBoxUnit")
-  productionOrderItems  ProductionOrderItem[]
+  workspace              Workspace?                    @relation(fields: [workspaceId], references: [id])
+  productsAsUnit         Product[]                     @relation("ProductUnit")
+  productsAsBoxUnit      Product[]                     @relation("ProductBoxUnit")
+  productionOrderItems   ProductionOrderItem[]
   productionConsumptions ProductionConsumption[]
-  productionOutputs     ProductionOutput[]
-  formulaIngredients    ProductionFormulaIngredient[]
+  productionOutputs      ProductionOutput[]
+  formulaIngredients     ProductionFormulaIngredient[]
 
+  @@index([workspaceId])
+  @@index([workspaceId, deletedAt], name: "idx_unit_measures_ws_deleted")
   @@map("unit_measures")
 }
 
 model Brand {
   id            String    @id @default(cuid())
+  workspaceId   String?   @map("workspace_id")
   name          String
   proFinancasId Int?      @map("pro_financas_id")
   createdAt     DateTime  @default(now()) @map("created_at")
   updatedAt     DateTime  @updatedAt @map("updated_at")
   deletedAt     DateTime? @map("deleted_at")
 
-  products Product[]
+  workspace Workspace? @relation(fields: [workspaceId], references: [id])
+  products  Product[]
 
+  @@index([workspaceId])
+  @@index([workspaceId, deletedAt], name: "idx_brands_ws_deleted")
   @@map("brands")
 }
 
 model ProductDepartment {
   id            String    @id @default(cuid())
+  workspaceId   String?   @map("workspace_id")
   name          String
   proFinancasId Int?      @map("pro_financas_id")
   createdAt     DateTime  @default(now()) @map("created_at")
   updatedAt     DateTime  @updatedAt @map("updated_at")
   deletedAt     DateTime? @map("deleted_at")
 
-  products Product[]
+  workspace Workspace? @relation(fields: [workspaceId], references: [id])
+  products  Product[]
 
+  @@index([workspaceId])
+  @@index([workspaceId, deletedAt], name: "idx_product_departments_ws_deleted")
   @@map("product_departments")
 }
 
 model PriceTable {
   id            String    @id @default(cuid())
+  workspaceId   String?   @map("workspace_id")
   name          String
   isDefault     Boolean   @default(false) @map("is_default")
   proFinancasId Int?      @map("pro_financas_id")
@@ -926,11 +1001,14 @@ model PriceTable {
   updatedAt     DateTime  @updatedAt @map("updated_at")
   deletedAt     DateTime? @map("deleted_at")
 
-  items            PriceTableItem[]
-  clientsDefault   Client[]
-  productsDefault  Product[]
-  orders           Order[]
+  workspace       Workspace?       @relation(fields: [workspaceId], references: [id])
+  items           PriceTableItem[]
+  clientsDefault  Client[]
+  productsDefault Product[]
+  orders          Order[]
 
+  @@index([workspaceId])
+  @@index([workspaceId, deletedAt], name: "idx_price_tables_ws_deleted")
   @@map("price_tables")
 }
 
@@ -951,9 +1029,9 @@ model PriceTableItem {
 }
 
 model PurchaseQuotation {
-  id         String    @id @default(cuid())
-  supplierId String    @map("supplier_id")
-  status     String    @default("DRAFT") // DRAFT, SENT, RECEIVED, SELECTED, REJECTED, ORDERED
+  id          String    @id @default(cuid())
+  supplierId  String    @map("supplier_id")
+  status      String    @default("DRAFT") // DRAFT, SENT, RECEIVED, SELECTED, REJECTED, ORDERED
   requestedAt DateTime? @map("requested_at")
   receivedAt  DateTime? @map("received_at")
   totalCents  Int       @default(0) @map("total_cents")
@@ -969,14 +1047,14 @@ model PurchaseQuotation {
 }
 
 model PurchaseQuotationItem {
-  id            String    @id @default(cuid())
-  quotationId   String    @map("quotation_id")
-  productId     String    @map("product_id")
-  quantity      Float
-  unitPriceCents Int      @map("unit_price_cents")
-  createdAt     DateTime  @default(now()) @map("created_at")
-  updatedAt     DateTime  @updatedAt @map("updated_at")
-  deletedAt     DateTime? @map("deleted_at")
+  id             String    @id @default(cuid())
+  quotationId    String    @map("quotation_id")
+  productId      String    @map("product_id")
+  quantity       Float
+  unitPriceCents Int       @map("unit_price_cents")
+  createdAt      DateTime  @default(now()) @map("created_at")
+  updatedAt      DateTime  @updatedAt @map("updated_at")
+  deletedAt      DateTime? @map("deleted_at")
 
   quotation PurchaseQuotation @relation(fields: [quotationId], references: [id])
   product   Product           @relation(fields: [productId], references: [id])
@@ -1008,6 +1086,7 @@ model PurchaseOrder {
 
 model Company {
   id            String    @id @default(cuid())
+  workspaceId   String?   @map("workspace_id")
   name          String
   tradeName     String?   @map("trade_name")
   cnpj          String?   @unique
@@ -1024,15 +1103,19 @@ model Company {
   updatedAt     DateTime  @updatedAt @map("updated_at")
   deletedAt     DateTime? @map("deleted_at")
 
+  workspace     Workspace?     @relation(fields: [workspaceId], references: [id])
   orders        Order[]
   invoices      Invoice[]
   cashRegisters CashRegister[]
 
+  @@index([workspaceId])
+  @@index([workspaceId, deletedAt], name: "idx_companies_ws_deleted")
   @@map("companies")
 }
 
 model PaymentMethod {
   id            String    @id @default(cuid())
+  workspaceId   String?   @map("workspace_id")
   name          String
   isActive      Boolean   @default(true) @map("is_active")
   proFinancasId Int?      @map("pro_financas_id")
@@ -1040,22 +1123,29 @@ model PaymentMethod {
   updatedAt     DateTime  @updatedAt @map("updated_at")
   deletedAt     DateTime? @map("deleted_at")
 
-  clients Client[]
-  orders  Order[]
+  workspace Workspace? @relation(fields: [workspaceId], references: [id])
+  clients   Client[]
+  orders    Order[]
 
+  @@index([workspaceId])
+  @@index([workspaceId, deletedAt], name: "idx_payment_methods_ws_deleted")
   @@map("payment_methods")
 }
 
 model Carrier {
   id            String    @id @default(cuid())
+  workspaceId   String?   @map("workspace_id")
   name          String
   proFinancasId Int?      @map("pro_financas_id")
   createdAt     DateTime  @default(now()) @map("created_at")
   updatedAt     DateTime  @updatedAt @map("updated_at")
   deletedAt     DateTime? @map("deleted_at")
 
-  orders Order[]
+  workspace Workspace? @relation(fields: [workspaceId], references: [id])
+  orders    Order[]
 
+  @@index([workspaceId])
+  @@index([workspaceId, deletedAt], name: "idx_carriers_ws_deleted")
   @@map("carriers")
 }
 
@@ -1065,6 +1155,7 @@ model Carrier {
 
 model Dashboard {
   id                 String    @id @default(cuid())
+  workspaceId        String?   @map("workspace_id")
   name               String
   description        String?
   ownerId            String    @map("owner_id")
@@ -1075,10 +1166,13 @@ model Dashboard {
   updatedAt          DateTime  @updatedAt @map("updated_at")
   deletedAt          DateTime? @map("deleted_at")
 
-  owner   User              @relation(fields: [ownerId], references: [id])
-  cards   DashboardCard[]
-  filters DashboardFilter[]
+  workspace Workspace?        @relation(fields: [workspaceId], references: [id])
+  owner     User              @relation(fields: [ownerId], references: [id])
+  cards     DashboardCard[]
+  filters   DashboardFilter[]
 
+  @@index([workspaceId])
+  @@index([workspaceId, deletedAt], name: "idx_dashboards_ws_deleted")
   @@map("dashboards")
 }
 
@@ -1124,66 +1218,70 @@ model DashboardFilter {
 // ============================================================================
 
 model Order {
-  id                      String      @id @default(cuid())
-  orderNumber             String      @unique @map("order_number")
-  title                   String?
-  status                  OrderStatus @default(EM_ORCAMENTO)
-  clientId                String      @map("client_id")
-  companyId               String?     @map("company_id")
-  paymentMethodId         String?     @map("payment_method_id")
-  carrierId               String?     @map("carrier_id")
-  priceTableId            String?     @map("price_table_id")
-  createdByUserId         String      @map("created_by_user_id")
-  assignedUserId          String?     @map("assigned_user_id")
-  issueDate               DateTime?   @map("issue_date")
-  deliveryDeadline        DateTime?   @map("delivery_deadline")
-  proposalValidityDays    Int         @default(7) @map("proposal_validity_days")
-  deliveryAddress         String?     @map("delivery_address")
-  deliveryNeighborhood    String?     @map("delivery_neighborhood")
-  deliveryCity            String?     @map("delivery_city")
-  deliveryState           String?     @map("delivery_state")
-  deliveryCep             String?     @map("delivery_cep")
-  deliveryReferencePoint  String?     @map("delivery_reference_point")
-  contactName             String?     @map("contact_name")
-  subtotalCents           Int         @default(0) @map("subtotal_cents")
-  freightCents            Int         @default(0) @map("freight_cents")
-  discountCents           Int         @default(0) @map("discount_cents")
-  taxSubstitutionCents    Int         @default(0) @map("tax_substitution_cents")
-  totalCents              Int         @default(0) @map("total_cents")
-  paidAmountCents         Int         @default(0) @map("paid_amount_cents")
-  paymentProofUrl         String?     @map("payment_proof_url")
-  shouldProduce           Boolean     @default(false) @map("should_produce")
-  isResale                Boolean     @default(false) @map("is_resale")
-  hasTaxSubstitution      Boolean     @default(false) @map("has_tax_substitution")
-  notes                   String?
-  proFinancasId           Int?        @map("pro_financas_id")
-  orderTypeId             String?     @map("order_type_id")
-  orderFlowId             String?     @map("order_flow_id")
-  orderModelId            String?     @map("order_model_id")
-  createdAt               DateTime    @default(now()) @map("created_at")
-  updatedAt               DateTime    @updatedAt @map("updated_at")
-  deletedAt               DateTime?   @map("deleted_at")
+  id                     String      @id @default(cuid())
+  workspaceId            String?     @map("workspace_id")
+  orderNumber            String      @unique @map("order_number")
+  title                  String?
+  status                 OrderStatus @default(EM_ORCAMENTO)
+  clientId               String      @map("client_id")
+  companyId              String?     @map("company_id")
+  paymentMethodId        String?     @map("payment_method_id")
+  carrierId              String?     @map("carrier_id")
+  priceTableId           String?     @map("price_table_id")
+  createdByUserId        String      @map("created_by_user_id")
+  assignedUserId         String?     @map("assigned_user_id")
+  issueDate              DateTime?   @map("issue_date")
+  deliveryDeadline       DateTime?   @map("delivery_deadline")
+  proposalValidityDays   Int         @default(7) @map("proposal_validity_days")
+  deliveryAddress        String?     @map("delivery_address")
+  deliveryNeighborhood   String?     @map("delivery_neighborhood")
+  deliveryCity           String?     @map("delivery_city")
+  deliveryState          String?     @map("delivery_state")
+  deliveryCep            String?     @map("delivery_cep")
+  deliveryReferencePoint String?     @map("delivery_reference_point")
+  contactName            String?     @map("contact_name")
+  subtotalCents          Int         @default(0) @map("subtotal_cents")
+  freightCents           Int         @default(0) @map("freight_cents")
+  discountCents          Int         @default(0) @map("discount_cents")
+  taxSubstitutionCents   Int         @default(0) @map("tax_substitution_cents")
+  totalCents             Int         @default(0) @map("total_cents")
+  paidAmountCents        Int         @default(0) @map("paid_amount_cents")
+  paymentProofUrl        String?     @map("payment_proof_url")
+  shouldProduce          Boolean     @default(false) @map("should_produce")
+  isResale               Boolean     @default(false) @map("is_resale")
+  hasTaxSubstitution     Boolean     @default(false) @map("has_tax_substitution")
+  notes                  String?
+  proFinancasId          Int?        @map("pro_financas_id")
+  orderTypeId            String?     @map("order_type_id")
+  orderFlowId            String?     @map("order_flow_id")
+  orderModelId           String?     @map("order_model_id")
+  createdAt              DateTime    @default(now()) @map("created_at")
+  updatedAt              DateTime    @updatedAt @map("updated_at")
+  deletedAt              DateTime?   @map("deleted_at")
 
-  client            Client          @relation(fields: [clientId], references: [id])
-  company           Company?        @relation(fields: [companyId], references: [id])
-  paymentMethod     PaymentMethod?  @relation(fields: [paymentMethodId], references: [id])
-  carrier           Carrier?        @relation(fields: [carrierId], references: [id])
-  priceTable        PriceTable?     @relation(fields: [priceTableId], references: [id])
-  createdBy         User            @relation("OrderCreatedBy", fields: [createdByUserId], references: [id])
-  assignedTo        User?           @relation("OrderAssignedTo", fields: [assignedUserId], references: [id])
-  orderType         OrderType?      @relation(fields: [orderTypeId], references: [id])
-  orderFlow         OrderFlow?      @relation(fields: [orderFlowId], references: [id])
-  orderModel        OrderModel?     @relation(fields: [orderModelId], references: [id])
-  items             OrderItem[]
-  statusHistory     OrderStatusHistory[]
-  processInstances  ProcessInstance[]
-  handoffInstances  HandoffInstance[]
-  invoices          Invoice[]
-  productionOrders  ProductionOrder[]
-  separationOrders  SeparationOrder[]
+  workspace          Workspace?           @relation(fields: [workspaceId], references: [id])
+  client             Client               @relation(fields: [clientId], references: [id])
+  company            Company?             @relation(fields: [companyId], references: [id])
+  paymentMethod      PaymentMethod?       @relation(fields: [paymentMethodId], references: [id])
+  carrier            Carrier?             @relation(fields: [carrierId], references: [id])
+  priceTable         PriceTable?          @relation(fields: [priceTableId], references: [id])
+  createdBy          User                 @relation("OrderCreatedBy", fields: [createdByUserId], references: [id])
+  assignedTo         User?                @relation("OrderAssignedTo", fields: [assignedUserId], references: [id])
+  orderType          OrderType?           @relation(fields: [orderTypeId], references: [id])
+  orderFlow          OrderFlow?           @relation(fields: [orderFlowId], references: [id])
+  orderModel         OrderModel?          @relation(fields: [orderModelId], references: [id])
+  items              OrderItem[]
+  statusHistory      OrderStatusHistory[]
+  processInstances   ProcessInstance[]
+  handoffInstances   HandoffInstance[]
+  invoices           Invoice[]
+  productionOrders   ProductionOrder[]
+  separationOrders   SeparationOrder[]
   accountsReceivable AccountReceivable[]
   stockRequisitions  StockRequisition[]
 
+  @@index([workspaceId])
+  @@index([workspaceId, deletedAt], name: "idx_orders_ws_deleted")
   @@index([clientId, status], name: "idx_orders_client_status")
   @@index([status, createdAt], name: "idx_orders_status_created")
   @@index([createdByUserId], name: "idx_orders_created_by")
@@ -1208,8 +1306,8 @@ model OrderItem {
   updatedAt              DateTime               @updatedAt @map("updated_at")
   deletedAt              DateTime?              @map("deleted_at")
 
-  order                Order                @relation(fields: [orderId], references: [id])
-  product              Product?             @relation(fields: [productId], references: [id])
+  order                Order                 @relation(fields: [orderId], references: [id])
+  product              Product?              @relation(fields: [productId], references: [id])
   supplies             OrderItemSupply[]
   productionOrderItems ProductionOrderItem[]
   separationOrderItems SeparationOrderItem[]
@@ -1218,22 +1316,22 @@ model OrderItem {
 }
 
 model OrderItemSupply {
-  id                    String               @id @default(cuid())
-  orderItemId           String               @map("order_item_id")
-  productId             String?              @map("product_id")
+  id                    String                @id @default(cuid())
+  orderItemId           String                @map("order_item_id")
+  productId             String?               @map("product_id")
   name                  String
-  quantity              Int                  @default(1)
+  quantity              Int                   @default(1)
   status                OrderItemSupplyStatus @default(PENDING)
-  readyAt               DateTime?            @map("ready_at")
-  checkedByUserId       String?              @map("checked_by_user_id")
-  separationOrderItemId String?              @map("separation_order_item_id")
-  createdAt             DateTime             @default(now()) @map("created_at")
-  updatedAt             DateTime             @updatedAt @map("updated_at")
-  deletedAt             DateTime?            @map("deleted_at")
+  readyAt               DateTime?             @map("ready_at")
+  checkedByUserId       String?               @map("checked_by_user_id")
+  separationOrderItemId String?               @map("separation_order_item_id")
+  createdAt             DateTime              @default(now()) @map("created_at")
+  updatedAt             DateTime              @updatedAt @map("updated_at")
+  deletedAt             DateTime?             @map("deleted_at")
 
-  orderItem          OrderItem           @relation(fields: [orderItemId], references: [id])
-  product            Product?            @relation(fields: [productId], references: [id])
-  checkedBy          User?               @relation(fields: [checkedByUserId], references: [id])
+  orderItem           OrderItem            @relation(fields: [orderItemId], references: [id])
+  product             Product?             @relation(fields: [productId], references: [id])
+  checkedBy           User?                @relation(fields: [checkedByUserId], references: [id])
   separationOrderItem SeparationOrderItem? @relation(fields: [separationOrderItemId], references: [id])
 
   @@map("order_item_supplies")
@@ -1256,40 +1354,52 @@ model OrderStatusHistory {
 
 model OrderType {
   id            String    @id @default(cuid())
+  workspaceId   String?   @map("workspace_id")
   name          String
   proFinancasId Int?      @map("pro_financas_id")
   createdAt     DateTime  @default(now()) @map("created_at")
   updatedAt     DateTime  @updatedAt @map("updated_at")
   deletedAt     DateTime? @map("deleted_at")
 
-  orders Order[]
+  workspace Workspace? @relation(fields: [workspaceId], references: [id])
+  orders    Order[]
 
+  @@index([workspaceId])
+  @@index([workspaceId, deletedAt], name: "idx_order_types_ws_deleted")
   @@map("order_types")
 }
 
 model OrderFlow {
   id            String    @id @default(cuid())
+  workspaceId   String?   @map("workspace_id")
   name          String
   proFinancasId Int?      @map("pro_financas_id")
   createdAt     DateTime  @default(now()) @map("created_at")
   updatedAt     DateTime  @updatedAt @map("updated_at")
   deletedAt     DateTime? @map("deleted_at")
 
-  orders Order[]
+  workspace Workspace? @relation(fields: [workspaceId], references: [id])
+  orders    Order[]
 
+  @@index([workspaceId])
+  @@index([workspaceId, deletedAt], name: "idx_order_flows_ws_deleted")
   @@map("order_flows")
 }
 
 model OrderModel {
   id            String    @id @default(cuid())
+  workspaceId   String?   @map("workspace_id")
   name          String
   proFinancasId Int?      @map("pro_financas_id")
   createdAt     DateTime  @default(now()) @map("created_at")
   updatedAt     DateTime  @updatedAt @map("updated_at")
   deletedAt     DateTime? @map("deleted_at")
 
-  orders Order[]
+  workspace Workspace? @relation(fields: [workspaceId], references: [id])
+  orders    Order[]
 
+  @@index([workspaceId])
+  @@index([workspaceId, deletedAt], name: "idx_order_models_ws_deleted")
   @@map("order_models")
 }
 
@@ -1352,18 +1462,22 @@ model AccountPayable {
 }
 
 model FinancialCategory {
-  id        String    @id @default(cuid())
-  name      String
-  type      String // RECEITA or DESPESA
-  parentId  String?   @map("parent_id")
-  createdAt DateTime  @default(now()) @map("created_at")
-  updatedAt DateTime  @updatedAt @map("updated_at")
-  deletedAt DateTime? @map("deleted_at")
+  id          String    @id @default(cuid())
+  workspaceId String?   @map("workspace_id")
+  name        String
+  type        String // RECEITA or DESPESA
+  parentId    String?   @map("parent_id")
+  createdAt   DateTime  @default(now()) @map("created_at")
+  updatedAt   DateTime  @updatedAt @map("updated_at")
+  deletedAt   DateTime? @map("deleted_at")
 
-  parent   FinancialCategory?  @relation("CategoryHierarchy", fields: [parentId], references: [id])
-  children FinancialCategory[] @relation("CategoryHierarchy")
+  workspace       Workspace?          @relation(fields: [workspaceId], references: [id])
+  parent          FinancialCategory?  @relation("CategoryHierarchy", fields: [parentId], references: [id])
+  children        FinancialCategory[] @relation("CategoryHierarchy")
   accountsPayable AccountPayable[]
 
+  @@index([workspaceId])
+  @@index([workspaceId, deletedAt], name: "idx_financial_categories_ws_deleted")
   @@map("financial_categories")
 }
 
@@ -1466,7 +1580,7 @@ model ProductionOrder {
   orderId        String                @map("order_id")
   code           String                @unique
   status         ProductionOrderStatus @default(PENDING)
-  type           String?               // "SIM" / "NAO"
+  type           String? // "SIM" / "NAO"
   machineId      String?               @map("machine_id")
   batch          String?
   scheduledDate  DateTime?             @map("scheduled_date")
@@ -1576,7 +1690,7 @@ model SeparationOrder {
   updatedAt      DateTime              @updatedAt @map("updated_at")
   deletedAt      DateTime?             @map("deleted_at")
 
-  order Order               @relation(fields: [orderId], references: [id])
+  order Order                 @relation(fields: [orderId], references: [id])
   items SeparationOrderItem[]
 
   @@map("separation_orders")
@@ -1609,40 +1723,40 @@ model SeparationOrderItem {
 // ============================================================================
 
 model StockRequisition {
-  id              String                 @id @default(cuid())
-  code            String                 @unique
-  type            StockRequisitionType
-  status          StockRequisitionStatus @default(PENDING)
-  requestedByUserId String              @map("requested_by_user_id")
-  approvedByUserId  String?             @map("approved_by_user_id")
-  orderId           String?             @map("order_id")
+  id                String                 @id @default(cuid())
+  code              String                 @unique
+  type              StockRequisitionType
+  status            StockRequisitionStatus @default(PENDING)
+  requestedByUserId String                 @map("requested_by_user_id")
+  approvedByUserId  String?                @map("approved_by_user_id")
+  orderId           String?                @map("order_id")
   notes             String?
-  requestedAt       DateTime            @default(now()) @map("requested_at")
-  processedAt       DateTime?           @map("processed_at")
-  createdAt         DateTime            @default(now()) @map("created_at")
-  updatedAt         DateTime            @updatedAt @map("updated_at")
-  deletedAt         DateTime?           @map("deleted_at")
+  requestedAt       DateTime               @default(now()) @map("requested_at")
+  processedAt       DateTime?              @map("processed_at")
+  createdAt         DateTime               @default(now()) @map("created_at")
+  updatedAt         DateTime               @updatedAt @map("updated_at")
+  deletedAt         DateTime?              @map("deleted_at")
 
-  requestedBy User                  @relation("RequisitionRequestedBy", fields: [requestedByUserId], references: [id])
-  approvedBy  User?                 @relation("RequisitionApprovedBy", fields: [approvedByUserId], references: [id])
-  order       Order?                @relation(fields: [orderId], references: [id])
+  requestedBy User                   @relation("RequisitionRequestedBy", fields: [requestedByUserId], references: [id])
+  approvedBy  User?                  @relation("RequisitionApprovedBy", fields: [approvedByUserId], references: [id])
+  order       Order?                 @relation(fields: [orderId], references: [id])
   items       StockRequisitionItem[]
 
   @@map("stock_requisitions")
 }
 
 model StockRequisitionItem {
-  id                String    @id @default(cuid())
-  requisitionId     String    @map("requisition_id")
-  productId         String    @map("product_id")
-  requestedQuantity Float     @map("requested_quantity")
-  unitType          String    @map("unit_type") // "UN" or "CX"
-  unitsPerBox       Int?      @map("units_per_box")
-  quantityInBaseUnit Float    @map("quantity_in_base_unit")
-  actualQuantity    Float?    @map("actual_quantity")
-  createdAt         DateTime  @default(now()) @map("created_at")
-  updatedAt         DateTime  @updatedAt @map("updated_at")
-  deletedAt         DateTime? @map("deleted_at")
+  id                 String    @id @default(cuid())
+  requisitionId      String    @map("requisition_id")
+  productId          String    @map("product_id")
+  requestedQuantity  Float     @map("requested_quantity")
+  unitType           String    @map("unit_type") // "UN" or "CX"
+  unitsPerBox        Int?      @map("units_per_box")
+  quantityInBaseUnit Float     @map("quantity_in_base_unit")
+  actualQuantity     Float?    @map("actual_quantity")
+  createdAt          DateTime  @default(now()) @map("created_at")
+  updatedAt          DateTime  @updatedAt @map("updated_at")
+  deletedAt          DateTime? @map("deleted_at")
 
   requisition StockRequisition @relation(fields: [requisitionId], references: [id])
   product     Product          @relation(fields: [productId], references: [id])
@@ -1672,14 +1786,14 @@ model SyncLog {
 }
 
 model SyncMapping {
-  id            String    @id @default(cuid())
+  id            String     @id @default(cuid())
   entity        SyncEntity
-  proFinancasId Int       @map("pro_financas_id")
-  mundialErpId  String    @map("mundial_erp_id")
-  lastSyncedAt  DateTime? @map("last_synced_at")
+  proFinancasId Int        @map("pro_financas_id")
+  mundialErpId  String     @map("mundial_erp_id")
+  lastSyncedAt  DateTime?  @map("last_synced_at")
   checksum      String?
-  createdAt     DateTime  @default(now()) @map("created_at")
-  updatedAt     DateTime  @updatedAt @map("updated_at")
+  createdAt     DateTime   @default(now()) @map("created_at")
+  updatedAt     DateTime   @updatedAt @map("updated_at")
 
   @@unique([entity, proFinancasId])
   @@index([entity, mundialErpId], name: "idx_sync_entity_erp")
@@ -1691,12 +1805,12 @@ model SyncMapping {
 // ============================================================================
 
 model State {
-  id           String   @id @default(cuid())
-  name         String
-  uf           String   @unique // 2 chars, e.g. "SP"
-  proFinancasId Int?    @map("pro_financas_id")
-  createdAt    DateTime @default(now()) @map("created_at")
-  updatedAt    DateTime @updatedAt @map("updated_at")
+  id            String   @id @default(cuid())
+  name          String
+  uf            String   @unique // 2 chars, e.g. "SP"
+  proFinancasId Int?     @map("pro_financas_id")
+  createdAt     DateTime @default(now()) @map("created_at")
+  updatedAt     DateTime @updatedAt @map("updated_at")
 
   cities City[]
 
@@ -1738,18 +1852,22 @@ model Neighborhood {
 // ============================================================================
 
 model AuditLog {
-  id        String      @id @default(cuid())
-  userId    String?     @map("user_id")
-  action    AuditAction
-  entity    String
-  entityId  String      @map("entity_id")
-  changes   Json?
-  ipAddress String?     @map("ip_address")
-  userAgent String?     @map("user_agent")
-  createdAt DateTime    @default(now()) @map("created_at")
+  id          String      @id @default(cuid())
+  workspaceId String?     @map("workspace_id")
+  userId      String?     @map("user_id")
+  action      AuditAction
+  entity      String
+  entityId    String      @map("entity_id")
+  changes     Json?
+  ipAddress   String?     @map("ip_address")
+  userAgent   String?     @map("user_agent")
+  createdAt   DateTime    @default(now()) @map("created_at")
 
-  user User? @relation(fields: [userId], references: [id])
+  workspace Workspace? @relation(fields: [workspaceId], references: [id])
+  user      User?      @relation(fields: [userId], references: [id])
 
+  @@index([workspaceId])
+  @@index([workspaceId, createdAt], name: "idx_audit_logs_ws_created")
   @@index([entity, entityId], name: "idx_audit_entity")
   @@index([userId, createdAt], name: "idx_audit_user")
   @@map("audit_logs")
@@ -1760,23 +1878,27 @@ model AuditLog {
 // ============================================================================
 
 model ChatChannel {
-  id              String            @id @default(cuid())
-  name            String?           @db.VarChar(255)
-  description     String?           @db.VarChar(1000)
-  topic           String?           @db.VarChar(255)
-  type            ChannelType       @default(PUBLIC)
-  participantHash String?           @unique @map("participant_hash")
-  locationEntity  String?           @map("location_entity") @db.VarChar(50)
-  locationId      String?           @map("location_id")
-  createdById     String            @map("created_by_id")
-  createdAt       DateTime          @default(now()) @map("created_at")
-  updatedAt       DateTime          @updatedAt @map("updated_at")
-  deletedAt       DateTime?         @map("deleted_at")
+  id              String      @id @default(cuid())
+  workspaceId     String?     @map("workspace_id")
+  name            String?     @db.VarChar(255)
+  description     String?     @db.VarChar(1000)
+  topic           String?     @db.VarChar(255)
+  type            ChannelType @default(PUBLIC)
+  participantHash String?     @unique @map("participant_hash")
+  locationEntity  String?     @map("location_entity") @db.VarChar(50)
+  locationId      String?     @map("location_id")
+  createdById     String      @map("created_by_id")
+  createdAt       DateTime    @default(now()) @map("created_at")
+  updatedAt       DateTime    @updatedAt @map("updated_at")
+  deletedAt       DateTime?   @map("deleted_at")
 
-  createdBy User              @relation("ChatChannelCreatedBy", fields: [createdById], references: [id])
+  workspace Workspace?          @relation(fields: [workspaceId], references: [id])
+  createdBy User                @relation("ChatChannelCreatedBy", fields: [createdById], references: [id])
   members   ChatChannelMember[]
   messages  ChatMessage[]
 
+  @@index([workspaceId])
+  @@index([workspaceId, deletedAt], name: "idx_chat_channels_ws_deleted")
   @@index([type], name: "idx_chat_channels_type")
   @@index([locationEntity, locationId], name: "idx_chat_channels_location")
   @@index([createdById], name: "idx_chat_channels_created_by")
@@ -1820,11 +1942,11 @@ model ChatMessage {
   updatedAt       DateTime        @updatedAt @map("updated_at")
   deletedAt       DateTime?       @map("deleted_at")
 
-  channel       ChatChannel          @relation(fields: [channelId], references: [id], onDelete: Cascade)
-  author        User                 @relation("ChatMessageAuthor", fields: [authorId], references: [id])
-  parentMessage ChatMessage?         @relation("MessageReplies", fields: [parentMessageId], references: [id])
-  replies       ChatMessage[]        @relation("MessageReplies")
-  assignee      User?                @relation("ChatMessageAssignee", fields: [assigneeId], references: [id])
+  channel       ChatChannel           @relation(fields: [channelId], references: [id], onDelete: Cascade)
+  author        User                  @relation("ChatMessageAuthor", fields: [authorId], references: [id])
+  parentMessage ChatMessage?          @relation("MessageReplies", fields: [parentMessageId], references: [id])
+  replies       ChatMessage[]         @relation("MessageReplies")
+  assignee      User?                 @relation("ChatMessageAssignee", fields: [assigneeId], references: [id])
   reactions     ChatReaction[]
   mentions      ChatMention[]
   followers     ChatMessageFollower[]
@@ -1884,10 +2006,10 @@ model ChatMention {
 // ============================================================================
 
 model Notification {
-  id           String               @id @default(cuid())
-  createdAt    DateTime             @default(now()) @map("created_at")
-  updatedAt    DateTime             @updatedAt @map("updated_at")
-  deletedAt    DateTime?            @map("deleted_at")
+  id        String    @id @default(cuid())
+  createdAt DateTime  @default(now()) @map("created_at")
+  updatedAt DateTime  @updatedAt @map("updated_at")
+  deletedAt DateTime? @map("deleted_at")
 
   userId       String               @map("user_id")
   user         User                 @relation(fields: [userId], references: [id])
@@ -1907,4 +2029,93 @@ model Notification {
   @@index([userId, status], name: "idx_notifications_user_status")
   @@index([snoozedUntil], name: "idx_notifications_snoozed_until")
   @@map("notifications")
+}
+
+// ============================================================================
+// 1.13 — Workspaces (Multi-tenancy Root)
+// ============================================================================
+
+model Workspace {
+  id        String        @id @default(cuid())
+  name      String
+  slug      String        @unique
+  logoUrl   String?       @map("logo_url")
+  color     String?
+  plan      WorkspacePlan @default(FREE)
+  ownerId   String        @map("owner_id")
+  createdAt DateTime      @default(now()) @map("created_at")
+  updatedAt DateTime      @updatedAt @map("updated_at")
+  deletedAt DateTime?     @map("deleted_at")
+
+  owner   User              @relation("WorkspaceOwner", fields: [ownerId], references: [id])
+  members WorkspaceMember[]
+  invites WorkspaceInvite[]
+
+  // Reverse relation for User.lastAccessedWorkspace
+  lastAccessedByUsers User[] @relation("LastAccessedWorkspace")
+
+  // Entidades raiz do workspace
+  departments           Department[]
+  clients               Client[]
+  orders                Order[]
+  products              Product[]
+  suppliers             Supplier[]
+  companies             Company[]
+  dashboards            Dashboard[]
+  chatChannels          ChatChannel[]
+  auditLogs             AuditLog[]
+  carriers              Carrier[]
+  paymentMethods        PaymentMethod[]
+  clientClassifications ClientClassification[]
+  deliveryRoutes        DeliveryRoute[]
+  orderTypes            OrderType[]
+  orderFlows            OrderFlow[]
+  orderModels           OrderModel[]
+  productTypes          ProductType[]
+  brands                Brand[]
+  productDepartments    ProductDepartment[]
+  unitMeasures          UnitMeasure[]
+  financialCategories   FinancialCategory[]
+  statusTemplates       StatusTemplate[]
+  priceTables           PriceTable[]
+
+  @@index([deletedAt], name: "idx_workspaces_deleted")
+  @@map("workspaces")
+}
+
+model WorkspaceMember {
+  id          String              @id @default(cuid())
+  workspaceId String              @map("workspace_id")
+  userId      String              @map("user_id")
+  role        WorkspaceMemberRole @default(MEMBER)
+  joinedAt    DateTime            @default(now()) @map("joined_at")
+  createdAt   DateTime            @default(now()) @map("created_at")
+  updatedAt   DateTime            @updatedAt @map("updated_at")
+
+  workspace Workspace @relation(fields: [workspaceId], references: [id])
+  user      User      @relation(fields: [userId], references: [id])
+
+  @@unique([workspaceId, userId])
+  @@index([userId], name: "idx_ws_members_user")
+  @@index([workspaceId, role], name: "idx_ws_members_ws_role")
+  @@map("workspace_members")
+}
+
+model WorkspaceInvite {
+  id          String              @id @default(cuid())
+  workspaceId String              @map("workspace_id")
+  email       String
+  role        WorkspaceMemberRole @default(MEMBER)
+  token       String              @unique
+  status      InviteStatus        @default(PENDING)
+  expiresAt   DateTime            @map("expires_at")
+  invitedById String              @map("invited_by_id")
+  createdAt   DateTime            @default(now()) @map("created_at")
+  updatedAt   DateTime            @updatedAt @map("updated_at")
+
+  workspace Workspace @relation(fields: [workspaceId], references: [id])
+  invitedBy User      @relation("InvitedBy", fields: [invitedById], references: [id])
+
+  @@index([email, workspaceId], name: "idx_ws_invites_email_ws")
+  @@map("workspace_invites")
 }

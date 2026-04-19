@@ -1,4 +1,8 @@
-import { ConflictException, Injectable, NotFoundException } from '@nestjs/common';
+import {
+  ConflictException,
+  Injectable,
+  NotFoundException,
+} from '@nestjs/common';
 import { UnitMeasuresRepository } from './unit-measures.repository';
 import { CreateUnitMeasureDto } from './dto/create-unit-measure.dto';
 import { UpdateUnitMeasureDto } from './dto/update-unit-measure.dto';
@@ -7,7 +11,9 @@ import { PaginationDto } from '../../common/dtos/pagination.dto';
 
 @Injectable()
 export class UnitMeasuresService {
-  constructor(private readonly unitMeasuresRepository: UnitMeasuresRepository) {}
+  constructor(
+    private readonly unitMeasuresRepository: UnitMeasuresRepository,
+  ) {}
 
   async create(dto: CreateUnitMeasureDto): Promise<UnitMeasureResponseDto> {
     const existing = await this.unitMeasuresRepository.findByName(dto.name);
@@ -16,7 +22,9 @@ export class UnitMeasuresService {
     }
     const entity = await this.unitMeasuresRepository.create({
       name: dto.name,
-      ...(dto.proFinancasId !== undefined && { proFinancasId: dto.proFinancasId }),
+      ...(dto.proFinancasId !== undefined && {
+        proFinancasId: dto.proFinancasId,
+      }),
     });
     return UnitMeasureResponseDto.fromEntity(entity);
   }
@@ -38,7 +46,10 @@ export class UnitMeasuresService {
     return UnitMeasureResponseDto.fromEntity(entity);
   }
 
-  async update(id: string, dto: UpdateUnitMeasureDto): Promise<UnitMeasureResponseDto> {
+  async update(
+    id: string,
+    dto: UpdateUnitMeasureDto,
+  ): Promise<UnitMeasureResponseDto> {
     const entity = await this.unitMeasuresRepository.findById(id);
     if (!entity) {
       throw new NotFoundException('Unidade de medida não encontrada');
@@ -51,7 +62,9 @@ export class UnitMeasuresService {
     }
     const updated = await this.unitMeasuresRepository.update(id, {
       ...(dto.name !== undefined && { name: dto.name }),
-      ...(dto.proFinancasId !== undefined && { proFinancasId: dto.proFinancasId }),
+      ...(dto.proFinancasId !== undefined && {
+        proFinancasId: dto.proFinancasId,
+      }),
     });
     return UnitMeasureResponseDto.fromEntity(updated);
   }

@@ -28,7 +28,7 @@ export class SyncProcessor extends WorkerHost {
 
     const onProgress = (msg: string) => {
       this.logger.log(`[${job.id}] ${msg}`);
-      job.updateProgress({ message: msg });
+      void job.updateProgress({ message: msg });
     };
 
     try {

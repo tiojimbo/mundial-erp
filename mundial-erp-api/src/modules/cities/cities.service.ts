@@ -1,7 +1,4 @@
-import {
-  Injectable,
-  NotFoundException,
-} from '@nestjs/common';
+import { Injectable, NotFoundException } from '@nestjs/common';
 import { CitiesRepository } from './cities.repository';
 import { CreateCityDto } from './dto/create-city.dto';
 import { UpdateCityDto } from './dto/update-city.dto';
@@ -51,9 +48,11 @@ export class CitiesService {
 
     const updateData: Record<string, any> = {};
     if (dto.name !== undefined) updateData.name = dto.name;
-    if (dto.stateId !== undefined) updateData.state = { connect: { id: dto.stateId } };
+    if (dto.stateId !== undefined)
+      updateData.state = { connect: { id: dto.stateId } };
     if (dto.ibgeCode !== undefined) updateData.ibgeCode = dto.ibgeCode;
-    if (dto.proFinancasId !== undefined) updateData.proFinancasId = dto.proFinancasId;
+    if (dto.proFinancasId !== undefined)
+      updateData.proFinancasId = dto.proFinancasId;
 
     const updated = await this.citiesRepository.update(id, updateData);
     return CityResponseDto.fromEntity(updated);
@@ -73,10 +72,11 @@ export class CitiesService {
       throw new NotFoundException('Cidade não encontrada');
     }
 
-    const { items, total } = await this.citiesRepository.findNeighborhoodsByCity(id, {
-      skip: pagination.skip,
-      take: pagination.limit,
-    });
+    const { items, total } =
+      await this.citiesRepository.findNeighborhoodsByCity(id, {
+        skip: pagination.skip,
+        take: pagination.limit,
+      });
 
     return {
       items: items.map(NeighborhoodResponseDto.fromEntity),

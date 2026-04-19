@@ -1,6 +1,6 @@
 import { Injectable, Logger, OnModuleDestroy } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
-import Redis from 'ioredis';
+import Redis, { RedisOptions } from 'ioredis';
 
 const PRESENCE_PREFIX = 'chat:presence:';
 const SOCKET_MAP_PREFIX = 'chat:socket-user:';
@@ -11,9 +11,27 @@ export class PresenceService implements OnModuleDestroy {
   private readonly logger = new Logger(PresenceService.name);
 
   constructor(private readonly configService: ConfigService) {
-    this.redis = new Redis(
-      this.configService.getOrThrow<string>('REDIS_URL'),
-    );
+    this.redis = new Redis(this.buildRedisOptions());
+  }
+
+  private buildRedisOptions(): RedisOptions {
+    const url = this.configService.get<string>('REDIS_URL');
+    if (url) {
+      const parsed = new URL(url);
+      return {
+        host: parsed.hostname,
+        port: Number(parsed.port) || 6379,
+        ...(parsed.password && {
+          password: decodeURIComponent(parsed.password),
+        }),
+      };
+    }
+    const password = this.configService.get<string>('REDIS_PASSWORD');
+    return {
+      host: this.configService.get<string>('REDIS_HOST'),
+      port: this.configService.get<number>('REDIS_PORT'),
+      ...(password && { password }),
+    };
   }
 
   async onModuleDestroy() {

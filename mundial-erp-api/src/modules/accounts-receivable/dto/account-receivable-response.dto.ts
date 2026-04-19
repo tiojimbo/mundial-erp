@@ -1,11 +1,4 @@
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
-import { AccountReceivable, Client, Invoice, Order } from '@prisma/client';
-
-type AccountReceivableWithRelations = AccountReceivable & {
-  client?: Client | null;
-  order?: Order | null;
-  invoice?: Invoice | null;
-};
 
 export class AccountReceivableResponseDto {
   @ApiProperty()
@@ -47,12 +40,15 @@ export class AccountReceivableResponseDto {
   @ApiProperty()
   updatedAt: Date;
 
-  static fromEntity(entity: Record<string, unknown>): AccountReceivableResponseDto {
+  static fromEntity(
+    entity: Record<string, unknown>,
+  ): AccountReceivableResponseDto {
     const dto = new AccountReceivableResponseDto();
     dto.id = entity.id as string;
     dto.orderId = (entity.orderId as string) ?? null;
     dto.clientId = entity.clientId as string;
-    dto.clientName = ((entity.client as Record<string, unknown>)?.name as string) ?? null;
+    dto.clientName =
+      ((entity.client as Record<string, unknown>)?.name as string) ?? null;
     dto.description = (entity.description as string) ?? null;
     dto.amountCents = entity.amountCents as number;
     dto.paidAmountCents = entity.paidAmountCents as number;

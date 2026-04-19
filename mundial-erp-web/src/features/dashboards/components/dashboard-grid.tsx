@@ -1,10 +1,9 @@
 'use client';
 
-import { useState, useCallback, useRef } from 'react';
+import { useState, useCallback } from 'react';
 import { Responsive, WidthProvider } from 'react-grid-layout/legacy';
 import {
   RiAddLine,
-  RiEditLine,
   RiDeleteBinLine,
   RiDragMoveLine,
 } from '@remixicon/react';
@@ -13,7 +12,6 @@ import { CardRenderer } from './card-renderer';
 import { CardEditor } from './card-editor';
 import { FilterBar } from './filter-bar';
 import {
-  useDashboard,
   useAddCard,
   useRemoveCard,
   useUpdateLayout,

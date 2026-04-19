@@ -77,11 +77,11 @@ export function InboxFilterPopover({
   return (
     <Popover.Root>
       <Popover.Trigger asChild>
-        <button className='inline-flex items-center gap-1.5 rounded-lg border border-stroke-soft-200 bg-bg-white-0 px-2.5 py-1.5 text-xs font-medium text-text-sub-600 shadow-regular-xs transition duration-200 ease-out hover:border-transparent hover:bg-bg-weak-50 hover:text-text-strong-950 hover:shadow-none'>
-          <RiFilterLine className='size-4' />
+        <button className='inline-flex items-center gap-1.5 rounded-lg border border-border bg-background px-2.5 py-1.5 text-label-xs text-muted-foreground shadow-sm transition-colors hover:bg-muted hover:text-foreground'>
+          <RiFilterLine className='h-4 w-4' />
           Filtrar
           {activeFilterCount > 0 && (
-            <span className='flex size-5 items-center justify-center rounded-full bg-primary-base text-[10px] font-medium text-static-white'>
+            <span className='flex h-5 w-5 items-center justify-center rounded-full bg-foreground text-[10px] font-medium text-background'>
               {activeFilterCount}
             </span>
           )}
@@ -92,7 +92,7 @@ export function InboxFilterPopover({
         <div className='space-y-4'>
           {/* Notification types */}
           <div className='space-y-2.5'>
-            <p className='text-label-xs text-text-sub-600'>Tipo</p>
+            <p className='text-label-xs text-muted-foreground'>Tipo</p>
             <div className='space-y-2'>
               {NOTIFICATION_TYPE_OPTIONS.map((option) => {
                 const isChecked =
@@ -108,7 +108,7 @@ export function InboxFilterPopover({
                         handleTypeToggle(option.value, checked === true)
                       }
                     />
-                    <span className='text-paragraph-sm text-text-strong-950'>
+                    <span className='text-paragraph-sm text-foreground'>
                       {option.label}
                     </span>
                   </label>
@@ -119,7 +119,7 @@ export function InboxFilterPopover({
 
           {/* Period */}
           <div className='space-y-2.5'>
-            <p className='text-label-xs text-text-sub-600'>Período</p>
+            <p className='text-label-xs text-muted-foreground'>Período</p>
             <Radio.Group
               value={filters.period ?? ''}
               onValueChange={handlePeriodChange}
@@ -131,7 +131,7 @@ export function InboxFilterPopover({
                   className='flex cursor-pointer items-center gap-2'
                 >
                   <Radio.Item value={option.value} />
-                  <span className='text-paragraph-sm text-text-strong-950'>
+                  <span className='text-paragraph-sm text-foreground'>
                     {option.label}
                   </span>
                 </label>

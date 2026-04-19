@@ -1,5 +1,9 @@
 import { Injectable } from '@nestjs/common';
-import { Prisma, StockRequisitionStatus, StockRequisitionType } from '@prisma/client';
+import {
+  Prisma,
+  StockRequisitionStatus,
+  StockRequisitionType,
+} from '@prisma/client';
 import { PrismaService } from '../../database/prisma.service';
 
 @Injectable()
@@ -103,7 +107,9 @@ export class StockRequisitionsRepository {
 
       // Create a placeholder to "reserve" the code inside this transaction
       // The actual creation happens in the service, but we verify uniqueness here
-      const existing = await tx.stockRequisition.findUnique({ where: { code } });
+      const existing = await tx.stockRequisition.findUnique({
+        where: { code },
+      });
       if (existing) {
         throw new Error(`Codigo ${code} ja existe — retry`);
       }
@@ -115,7 +121,11 @@ export class StockRequisitionsRepository {
   async processItemAndDeductStock(
     itemId: string,
     productId: string,
-    data: { actualQuantity: number; unitType: string; unitsPerBox: number | null },
+    data: {
+      actualQuantity: number;
+      unitType: string;
+      unitsPerBox: number | null;
+    },
     quantityToDeduct: number,
   ) {
     return this.prisma.$transaction(async (tx) => {
@@ -237,7 +247,14 @@ export class StockRequisitionsRepository {
         where: { deletedAt: null },
         include: {
           product: {
-            select: { id: true, code: true, name: true, barcode: true, currentStock: true, unitsPerBox: true },
+            select: {
+              id: true,
+              code: true,
+              name: true,
+              barcode: true,
+              currentStock: true,
+              unitsPerBox: true,
+            },
           },
         },
       },

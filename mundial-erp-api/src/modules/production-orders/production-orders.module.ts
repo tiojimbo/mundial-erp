@@ -6,7 +6,11 @@ import { ProductionOrderPdfService } from '../orders/pdf/production-order-pdf.se
 
 @Module({
   controllers: [ProductionOrdersController],
-  providers: [ProductionOrdersService, ProductionOrdersRepository, ProductionOrderPdfService],
+  providers: [
+    ProductionOrdersService,
+    ProductionOrdersRepository,
+    ProductionOrderPdfService,
+  ],
   exports: [ProductionOrdersService, ProductionOrdersRepository],
 })
 export class ProductionOrdersModule {}

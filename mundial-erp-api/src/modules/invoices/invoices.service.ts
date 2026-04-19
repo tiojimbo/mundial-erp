@@ -12,6 +12,7 @@ import { CreateInvoiceDto } from './dto/create-invoice.dto';
 import { UpdateInvoiceDto } from './dto/update-invoice.dto';
 import { InvoiceResponseDto } from './dto/invoice-response.dto';
 import { PaginationDto } from '../../common/dtos/pagination.dto';
+import { PrismaService } from '../../database/prisma.service';
 
 @Injectable()
 export class InvoicesService {
@@ -20,19 +21,67 @@ export class InvoicesService {
   constructor(
     private readonly invoicesRepository: InvoicesRepository,
     private readonly eventEmitter: EventEmitter2,
+    private readonly prisma: PrismaService,
   ) {}
+
+  /**
+   * Valida que pelo menos uma das relações (order/company/client) pertence ao workspace.
+   */
+  private async validateWorkspaceLinkage(
+    workspaceId: string,
+    dto: {
+      orderId?: string | null;
+      companyId?: string | null;
+      clientId?: string | null;
+    },
+  ): Promise<void> {
+    if (!dto.orderId && !dto.companyId && !dto.clientId) {
+      throw new BadRequestException(
+        'Nota fiscal deve estar vinculada a pelo menos um pedido, empresa ou cliente',
+      );
+    }
+    if (dto.orderId) {
+      const o = await this.prisma.order.findFirst({
+        where: { id: dto.orderId, workspaceId },
+      });
+      if (!o)
+        throw new BadRequestException(`Pedido "${dto.orderId}" não encontrado`);
+    }
+    if (dto.companyId) {
+      const c = await this.prisma.company.findFirst({
+        where: { id: dto.companyId, workspaceId },
+      });
+      if (!c)
+        throw new BadRequestException(
+          `Empresa "${dto.companyId}" não encontrada`,
+        );
+    }
+    if (dto.clientId) {
+      const c = await this.prisma.client.findFirst({
+        where: { id: dto.clientId, workspaceId },
+      });
+      if (!c)
+        throw new BadRequestException(
+          `Cliente "${dto.clientId}" não encontrado`,
+        );
+    }
+  }
 
   // ---------------------------------------------------------------------------
   // CREATE
   // ---------------------------------------------------------------------------
 
-  async create(dto: CreateInvoiceDto): Promise<InvoiceResponseDto> {
-    // Validar chave de acesso (44 dígitos)
+  async create(
+    workspaceId: string,
+    dto: CreateInvoiceDto,
+  ): Promise<InvoiceResponseDto> {
     if (dto.accessKey && !/^\d{44}$/.test(dto.accessKey)) {
       throw new BadRequestException(
         'Chave de acesso deve ter exatamente 44 dígitos numéricos',
       );
     }
+
+    await this.validateWorkspaceLinkage(workspaceId, dto);
 
     const createData: Prisma.InvoiceCreateInput = {
       invoiceNumber: dto.invoiceNumber,
@@ -47,7 +96,10 @@ export class InvoicesService {
       ...(dto.companyId && { company: { connect: { id: dto.companyId } } }),
     };
 
-    const entity = await this.invoicesRepository.create(createData);
+    const entity = await this.invoicesRepository.create(
+      workspaceId,
+      createData,
+    );
 
     this.eventEmitter.emit('invoice.created', {
       invoiceId: entity.id,
@@ -67,6 +119,7 @@ export class InvoicesService {
   // ---------------------------------------------------------------------------
 
   async findAll(
+    workspaceId: string,
     pagination: PaginationDto,
     filters: {
       direction?: string;
@@ -76,14 +129,17 @@ export class InvoicesService {
     },
   ) {
     const direction = filters.direction as InvoiceDirection | undefined;
-    const { items, total } = await this.invoicesRepository.findMany({
-      skip: pagination.skip,
-      take: pagination.limit,
-      ...(direction && { direction }),
-      ...(filters.clientId && { clientId: filters.clientId }),
-      ...(filters.companyId && { companyId: filters.companyId }),
-      ...(filters.orderId && { orderId: filters.orderId }),
-    });
+    const { items, total } = await this.invoicesRepository.findMany(
+      workspaceId,
+      {
+        skip: pagination.skip,
+        take: pagination.limit,
+        ...(direction && { direction }),
+        ...(filters.clientId && { clientId: filters.clientId }),
+        ...(filters.companyId && { companyId: filters.companyId }),
+        ...(filters.orderId && { orderId: filters.orderId }),
+      },
+    );
 
     return {
       items: items.map(InvoiceResponseDto.fromEntity),
@@ -95,8 +151,8 @@ export class InvoicesService {
   // FIND BY ID
   // ---------------------------------------------------------------------------
 
-  async findById(id: string): Promise<InvoiceResponseDto> {
-    const entity = await this.invoicesRepository.findById(id);
+  async findById(workspaceId: string, id: string): Promise<InvoiceResponseDto> {
+    const entity = await this.invoicesRepository.findById(workspaceId, id);
     if (!entity) {
       throw new NotFoundException('Nota fiscal não encontrada');
     }
@@ -107,22 +163,31 @@ export class InvoicesService {
   // UPDATE
   // ---------------------------------------------------------------------------
 
-  async update(id: string, dto: UpdateInvoiceDto): Promise<InvoiceResponseDto> {
-    const entity = await this.invoicesRepository.findById(id);
+  async update(
+    workspaceId: string,
+    id: string,
+    dto: UpdateInvoiceDto,
+  ): Promise<InvoiceResponseDto> {
+    const entity = await this.invoicesRepository.findById(workspaceId, id);
     if (!entity) {
       throw new NotFoundException('Nota fiscal não encontrada');
     }
 
-    // Validar chave de acesso se fornecida
     if (dto.accessKey && !/^\d{44}$/.test(dto.accessKey)) {
       throw new BadRequestException(
         'Chave de acesso deve ter exatamente 44 dígitos numéricos',
       );
     }
 
+    // Validar que novas FKs (se fornecidas) pertencem ao workspace
+    if (dto.orderId || dto.companyId || dto.clientId) {
+      await this.validateWorkspaceLinkage(workspaceId, dto);
+    }
+
     const updateData: Prisma.InvoiceUpdateInput = {};
 
-    if (dto.invoiceNumber !== undefined) updateData.invoiceNumber = dto.invoiceNumber;
+    if (dto.invoiceNumber !== undefined)
+      updateData.invoiceNumber = dto.invoiceNumber;
     if (dto.direction !== undefined) updateData.direction = dto.direction;
     if (dto.totalCents !== undefined) updateData.totalCents = dto.totalCents;
     if (dto.xmlContent !== undefined) updateData.xmlContent = dto.xmlContent;
@@ -145,7 +210,11 @@ export class InvoicesService {
         : { disconnect: true };
     }
 
-    const updated = await this.invoicesRepository.update(id, updateData);
+    const updated = await this.invoicesRepository.update(
+      workspaceId,
+      id,
+      updateData,
+    );
 
     this.eventEmitter.emit('invoice.updated', {
       invoiceId: id,
@@ -159,8 +228,8 @@ export class InvoicesService {
   // CANCEL
   // ---------------------------------------------------------------------------
 
-  async cancel(id: string): Promise<InvoiceResponseDto> {
-    const entity = await this.invoicesRepository.findById(id);
+  async cancel(workspaceId: string, id: string): Promise<InvoiceResponseDto> {
+    const entity = await this.invoicesRepository.findById(workspaceId, id);
     if (!entity) {
       throw new NotFoundException('Nota fiscal não encontrada');
     }
@@ -169,7 +238,7 @@ export class InvoicesService {
       throw new ConflictException('Nota fiscal já cancelada');
     }
 
-    const updated = await this.invoicesRepository.update(id, {
+    const updated = await this.invoicesRepository.update(workspaceId, id, {
       cancelledAt: new Date(),
     });
 
@@ -189,13 +258,13 @@ export class InvoicesService {
   // SOFT DELETE
   // ---------------------------------------------------------------------------
 
-  async remove(id: string): Promise<void> {
-    const entity = await this.invoicesRepository.findById(id);
+  async remove(workspaceId: string, id: string): Promise<void> {
+    const entity = await this.invoicesRepository.findById(workspaceId, id);
     if (!entity) {
       throw new NotFoundException('Nota fiscal não encontrada');
     }
 
-    await this.invoicesRepository.softDelete(id);
+    await this.invoicesRepository.softDelete(workspaceId, id);
 
     this.eventEmitter.emit('invoice.deleted', { invoiceId: id });
   }

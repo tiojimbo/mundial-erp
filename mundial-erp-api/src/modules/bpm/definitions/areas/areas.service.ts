@@ -1,6 +1,5 @@
 import {
   BadRequestException,
-  ConflictException,
   Inject,
   Injectable,
   NotFoundException,
@@ -12,11 +11,13 @@ import { UpdateAreaDto } from './dto/update-area.dto';
 import { AreaResponseDto } from './dto/area-response.dto';
 import { PaginationDto } from '../../../../common/dtos/pagination.dto';
 import { WorkflowStatusesService } from '../workflow-statuses/workflow-statuses.service';
+import { DepartmentsRepository } from '../departments/departments.repository';
 
 @Injectable()
 export class AreasService {
   constructor(
     private readonly areasRepository: AreasRepository,
+    private readonly departmentsRepository: DepartmentsRepository,
     @Inject(forwardRef(() => WorkflowStatusesService))
     private readonly workflowStatusesService: WorkflowStatusesService,
   ) {}
@@ -30,23 +31,44 @@ export class AreasService {
       .replace(/(^-|-$)/g, '');
   }
 
-  private async resolveUniqueSlug(baseSlug: string): Promise<string> {
+  private async resolveUniqueSlug(
+    workspaceId: string,
+    baseSlug: string,
+  ): Promise<string> {
     let slug = baseSlug;
     let suffix = 0;
-    while (await this.areasRepository.findBySlug(slug)) {
+    while (await this.areasRepository.findBySlug(workspaceId, slug)) {
       suffix++;
       slug = `${baseSlug}-${suffix}`;
     }
     return slug;
   }
 
-  async create(dto: CreateAreaDto): Promise<AreaResponseDto> {
+  private async assertDepartmentInWorkspace(
+    workspaceId: string,
+    departmentId: string,
+  ) {
+    const dept = await this.departmentsRepository.findById(
+      workspaceId,
+      departmentId,
+    );
+    if (!dept) {
+      throw new NotFoundException('Departamento não encontrado');
+    }
+  }
+
+  async create(
+    workspaceId: string,
+    dto: CreateAreaDto,
+  ): Promise<AreaResponseDto> {
+    await this.assertDepartmentInWorkspace(workspaceId, dto.departmentId);
+
     const baseSlug = this.generateSlug(dto.name);
-    const slug = await this.resolveUniqueSlug(baseSlug);
+    const slug = await this.resolveUniqueSlug(workspaceId, baseSlug);
 
     const useSpaceStatuses = dto.useSpaceStatuses ?? true;
 
-    const entity = await this.areasRepository.create({
+    const entity = await this.areasRepository.create(workspaceId, {
       name: dto.name,
       slug,
       description: dto.description,
@@ -58,9 +80,9 @@ export class AreasService {
       department: { connect: { id: dto.departmentId } },
     });
 
-    // Se useSpaceStatuses = false na criação, copia statuses do dept como ponto de partida
     if (!useSpaceStatuses) {
       await this.workflowStatusesService.copyStatusesToArea(
+        workspaceId,
         dto.departmentId,
         entity.id,
       );
@@ -69,8 +91,8 @@ export class AreasService {
     return AreaResponseDto.fromEntity(entity);
   }
 
-  async findAll(pagination: PaginationDto) {
-    const { items, total } = await this.areasRepository.findMany({
+  async findAll(workspaceId: string, pagination: PaginationDto) {
+    const { items, total } = await this.areasRepository.findMany(workspaceId, {
       skip: pagination.skip,
       take: pagination.limit,
     });
@@ -80,16 +102,20 @@ export class AreasService {
     };
   }
 
-  async findById(id: string): Promise<AreaResponseDto> {
-    const entity = await this.areasRepository.findById(id);
+  async findById(workspaceId: string, id: string): Promise<AreaResponseDto> {
+    const entity = await this.areasRepository.findById(workspaceId, id);
     if (!entity) {
       throw new NotFoundException('Área não encontrada');
     }
     return AreaResponseDto.fromEntity(entity);
   }
 
-  async update(id: string, dto: UpdateAreaDto): Promise<AreaResponseDto> {
-    const entity = await this.areasRepository.findById(id);
+  async update(
+    workspaceId: string,
+    id: string,
+    dto: UpdateAreaDto,
+  ): Promise<AreaResponseDto> {
+    const entity = await this.areasRepository.findById(workspaceId, id);
     if (!entity) {
       throw new NotFoundException('Área não encontrada');
     }
@@ -98,31 +124,37 @@ export class AreasService {
     if (dto.name !== undefined) {
       updateData.name = dto.name;
       const baseSlug = this.generateSlug(dto.name);
-      const existingSlug = await this.areasRepository.findBySlug(baseSlug);
+      const existingSlug = await this.areasRepository.findBySlug(
+        workspaceId,
+        baseSlug,
+      );
       if (!existingSlug || existingSlug.id === id) {
         updateData.slug = baseSlug;
       } else {
-        updateData.slug = await this.resolveUniqueSlug(baseSlug);
+        updateData.slug = await this.resolveUniqueSlug(workspaceId, baseSlug);
       }
     }
     if (dto.departmentId !== undefined) {
+      await this.assertDepartmentInWorkspace(workspaceId, dto.departmentId);
       updateData.department = { connect: { id: dto.departmentId } };
     }
     if (dto.description !== undefined) updateData.description = dto.description;
     if (dto.isPrivate !== undefined) updateData.isPrivate = dto.isPrivate;
     if (dto.icon !== undefined) updateData.icon = dto.icon;
     if (dto.color !== undefined) updateData.color = dto.color;
-    if (dto.useSpaceStatuses !== undefined) updateData.useSpaceStatuses = dto.useSpaceStatuses;
+    if (dto.useSpaceStatuses !== undefined)
+      updateData.useSpaceStatuses = dto.useSpaceStatuses;
     if (dto.sortOrder !== undefined) updateData.sortOrder = dto.sortOrder;
 
-    const updated = await this.areasRepository.update(id, updateData);
+    const updated = await this.areasRepository.update(
+      workspaceId,
+      id,
+      updateData,
+    );
 
-    // Se useSpaceStatuses mudou de true → false, copia statuses do departamento
-    if (
-      dto.useSpaceStatuses === false &&
-      entity.useSpaceStatuses === true
-    ) {
+    if (dto.useSpaceStatuses === false && entity.useSpaceStatuses === true) {
       await this.workflowStatusesService.copyStatusesToArea(
+        workspaceId,
         entity.departmentId,
         id,
       );
@@ -131,12 +163,23 @@ export class AreasService {
     return AreaResponseDto.fromEntity(updated);
   }
 
-  async getProcessSummaries(areaId: string, showClosed = false) {
-    return this.areasRepository.getProcessSummaries(areaId, showClosed);
+  async getProcessSummaries(
+    workspaceId: string,
+    areaId: string,
+    showClosed = false,
+  ) {
+    return this.areasRepository.getProcessSummaries(
+      workspaceId,
+      areaId,
+      showClosed,
+    );
   }
 
-  async findBySlug(slug: string) {
-    const entity = await this.areasRepository.findBySlugWithDetails(slug);
+  async findBySlug(workspaceId: string, slug: string) {
+    const entity = await this.areasRepository.findBySlugWithDetails(
+      workspaceId,
+      slug,
+    );
     if (!entity) {
       throw new NotFoundException('Área não encontrada');
     }
@@ -157,14 +200,14 @@ export class AreasService {
     };
   }
 
-  async remove(id: string): Promise<void> {
-    const entity = await this.areasRepository.findById(id);
+  async remove(workspaceId: string, id: string): Promise<void> {
+    const entity = await this.areasRepository.findById(workspaceId, id);
     if (!entity) {
       throw new NotFoundException('Área não encontrada');
     }
     if (entity.isDefault) {
       throw new BadRequestException('Não é possível excluir uma área padrão');
     }
-    await this.areasRepository.softDelete(id);
+    await this.areasRepository.softDelete(workspaceId, id);
   }
 }

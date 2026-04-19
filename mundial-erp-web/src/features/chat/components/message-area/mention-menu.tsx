@@ -133,7 +133,7 @@ export function MentionMenu({
               Atalhos
             </span>
           </div>
-          {specials.map((item, i) => {
+          {specials.map((item, _i) => {
             const globalIndex = filtered.indexOf(item);
             return (
               <MentionRow

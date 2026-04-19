@@ -1,4 +1,9 @@
-import { BadRequestException, Injectable, Logger, NotFoundException } from '@nestjs/common';
+import {
+  BadRequestException,
+  Injectable,
+  Logger,
+  NotFoundException,
+} from '@nestjs/common';
 import { EventEmitter2 } from '@nestjs/event-emitter';
 import { PaymentStatus } from '@prisma/client';
 import { AccountsPayableRepository } from './accounts-payable.repository';
@@ -17,14 +22,18 @@ export class AccountsPayableService {
     private readonly eventEmitter: EventEmitter2,
   ) {}
 
-  async create(dto: CreateAccountPayableDto): Promise<AccountPayableResponseDto> {
+  async create(
+    dto: CreateAccountPayableDto,
+  ): Promise<AccountPayableResponseDto> {
     const entity = await this.repository.create({
       amountCents: dto.amountCents,
       paidAmountCents: 0,
       dueDate: new Date(dto.dueDate),
       status: PaymentStatus.PENDING,
       ...(dto.supplierId && { supplier: { connect: { id: dto.supplierId } } }),
-      ...(dto.purchaseOrderId && { purchaseOrder: { connect: { id: dto.purchaseOrderId } } }),
+      ...(dto.purchaseOrderId && {
+        purchaseOrder: { connect: { id: dto.purchaseOrderId } },
+      }),
       ...(dto.description && { description: dto.description }),
       ...(dto.categoryId && { category: { connect: { id: dto.categoryId } } }),
     });
@@ -70,7 +79,10 @@ export class AccountsPayableService {
     return AccountPayableResponseDto.fromEntity(entity);
   }
 
-  async update(id: string, dto: UpdateAccountPayableDto): Promise<AccountPayableResponseDto> {
+  async update(
+    id: string,
+    dto: UpdateAccountPayableDto,
+  ): Promise<AccountPayableResponseDto> {
     const existing = await this.repository.findById(id);
     if (!existing) {
       throw new NotFoundException('Conta a pagar não encontrada');
@@ -109,7 +121,10 @@ export class AccountsPayableService {
     return AccountPayableResponseDto.fromEntity(updated);
   }
 
-  async registerPayment(id: string, dto: RegisterPaymentDto): Promise<AccountPayableResponseDto> {
+  async registerPayment(
+    id: string,
+    dto: RegisterPaymentDto,
+  ): Promise<AccountPayableResponseDto> {
     // Validate status before entering transaction
     const existing = await this.repository.findById(id);
     if (!existing) {
@@ -121,7 +136,9 @@ export class AccountsPayableService {
     }
 
     if (existing.status === PaymentStatus.CANCELLED) {
-      throw new BadRequestException('Não é possível registrar pagamento em conta cancelada');
+      throw new BadRequestException(
+        'Não é possível registrar pagamento em conta cancelada',
+      );
     }
 
     // Atomic read-update inside transaction to prevent race conditions

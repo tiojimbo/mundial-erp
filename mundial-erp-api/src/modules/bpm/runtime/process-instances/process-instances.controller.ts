@@ -52,7 +52,10 @@ export class ProcessInstancesController {
   @Roles(Role.ADMIN, Role.MANAGER, Role.OPERATOR)
   @ApiOperation({ summary: 'Buscar instância de processo por ID' })
   @ApiResponse({ status: 200, type: ProcessInstanceResponseDto })
-  @ApiResponse({ status: 404, description: 'Instância de processo não encontrada' })
+  @ApiResponse({
+    status: 404,
+    description: 'Instância de processo não encontrada',
+  })
   findOne(@Param('id') id: string) {
     return this.processInstancesService.findById(id);
   }
@@ -69,7 +72,10 @@ export class ProcessInstancesController {
   @Roles(Role.ADMIN, Role.MANAGER)
   @ApiOperation({ summary: 'Iniciar instância de processo' })
   @ApiResponse({ status: 200, type: ProcessInstanceResponseDto })
-  @ApiResponse({ status: 404, description: 'Instância de processo não encontrada' })
+  @ApiResponse({
+    status: 404,
+    description: 'Instância de processo não encontrada',
+  })
   start(@Param('id') id: string) {
     return this.processInstancesService.start(id);
   }
@@ -78,7 +84,10 @@ export class ProcessInstancesController {
   @Roles(Role.ADMIN, Role.MANAGER)
   @ApiOperation({ summary: 'Completar instância de processo' })
   @ApiResponse({ status: 200, type: ProcessInstanceResponseDto })
-  @ApiResponse({ status: 404, description: 'Instância de processo não encontrada' })
+  @ApiResponse({
+    status: 404,
+    description: 'Instância de processo não encontrada',
+  })
   complete(@Param('id') id: string) {
     return this.processInstancesService.complete(id);
   }

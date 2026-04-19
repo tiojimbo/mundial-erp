@@ -65,7 +65,9 @@ export class DeliveryRoutesController {
   @Delete(':id')
   @Roles(Role.ADMIN)
   @HttpCode(HttpStatus.NO_CONTENT)
-  @ApiOperation({ summary: 'Remover rota de entrega (soft delete, somente ADMIN)' })
+  @ApiOperation({
+    summary: 'Remover rota de entrega (soft delete, somente ADMIN)',
+  })
   @ApiResponse({ status: 204 })
   remove(@Param('id') id: string) {
     return this.deliveryRoutesService.remove(id);

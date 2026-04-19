@@ -24,7 +24,7 @@ export function InboxClient() {
 
   const initialView = (searchParams.get('view') as InboxView) || 'all';
   const [view, setView] = useState<InboxView>(initialView);
-  const [filters, setFilters] = useState<NotificationFilters>({});
+  const [filters, _setFilters] = useState<NotificationFilters>({});
 
   const { data, isLoading } = useNotifications(view);
   const markAsRead = useMarkAsRead();
@@ -56,8 +56,8 @@ export function InboxClient() {
   return (
     <div className='flex h-full flex-col'>
       <header className='flex items-center gap-2 border-b px-4 py-3'>
-        <RiInboxLine className='size-5 text-[oklch(14.5%_0_0)]' />
-        <h1 className='text-sm font-normal text-[oklch(14.5%_0_0)]'>
+        <RiInboxLine className='h-4 w-4 text-muted-foreground' />
+        <h1 className='text-paragraph-sm text-foreground'>
           Caixa de entrada
         </h1>
       </header>
@@ -75,12 +75,6 @@ export function InboxClient() {
         }
         onViewChange={handleViewChange}
       />
-
-      {/* Toolbar placeholder — T9 will create InboxToolbar */}
-      <div className='flex items-center justify-between border-b px-4 py-2'>
-        <div />
-        <div className='flex items-center gap-2' />
-      </div>
 
       <div
         role='tabpanel'

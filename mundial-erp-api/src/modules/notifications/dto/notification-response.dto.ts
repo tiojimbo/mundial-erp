@@ -1,10 +1,5 @@
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
-import {
-  Notification,
-  NotificationType,
-  NotificationCategory,
-  NotificationStatus,
-} from '@prisma/client';
+import { Notification } from '@prisma/client';
 
 export class NotificationResponseDto {
   @ApiProperty({ example: 'cuid-notification-id' })
@@ -13,7 +8,10 @@ export class NotificationResponseDto {
   @ApiProperty({ example: 'cuid-user-id' })
   userId: string;
 
-  @ApiProperty({ example: 'task.overdue', description: 'Tipo da notificacao em formato dot-notation' })
+  @ApiProperty({
+    example: 'task.overdue',
+    description: 'Tipo da notificacao em formato dot-notation',
+  })
   type: string;
 
   @ApiProperty({ example: 'primary', description: 'Categoria da notificacao' })

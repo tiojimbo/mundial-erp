@@ -29,9 +29,7 @@ import { Roles } from '../auth/decorators';
 @ApiBearerAuth()
 @Controller('purchase-quotations')
 export class PurchaseQuotationsController {
-  constructor(
-    private readonly quotationsService: PurchaseQuotationsService,
-  ) {}
+  constructor(private readonly quotationsService: PurchaseQuotationsService) {}
 
   @Post()
   @Roles(Role.ADMIN, Role.MANAGER, Role.OPERATOR)
@@ -45,16 +43,32 @@ export class PurchaseQuotationsController {
   @Get()
   @Roles(Role.ADMIN, Role.MANAGER, Role.OPERATOR)
   @ApiOperation({ summary: 'Listar cotações (filtro por status/fornecedor)' })
-  @ApiQuery({ name: 'status', required: false, enum: ['DRAFT', 'SENT', 'RECEIVED', 'SELECTED', 'REJECTED'] })
-  @ApiQuery({ name: 'supplierId', required: false, description: 'Filtrar por fornecedor' })
-  @ApiQuery({ name: 'search', required: false, description: 'Buscar por notas ou nome do fornecedor' })
+  @ApiQuery({
+    name: 'status',
+    required: false,
+    enum: ['DRAFT', 'SENT', 'RECEIVED', 'SELECTED', 'REJECTED'],
+  })
+  @ApiQuery({
+    name: 'supplierId',
+    required: false,
+    description: 'Filtrar por fornecedor',
+  })
+  @ApiQuery({
+    name: 'search',
+    required: false,
+    description: 'Buscar por notas ou nome do fornecedor',
+  })
   findAll(
     @Query() pagination: PaginationDto,
     @Query('status') status?: string,
     @Query('supplierId') supplierId?: string,
     @Query('search') search?: string,
   ) {
-    return this.quotationsService.findAll(pagination, { status, supplierId, search });
+    return this.quotationsService.findAll(pagination, {
+      status,
+      supplierId,
+      search,
+    });
   }
 
   @Get(':id')
@@ -80,7 +94,10 @@ export class PurchaseQuotationsController {
   @Roles(Role.ADMIN, Role.MANAGER)
   @ApiOperation({ summary: 'Selecionar cotação vencedora' })
   @ApiResponse({ status: 200, type: PurchaseQuotationResponseDto })
-  @ApiResponse({ status: 400, description: 'Cotação não está com status RECEIVED' })
+  @ApiResponse({
+    status: 400,
+    description: 'Cotação não está com status RECEIVED',
+  })
   @ApiResponse({ status: 404, description: 'Cotação não encontrada' })
   select(@Param('id') id: string) {
     return this.quotationsService.select(id);
@@ -90,7 +107,10 @@ export class PurchaseQuotationsController {
   @Roles(Role.ADMIN, Role.MANAGER)
   @ApiOperation({ summary: 'Rejeitar cotação' })
   @ApiResponse({ status: 200, type: PurchaseQuotationResponseDto })
-  @ApiResponse({ status: 400, description: 'Cotação não está com status RECEIVED' })
+  @ApiResponse({
+    status: 400,
+    description: 'Cotação não está com status RECEIVED',
+  })
   @ApiResponse({ status: 404, description: 'Cotação não encontrada' })
   reject(@Param('id') id: string) {
     return this.quotationsService.reject(id);
@@ -101,7 +121,10 @@ export class PurchaseQuotationsController {
   @HttpCode(HttpStatus.NO_CONTENT)
   @ApiOperation({ summary: 'Remover cotação (somente DRAFT, somente ADMIN)' })
   @ApiResponse({ status: 204 })
-  @ApiResponse({ status: 400, description: 'Apenas cotações em DRAFT podem ser removidas' })
+  @ApiResponse({
+    status: 400,
+    description: 'Apenas cotações em DRAFT podem ser removidas',
+  })
   remove(@Param('id') id: string) {
     return this.quotationsService.remove(id);
   }

@@ -22,7 +22,7 @@ export function NotificationGroup({
 }: NotificationGroupProps) {
   return (
     <li className='list-none'>
-      <h3 className='bg-muted/30 px-4 py-2 text-xs font-medium text-muted-foreground'>
+      <h3 className='bg-muted/30 px-4 py-2 text-label-xs text-muted-foreground'>
         {getGroupLabel(group)}
       </h3>
       <ul role='list'>

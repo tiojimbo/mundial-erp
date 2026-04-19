@@ -6,30 +6,40 @@ import { PrismaService } from '../../../../database/prisma.service';
 export class AreasRepository {
   constructor(private readonly prisma: PrismaService) {}
 
-  async create(data: Prisma.AreaCreateInput) {
+  /**
+   * Area NÃO possui workspaceId direto. Escopo via department.
+   */
+  async create(_workspaceId: string, data: Prisma.AreaCreateInput) {
     return this.prisma.area.create({ data });
   }
 
-  async findById(id: string) {
+  async findById(workspaceId: string, id: string) {
     return this.prisma.area.findFirst({
-      where: { id, deletedAt: null },
+      where: { id, deletedAt: null, department: { workspaceId } },
       include: {
         department: { select: { id: true, name: true, slug: true } },
       },
     });
   }
 
-  async findBySlug(slug: string) {
+  async findBySlug(workspaceId: string, slug: string) {
     return this.prisma.area.findFirst({
-      where: { slug, deletedAt: null },
+      where: { slug, deletedAt: null, department: { workspaceId } },
     });
   }
 
-  async findMany(params: { skip?: number; take?: number }) {
+  async findMany(
+    workspaceId: string,
+    params: { skip?: number; take?: number },
+  ) {
     const { skip = 0, take = 20 } = params;
+    const where: Prisma.AreaWhereInput = {
+      deletedAt: null,
+      department: { workspaceId },
+    };
     const [items, total] = await Promise.all([
       this.prisma.area.findMany({
-        where: { deletedAt: null },
+        where,
         skip,
         take,
         orderBy: { sortOrder: 'asc' },
@@ -37,25 +47,25 @@ export class AreasRepository {
           department: { select: { id: true, name: true } },
         },
       }),
-      this.prisma.area.count({ where: { deletedAt: null } }),
+      this.prisma.area.count({ where }),
     ]);
     return { items, total };
   }
 
-  async update(id: string, data: Prisma.AreaUpdateInput) {
+  async update(_workspaceId: string, id: string, data: Prisma.AreaUpdateInput) {
     return this.prisma.area.update({ where: { id }, data });
   }
 
-  async softDelete(id: string) {
+  async softDelete(_workspaceId: string, id: string) {
     return this.prisma.area.update({
       where: { id },
       data: { deletedAt: new Date() },
     });
   }
 
-  async findBySlugWithDetails(slug: string) {
+  async findBySlugWithDetails(workspaceId: string, slug: string) {
     return this.prisma.area.findFirst({
-      where: { slug, deletedAt: null },
+      where: { slug, deletedAt: null, department: { workspaceId } },
       include: {
         department: { select: { id: true, name: true, slug: true } },
         processes: {
@@ -75,16 +85,20 @@ export class AreasRepository {
     });
   }
 
-  async getProcessSummaries(areaId: string, showClosed = false) {
+  async getProcessSummaries(
+    workspaceId: string,
+    areaId: string,
+    showClosed = false,
+  ) {
     const area = await this.prisma.area.findFirst({
-      where: { id: areaId, deletedAt: null },
+      where: { id: areaId, deletedAt: null, department: { workspaceId } },
       select: { departmentId: true },
     });
 
     if (!area) return [];
 
     const processes = await this.prisma.process.findMany({
-      where: { areaId, deletedAt: null },
+      where: { areaId, deletedAt: null, area: { department: { workspaceId } } },
       orderBy: { sortOrder: 'asc' },
       select: {
         id: true,
@@ -111,6 +125,7 @@ export class AreasRepository {
 
     const workItemWhere: Prisma.WorkItemWhereInput = {
       processId: { in: listProcessIds },
+      process: { area: { department: { workspaceId } } },
       deletedAt: null,
       parentId: null,
     };
@@ -140,22 +155,35 @@ export class AreasRepository {
             },
           }),
           this.prisma.workflowStatus.findMany({
-            where: { departmentId: area.departmentId, deletedAt: null },
+            where: {
+              departmentId: area.departmentId,
+              department: { workspaceId },
+              deletedAt: null,
+            },
             orderBy: { sortOrder: 'asc' },
             select: { id: true, name: true, color: true, category: true },
           }),
         ])
       : [[], []];
 
-    let processInstances: Array<{ processId: string; order: { status: string } }> = [];
-    let pendingActivities: Array<{ processInstance: { processId: string } }> = [];
-    let pendingHandoffs: Array<{ fromProcessInstance: { processId: string } }> = [];
+    let processInstances: Array<{
+      processId: string;
+      order: { status: string };
+    }> = [];
+    let pendingActivities: Array<{ processInstance: { processId: string } }> =
+      [];
+    let pendingHandoffs: Array<{ fromProcessInstance: { processId: string } }> =
+      [];
 
     if (bpmProcessIds.length > 0) {
       [processInstances, pendingActivities, pendingHandoffs] =
         await Promise.all([
           this.prisma.processInstance.findMany({
-            where: { processId: { in: bpmProcessIds }, deletedAt: null },
+            where: {
+              processId: { in: bpmProcessIds },
+              process: { area: { department: { workspaceId } } },
+              deletedAt: null,
+            },
             select: {
               processId: true,
               order: { select: { status: true } },
@@ -165,6 +193,7 @@ export class AreasRepository {
             where: {
               processInstance: {
                 processId: { in: bpmProcessIds },
+                process: { area: { department: { workspaceId } } },
                 deletedAt: null,
               },
               status: { in: ['PENDING', 'IN_PROGRESS'] },
@@ -178,6 +207,7 @@ export class AreasRepository {
             where: {
               fromProcessInstance: {
                 processId: { in: bpmProcessIds },
+                process: { area: { department: { workspaceId } } },
                 deletedAt: null,
               },
               status: 'PENDING',

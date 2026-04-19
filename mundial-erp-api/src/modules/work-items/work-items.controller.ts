@@ -28,6 +28,7 @@ import { WorkItemFiltersDto } from './dto/work-item-filters.dto';
 import { MyTasksResponseDto } from './dto/my-tasks-response.dto';
 import { CurrentUser, Roles } from '../auth/decorators';
 import type { JwtPayload } from '../auth/decorators';
+import { WorkspaceId } from '../workspaces/decorators/workspace-id.decorator';
 
 @ApiTags('Work Items')
 @ApiBearerAuth()
@@ -40,25 +41,32 @@ export class WorkItemsController {
   @ApiOperation({ summary: 'Criar work item' })
   @ApiResponse({ status: 201, type: WorkItemResponseDto })
   create(
+    @WorkspaceId() workspaceId: string,
     @Body() dto: CreateWorkItemDto,
     @CurrentUser() user: JwtPayload,
   ) {
-    return this.workItemsService.create(dto, user.sub);
+    return this.workItemsService.create(workspaceId, dto, user.sub);
   }
 
   @Get()
   @Roles(Role.ADMIN, Role.MANAGER, Role.OPERATOR, Role.VIEWER)
   @ApiOperation({ summary: 'Listar work items com filtros' })
-  findAll(@Query() filters: WorkItemFiltersDto) {
-    return this.workItemsService.findAll(filters);
+  findAll(
+    @WorkspaceId() workspaceId: string,
+    @Query() filters: WorkItemFiltersDto,
+  ) {
+    return this.workItemsService.findAll(workspaceId, filters);
   }
 
   @Get('my-tasks')
   @Roles(Role.ADMIN, Role.MANAGER, Role.OPERATOR, Role.VIEWER)
   @ApiOperation({ summary: 'Tarefas do usuário agrupadas por data' })
   @ApiResponse({ status: 200, type: MyTasksResponseDto })
-  getMyTasks(@CurrentUser() user: JwtPayload) {
-    return this.workItemsService.getMyTasks(user.sub);
+  getMyTasks(
+    @WorkspaceId() workspaceId: string,
+    @CurrentUser() user: JwtPayload,
+  ) {
+    return this.workItemsService.getMyTasks(workspaceId, user.sub);
   }
 
   @Get('grouped')
@@ -67,10 +75,15 @@ export class WorkItemsController {
   @ApiQuery({ name: 'processId', required: true })
   @ApiQuery({ name: 'showClosed', required: false, type: Boolean })
   findGrouped(
+    @WorkspaceId() workspaceId: string,
     @Query('processId') processId: string,
     @Query('showClosed') showClosed?: boolean,
   ) {
-    return this.workItemsService.findGrouped(processId, showClosed);
+    return this.workItemsService.findGrouped(
+      workspaceId,
+      processId,
+      showClosed,
+    );
   }
 
   @Get(':id')
@@ -78,24 +91,32 @@ export class WorkItemsController {
   @ApiOperation({ summary: 'Buscar work item por ID' })
   @ApiResponse({ status: 200, type: WorkItemResponseDto })
   @ApiResponse({ status: 404, description: 'Work item não encontrado' })
-  findOne(@Param('id') id: string) {
-    return this.workItemsService.findById(id);
+  findOne(@WorkspaceId() workspaceId: string, @Param('id') id: string) {
+    return this.workItemsService.findById(workspaceId, id);
   }
 
   @Patch(':id')
   @Roles(Role.ADMIN, Role.MANAGER, Role.OPERATOR)
   @ApiOperation({ summary: 'Atualizar work item' })
   @ApiResponse({ status: 200, type: WorkItemResponseDto })
-  update(@Param('id') id: string, @Body() dto: UpdateWorkItemDto) {
-    return this.workItemsService.update(id, dto);
+  update(
+    @WorkspaceId() workspaceId: string,
+    @Param('id') id: string,
+    @Body() dto: UpdateWorkItemDto,
+  ) {
+    return this.workItemsService.update(workspaceId, id, dto);
   }
 
   @Patch(':id/status')
   @Roles(Role.ADMIN, Role.MANAGER, Role.OPERATOR)
   @ApiOperation({ summary: 'Alterar status do work item' })
   @ApiResponse({ status: 200, type: WorkItemResponseDto })
-  changeStatus(@Param('id') id: string, @Body() dto: ChangeStatusDto) {
-    return this.workItemsService.changeStatus(id, dto);
+  changeStatus(
+    @WorkspaceId() workspaceId: string,
+    @Param('id') id: string,
+    @Body() dto: ChangeStatusDto,
+  ) {
+    return this.workItemsService.changeStatus(workspaceId, id, dto);
   }
 
   @Delete(':id')
@@ -103,8 +124,8 @@ export class WorkItemsController {
   @HttpCode(HttpStatus.NO_CONTENT)
   @ApiOperation({ summary: 'Remover work item (soft delete)' })
   @ApiResponse({ status: 204 })
-  remove(@Param('id') id: string) {
-    return this.workItemsService.remove(id);
+  remove(@WorkspaceId() workspaceId: string, @Param('id') id: string) {
+    return this.workItemsService.remove(workspaceId, id);
   }
 
   @Post('reorder')
@@ -112,7 +133,10 @@ export class WorkItemsController {
   @HttpCode(HttpStatus.NO_CONTENT)
   @ApiOperation({ summary: 'Reordenar work items em lote' })
   @ApiResponse({ status: 204 })
-  reorder(@Body() dto: ReorderWorkItemsDto) {
-    return this.workItemsService.reorder(dto);
+  reorder(
+    @WorkspaceId() workspaceId: string,
+    @Body() dto: ReorderWorkItemsDto,
+  ) {
+    return this.workItemsService.reorder(workspaceId, dto);
   }
 }

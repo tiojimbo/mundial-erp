@@ -1,3 +1,5 @@
+// SCOPE: GLOBAL — vide sync-mapping.repository.ts.
+
 import { Injectable } from '@nestjs/common';
 import { Prisma, SyncEntity, SyncStatus } from '@prisma/client';
 import { PrismaService } from '../../../database/prisma.service';
@@ -55,7 +57,11 @@ export class SyncLogRepository {
     });
   }
 
-  async findMany(params: { skip?: number; take?: number; entity?: SyncEntity }) {
+  async findMany(params: {
+    skip?: number;
+    take?: number;
+    entity?: SyncEntity;
+  }) {
     const { skip = 0, take = 20, entity } = params;
     const where: Prisma.SyncLogWhereInput = entity ? { entity } : {};
 

@@ -44,16 +44,18 @@ export class OrderStatusMachine {
   /**
    * Map of allowed transitions: from → to[]
    */
-  private readonly TRANSITIONS: ReadonlyMap<OrderStatus, readonly OrderStatus[]> =
-    new Map<OrderStatus, readonly OrderStatus[]>([
-      [OrderStatus.EM_ORCAMENTO, [OrderStatus.FATURAR, OrderStatus.CANCELADO]],
-      [OrderStatus.FATURAR, [OrderStatus.FATURADO, OrderStatus.CANCELADO]],
-      [OrderStatus.FATURADO, [OrderStatus.PRODUZIR, OrderStatus.CANCELADO]],
-      [OrderStatus.PRODUZIR, [OrderStatus.EM_PRODUCAO]],
-      [OrderStatus.EM_PRODUCAO, [OrderStatus.PRODUZIDO]],
-      [OrderStatus.PRODUZIDO, [OrderStatus.ENTREGUE]],
-      // ENTREGUE and CANCELADO are terminal states — no outgoing transitions
-    ]);
+  private readonly TRANSITIONS: ReadonlyMap<
+    OrderStatus,
+    readonly OrderStatus[]
+  > = new Map<OrderStatus, readonly OrderStatus[]>([
+    [OrderStatus.EM_ORCAMENTO, [OrderStatus.FATURAR, OrderStatus.CANCELADO]],
+    [OrderStatus.FATURAR, [OrderStatus.FATURADO, OrderStatus.CANCELADO]],
+    [OrderStatus.FATURADO, [OrderStatus.PRODUZIR, OrderStatus.CANCELADO]],
+    [OrderStatus.PRODUZIR, [OrderStatus.EM_PRODUCAO]],
+    [OrderStatus.EM_PRODUCAO, [OrderStatus.PRODUZIDO]],
+    [OrderStatus.PRODUZIDO, [OrderStatus.ENTREGUE]],
+    // ENTREGUE and CANCELADO are terminal states — no outgoing transitions
+  ]);
 
   // ---------------------------------------------------------------------------
   // Public API
@@ -166,7 +168,10 @@ export class OrderStatusMachine {
     } else {
       const minimumPayment = Math.ceil(order.totalCents * 0.5);
       if (order.paidAmountCents < minimumPayment) {
-        const paidPct = ((order.paidAmountCents / order.totalCents) * 100).toFixed(1);
+        const paidPct = (
+          (order.paidAmountCents / order.totalCents) *
+          100
+        ).toFixed(1);
         errors.push(
           `Pagamento insuficiente: recebido ${paidPct}% do total (mínimo exigido: 50%).`,
         );

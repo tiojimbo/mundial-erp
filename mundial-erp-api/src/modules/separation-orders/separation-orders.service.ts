@@ -15,15 +15,15 @@ import { PaginationDto } from '../../common/dtos/pagination.dto';
 export class SeparationOrdersService {
   private readonly logger = new Logger(SeparationOrdersService.name);
 
-  constructor(
-    private readonly repository: SeparationOrdersRepository,
-  ) {}
+  constructor(private readonly repository: SeparationOrdersRepository) {}
 
   // ---------------------------------------------------------------------------
   // CREATE
   // ---------------------------------------------------------------------------
 
-  async create(dto: CreateSeparationOrderDto): Promise<SeparationOrderResponseDto> {
+  async create(
+    dto: CreateSeparationOrderDto,
+  ): Promise<SeparationOrderResponseDto> {
     const order = await this.repository.findOrderById(dto.orderId);
     if (!order) {
       throw new NotFoundException('Pedido não encontrado');
@@ -90,14 +90,18 @@ export class SeparationOrdersService {
   // UPDATE
   // ---------------------------------------------------------------------------
 
-  async update(id: string, dto: UpdateSeparationOrderDto): Promise<SeparationOrderResponseDto> {
+  async update(
+    id: string,
+    dto: UpdateSeparationOrderDto,
+  ): Promise<SeparationOrderResponseDto> {
     const entity = await this.repository.findById(id);
     if (!entity) {
       throw new NotFoundException('Ordem de separação não encontrada');
     }
 
     const data: Prisma.SeparationOrderUpdateInput = {};
-    if (dto.assignedUserId !== undefined) data.assignedUserId = dto.assignedUserId;
+    if (dto.assignedUserId !== undefined)
+      data.assignedUserId = dto.assignedUserId;
     if (dto.scheduledDate !== undefined) data.scheduledDate = dto.scheduledDate;
 
     const updated = await this.repository.update(id, data);
@@ -173,13 +177,15 @@ export class SeparationOrdersService {
 
     // Auto-transição: todos separados → SEPARATED
     const updatedEntity = await this.repository.findById(separationOrderId);
-    const allSeparated = updatedEntity!.items!.every((i) => i.isSeparated);
+    const allSeparated = updatedEntity!.items.every((i) => i.isSeparated);
 
     if (allSeparated) {
       const result = await this.repository.update(separationOrderId, {
         status: SeparationOrderStatus.SEPARATED,
       });
-      this.logger.log(`Ordem de separação ${entity.code} totalmente separada (SEPARATED)`);
+      this.logger.log(
+        `Ordem de separação ${entity.code} totalmente separada (SEPARATED)`,
+      );
       return SeparationOrderResponseDto.fromEntity(result);
     }
 
@@ -217,7 +223,9 @@ export class SeparationOrdersService {
     }
 
     if (!item.isSeparated) {
-      throw new BadRequestException('Item precisa ser separado antes de ser conferido');
+      throw new BadRequestException(
+        'Item precisa ser separado antes de ser conferido',
+      );
     }
 
     if (item.isChecked) {
@@ -228,14 +236,16 @@ export class SeparationOrdersService {
 
     // Auto-transição: todos conferidos → CHECKED
     const updatedEntity = await this.repository.findById(separationOrderId);
-    const allChecked = updatedEntity!.items!.every((i) => i.isChecked);
+    const allChecked = updatedEntity!.items.every((i) => i.isChecked);
 
     if (allChecked) {
       const result = await this.repository.update(separationOrderId, {
         status: SeparationOrderStatus.CHECKED,
         completedDate: new Date(),
       });
-      this.logger.log(`Ordem de separação ${entity.code} totalmente conferida (CHECKED)`);
+      this.logger.log(
+        `Ordem de separação ${entity.code} totalmente conferida (CHECKED)`,
+      );
       return SeparationOrderResponseDto.fromEntity(result);
     }
 

@@ -13,55 +13,81 @@ export class ProductsRepository {
     unitMeasure: true,
     boxUnitMeasure: true,
     defaultPriceTable: true,
-    formula: { include: { ingredients: { include: { ingredient: true, unitMeasure: true } } } },
-    images: { where: { deletedAt: null }, orderBy: { sortOrder: 'asc' as const } },
+    formula: {
+      include: {
+        ingredients: { include: { ingredient: true, unitMeasure: true } },
+      },
+    },
+    images: {
+      where: { deletedAt: null },
+      orderBy: { sortOrder: 'asc' as const },
+    },
   };
 
-  async create(data: Prisma.ProductCreateInput) {
-    return this.prisma.product.create({ data, include: this.defaultInclude });
+  async create(workspaceId: string, data: Prisma.ProductCreateInput) {
+    return this.prisma.product.create({
+      data: {
+        ...data,
+        workspace: { connect: { id: workspaceId } },
+      },
+      include: this.defaultInclude,
+    });
   }
 
-  async exists(id: string): Promise<boolean> {
+  async exists(workspaceId: string, id: string): Promise<boolean> {
     const count = await this.prisma.product.count({
-      where: { id, deletedAt: null },
+      where: { id, workspaceId, deletedAt: null },
     });
     return count > 0;
   }
 
-  async findById(id: string) {
+  async findById(workspaceId: string, id: string) {
     return this.prisma.product.findFirst({
-      where: { id, deletedAt: null },
+      where: { id, workspaceId, deletedAt: null },
       include: this.defaultInclude,
     });
   }
 
-  async findByCode(code: string) {
+  async findByCode(workspaceId: string, code: string) {
     return this.prisma.product.findFirst({
-      where: { code, deletedAt: null },
+      where: { code, workspaceId, deletedAt: null },
       include: this.defaultInclude,
     });
   }
 
-  async findByBarcode(barcode: string) {
+  async findByBarcode(workspaceId: string, barcode: string) {
     return this.prisma.product.findFirst({
-      where: { barcode, deletedAt: null },
+      where: { barcode, workspaceId, deletedAt: null },
       include: this.defaultInclude,
     });
   }
 
-  async findMany(params: {
-    skip?: number;
-    take?: number;
-    search?: string;
-    status?: ProductStatus;
-    classification?: ProductClassification;
-    productTypeId?: string;
-    brandId?: string;
-    departmentCategoryId?: string;
-  }) {
-    const { skip = 0, take = 20, search, status, classification, productTypeId, brandId, departmentCategoryId } = params;
+  async findMany(
+    workspaceId: string,
+    params: {
+      skip?: number;
+      take?: number;
+      search?: string;
+      status?: ProductStatus;
+      classification?: ProductClassification;
+      productTypeId?: string;
+      brandId?: string;
+      departmentCategoryId?: string;
+    },
+  ) {
+    const {
+      skip = 0,
+      take = 20,
+      search,
+      status,
+      classification,
+      productTypeId,
+      brandId,
+      departmentCategoryId,
+    } = params;
 
     const where: Prisma.ProductWhereInput = {
+      workspaceId,
       deletedAt: null,
       ...(status && { status }),
       ...(classification && { classification }),
@@ -88,7 +114,11 @@ export class ProductsRepository {
           departmentCategory: true,
           brand: true,
           unitMeasure: true,
-          images: { where: { deletedAt: null }, orderBy: { sortOrder: 'asc' as const }, take: 1 },
+          images: {
+            where: { deletedAt: null },
+            orderBy: { sortOrder: 'asc' as const },
+            take: 1,
+          },
         },
       }),
       this.prisma.product.count({ where }),
@@ -97,7 +127,11 @@ export class ProductsRepository {
     return { items, total };
   }
 
-  async update(id: string, data: Prisma.ProductUpdateInput) {
+  async update(
+    _workspaceId: string,
+    id: string,
+    data: Prisma.ProductUpdateInput,
+  ) {
     return this.prisma.product.update({
       where: { id },
       data,
@@ -105,7 +139,7 @@ export class ProductsRepository {
     });
   }
 
-  async softDelete(id: string) {
+  async softDelete(_workspaceId: string, id: string) {
     return this.prisma.product.update({
       where: { id },
       data: { deletedAt: new Date() },
@@ -113,6 +147,7 @@ export class ProductsRepository {
   }
 
   async incrementTypeSequentialAndCreate(
+    workspaceId: string,
     productTypeId: string,
     data: Prisma.ProductCreateInput,
   ) {
@@ -142,6 +177,7 @@ export class ProductsRepository {
           code,
           barcode,
           productType: { connect: { id: productTypeId } },
+          workspace: { connect: { id: workspaceId } },
         },
         include: {
           productType: true,
@@ -150,7 +186,11 @@ export class ProductsRepository {
           unitMeasure: true,
           boxUnitMeasure: true,
           defaultPriceTable: true,
-          formula: { include: { ingredients: { include: { ingredient: true, unitMeasure: true } } } },
+          formula: {
+            include: {
+              ingredients: { include: { ingredient: true, unitMeasure: true } },
+            },
+          },
           images: { where: { deletedAt: null }, orderBy: { sortOrder: 'asc' } },
         },
       });

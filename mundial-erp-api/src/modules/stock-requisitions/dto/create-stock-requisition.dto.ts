@@ -21,7 +21,9 @@ export class CreateStockRequisitionItemDto {
   @IsNotEmpty()
   productId: string;
 
-  @ApiProperty({ description: 'Quantidade solicitada (na unidade selecionada)' })
+  @ApiProperty({
+    description: 'Quantidade solicitada (na unidade selecionada)',
+  })
   @IsNumber()
   @Min(0.01)
   requestedQuantity: number;
@@ -30,7 +32,9 @@ export class CreateStockRequisitionItemDto {
   @IsIn(['UN', 'CX'])
   unitType: string;
 
-  @ApiPropertyOptional({ description: 'Unidades por caixa (obrigatorio se unitType = CX)' })
+  @ApiPropertyOptional({
+    description: 'Unidades por caixa (obrigatorio se unitType = CX)',
+  })
   @IsOptional()
   @IsInt()
   @Min(1)
@@ -42,7 +46,9 @@ export class CreateStockRequisitionDto {
   @IsEnum(StockRequisitionType)
   type: StockRequisitionType;
 
-  @ApiPropertyOptional({ description: 'ID do pedido (obrigatorio se type = VENDA)' })
+  @ApiPropertyOptional({
+    description: 'ID do pedido (obrigatorio se type = VENDA)',
+  })
   @IsOptional()
   @IsString()
   orderId?: string;
@@ -52,7 +58,10 @@ export class CreateStockRequisitionDto {
   @IsString()
   notes?: string;
 
-  @ApiProperty({ type: [CreateStockRequisitionItemDto], description: 'Itens da requisicao' })
+  @ApiProperty({
+    type: [CreateStockRequisitionItemDto],
+    description: 'Itens da requisicao',
+  })
   @IsArray()
   @ArrayMinSize(1)
   @ValidateNested({ each: true })

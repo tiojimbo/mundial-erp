@@ -55,7 +55,9 @@ export class ChannelsService {
       );
     }
 
-    this.eventEmitter.emit(CHAT_EVENTS.CHANNEL_CREATED, { channelId: entity.id });
+    this.eventEmitter.emit(CHAT_EVENTS.CHANNEL_CREATED, {
+      channelId: entity.id,
+    });
     return ChannelResponseDto.fromEntity(entity);
   }
 
@@ -113,7 +115,10 @@ export class ChannelsService {
         createMany: {
           data: participantIds.map((id, i) => ({
             userId: id,
-            role: i === 0 ? ('OWNER' as ChannelMemberRole) : ('MEMBER' as ChannelMemberRole),
+            role:
+              i === 0
+                ? ('OWNER' as ChannelMemberRole)
+                : ('MEMBER' as ChannelMemberRole),
           })),
         },
       },
@@ -161,10 +166,7 @@ export class ChannelsService {
     const entity = await this.channelsRepository.findById(channelId);
     if (!entity) throw new NotFoundException('Canal nao encontrado');
 
-    const role = await this.channelsRepository.getMemberRole(
-      channelId,
-      userId,
-    );
+    const role = await this.channelsRepository.getMemberRole(channelId, userId);
     if (role !== 'OWNER' && role !== 'ADMIN') {
       throw new ForbiddenException(
         'Somente OWNER ou ADMIN podem atualizar o canal',
@@ -190,10 +192,7 @@ export class ChannelsService {
     const entity = await this.channelsRepository.findById(channelId);
     if (!entity) throw new NotFoundException('Canal nao encontrado');
 
-    const role = await this.channelsRepository.getMemberRole(
-      channelId,
-      userId,
-    );
+    const role = await this.channelsRepository.getMemberRole(channelId, userId);
     if (role !== 'OWNER') {
       throw new ForbiddenException('Somente o OWNER pode deletar o canal');
     }
@@ -362,7 +361,9 @@ export class ChannelsService {
   }
 
   @OnEvent(CHAT_EVENTS.MESSAGE_CREATED)
-  async onMessageCreatedReopenDm(payload: MessageCreatedPayload): Promise<void> {
+  async onMessageCreatedReopenDm(
+    payload: MessageCreatedPayload,
+  ): Promise<void> {
     await this.reopenClosedDmForRecipients(
       payload.channelId,
       payload.message.author.id,

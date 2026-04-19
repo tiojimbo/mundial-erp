@@ -89,7 +89,10 @@ export class ProductionFormulasRepository {
     });
   }
 
-  async updateIngredient(id: string, data: Prisma.ProductionFormulaIngredientUpdateInput) {
+  async updateIngredient(
+    id: string,
+    data: Prisma.ProductionFormulaIngredientUpdateInput,
+  ) {
     return this.prisma.productionFormulaIngredient.update({
       where: { id },
       data,

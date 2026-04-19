@@ -20,7 +20,10 @@ export class CreatePurchaseQuotationDto {
   @IsString()
   notes?: string;
 
-  @ApiPropertyOptional({ type: [CreatePurchaseQuotationItemDto], description: 'Itens da cotação' })
+  @ApiPropertyOptional({
+    type: [CreatePurchaseQuotationItemDto],
+    description: 'Itens da cotação',
+  })
   @IsOptional()
   @IsArray()
   @ValidateNested({ each: true })

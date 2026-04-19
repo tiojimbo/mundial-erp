@@ -28,7 +28,9 @@ import { Roles } from '../auth/decorators';
 @ApiBearerAuth()
 @Controller('client-classifications')
 export class ClientClassificationsController {
-  constructor(private readonly clientClassificationsService: ClientClassificationsService) {}
+  constructor(
+    private readonly clientClassificationsService: ClientClassificationsService,
+  ) {}
 
   @Post()
   @Roles(Role.ADMIN)
@@ -49,14 +51,19 @@ export class ClientClassificationsController {
   @Roles(Role.ADMIN, Role.MANAGER)
   @ApiOperation({ summary: 'Buscar classificação de cliente por ID' })
   @ApiResponse({ status: 200, type: ClientClassificationResponseDto })
-  @ApiResponse({ status: 404, description: 'Classificação de cliente não encontrada' })
+  @ApiResponse({
+    status: 404,
+    description: 'Classificação de cliente não encontrada',
+  })
   findOne(@Param('id') id: string) {
     return this.clientClassificationsService.findById(id);
   }
 
   @Patch(':id')
   @Roles(Role.ADMIN)
-  @ApiOperation({ summary: 'Atualizar classificação de cliente (somente ADMIN)' })
+  @ApiOperation({
+    summary: 'Atualizar classificação de cliente (somente ADMIN)',
+  })
   @ApiResponse({ status: 200, type: ClientClassificationResponseDto })
   update(@Param('id') id: string, @Body() dto: UpdateClientClassificationDto) {
     return this.clientClassificationsService.update(id, dto);
@@ -65,7 +72,9 @@ export class ClientClassificationsController {
   @Delete(':id')
   @Roles(Role.ADMIN)
   @HttpCode(HttpStatus.NO_CONTENT)
-  @ApiOperation({ summary: 'Remover classificação de cliente (soft delete, somente ADMIN)' })
+  @ApiOperation({
+    summary: 'Remover classificação de cliente (soft delete, somente ADMIN)',
+  })
   @ApiResponse({ status: 204 })
   remove(@Param('id') id: string) {
     return this.clientClassificationsService.remove(id);

@@ -20,7 +20,6 @@ import {
   useDeleteActivity,
 } from '../hooks/use-processes';
 import { useDepartments } from '../hooks/use-departments';
-import type { ProcessConfig } from '../types/settings.types';
 
 export function ProcessesConfig() {
   const { notification } = useNotification();

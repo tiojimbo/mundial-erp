@@ -3,11 +3,22 @@ import { Prisma } from '@prisma/client';
 import { PrismaService } from '../../database/prisma.service';
 
 // Statuses that represent a "sold" order (faturado or beyond)
-const SOLD_STATUSES = ['FATURAR', 'FATURADO', 'PRODUZIR', 'EM_PRODUCAO', 'PRODUZIDO', 'ENTREGUE'] as const;
+const SOLD_STATUSES = [
+  'FATURAR',
+  'FATURADO',
+  'PRODUZIR',
+  'EM_PRODUCAO',
+  'PRODUZIDO',
+  'ENTREGUE',
+] as const;
 const SOLD_STATUSES_SQL = SOLD_STATUSES.map((s) => `'${s}'`).join(',');
 
 // Whitelist for date_trunc — prevents SQL injection even if caller is compromised
-const TRUNC_WHITELIST: Record<string, string> = { day: 'day', week: 'week', month: 'month' };
+const TRUNC_WHITELIST: Record<string, string> = {
+  day: 'day',
+  week: 'week',
+  month: 'month',
+};
 
 type DateRange = { dateFrom?: Date; dateTo?: Date };
 type BaseFilters = DateRange & { companyId?: string };
@@ -26,8 +37,13 @@ export class ReportsRepository {
     return safe;
   }
 
-  private orderWhere(filters: BaseFilters & { clientId?: string }): Prisma.OrderWhereInput {
+  // Order direto, AR via order|client, AP via supplier — workspaceId obrigatório.
+  private orderWhere(
+    workspaceId: string,
+    filters: BaseFilters & { clientId?: string },
+  ): Prisma.OrderWhereInput {
     const where: Prisma.OrderWhereInput = {
+      workspaceId,
       deletedAt: null,
       status: { in: [...SOLD_STATUSES] },
     };
@@ -42,8 +58,12 @@ export class ReportsRepository {
     return where;
   }
 
-  private arWhere(filters: BaseFilters): Prisma.AccountReceivableWhereInput {
+  private arWhere(
+    workspaceId: string,
+    filters: BaseFilters,
+  ): Prisma.AccountReceivableWhereInput {
     const where: Prisma.AccountReceivableWhereInput = {
+      OR: [{ order: { workspaceId } }, { client: { workspaceId } }],
       deletedAt: null,
       status: { not: 'CANCELLED' },
     };
@@ -56,8 +76,12 @@ export class ReportsRepository {
     return where;
   }
 
-  private apWhere(filters: BaseFilters): Prisma.AccountPayableWhereInput {
+  private apWhere(
+    workspaceId: string,
+    filters: BaseFilters,
+  ): Prisma.AccountPayableWhereInput {
     const where: Prisma.AccountPayableWhereInput = {
+      supplier: { workspaceId },
       deletedAt: null,
       status: { not: 'CANCELLED' },
     };
@@ -74,27 +98,28 @@ export class ReportsRepository {
   // KPI Summary
   // ---------------------------------------------------------------------------
 
-  async kpiRevenue(filters: BaseFilters) {
+  async kpiRevenue(workspaceId: string, filters: BaseFilters) {
     return this.prisma.order.aggregate({
-      where: this.orderWhere(filters),
+      where: this.orderWhere(workspaceId, filters),
       _sum: { totalCents: true },
       _count: true,
     });
   }
 
-  async kpiExpenses(filters: BaseFilters) {
+  async kpiExpenses(workspaceId: string, filters: BaseFilters) {
     return this.prisma.accountPayable.aggregate({
       where: {
-        ...this.apWhere(filters),
+        ...this.apWhere(workspaceId, filters),
         status: { in: ['PAID', 'PARTIAL'] },
       },
       _sum: { paidAmountCents: true },
     });
   }
 
-  async kpiOverdueReceivables(now: Date) {
+  async kpiOverdueReceivables(workspaceId: string, now: Date) {
     return this.prisma.accountReceivable.aggregate({
       where: {
+        OR: [{ order: { workspaceId } }, { client: { workspaceId } }],
         deletedAt: null,
         status: { in: ['PENDING', 'PARTIAL'] },
         dueDate: { lt: now },
@@ -103,9 +128,10 @@ export class ReportsRepository {
     });
   }
 
-  async kpiOverduePayables(now: Date) {
+  async kpiOverduePayables(workspaceId: string, now: Date) {
     return this.prisma.accountPayable.aggregate({
       where: {
+        supplier: { workspaceId },
         deletedAt: null,
         status: { in: ['PENDING', 'PARTIAL'] },
         dueDate: { lt: now },
@@ -118,14 +144,19 @@ export class ReportsRepository {
   // Sales Chart — group orders by period
   // ---------------------------------------------------------------------------
 
-  async salesByPeriod(filters: BaseFilters, truncExpr: string): Promise<{ period: string; totalCents: bigint; orderCount: bigint }[]> {
+  async salesByPeriod(
+    workspaceId: string,
+    filters: BaseFilters,
+    truncExpr: string,
+  ): Promise<{ period: string; totalCents: bigint; orderCount: bigint }[]> {
     const trunc = this.safeTrunc(truncExpr);
     const conditions: string[] = [
+      `workspace_id = $1`,
       `deleted_at IS NULL`,
       `status IN (${SOLD_STATUSES_SQL})`,
     ];
-    const params: unknown[] = [];
-    let idx = 1;
+    const params: unknown[] = [workspaceId];
+    let idx = 2;
 
     if (filters.companyId) {
       conditions.push(`company_id = $${idx++}`);
@@ -159,86 +190,108 @@ export class ReportsRepository {
   // Cashflow — AR (inflows) and AP (outflows) grouped by period
   // ---------------------------------------------------------------------------
 
-  async cashflowInflows(filters: BaseFilters, truncExpr: string): Promise<{ period: string; totalCents: bigint }[]> {
+  async cashflowInflows(
+    workspaceId: string,
+    filters: BaseFilters,
+    truncExpr: string,
+  ): Promise<{ period: string; totalCents: bigint }[]> {
     const trunc = this.safeTrunc(truncExpr);
+    // SCOPE: AR via order.workspace_id OR client.workspace_id
     const conditions: string[] = [
-      `deleted_at IS NULL`,
-      `status != 'CANCELLED'`,
+      `ar.deleted_at IS NULL`,
+      `ar.status != 'CANCELLED'`,
+      `(o.workspace_id = $1 OR c.workspace_id = $1)`,
     ];
-    const params: unknown[] = [];
-    let idx = 1;
+    const params: unknown[] = [workspaceId];
+    let idx = 2;
 
     if (filters.dateFrom) {
-      conditions.push(`due_date >= $${idx++}`);
+      conditions.push(`ar.due_date >= $${idx++}`);
       params.push(filters.dateFrom);
     }
     if (filters.dateTo) {
-      conditions.push(`due_date <= $${idx++}`);
+      conditions.push(`ar.due_date <= $${idx++}`);
       params.push(filters.dateTo);
     }
 
     const whereClause = conditions.join(' AND ');
-    return this.prisma.$queryRawUnsafe(`
+    return this.prisma.$queryRawUnsafe(
+      `
       SELECT
-        to_char(date_trunc('${trunc}', due_date), 'YYYY-MM-DD') AS period,
-        COALESCE(SUM(amount_cents), 0) AS "totalCents"
-      FROM accounts_receivable
+        to_char(date_trunc('${trunc}', ar.due_date), 'YYYY-MM-DD') AS period,
+        COALESCE(SUM(ar.amount_cents), 0) AS "totalCents"
+      FROM accounts_receivable ar
+      LEFT JOIN orders o ON o.id = ar.order_id
+      LEFT JOIN clients c ON c.id = ar.client_id
       WHERE ${whereClause}
       GROUP BY 1
       ORDER BY 1
-    `, ...params);
+    `,
+      ...params,
+    );
   }
 
-  async cashflowOutflows(filters: BaseFilters, truncExpr: string): Promise<{ period: string; totalCents: bigint }[]> {
+  async cashflowOutflows(
+    workspaceId: string,
+    filters: BaseFilters,
+    truncExpr: string,
+  ): Promise<{ period: string; totalCents: bigint }[]> {
     const trunc = this.safeTrunc(truncExpr);
+    // SCOPE: AP via supplier.workspace_id
     const conditions: string[] = [
-      `deleted_at IS NULL`,
-      `status != 'CANCELLED'`,
+      `ap.deleted_at IS NULL`,
+      `ap.status != 'CANCELLED'`,
+      `s.workspace_id = $1`,
     ];
-    const params: unknown[] = [];
-    let idx = 1;
+    const params: unknown[] = [workspaceId];
+    let idx = 2;
 
     if (filters.dateFrom) {
-      conditions.push(`due_date >= $${idx++}`);
+      conditions.push(`ap.due_date >= $${idx++}`);
       params.push(filters.dateFrom);
     }
     if (filters.dateTo) {
-      conditions.push(`due_date <= $${idx++}`);
+      conditions.push(`ap.due_date <= $${idx++}`);
       params.push(filters.dateTo);
     }
 
     const whereClause = conditions.join(' AND ');
-    return this.prisma.$queryRawUnsafe(`
+    return this.prisma.$queryRawUnsafe(
+      `
       SELECT
-        to_char(date_trunc('${trunc}', due_date), 'YYYY-MM-DD') AS period,
-        COALESCE(SUM(amount_cents), 0) AS "totalCents"
-      FROM accounts_payable
+        to_char(date_trunc('${trunc}', ap.due_date), 'YYYY-MM-DD') AS period,
+        COALESCE(SUM(ap.amount_cents), 0) AS "totalCents"
+      FROM accounts_payable ap
+      INNER JOIN suppliers s ON s.id = ap.supplier_id
       WHERE ${whereClause}
       GROUP BY 1
       ORDER BY 1
-    `, ...params);
+    `,
+      ...params,
+    );
   }
 
   // ---------------------------------------------------------------------------
   // DRE
   // ---------------------------------------------------------------------------
 
-  async dreGrossRevenue(filters: BaseFilters) {
+  async dreGrossRevenue(workspaceId: string, filters: BaseFilters) {
     return this.prisma.order.aggregate({
-      where: this.orderWhere(filters),
+      where: this.orderWhere(workspaceId, filters),
       _sum: { subtotalCents: true, freightCents: true },
     });
   }
 
-  async dreDiscounts(filters: BaseFilters) {
+  async dreDiscounts(workspaceId: string, filters: BaseFilters) {
     return this.prisma.order.aggregate({
-      where: this.orderWhere(filters),
+      where: this.orderWhere(workspaceId, filters),
       _sum: { discountCents: true },
     });
   }
 
-  async dreCancellations(filters: BaseFilters) {
+  async dreCancellations(workspaceId: string, filters: BaseFilters) {
     const where: Prisma.OrderWhereInput = {
+      workspaceId,
       deletedAt: null,
       status: 'CANCELADO',
     };
@@ -255,9 +308,11 @@ export class ReportsRepository {
     });
   }
 
-  async dreCogs(filters: BaseFilters) {
-    // COGS = AP linked to purchase orders (cost of goods)
+  async dreCogs(workspaceId: string, filters: BaseFilters) {
+    // COGS = AP linked to purchase orders (cost of goods).
+    // SCOPE: AP via supplier.workspaceId.
     const where: Prisma.AccountPayableWhereInput = {
+      supplier: { workspaceId },
       deletedAt: null,
       status: { not: 'CANCELLED' },
       purchaseOrderId: { not: null },
@@ -274,15 +329,20 @@ export class ReportsRepository {
     });
   }
 
-  async dreOperatingExpensesByCategory(filters: BaseFilters): Promise<{ name: string; amountCents: bigint }[]> {
+  async dreOperatingExpensesByCategory(
+    workspaceId: string,
+    filters: BaseFilters,
+  ): Promise<{ name: string; amountCents: bigint }[]> {
+    // SCOPE: AP via supplier.workspace_id (JOIN explicito).
     const conditions: string[] = [
       `ap.deleted_at IS NULL`,
       `ap.status != 'CANCELLED'`,
       `ap.purchase_order_id IS NULL`, // exclude COGS
       `fc.type = 'DESPESA'`,
+      `s.workspace_id = $1`,
     ];
-    const params: unknown[] = [];
-    let idx = 1;
+    const params: unknown[] = [workspaceId];
+    let idx = 2;
 
     if (filters.dateFrom) {
       conditions.push(`ap.due_date >= $${idx++}`);
@@ -294,20 +354,25 @@ export class ReportsRepository {
     }
 
     const whereClause = conditions.join(' AND ');
-    return this.prisma.$queryRawUnsafe(`
+    return this.prisma.$queryRawUnsafe(
+      `
       SELECT
         COALESCE(fc.name, 'Sem categoria') AS name,
         COALESCE(SUM(ap.amount_cents), 0) AS "amountCents"
       FROM accounts_payable ap
+      INNER JOIN suppliers s ON s.id = ap.supplier_id
       LEFT JOIN financial_categories fc ON fc.id = ap.category_id
       WHERE ${whereClause}
       GROUP BY fc.name
       ORDER BY "amountCents" DESC
-    `, ...params);
+    `,
+      ...params,
+    );
   }
 
-  async dreOperatingExpensesTotal(filters: BaseFilters) {
+  async dreOperatingExpensesTotal(workspaceId: string, filters: BaseFilters) {
     const where: Prisma.AccountPayableWhereInput = {
+      supplier: { workspaceId },
       deletedAt: null,
       status: { not: 'CANCELLED' },
       purchaseOrderId: null, // exclude COGS
@@ -329,8 +394,13 @@ export class ReportsRepository {
   // Sales Report — paginated
   // ---------------------------------------------------------------------------
 
-  async salesReportItems(filters: BaseFilters & { clientId?: string }, skip: number, take: number) {
-    const where = this.orderWhere(filters);
+  async salesReportItems(
+    workspaceId: string,
+    filters: BaseFilters & { clientId?: string },
+    skip: number,
+    take: number,
+  ) {
+    const where = this.orderWhere(workspaceId, filters);
     const [items, total, grandTotalAgg] = await Promise.all([
       this.prisma.order.findMany({
         where,
@@ -358,6 +428,10 @@ export class ReportsRepository {
         _sum: { totalCents: true },
       }),
     ]);
-    return { items, total, grandTotalCents: grandTotalAgg._sum.totalCents ?? 0 };
+    return {
+      items,
+      total,
+      grandTotalCents: grandTotalAgg._sum.totalCents ?? 0,
+    };
   }
 }

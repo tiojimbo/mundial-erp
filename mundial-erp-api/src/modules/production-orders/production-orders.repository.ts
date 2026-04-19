@@ -130,7 +130,10 @@ export class ProductionOrdersRepository {
     });
   }
 
-  async updateConsumption(id: string, data: Prisma.ProductionConsumptionUpdateInput) {
+  async updateConsumption(
+    id: string,
+    data: Prisma.ProductionConsumptionUpdateInput,
+  ) {
     return this.prisma.productionConsumption.update({
       where: { id },
       data,

@@ -1,43 +1,4 @@
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
-import type {
-  Order,
-  Product,
-  ProductionConsumption,
-  ProductionLoss,
-  ProductionOrder,
-  ProductionOrderItem,
-  ProductionOutput,
-  OrderItem,
-  UnitMeasure,
-  User,
-} from '@prisma/client';
-
-// --- Sub-entity types ---
-
-type ProductionOrderItemWithRelations = ProductionOrderItem & {
-  product?: Product;
-  orderItem?: OrderItem;
-  unitMeasure?: UnitMeasure | null;
-};
-
-type ConsumptionWithRelations = ProductionConsumption & {
-  ingredient?: Product;
-  unitMeasure?: UnitMeasure | null;
-};
-
-type OutputWithRelations = ProductionOutput & {
-  product?: Product;
-  unitMeasure?: UnitMeasure | null;
-};
-
-type ProductionOrderWithRelations = ProductionOrder & {
-  order?: Order;
-  assignedUser?: User | null;
-  items?: ProductionOrderItemWithRelations[];
-  consumptions?: ConsumptionWithRelations[];
-  outputs?: OutputWithRelations[];
-  losses?: ProductionLoss[];
-};
 
 // --- Sub-entity Response DTOs ---
 
@@ -56,7 +17,9 @@ export class ProductionOrderItemResponseDto {
   @ApiProperty() createdAt: Date;
   @ApiProperty() updatedAt: Date;
 
-  static fromEntity(entity: Record<string, unknown>): ProductionOrderItemResponseDto {
+  static fromEntity(
+    entity: Record<string, unknown>,
+  ): ProductionOrderItemResponseDto {
     const dto = new ProductionOrderItemResponseDto();
     dto.id = entity.id as string;
     dto.productionOrderId = entity.productionOrderId as string;
@@ -69,8 +32,10 @@ export class ProductionOrderItemResponseDto {
     dto.createdAt = entity.createdAt as Date;
     dto.updatedAt = entity.updatedAt as Date;
     if (entity.product) dto.product = entity.product as Record<string, unknown>;
-    if (entity.orderItem) dto.orderItem = entity.orderItem as Record<string, unknown>;
-    if (entity.unitMeasure) dto.unitMeasure = entity.unitMeasure as Record<string, unknown>;
+    if (entity.orderItem)
+      dto.orderItem = entity.orderItem as Record<string, unknown>;
+    if (entity.unitMeasure)
+      dto.unitMeasure = entity.unitMeasure as Record<string, unknown>;
     return dto;
   }
 }
@@ -92,7 +57,9 @@ export class ProductionConsumptionResponseDto {
   @ApiProperty() createdAt: Date;
   @ApiProperty() updatedAt: Date;
 
-  static fromEntity(entity: Record<string, unknown>): ProductionConsumptionResponseDto {
+  static fromEntity(
+    entity: Record<string, unknown>,
+  ): ProductionConsumptionResponseDto {
     const dto = new ProductionConsumptionResponseDto();
     dto.id = entity.id as string;
     dto.productionOrderId = entity.productionOrderId as string;
@@ -107,8 +74,10 @@ export class ProductionConsumptionResponseDto {
     dto.operation = entity.operation as string;
     dto.createdAt = entity.createdAt as Date;
     dto.updatedAt = entity.updatedAt as Date;
-    if (entity.ingredient) dto.ingredient = entity.ingredient as Record<string, unknown>;
-    if (entity.unitMeasure) dto.unitMeasure = entity.unitMeasure as Record<string, unknown>;
+    if (entity.ingredient)
+      dto.ingredient = entity.ingredient as Record<string, unknown>;
+    if (entity.unitMeasure)
+      dto.unitMeasure = entity.unitMeasure as Record<string, unknown>;
     return dto;
   }
 }
@@ -125,7 +94,9 @@ export class ProductionOutputResponseDto {
   @ApiProperty() createdAt: Date;
   @ApiProperty() updatedAt: Date;
 
-  static fromEntity(entity: Record<string, unknown>): ProductionOutputResponseDto {
+  static fromEntity(
+    entity: Record<string, unknown>,
+  ): ProductionOutputResponseDto {
     const dto = new ProductionOutputResponseDto();
     dto.id = entity.id as string;
     dto.productionOrderId = entity.productionOrderId as string;
@@ -136,7 +107,8 @@ export class ProductionOutputResponseDto {
     dto.createdAt = entity.createdAt as Date;
     dto.updatedAt = entity.updatedAt as Date;
     if (entity.product) dto.product = entity.product as Record<string, unknown>;
-    if (entity.unitMeasure) dto.unitMeasure = entity.unitMeasure as Record<string, unknown>;
+    if (entity.unitMeasure)
+      dto.unitMeasure = entity.unitMeasure as Record<string, unknown>;
     return dto;
   }
 }
@@ -150,7 +122,9 @@ export class ProductionLossResponseDto {
   @ApiProperty() createdAt: Date;
   @ApiProperty() updatedAt: Date;
 
-  static fromEntity(entity: Record<string, unknown>): ProductionLossResponseDto {
+  static fromEntity(
+    entity: Record<string, unknown>,
+  ): ProductionLossResponseDto {
     const dto = new ProductionLossResponseDto();
     dto.id = entity.id as string;
     dto.productionOrderId = entity.productionOrderId as string;
@@ -190,7 +164,9 @@ export class ProductionOrderResponseDto {
   @ApiProperty() createdAt: Date;
   @ApiProperty() updatedAt: Date;
 
-  static fromEntity(entity: Record<string, unknown>): ProductionOrderResponseDto {
+  static fromEntity(
+    entity: Record<string, unknown>,
+  ): ProductionOrderResponseDto {
     const dto = new ProductionOrderResponseDto();
     dto.id = entity.id as string;
     dto.orderId = entity.orderId as string;
@@ -206,18 +182,27 @@ export class ProductionOrderResponseDto {
     dto.createdAt = entity.createdAt as Date;
     dto.updatedAt = entity.updatedAt as Date;
     if (entity.order) dto.order = entity.order as Record<string, unknown>;
-    if (entity.assignedUser) dto.assignedUser = entity.assignedUser as Record<string, unknown>;
+    if (entity.assignedUser)
+      dto.assignedUser = entity.assignedUser as Record<string, unknown>;
     if (entity.items) {
-      dto.items = (entity.items as Record<string, unknown>[]).map(ProductionOrderItemResponseDto.fromEntity);
+      dto.items = (entity.items as Record<string, unknown>[]).map(
+        ProductionOrderItemResponseDto.fromEntity,
+      );
     }
     if (entity.consumptions) {
-      dto.consumptions = (entity.consumptions as Record<string, unknown>[]).map(ProductionConsumptionResponseDto.fromEntity);
+      dto.consumptions = (entity.consumptions as Record<string, unknown>[]).map(
+        ProductionConsumptionResponseDto.fromEntity,
+      );
     }
     if (entity.outputs) {
-      dto.outputs = (entity.outputs as Record<string, unknown>[]).map(ProductionOutputResponseDto.fromEntity);
+      dto.outputs = (entity.outputs as Record<string, unknown>[]).map(
+        ProductionOutputResponseDto.fromEntity,
+      );
     }
     if (entity.losses) {
-      dto.losses = (entity.losses as Record<string, unknown>[]).map(ProductionLossResponseDto.fromEntity);
+      dto.losses = (entity.losses as Record<string, unknown>[]).map(
+        ProductionLossResponseDto.fromEntity,
+      );
     }
     return dto;
   }

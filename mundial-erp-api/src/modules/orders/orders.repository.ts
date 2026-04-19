@@ -6,38 +6,52 @@ import { PrismaService } from '../../database/prisma.service';
 export class OrdersRepository {
   constructor(private readonly prisma: PrismaService) {}
 
-  async create(data: Prisma.OrderCreateInput) {
+  async create(workspaceId: string, data: Prisma.OrderCreateInput) {
     return this.prisma.order.create({
-      data,
+      data: {
+        ...data,
+        workspace: { connect: { id: workspaceId } },
+      },
       include: this.fullInclude(),
     });
   }
 
-  async exists(id: string): Promise<boolean> {
+  async exists(workspaceId: string, id: string): Promise<boolean> {
     const count = await this.prisma.order.count({
-      where: { id, deletedAt: null },
+      where: { id, workspaceId, deletedAt: null },
     });
     return count > 0;
   }
 
-  async findById(id: string) {
+  async findById(workspaceId: string, id: string) {
     return this.prisma.order.findFirst({
-      where: { id, deletedAt: null },
+      where: { id, workspaceId, deletedAt: null },
       include: this.fullInclude(),
     });
   }
 
-  async findMany(params: {
-    skip?: number;
-    take?: number;
-    search?: string;
-    status?: OrderStatus;
-    clientId?: string;
-    createdByUserId?: string;
-  }) {
-    const { skip = 0, take = 20, search, status, clientId, createdByUserId } = params;
+  async findMany(
+    workspaceId: string,
+    params: {
+      skip?: number;
+      take?: number;
+      search?: string;
+      status?: OrderStatus;
+      clientId?: string;
+      createdByUserId?: string;
+    },
+  ) {
+    const {
+      skip = 0,
+      take = 20,
+      search,
+      status,
+      clientId,
+      createdByUserId,
+    } = params;
 
     const where: Prisma.OrderWhereInput = {
+      workspaceId,
       deletedAt: null,
       ...(status && { status }),
       ...(clientId && { clientId }),
@@ -46,8 +60,16 @@ export class OrdersRepository {
         OR: [
           { orderNumber: { contains: search, mode: 'insensitive' as const } },
           { title: { contains: search, mode: 'insensitive' as const } },
-          { client: { name: { contains: search, mode: 'insensitive' as const } } },
-          { client: { cpfCnpj: { contains: search, mode: 'insensitive' as const } } },
+          {
+            client: {
+              name: { contains: search, mode: 'insensitive' as const },
+            },
+          },
+          {
+            client: {
+              cpfCnpj: { contains: search, mode: 'insensitive' as const },
+            },
+          },
         ],
       }),
     };
@@ -79,7 +101,11 @@ export class OrdersRepository {
     return { items, total };
   }
 
-  async update(id: string, data: Prisma.OrderUpdateInput) {
+  async update(
+    _workspaceId: string,
+    id: string,
+    data: Prisma.OrderUpdateInput,
+  ) {
     return this.prisma.order.update({
       where: { id },
       data,
@@ -87,7 +113,7 @@ export class OrdersRepository {
     });
   }
 
-  async updateStatus(id: string, status: OrderStatus) {
+  async updateStatus(_workspaceId: string, id: string, status: OrderStatus) {
     return this.prisma.order.update({
       where: { id },
       data: { status },
@@ -95,7 +121,7 @@ export class OrdersRepository {
     });
   }
 
-  async softDelete(id: string) {
+  async softDelete(_workspaceId: string, id: string) {
     return this.prisma.order.update({
       where: { id },
       data: { deletedAt: new Date() },
@@ -118,9 +144,9 @@ export class OrdersRepository {
     return this.prisma.orderStatusHistory.create({ data });
   }
 
-  async findStatusHistory(orderId: string) {
+  async findStatusHistory(workspaceId: string, orderId: string) {
     return this.prisma.orderStatusHistory.findMany({
-      where: { orderId },
+      where: { orderId, order: { workspaceId } },
       orderBy: { createdAt: 'asc' },
       include: {
         order: { select: { orderNumber: true } },
@@ -128,9 +154,9 @@ export class OrdersRepository {
     });
   }
 
-  async findOrderWithRelatedEntities(id: string) {
+  async findOrderWithRelatedEntities(workspaceId: string, id: string) {
     return this.prisma.order.findFirst({
-      where: { id, deletedAt: null },
+      where: { id, workspaceId, deletedAt: null },
       include: {
         ...this.fullInclude(),
         productionOrders: { where: { deletedAt: null } },
@@ -141,9 +167,9 @@ export class OrdersRepository {
     });
   }
 
-  async findItemById(itemId: string) {
+  async findItemById(workspaceId: string, itemId: string) {
     return this.prisma.orderItem.findFirst({
-      where: { id: itemId, deletedAt: null },
+      where: { id: itemId, deletedAt: null, order: { workspaceId } },
       include: {
         supplies: { where: { deletedAt: null } },
         product: true,
@@ -155,9 +181,13 @@ export class OrdersRepository {
     return this.prisma.orderItemSupply.create({ data });
   }
 
-  async findSupplyById(supplyId: string) {
+  async findSupplyById(workspaceId: string, supplyId: string) {
     return this.prisma.orderItemSupply.findFirst({
-      where: { id: supplyId, deletedAt: null },
+      where: {
+        id: supplyId,
+        deletedAt: null,
+        orderItem: { order: { workspaceId } },
+      },
     });
   }
 
@@ -168,7 +198,12 @@ export class OrdersRepository {
     });
   }
 
-  async updatePayment(id: string, paidAmountCents: number, paymentProofUrl?: string) {
+  async updatePayment(
+    _workspaceId: string,
+    id: string,
+    paidAmountCents: number,
+    paymentProofUrl?: string,
+  ) {
     const data: Prisma.OrderUpdateInput = { paidAmountCents };
     if (paymentProofUrl !== undefined) {
       data.paymentProofUrl = paymentProofUrl;

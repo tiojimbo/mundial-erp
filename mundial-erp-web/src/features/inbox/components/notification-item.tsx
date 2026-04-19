@@ -40,7 +40,7 @@ export function NotificationItem({
   onRead,
   onUnread,
   onClear,
-  onNavigate,
+  onNavigate: _onNavigate,
 }: NotificationItemProps) {
   const router = useRouter()
   const isUnread = notification.status === 'unread'
@@ -103,24 +103,24 @@ export function NotificationItem({
               <Icon className="h-3.5 w-3.5 text-muted-foreground" />
             </span>
             <span
-              className={`truncate text-sm text-foreground ${
-                isUnread ? 'font-medium' : 'font-normal'
+              className={`truncate text-foreground ${
+                isUnread ? 'text-label-sm' : 'text-paragraph-sm'
               }`}
             >
               {notification.title}
             </span>
           </div>
         </div>
-        <span className="shrink-0 text-sm text-muted-foreground/40">&mdash;</span>
+        <span className="shrink-0 text-paragraph-sm text-muted-foreground/40">&mdash;</span>
         <div className="min-w-0 flex-1">
-          <span className="truncate text-sm font-normal text-muted-foreground">
+          <span className="truncate text-paragraph-sm text-muted-foreground">
             {notification.description}
           </span>
         </div>
         <div className="relative ml-auto flex h-7 shrink-0 items-center justify-end pl-3">
           {/* Layer 1: time label — invisible on hover (keeps width) */}
           <div className="group-hover/notification:invisible">
-            <span className="shrink-0 text-xs tabular-nums text-muted-foreground">
+            <span className="shrink-0 text-paragraph-xs tabular-nums text-muted-foreground">
               {timeLabel}
             </span>
           </div>
@@ -139,7 +139,7 @@ export function NotificationItem({
                 )}
               </button>
               <button
-                className="inline-flex h-7 items-center gap-2 rounded-md bg-foreground px-2.5 text-xs font-medium text-background transition-all hover:bg-foreground/90"
+                className="inline-flex h-7 items-center gap-2 rounded-md bg-foreground px-2.5 text-label-xs text-background transition-all hover:bg-foreground/90"
                 onClick={handleClear}
               >
                 <RiCheckLine className="h-3.5 w-3.5" />

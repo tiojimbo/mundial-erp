@@ -1,8 +1,5 @@
 import { Test, TestingModule } from '@nestjs/testing';
-import {
-  ForbiddenException,
-  NotFoundException,
-} from '@nestjs/common';
+import { ForbiddenException, NotFoundException } from '@nestjs/common';
 import { DepartmentsService } from './departments.service';
 import { DepartmentsRepository } from './departments.repository';
 
@@ -144,8 +141,8 @@ describe('DepartmentsService', () => {
 
     it('should append suffix when slug already exists', async () => {
       repository.findBySlug
-        .mockResolvedValueOnce(mockDepartment)   // "comercial" taken
-        .mockResolvedValueOnce(null);             // "comercial-1" free
+        .mockResolvedValueOnce(mockDepartment) // "comercial" taken
+        .mockResolvedValueOnce(null); // "comercial-1" free
       repository.create.mockResolvedValue({
         ...mockDepartment,
         slug: 'comercial-1',
@@ -230,7 +227,7 @@ describe('DepartmentsService', () => {
       repository.findById.mockResolvedValue(mockDepartment);
       repository.findBySlug
         .mockResolvedValueOnce({ ...mockDepartment, id: 'dept-2' }) // "financeiro" taken
-        .mockResolvedValueOnce(null);                                // "financeiro-1" free
+        .mockResolvedValueOnce(null); // "financeiro-1" free
       repository.update.mockResolvedValue({
         ...mockDepartment,
         name: 'Financeiro',
@@ -245,9 +242,9 @@ describe('DepartmentsService', () => {
     it('should throw NotFoundException if department not found', async () => {
       repository.findById.mockResolvedValue(null);
 
-      await expect(
-        service.update('bad-id', { name: 'Test' }),
-      ).rejects.toThrow(NotFoundException);
+      await expect(service.update('bad-id', { name: 'Test' })).rejects.toThrow(
+        NotFoundException,
+      );
     });
   });
 
@@ -263,9 +260,7 @@ describe('DepartmentsService', () => {
     it('should throw NotFoundException if not found', async () => {
       repository.findById.mockResolvedValue(null);
 
-      await expect(service.remove('bad-id')).rejects.toThrow(
-        NotFoundException,
-      );
+      await expect(service.remove('bad-id')).rejects.toThrow(NotFoundException);
     });
 
     it('should throw ForbiddenException if department is protected', async () => {
@@ -398,9 +393,9 @@ describe('DepartmentsService', () => {
     it('should throw NotFoundException if department not found', async () => {
       repository.findById.mockResolvedValue(null);
 
-      await expect(
-        service.getProcessSummaries('bad-id'),
-      ).rejects.toThrow(NotFoundException);
+      await expect(service.getProcessSummaries('bad-id')).rejects.toThrow(
+        NotFoundException,
+      );
     });
   });
 });
