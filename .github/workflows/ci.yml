@@ -101,7 +101,7 @@ jobs:
         working-directory: mundial-erp-api
         env:
           DATABASE_URL: postgresql://test:test@localhost:5432/mundial_erp_test?schema=public
-        run: npx prisma db push --accept-data-loss --skip-generate
+        run: npx prisma db push --accept-data-loss
 
       - name: Run tests
         working-directory: mundial-erp-api
