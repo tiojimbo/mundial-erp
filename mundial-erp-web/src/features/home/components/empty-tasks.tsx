@@ -21,8 +21,8 @@ export function EmptyTasks() {
           Tudo em dia!
         </h3>
         <p className='max-w-sm text-center text-sm leading-relaxed text-muted-foreground'>
-          Você não tem nenhuma tarefa atribuída no momento. Novas tarefas
-          aparecerão aqui assim que forem designadas a você.
+          Nenhuma tarefa atribuída no momento. Aproveite o silêncio ou crie a
+          próxima
         </p>
       </div>
     </div>

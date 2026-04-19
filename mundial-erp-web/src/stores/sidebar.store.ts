@@ -3,7 +3,7 @@ import { create } from 'zustand';
 const SIDEBAR_MIN_WIDTH = 200;
 const SIDEBAR_MAX_WIDTH = 480;
 const SIDEBAR_DEFAULT_WIDTH = 272;
-const SIDEBAR_COLLAPSED_WIDTH = 68;
+const SIDEBAR_COLLAPSED_WIDTH = 70;
 
 type SidebarState = {
   isExpanded: boolean;

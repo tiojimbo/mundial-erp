@@ -24,7 +24,7 @@ export function Header() {
         <button
           type='button'
           onClick={toggleMobileSidebar}
-          className='rounded-lg p-2 text-text-sub-600 transition-colors hover:bg-[oklch(0.94_0_0)] hover:text-text-strong-950 lg:hidden'
+          className='rounded-lg p-2 text-text-sub-600 transition-colors hover:bg-sidebar-accent hover:text-text-strong-950 lg:hidden'
           aria-label='Abrir menu'
         >
           <RiMenuLine className='size-5' />
@@ -44,7 +44,7 @@ export function Header() {
         >
           <RiSearchLine className='size-4 shrink-0' />
           <span className='hidden sm:inline'>Buscar...</span>
-          <kbd className='hidden rounded bg-bg-weak-50 px-1.5 py-0.5 text-label-xs text-text-soft-400 sm:inline'>
+          <kbd className='ml-auto hidden rounded bg-bg-weak-50 px-1.5 py-0.5 text-label-xs text-text-soft-400 sm:inline'>
             ⌘K
           </kbd>
         </button>
@@ -55,7 +55,7 @@ export function Header() {
         {/* Notifications */}
         <button
           type='button'
-          className='relative rounded-lg p-2 text-text-sub-600 transition-colors hover:bg-[oklch(0.94_0_0)] hover:text-text-strong-950'
+          className='relative rounded-lg p-2 text-text-sub-600 transition-colors hover:bg-sidebar-accent hover:text-text-strong-950'
         >
           <RiNotification3Line className='size-5' />
           <span className='absolute right-1.5 top-1.5 size-2 rounded-full bg-error-base' />
@@ -74,7 +74,7 @@ export function Header() {
               </Avatar.Root>
             </button>
           </Dropdown.Trigger>
-          <Dropdown.Content align='end' className='w-56'>
+          <Dropdown.Content align='end' className='w-56 rounded-md'>
             {/* User info */}
             <div className='px-3 py-2'>
               <p className='text-label-sm text-text-strong-950'>

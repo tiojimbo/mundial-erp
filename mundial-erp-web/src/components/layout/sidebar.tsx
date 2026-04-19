@@ -126,14 +126,46 @@ export function Sidebar() {
   if (isDesktop) {
     return (
       <aside
-        className='relative flex h-screen flex-col bg-[oklch(98.5%_0_0)] transition-[width] duration-200'
+        className='relative flex h-screen flex-col bg-sidebar transition-[width] duration-200'
         style={{ width: isExpanded ? sidebarWidth : SIDEBAR_COLLAPSED_WIDTH }}
       >
-        <SidebarContent
-          isExpanded={isExpanded}
-          pathname={pathname}
-          toggleSidebar={toggleSidebar}
-        />
+        {/* Workspace Switcher — sempre fora do card, não é afetado pelo colapso */}
+        <div className='flex h-14 items-center px-2'>
+          <WorkspaceSwitcher />
+        </div>
+
+        {/* Conteúdo do sidebar: vira "cartão flutuante" quando colapsado */}
+        <div
+          className={cn(
+            'flex flex-1 flex-col overflow-hidden transition-[padding] duration-300 ease-out',
+            !isExpanded && '-mt-1 pb-2 pl-2 pr-0',
+          )}
+        >
+          <div
+            data-slot='sidebar-inner'
+            className={cn(
+              'flex flex-1 flex-col overflow-hidden transition-[background-color,border-color,border-radius,padding,box-shadow] duration-300 ease-out',
+              !isExpanded &&
+                'rounded-[14px] border border-border bg-gray-50 px-1 py-4 dark:bg-[#202020]',
+            )}
+            style={
+              !isExpanded
+                ? {
+                    boxShadow:
+                      '0 1px 3px 0 rgba(0,0,0,0.1), 0 1px 2px -1px rgba(0,0,0,0.1)',
+                  }
+                : undefined
+            }
+          >
+            <SidebarContent
+              isExpanded={isExpanded}
+              pathname={pathname}
+              toggleSidebar={toggleSidebar}
+              showHeader={false}
+            />
+          </div>
+        </div>
+
         {isExpanded && (
           <div
             className='absolute -right-px top-0 z-10 h-full w-[2px] cursor-col-resize'
@@ -157,7 +189,7 @@ export function Sidebar() {
       )}
       <aside
         className={cn(
-          'fixed inset-y-0 left-0 z-50 flex w-[272px] flex-col bg-[oklch(98.5%_0_0)] shadow-xl transition-transform duration-200',
+          'fixed inset-y-0 left-0 z-50 flex w-[272px] flex-col bg-sidebar shadow-xl transition-transform duration-200',
           isMobileOpen ? 'translate-x-0' : '-translate-x-full',
         )}
       >
@@ -165,7 +197,7 @@ export function Sidebar() {
           <button
             type='button'
             onClick={closeMobileSidebar}
-            className='rounded-lg p-1.5 text-text-sub-600 transition-colors hover:bg-[oklch(94%_0_0)]'
+            className='rounded-lg p-1.5 text-text-sub-600 transition-colors hover:bg-sidebar-accent'
             aria-label='Fechar menu'
           >
             <RiCloseLine className='size-5' />
@@ -215,10 +247,12 @@ function SidebarContent({
   isExpanded,
   pathname,
   toggleSidebar,
+  showHeader = true,
 }: {
   isExpanded: boolean;
   pathname: string;
   toggleSidebar: () => void;
+  showHeader?: boolean;
 }) {
   const { expandedGroups, toggleGroup, setGroupExpanded, expandedAreas, setAreaExpanded } =
     useSidebarStore();
@@ -323,16 +357,12 @@ function SidebarContent({
 
   return (
     <>
-      {/* Header — Workspace Switcher */}
-      <div
-        data-collapsible={!isExpanded ? 'icon' : undefined}
-        className={cn(
-          'group flex h-14 items-center',
-          isExpanded ? 'px-2' : 'justify-center px-0',
-        )}
-      >
-        <WorkspaceSwitcher collapsed={!isExpanded} />
-      </div>
+      {/* Header — Workspace Switcher (sempre full size, não colapsa) */}
+      {showHeader && (
+        <div className='flex h-14 items-center px-2'>
+          <WorkspaceSwitcher />
+        </div>
+      )}
 
       {/* Scrollable nav */}
       <ScrollArea.Root type='hover' className='flex-1 overflow-hidden'>
@@ -344,7 +374,7 @@ function SidebarContent({
                 <button
                   type='button'
                   onClick={toggleSidebar}
-                  className='rounded p-0.5 text-[oklch(55.6%_0_0)] transition-colors hover:bg-[oklch(94%_0_0)]'
+                  className='rounded p-0.5 text-muted-foreground transition-colors hover:bg-sidebar-accent'
                   aria-label='Recolher sidebar'
                 >
                   <RiArrowLeftDoubleLine className='size-4' />
@@ -357,7 +387,7 @@ function SidebarContent({
                     <button
                       type='button'
                       onClick={toggleSidebar}
-                      className='rounded p-1 text-[oklch(55.6%_0_0)] transition-colors hover:bg-[oklch(94%_0_0)]'
+                      className='rounded p-1 text-muted-foreground transition-colors hover:bg-sidebar-accent'
                       aria-label='Expandir sidebar'
                     >
                       <RiArrowRightDoubleLine className='size-4' />
@@ -390,7 +420,7 @@ function SidebarContent({
               <SectionLabel title='Departamentos'>
                 <button
                   type='button'
-                  className='rounded p-0.5 text-[oklch(55.6%_0_0)] transition-colors hover:bg-[oklch(94%_0_0)]'
+                  className='rounded p-0.5 text-muted-foreground transition-colors hover:bg-sidebar-accent'
                   aria-label='Buscar departamento'
                 >
                   <RiSearchLine className='size-4' />
@@ -398,7 +428,7 @@ function SidebarContent({
                 <button
                   type='button'
                   onClick={() => setShowCreateDeptDialog(true)}
-                  className='rounded p-0.5 text-[oklch(55.6%_0_0)] transition-colors hover:bg-[oklch(94%_0_0)]'
+                  className='rounded p-0.5 text-muted-foreground transition-colors hover:bg-sidebar-accent'
                   aria-label='Adicionar departamento'
                 >
                   <RiAddLine className='size-4' />
@@ -458,7 +488,7 @@ function SidebarContent({
           orientation='vertical'
           className='flex w-1 touch-none select-none p-px transition-opacity duration-200 data-[state=hidden]:opacity-0 data-[state=visible]:opacity-100'
         >
-          <ScrollArea.Thumb className='relative flex-1 rounded-full bg-[oklch(80%_0_0)]' />
+          <ScrollArea.Thumb className='relative flex-1 rounded-full bg-border' />
         </ScrollArea.Scrollbar>
       </ScrollArea.Root>
 
@@ -566,7 +596,7 @@ function ChatChannelsSection({ pathname }: { pathname: string }) {
         <button
           type='button'
           onClick={() => setShowCreateChannel(true)}
-          className='rounded p-0.5 text-[oklch(55.6%_0_0)] transition-colors hover:bg-[oklch(94%_0_0)]'
+          className='rounded p-0.5 text-muted-foreground transition-colors hover:bg-sidebar-accent'
           aria-label='Adicionar canal ao chat'
         >
           <RiAddLine className='size-4' />
@@ -585,7 +615,7 @@ function ChatChannelsSection({ pathname }: { pathname: string }) {
         <li>
           <button
             onClick={() => setShowCreateChannel(true)}
-            className='flex h-7 w-full items-center gap-2 rounded-[10px] px-2 text-[14px] text-[oklch(55.6%_0_0)] transition-colors hover:bg-[oklch(94%_0_0)] hover:text-[oklch(14.5%_0_0)]'
+            className='flex h-7 w-full items-center gap-2 rounded-[10px] px-2 text-[14px] text-muted-foreground transition-colors hover:bg-sidebar-accent hover:text-sidebar-foreground'
           >
             <RiAddLine className='size-4' />
             <span>Adicionar Canal</span>
@@ -598,7 +628,7 @@ function ChatChannelsSection({ pathname }: { pathname: string }) {
         <button
           type='button'
           onClick={() => setShowCreateDm(true)}
-          className='rounded p-0.5 text-[oklch(55.6%_0_0)] transition-colors hover:bg-[oklch(94%_0_0)]'
+          className='rounded p-0.5 text-muted-foreground transition-colors hover:bg-sidebar-accent'
           aria-label='Nova mensagem direta no chat'
         >
           <RiAddLine className='size-4' />
@@ -617,7 +647,7 @@ function ChatChannelsSection({ pathname }: { pathname: string }) {
         <li>
           <button
             onClick={() => setShowCreateDm(true)}
-            className='flex h-7 w-full items-center gap-2 rounded-[10px] px-2 text-[14px] text-[oklch(55.6%_0_0)] transition-colors hover:bg-[oklch(94%_0_0)] hover:text-[oklch(14.5%_0_0)]'
+            className='flex h-7 w-full items-center gap-2 rounded-[10px] px-2 text-[14px] text-muted-foreground transition-colors hover:bg-sidebar-accent hover:text-sidebar-foreground'
           >
             <RiAddLine className='size-4' />
             <span>Nova mensagem</span>
@@ -659,15 +689,15 @@ function ChannelNavItem({
       className={cn(
         'flex h-7 w-full items-center gap-2 rounded-[10px] px-2 text-left text-[14px] transition-colors',
         isActive
-          ? 'rounded-[6px] bg-[oklch(94%_0_0)] font-medium text-[oklch(14.5%_0_0)]'
-          : 'text-[oklch(14.5%_0_0)] hover:bg-[oklch(94%_0_0)]',
+          ? 'rounded-[6px] bg-sidebar-accent font-medium text-sidebar-foreground'
+          : 'text-sidebar-foreground hover:bg-sidebar-accent',
       )}
     >
       <span className='flex items-center gap-[2px]'>
         {channel.type === 'PRIVATE' ? (
-          <RiLockLine className='size-4 text-[oklch(55.6%_0_0)]' />
+          <RiLockLine className='size-4 text-muted-foreground' />
         ) : (
-          <RiHashtag className='size-4 text-[oklch(55.6%_0_0)]' />
+          <RiHashtag className='size-4 text-muted-foreground' />
         )}
         <span
           className={cn(
@@ -680,7 +710,7 @@ function ChannelNavItem({
       </span>
       <span className='min-w-0 flex-1 truncate'>{channel.name}</span>
       {unread > 0 && (
-        <span className='flex min-w-[16px] items-center justify-center rounded-full bg-[oklch(14.5%_0_0)] px-1 text-[10px] font-semibold text-white'>
+        <span className='flex min-w-[16px] items-center justify-center rounded-full bg-foreground px-1 text-[10px] font-semibold text-background'>
           {unread > 9 ? '9+' : unread}
         </span>
       )}
@@ -714,8 +744,8 @@ function DmNavItem({
       className={cn(
         'flex h-7 w-full items-center gap-2 rounded-[10px] px-2 text-left text-[14px] transition-colors',
         isActive
-          ? 'rounded-[6px] bg-[oklch(94%_0_0)] font-medium text-[oklch(14.5%_0_0)]'
-          : 'text-[oklch(14.5%_0_0)] hover:bg-[oklch(94%_0_0)]',
+          ? 'rounded-[6px] bg-sidebar-accent font-medium text-sidebar-foreground'
+          : 'text-sidebar-foreground hover:bg-sidebar-accent',
       )}
     >
       <span className='flex size-6 shrink-0 items-center justify-center rounded-full bg-[#7c3aed] text-[9px] font-semibold text-white'>
@@ -723,7 +753,7 @@ function DmNavItem({
       </span>
       <span className='min-w-0 flex-1 truncate'>{name}</span>
       {unread > 0 && (
-        <span className='flex min-w-[16px] items-center justify-center rounded-full bg-[oklch(14.5%_0_0)] px-1 text-[10px] font-semibold text-white'>
+        <span className='flex min-w-[16px] items-center justify-center rounded-full bg-foreground px-1 text-[10px] font-semibold text-background'>
           {unread > 9 ? '9+' : unread}
         </span>
       )}
@@ -744,7 +774,7 @@ function SectionLabel({
 }) {
   return (
     <div className='flex items-center justify-between px-4 pb-1 pt-4 first:pt-1'>
-      <span className='text-[12px] font-medium tracking-[-0.132px] text-[oklch(14.5%_0_0_/_0.7)]'>
+      <span className='text-[12px] font-medium tracking-[-0.132px] text-sidebar-foreground/70'>
         {title}
       </span>
       {children && (
@@ -780,15 +810,15 @@ function NavLeaf({
       className={cn(
         'flex h-7 items-center gap-2 rounded-[10px] px-2 text-[14px] transition-colors',
         isActive
-          ? 'rounded-[6px] bg-[oklch(94%_0_0)] font-medium text-[oklch(14.5%_0_0)]'
-          : 'text-[oklch(14.5%_0_0)] hover:bg-[oklch(94%_0_0)]',
+          ? 'rounded-[6px] bg-sidebar-accent font-medium text-sidebar-foreground'
+          : 'text-sidebar-foreground hover:bg-sidebar-accent',
         !isExpanded && 'justify-center px-0',
       )}
     >
       <Icon
         className={cn(
           'size-4 shrink-0',
-          isActive ? 'text-[oklch(14.5%_0_0)]' : 'text-[oklch(55.6%_0_0)]',
+          isActive ? 'text-sidebar-foreground' : 'text-muted-foreground',
         )}
       />
       {isExpanded && <span className='min-w-0 flex-1 truncate'>{label}</span>}
@@ -900,7 +930,7 @@ function AreaItem({
         data-active={areaActive || undefined}
         className={cn(
           'group/area flex items-center rounded-[6px] transition-colors',
-          areaActive ? 'bg-[oklch(94%_0_0)]' : 'hover:bg-[oklch(94%_0_0)]',
+          areaActive ? 'bg-sidebar-accent' : 'hover:bg-sidebar-accent',
         )}
       >
         {isRenaming ? (
@@ -923,20 +953,20 @@ function AreaItem({
             >
               <RiArrowDownSLine
                 className={cn(
-                  'size-3.5 text-[oklch(55.6%_0_0)] transition-transform duration-150',
+                  'size-3.5 text-muted-foreground transition-transform duration-150',
                   isOpen ? 'rotate-0' : '-rotate-90',
                 )}
               />
             </button>
             {area.isPrivate && (
-              <RiLockLine className='size-3 shrink-0 text-[oklch(55.6%_0_0)]' />
+              <RiLockLine className='size-3 shrink-0 text-muted-foreground' />
             )}
             <Link
               href={`/d/${deptSlug}/a/${area.slug}`}
               onClick={() => { if (!isOpen) onToggle(); }}
               className={cn(
                 'flex-1 truncate text-left',
-                areaActive ? 'font-medium text-[oklch(14.5%_0_0)]' : 'text-[oklch(14.5%_0_0)]',
+                areaActive ? 'font-medium text-sidebar-foreground' : 'text-sidebar-foreground',
               )}
             >
               {area.name}
@@ -949,7 +979,7 @@ function AreaItem({
               <Dropdown.Trigger asChild>
                 <button
                   type='button'
-                  className='rounded p-0.5 text-[oklch(55.6%_0_0)] transition-colors hover:bg-[oklch(92.2%_0_0)]'
+                  className='rounded p-0.5 text-muted-foreground transition-colors hover:bg-border'
                   aria-label={`Opcoes de ${area.name}`}
                 >
                   <RiMoreLine className='size-3.5' />
@@ -975,7 +1005,7 @@ function AreaItem({
                 onStartAddProcess();
                 if (!isOpen) onToggle();
               }}
-              className='rounded p-0.5 text-[oklch(55.6%_0_0)] transition-colors hover:bg-[oklch(92.2%_0_0)]'
+              className='rounded p-0.5 text-muted-foreground transition-colors hover:bg-border'
               aria-label={`Adicionar em ${area.name}`}
             >
               <RiAddLine className='size-3.5' />
@@ -1002,12 +1032,12 @@ function AreaItem({
                   className={cn(
                     'flex h-7 items-center gap-2 rounded-[6px] py-1 pl-12 pr-3 text-[14px] transition-colors',
                     active
-                      ? 'bg-[oklch(94%_0_0)] font-medium text-[oklch(14.5%_0_0)]'
-                      : 'text-[oklch(14.5%_0_0)] hover:bg-[oklch(94%_0_0)]',
+                      ? 'bg-sidebar-accent font-medium text-sidebar-foreground'
+                      : 'text-sidebar-foreground hover:bg-sidebar-accent',
                   )}
                 >
                   {process.isPrivate && (
-                    <RiLockLine className='size-3 shrink-0 text-[oklch(55.6%_0_0)]' />
+                    <RiLockLine className='size-3 shrink-0 text-muted-foreground' />
                   )}
                   <span className='truncate'>{process.name}</span>
                 </Link>
@@ -1109,7 +1139,7 @@ function DeptItem({
             onClick={onToggle}
             className={cn(
               'flex w-full items-center justify-center rounded-lg p-2 transition-colors',
-              isActive ? 'bg-[oklch(94%_0_0)]' : 'hover:bg-[oklch(94%_0_0)]',
+              isActive ? 'bg-sidebar-accent' : 'hover:bg-sidebar-accent',
             )}
           >
             <DeptAvatar abbr={abbr} color={dept.color} isOpen={isOpen} />
@@ -1126,7 +1156,7 @@ function DeptItem({
         data-active={isActive || undefined}
         className={cn(
           'group/dept flex items-center rounded-[10px] transition-colors',
-          isActive ? 'bg-[oklch(94%_0_0)]' : 'hover:bg-[oklch(94%_0_0)]',
+          isActive ? 'bg-sidebar-accent' : 'hover:bg-sidebar-accent',
         )}
       >
         {isRenamingThis ? (
@@ -1155,7 +1185,7 @@ function DeptItem({
               onClick={() => { if (!isOpen) onToggle(); }}
               className={cn(
                 'flex-1 truncate text-left',
-                isActive ? 'font-medium text-[oklch(14.5%_0_0)]' : 'text-[oklch(14.5%_0_0)]',
+                isActive ? 'font-medium text-sidebar-foreground' : 'text-sidebar-foreground',
               )}
             >
               {dept.name}
@@ -1168,38 +1198,38 @@ function DeptItem({
               <Dropdown.Trigger asChild>
                 <button
                   type='button'
-                  className='rounded p-0.5 text-[oklch(55.6%_0_0)] transition-colors hover:bg-[oklch(92.2%_0_0)]'
+                  className='rounded p-0.5 text-muted-foreground transition-colors hover:bg-border'
                   aria-label={`Opcoes de ${dept.name}`}
                 >
                   <RiMoreLine className='size-3.5' />
                 </button>
               </Dropdown.Trigger>
-              <Dropdown.Content side='bottom' align='start' alignOffset={-40} sideOffset={4} className='w-fit rounded-lg bg-white p-[5px] shadow-md !animate-none' style={{ border: '0.8px solid #e0e0e0' }}>
+              <Dropdown.Content side='bottom' align='start' alignOffset={-40} sideOffset={4} className='w-fit rounded-lg border border-border bg-popover p-[5px] text-popover-foreground shadow-md !animate-none'>
                 <Dropdown.Item
                   onSelect={() => onStartRenameDept(dept.id)}
-                  className='flex h-8 w-full cursor-default items-center gap-2 rounded-[6px] px-2 text-[14px] font-normal leading-5 outline-none select-none hover:bg-[oklch(0.97_0_0)]'
+                  className='flex h-8 w-full cursor-default items-center gap-2 rounded-[6px] px-2 text-[14px] font-normal leading-5 outline-none select-none hover:bg-accent hover:text-accent-foreground'
                 >
                   <RiEditLine className='size-4 shrink-0' />
                   Renomear
                 </Dropdown.Item>
-                <Dropdown.Separator className='-mx-[5px] my-1 h-px bg-[#e0e0e0]' />
+                <Dropdown.Separator className='-mx-[5px] my-1 h-px bg-border' />
                 <Dropdown.Item
                   onSelect={() => onOpenStatusConfig(dept.id)}
-                  className='flex h-8 w-full cursor-default items-center gap-2 rounded-[6px] px-2 text-[14px] font-normal leading-5 outline-none select-none hover:bg-[oklch(0.97_0_0)]'
+                  className='flex h-8 w-full cursor-default items-center gap-2 rounded-[6px] px-2 text-[14px] font-normal leading-5 outline-none select-none hover:bg-accent hover:text-accent-foreground'
                 >
                   <RiSettings3Line className='size-4 shrink-0' />
                   Editar status
                 </Dropdown.Item>
-                <Dropdown.Separator className='-mx-[5px] my-1 h-px bg-[#e0e0e0]' />
+                <Dropdown.Separator className='-mx-[5px] my-1 h-px bg-border' />
                 <Dropdown.Item
                   onSelect={() => onDeleteDept(dept.id, dept.name, dept.isProtected)}
                   disabled={dept.isProtected}
-                  className='flex h-8 w-full cursor-default items-center gap-2 rounded-[6px] px-2 text-[14px] font-normal leading-5 outline-none select-none hover:bg-[oklch(0.97_0_0)] data-[disabled]:pointer-events-none data-[disabled]:opacity-50'
+                  className='flex h-8 w-full cursor-default items-center gap-2 rounded-[6px] px-2 text-[14px] font-normal leading-5 outline-none select-none hover:bg-accent hover:text-accent-foreground data-[disabled]:pointer-events-none data-[disabled]:opacity-50'
                 >
                   <RiDeleteBinLine className='size-4 shrink-0' />
                   Excluir
                 </Dropdown.Item>
-                <Dropdown.Separator className='-mx-[5px] my-1 h-px bg-[#e0e0e0]' />
+                <Dropdown.Separator className='-mx-[5px] my-1 h-px bg-border' />
                 <div className='flex h-12 w-full items-center px-1'>
                   <button
                     type='button'
@@ -1216,7 +1246,7 @@ function DeptItem({
               <Dropdown.Trigger asChild>
                 <button
                   type='button'
-                  className='rounded p-0.5 text-[oklch(55.6%_0_0)] transition-colors hover:bg-[oklch(92.2%_0_0)]'
+                  className='rounded p-0.5 text-muted-foreground transition-colors hover:bg-border'
                   aria-label={`Adicionar em ${dept.name}`}
                 >
                   <RiAddLine className='size-3.5' />
@@ -1256,12 +1286,12 @@ function DeptItem({
                   className={cn(
                     'flex h-7 items-center gap-2 rounded-[6px] py-1 pl-9 pr-3 text-[14px] transition-colors',
                     active
-                      ? 'bg-[oklch(94%_0_0)] font-medium text-[oklch(14.5%_0_0)]'
-                      : 'text-[oklch(14.5%_0_0)] hover:bg-[oklch(94%_0_0)]',
+                      ? 'bg-sidebar-accent font-medium text-sidebar-foreground'
+                      : 'text-sidebar-foreground hover:bg-sidebar-accent',
                   )}
                 >
                   {process.isPrivate && (
-                    <RiLockLine className='size-3 shrink-0 text-[oklch(55.6%_0_0)]' />
+                    <RiLockLine className='size-3 shrink-0 text-muted-foreground' />
                   )}
                   <span className='truncate'>{process.name}</span>
                 </Link>
@@ -1351,7 +1381,7 @@ function InlineCreateInput({
         onBlur={onCancel}
         placeholder={placeholder}
         disabled={isPending}
-        className='h-6 w-full min-w-0 flex-1 rounded border border-[oklch(80%_0_0)] bg-white px-1.5 text-[13px] text-[oklch(14.5%_0_0)] outline-none placeholder:text-[oklch(55.6%_0_0)] focus:border-[oklch(55.6%_0_0)] disabled:opacity-50'
+        className='h-6 w-full min-w-0 flex-1 rounded border border-border bg-background px-1.5 text-[13px] text-foreground outline-none placeholder:text-muted-foreground focus:border-ring disabled:opacity-50'
       />
     </div>
   );
@@ -1430,7 +1460,7 @@ function InlineRenameInput({
       }}
       onBlur={handleSubmit}
       disabled={isPending}
-      className='h-5 min-w-0 flex-1 rounded border border-[oklch(80%_0_0)] bg-white px-1.5 text-[13px] text-[oklch(14.5%_0_0)] outline-none focus:border-[oklch(55.6%_0_0)] disabled:opacity-50'
+      className='h-5 min-w-0 flex-1 rounded border border-border bg-background px-1.5 text-[13px] text-foreground outline-none focus:border-ring disabled:opacity-50'
     />
   );
 }
