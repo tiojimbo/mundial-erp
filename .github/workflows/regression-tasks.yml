@@ -1,0 +1,98 @@
+name: Regression — Tasks feature
+
+# Gate de regressao para mudancas no dominio Tasks / WorkItems.
+# Garante zero quebra em orders, production-orders, financial-summary,
+# invoices, bpm, work-items (PLANO-TASKS §16 R9).
+
+on:
+  pull_request:
+    branches: [main, develop]
+    paths:
+      - 'mundial-erp-api/src/modules/tasks/**'
+      - 'mundial-erp-api/src/modules/task-*/**'
+      - 'mundial-erp-api/src/modules/custom-task-types/**'
+      - 'mundial-erp-api/src/modules/work-items/**'
+      - 'mundial-erp-api/src/modules/task-outbox/**'
+      - 'mundial-erp-api/prisma/schema.prisma'
+      - 'mundial-erp-api/prisma/migrations/**'
+      - 'mundial-erp-api/scripts/regression-check.sh'
+      - '.github/workflows/regression-tasks.yml'
+  workflow_dispatch: {}
+
+env:
+  NODE_VERSION: '20'
+
+jobs:
+  regression:
+    name: Regression suite (orders / production / bpm / work-items)
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+
+    services:
+      postgres:
+        image: postgres:16-alpine
+        env:
+          POSTGRES_DB: mundial_erp_regression
+          POSTGRES_USER: test
+          POSTGRES_PASSWORD: test
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U test"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+
+      redis:
+        image: redis:7-alpine
+        ports:
+          - 6379:6379
+        options: >-
+          --health-cmd "redis-cli ping"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js ${{ env.NODE_VERSION }}
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: 'npm'
+          cache-dependency-path: mundial-erp-api/package-lock.json
+
+      - name: Install API dependencies
+        working-directory: mundial-erp-api
+        run: npm ci
+
+      - name: Generate Prisma client
+        working-directory: mundial-erp-api
+        run: npx prisma generate
+
+      - name: Sync database schema (db push, CI-only)
+        working-directory: mundial-erp-api
+        env:
+          DATABASE_URL: postgresql://test:test@localhost:5432/mundial_erp_regression?schema=public
+        run: npx prisma db push --accept-data-loss
+
+      - name: Run regression check
+        working-directory: mundial-erp-api
+        env:
+          DATABASE_URL: postgresql://test:test@localhost:5432/mundial_erp_regression?schema=public
+          REDIS_HOST: localhost
+          REDIS_PORT: 6379
+          JWT_SECRET: regression-test-secret
+          JWT_REFRESH_SECRET: regression-test-refresh
+          NODE_ENV: test
+        run: bash scripts/regression-check.sh
+
+      - name: Upload jest output on failure
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: regression-jest-logs
+          path: mundial-erp-api/test-results/
+          if-no-files-found: ignore

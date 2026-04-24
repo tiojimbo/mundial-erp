@@ -1,0 +1,80 @@
+/**
+ * Frontend component test scaffold — CreateTaskDialog.
+ *
+ * Status: skipped — runner FE (vitest + @testing-library/react) ainda nao
+ * configurado (story FE-INFRA-01). Sufixo `.skip` no filename mantem o
+ * spec fora do glob do runner ate habilitar.
+ *
+ * Cobertura planejada (PLANO-TASKS §7.2 + §8.9):
+ *   - 3 variantes de props: lockedProcessId, areaId, departmentId.
+ *   - Validacao client-side (zod): title < 3 chars.
+ *   - Submit success: toast, dialog fecha, onCreated(taskId) chamado.
+ *   - Submit error: toast.error, dialog permanece aberto.
+ *   - A11y: role=dialog, focus trap, aria-busy no botao pending.
+ *
+ * Deps a declarar (Sprint 1, story FE-INFRA-01):
+ *   - vitest, jsdom, @testing-library/react, @testing-library/user-event,
+ *     @testing-library/jest-dom, @axe-core/react (para a11y), msw.
+ *
+ * Quando remover o `.skip`:
+ *   - Trocar para `.test.tsx` + remover `describe.skip`.
+ *   - Importar renderWithProviders da infra compartilhada (QueryClient +
+ *     workspaceStore + theme).
+ */
+
+describe.skip('CreateTaskDialog — ativar em Sprint 1 apos FE-INFRA-01', () => {
+  it.skip('renderiza com lockedProcessId: campo process invisivel; submit cria diretamente', () => {
+    // Arrange: render(<CreateTaskDialog open lockedProcessId="process-1" />)
+    // Assert:
+    //   - queryByLabelText(/processo/i) === null (campo nao renderizado)
+    //   - queryByLabelText(/area/i) === null
+    //   - type(title, 'Nova'); click(submit);
+    //   - expect(mockCreate).toHaveBeenCalledWith({processId:'process-1', title:'Nova'})
+    expect(true).toBe(true);
+  });
+
+  it.skip('renderiza com areaId: lista processes da area via useAreaSummaries', () => {
+    // Arrange: mock useAreaSummaries retorna { data: { processes: [p1, p2, p3] } }
+    // Render com areaId="area-1" (sem lockedProcessId, sem departmentId)
+    // Assert:
+    //   - combobox "Processo" visible
+    //   - options length === 3
+    //   - selecao de p2 -> submit envia processId=p2.id
+    expect(true).toBe(true);
+  });
+
+  it.skip('renderiza com departmentId: cascata area -> process', () => {
+    // Arrange: mock useDepartmentSummaries({ areas: [a1 (procs x,y), a2 (proc z)] })
+    // Render com departmentId="dept-1"
+    // Assert:
+    //   - combobox "Area" visible; processo disabled enquanto area vazia
+    //   - selecao de a1 popula processos [x, y]
+    //   - trocar para a2 -> processo combobox reseta para [z]
+    expect(true).toBe(true);
+  });
+
+  it.skip('title < 3 chars: botao Criar disabled + mensagem zod', () => {
+    // type title "ab" -> submit disabled, aria-describedby aponta a mensagem
+    // "Minimo 3 caracteres". Add mais uma letra -> habilita.
+    expect(true).toBe(true);
+  });
+
+  it.skip('submit success: toast, fecha dialog, chama onCreated(taskId)', () => {
+    // mock mutation resolves com {id:'task-9'}; expect onCreated('task-9')
+    // expect toast.success called; expect dialog unmount
+    expect(true).toBe(true);
+  });
+
+  it.skip('submit error: toast.error + dialog permanece aberto', () => {
+    // mock mutation rejects com Error('500'); expect toast.error called
+    // expect dialog ainda presente no DOM; botao volta ao estado normal
+    expect(true).toBe(true);
+  });
+
+  it.skip('a11y: role=dialog, focus trap, aria-busy no botao durante pending', () => {
+    // expect byRole('dialog'); trap focus (Tab navega so dentro)
+    // submit pending -> expect(button).toHaveAttribute('aria-busy','true')
+    // axe(container) -> expect no violations
+    expect(true).toBe(true);
+  });
+});

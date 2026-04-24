@@ -28,6 +28,7 @@ import { ListChannelsQueryDto } from './dto/list-channels-query.dto';
 import { ChannelResponseDto } from './dto/channel-response.dto';
 import { CursorPaginationDto } from '../../../common/dtos/cursor-pagination.dto';
 import { CurrentUser } from '../../auth/decorators';
+import { WorkspaceId } from '../../workspaces/decorators/workspace-id.decorator';
 
 @ApiTags('Chat - Channels')
 @ApiBearerAuth()
@@ -42,8 +43,12 @@ export class ChannelsController {
     status: 200,
     description: 'Canal com mesmo nome ja existe, retornado',
   })
-  create(@Body() dto: CreateChannelDto, @CurrentUser('sub') userId: string) {
-    return this.channelsService.createChannel(dto, userId);
+  create(
+    @Body() dto: CreateChannelDto,
+    @CurrentUser('sub') userId: string,
+    @WorkspaceId() workspaceId: string,
+  ) {
+    return this.channelsService.createChannel(dto, userId, workspaceId);
   }
 
   @Post('location')
@@ -52,15 +57,24 @@ export class ChannelsController {
   createByLocation(
     @Body() dto: CreateChannelLocationDto,
     @CurrentUser('sub') userId: string,
+    @WorkspaceId() workspaceId: string,
   ) {
-    return this.channelsService.createChannelByLocation(dto, userId);
+    return this.channelsService.createChannelByLocation(
+      dto,
+      userId,
+      workspaceId,
+    );
   }
 
   @Post('direct-message')
   @ApiOperation({ summary: 'Criar DM idempotente (ClickUp #9)' })
   @ApiResponse({ status: 201, type: ChannelResponseDto })
-  createDm(@Body() dto: CreateDmDto, @CurrentUser('sub') userId: string) {
-    return this.channelsService.createDm(dto, userId);
+  createDm(
+    @Body() dto: CreateDmDto,
+    @CurrentUser('sub') userId: string,
+    @WorkspaceId() workspaceId: string,
+  ) {
+    return this.channelsService.createDm(dto, userId, workspaceId);
   }
 
   @Get()

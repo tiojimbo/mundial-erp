@@ -1,43 +1,308 @@
+---
+name: squad-dashboards
+description: Squad responsavel pela IMPLEMENTACAO inicial, MANUTENCAO continua e ATUALIZACAO incremental da feature Paineis/Dashboards (Dashboard + DashboardCard + DashboardFilter + query engine dinamica). 5 membros em paralelismo maximo. Use sempre que a tarefa tocar `Dashboard`, `DashboardCard`, `DashboardFilter`, `DashboardCardQueryService`, enum `CardType`, rotas `/api/v1/dashboards/**`, ou query engine que traduz `dataSource` em Prisma — seja em construcao greenfield (F4C), bug fix pos-GA, hotfix de seguranca, refactor de performance de query engine, ou expansao de contrato (novos tipos de card, novos data sources, novos operators de filtro).
+---
+
 # Squad Dashboards
 
 ## Dominio
 
-Paineis configuraveis: dashboards com cards de graficos/KPIs, query engine dinamica por data source, filtros globais, layout grid drag-and-drop.
+Ciclo de vida COMPLETO da feature **Paineis (Dashboards)** do Mundial ERP — paineis configuraveis com cards de graficos/KPIs, query engine dinamica por data source, filtros globais, layout grid drag-and-drop. Cobre as TRES fases de vida da feature:
 
-**Fonte de verdade:** PLANO.md secoes 1.5d (models Dashboard, DashboardCard, DashboardFilter), 2.6d (endpoints), Tela Paineis
-**Fase PLANO:** F4C (construcao) + ownership continuo
+1. **Implementacao inicial (Fase F4C, construcao):** 3 models Prisma (`Dashboard`, `DashboardCard`, `DashboardFilter`) + enum `CardType` (8 tipos), modulo backend `dashboards/` com `DashboardCardQueryService` (coracao da feature), 10 endpoints REST em `/api/v1/dashboards/**`, seed de dashboard exemplo.
+2. **Manutencao continua (pos-GA, indefinida):** triagem e fix de bugs P0-P3 na query engine (maior superficie de risco do squad), hotfixes de seguranca (query dinamica = vetor de SQL injection se mal feita), monitoramento de SLIs (p95 do `/cards/:cardId/data`), gestao de cache de queries, atendimento a incidentes, regressao zero a cada release de outras features que mudem entidades consultadas (Orders, AR, AP, Products, WorkItem, etc.), code review continuo de PRs que tocam o query engine.
+3. **Atualizacao incremental (pos-GA, em batches):** RFCs para novas funcionalidades (novos tipos de `CardType`, novos `dataSource.entity`, novos operators de filtro, dashboards publicos compartilhaveis por link, export PDF, alerta por threshold), evolucao aditiva de schema (sempre nullable→backfill→NOT NULL), novos campos opcionais em `dataSource`/`config`/`axisConfig` JSON, versionamento de schema JSON dos cards.
 
----
+**Fonte de verdade:** `.claude/plan/PLANO.md` secoes **1.5d** (models Dashboard, DashboardCard, DashboardFilter + enum CardType) e **2.6d** (10 endpoints `/api/v1/dashboards/**` e arquitetura do endpoint-coracao `/cards/:cardId/data`). Tela de referencia UI: Tela Paineis no PLANO. UNICA fonte sobre O QUE construir na fase 1 — nenhum membro redefine specs, models, endpoints ou contratos.
+**Agent-CTO:** `.claude/agents/agent-cto.md` — principios inegociaveis aplicados nas TRES fases (separacao de camadas, contratos tipados, performance, idempotencia, observabilidade, seguranca — **especialmente relevante aqui porque query engine dinamica amplifica risco de SQL injection, N+1 e tenant leak**).
+**Standards:** `.claude/standards/99-referencia-completa.md` (nomenclatura, estrutura backend/frontend, banco, API, auth, seguranca, anti-patterns).
+**Spec UI:** Tela Paineis no PLANO.md + `.claude/skills/squad-fe-dashboards.mdc` (contraparte frontend que consome nosso contrato).
+**Squad Workspace (predecessor):** `.claude/skills/squad-workspace.mdc` — todo Dashboard/Card/Filter pertence a um Workspace via `ownerId → User → workspaceId` ou via escopo transitivo da entidade consultada no `dataSource` (Orders tem workspaceId, WorkItem tem workspaceId via Process→Department→Workspace, etc.).
 
-## Entidades/Recursos sob responsabilidade
-
-| Entidade | Secao PLANO |
-|---|---|
-| Dashboard | 1.5d |
-| DashboardCard | 1.5d |
-| DashboardFilter | 1.5d |
-| CardType enum | 1.5d |
-| DashboardCardQueryService (query engine) | 2.6d (endpoint /cards/:cardId/data) |
+**Hierarquia de scoping:** `Workspace → User(owner) → Dashboard → Card → dataSource{entity,filters}` — toda query executada pela query engine SEMPRE filtra por `workspaceId` derivado do usuario autenticado, **antes** de aplicar qualquer filtro do `dataSource` ou do `DashboardFilter`. Dashboard publico (`isPublic=true`) e publico **dentro do workspace**, nunca entre workspaces.
 
 ---
 
-## Composicao do Time
+## Modos de Operacao do Squad
 
-| Membro | Recursos (dono vertical) | Papel extra |
+O squad opera em TRES modos distintos, com cadencias e ritos diferentes. Todos os 5 membros estao engajados nos 3 modos — apenas a alocacao de tempo varia conforme a fase do produto.
+
+### Modo 1 — IMPLEMENTACAO (Fase F4C, paralelismo maximo)
+
+Cobre construcao greenfield. Cadencia 2 semanas/sprint, ceremonies (Planning, Daily, Review, Retro), backlog ordenado conforme PLANO.md Fase F4C story F4C-4. **4 a 5 membros ativos em paralelo apos o golden path do query engine.**
+
+### Modo 2 — MANUTENCAO (pos-GA, continuo)
+
+Comeca apos GA e nunca termina. Cobre:
+
+| Tipo | SLA | Responsavel primario | Acao |
+|---|---|---|---|
+| **P0 — Incidente em prod** (tenant leak via query engine, SQL injection confirmada, dashboard devolvendo dado de outro workspace, outage `/cards/data` > 5 min, cache poisoning cross-tenant) | < 1h ack, < 4h fix | Thales (escala squad inteiro) | Hotfix + post-mortem em 48h + comunicacao a todos os workspaces afetados |
+| **P1 — Bug bloqueante** (tipo de card quebrado para >10% dashboards, query engine retornando numero errado consistente, layout grid corrompido, filtros globais nao aplicando em todos os cards) | < 4h ack, < 24h fix | Owner do modulo afetado | Hotfix em branch `hotfix/dashboards-*` direto p/ main, com flag de rollback |
+| **P2 — Bug nao bloqueante** (workaround existe ou afeta <10% dashboards — ex: cor errada em 1 tipo de card, legenda truncada, operator edge case raro) | < 24h ack, < 1 sprint fix | Owner | Entra no backlog da proxima sprint |
+| **P3 — Bug cosmetico ou edge case muito raro** | < 1 semana ack | Owner | Backlog priorizado pelo Tech Lead |
+| **Regressao detectada por outro squad** (Squad Orders/Financial/etc. muda schema de entidade consultada e quebra data source existente) | < 24h investigacao | Hugo + owner do modulo que mudou | PR de fix no query engine ou ajuste de contrato do dataSource; teste de regressao adicionado |
+| **Performance degradation** (p95 `/cards/:cardId/data` > 800ms, p95 `/dashboards/:id` > 400ms, cache hit rate < 40%) | < 30min ack via alerta Grafana | Thales (query engine) + Iago (se render) | Triagem: cache miss? falta indice na entidade-fonte? N+1 no adapter? query JSON gigante? (rollback de release recente OU fix targeted) |
+| **Vulnerabilidade de seguranca** (SQL injection via `dataSource.filters`, vazamento cross-tenant via owner spoofing, cache poisoning, CVE em dep de grafico, auditoria apontando fuga de dados em logs do query engine) | < 4h ack, fix conforme CVSS | Thales + Hugo | CVSS ≥ 7: hotfix imediato com flag `DASHBOARDS_ENABLED=false` per-workspace afetado |
+| **Query engine lenta para dataset grande** (workspace com 100k+ orders quebra KPI_NUMBER que faz count completo, TABLE de 50k linhas, agregacoes cross-entidade) | SLI degradado | Thales + Debora | Cache no `DashboardCard.config.cache` + TTL + invalidacao via outbox de escrita na entidade-fonte; em casos extremos: materialized view ou projecao assincrona |
+
+**Rituals de manutencao:**
+- **Daily triage 15 min** (Thales + on-call): revisa novos issues de dashboards, classifica P0-P3, atribui owner, decide se precisa mobilizar mais de uma pessoa.
+- **On-call rotation semanal** entre Thales, Debora, Iago, Renata, Hugo. Hugo e on-call permanente para P0 de seguranca (query engine = superficie critica do Mundial ERP — vetor direto para todos os dados de negocio).
+- **Weekly bug review 30 min** (squad inteiro): revisar P2/P3 acumulados, decidir o que entra na proxima sprint.
+- **Monthly health check 1h** (squad inteiro): SLIs do mes, top 10 dashboards mais lentos, top 10 cards com mais cache miss, top 5 data sources mais custosos, erros 5xx no `/cards/:cardId/data`, custo de queries Postgres nas entidades consumidas, tamanho medio de `dataSource` JSON, uso de cada `CardType`.
+- **Quarterly threat model review** (Hugo + Thales): atualizar threat model de SQL injection via JSON `dataSource`/`filters`, owner spoofing, dashboard publico cross-workspace, cache poisoning, enumeration via `isPublic`, serializacao/desserializacao JSON insegura.
+
+### Modo 3 — ATUALIZACAO (pos-GA, batches incrementais)
+
+Para novas funcionalidades NAO presentes no PLANO.md original. **Toda atualizacao segue um RFC explicito antes de codigo.**
+
+**Fluxo de atualizacao (RFC → ADR → Story → PR):**
+
+1. **RFC** em `.claude/rfc/dashboards-NNN-titulo.md` (ownership: Thales ou owner do modulo). Contexto, problema, opcoes A/B/C, recomendacao, impact analysis (regressao? breaking change? migration de dados em cards existentes? perf? seguranca do query engine? contrato FE quebrado?), rollout plan (flag? per-workspace?).
+2. **Discussao em squad async** (3-5 dias): cada membro afetado revisa, levanta red flags. Squad FE Dashboards e consultado quando a mudanca afeta contrato de shape por `CardType` ou schema JSON. Sem aprovacao tacita.
+3. **ADR** em `.claude/adr/NNN-titulo.md` se RFC introduz decisao arquitetural irreversivel (novo padrao de cache, materialized view para query engine, novo storage para dashboards publicos compartilhados por link externo, nova lib de chart, schemaVersion dos cards).
+4. **Story(s) no backlog** com AC explicitos, mesmo formato da Fase F4C story F4C-4.
+5. **Branch `feat/dashboards-NNN-titulo`** derivada de main; paralelismo intra-sprint.
+6. **Migracao SEMPRE aditiva** (regra inviolavel pos-GA): nullable → seed/backfill → NOT NULL em release seguinte. Nunca breaking em uma migration unica. **Especial atencao a mudancas em JSON `dataSource`/`filters`/`axisConfig`/`config`:** adicionar chave nova e aditivo; renomear ou remover chave e breaking — tem que ter migracao de dados dos cards existentes + bump de `schemaVersion` + transformador em tempo de leitura para cards em versao anterior.
+7. **Feature flag por workspace** (`DASHBOARDS_FEATURE_NNN_ENABLED`) durante rollout: 1 workspace canary → 10% → 50% → 100%. Cada etapa monitorada por 48h-7d.
+8. **Documentacao atualizada** em paralelo: Swagger, README do modulo `dashboards/`, Storybook (coordenado com squad FE Dashboards), addendum no PLANO.md se afeta contrato publico.
+
+**Tipos de atualizacao tipicos:**
+- **Aditivo simples** (novo operator de filtro `IN_LAST_DAYS`, nova chave opcional em `config`, nova coluna na whitelist de `field` por entidade): RFC leve, 1 sprint, low risk.
+- **Aditivo complexo** (novo `CardType` ex: `HEATMAP` ou `FUNNEL` ou `GAUGE`, novo `dataSource.entity` ex: StockRequisitions): RFC + ADR, 1-2 sprints, flag rollout. **Nunca introduzir novo `dataSource.entity` sem adapter dedicado e whitelist explicita** — cada entidade nova exige adapter no query engine com mapeamento de `field`/`operator` permitidos.
+- **Refactor performance** (cache Redis no `/cards/:cardId/data`, materialized view, projecao assincrona de KPIs caros, pre-agregacao diaria): RFC + benchmark antes/depois + canary.
+- **Migracao de dado pos-GA** (ex: mudar schema do JSON `dataSource`, renomear campos, consolidar `filters` dentro de `dataSource`): script idempotente em `prisma/migrations-data/` + dry-run obrigatorio + rollback documentado + transformador de leitura durante transicao.
+- **Quebra controlada de contrato** (deprecation de `CardType` obsoleto): `Deprecation` header por 90 dias minimo + comunicacao ao squad FE Dashboards + remocao em release marcada; dashboards que ainda usam o tipo passam a renderizar fallback explicito (`UnsupportedCardType` com instrucao de migrar).
+
+---
+
+## Modo de Operacao: Execucao Simultanea (Clausula Mandatoria)
+
+**Vale para os 3 modos. Nao e uma fila de tarefas — e um time ATUANDO AO MESMO TEMPO.**
+
+### Regras de simultaneidade (vinculantes)
+
+1. **Implementacao:** apos o golden path do query engine (Etapa 1 — Thales solo: `DashboardCardQueryService` com 1 data source (Orders) + 1 tipo (KPI_NUMBER) ponta-a-ponta), as 3 frentes da Etapa 2 sao executadas em paralelo (Debora, Iago, Renata). Hugo entra em paralelo desde o dia 1 escrevendo testes contra o golden path.
+2. **Manutencao:** P0/P1 mobilizam squad em paralelo (Thales coordena; Hugo audita regressao/seguranca; owner do modulo aplica fix). Hotfix nunca espera outra task — abre branch `hotfix/dashboards-*` direto.
+3. **Atualizacao:** apos RFC aprovada, todos os membros afetados trabalham simultaneamente em suas branches; Hugo escreve testes em paralelo desde o dia 1.
+4. **Hugo (QA) atua em paralelo aos demais nas TRES fases** — escreve testes assim que cada PR abre, audita seguranca do query engine em todo PR que toca `DashboardCardQueryService`, `adapters/*`, whitelist de `entity`/`operator`/`field`.
+5. **Thales (Tech Lead) coordena, revisa PRs, mantem ADRs/RFCs, gerencia feature flags por workspace, e e dono absoluto da query engine** — atua transversalmente desde a Etapa 1 e indefinidamente pos-GA.
+6. **Ao delegar trabalho deste squad para subagentes, o agente orquestrador DEVE disparar multiplas invocacoes de Agent em uma unica mensagem** (em um unico bloco com varias chamadas em paralelo), salvo quando houver dependencia tecnica explicita (ex: golden path do query engine bloqueia Etapa 2; hotfix P0 pode bloquear novas features ate estabilizar).
+
+### Matriz de simultaneidade — Implementacao
+
+| Etapa | Membros em paralelo | Bloqueio |
 |---|---|---|
-| **Thales Rocha** (Senior) | DashboardCardQueryService (query engine — coracao dos paineis) | Tech Lead, dono da query engine |
-| **Debora Lima** (Pleno) | Dashboard CRUD, visibilidade (publico/privado) | Dona do dashboard |
-| **Iago Silveira** (Pleno) | DashboardCard CRUD, 8 tipos de grafico, layout grid | Dono dos cards |
-| **Renata Pires** (Pleno) | DashboardFilter, filtros globais batch | Dona dos filtros |
-| **Hugo Monteiro** (Senior) | Testes, seed de dashboard exemplo, validacao | QA |
+| 1 — Golden Path Query Engine | Thales (solo) + Hugo (testes de seguranca iniciais) | — |
+| 2 — Paralelo CRUD | Debora + Iago + Renata (todos em paralelo) + Hugo | Aguarda Etapa 1 estavel |
+| 3 — Hardening & 8 tipos de card completos | Iago (8 tipos) + Thales (perf + cache + Redis) + Hugo (QA + threat model + audit) + Renata (filtros avancados) + Debora (visibilidade publico/privado hardened) | Aguarda Etapa 2 mergeada |
+
+### Matriz de mobilizacao — Manutencao
+
+| Severidade | Mobilizacao tipica | Coordenacao |
+|---|---|---|
+| P0 (tenant leak, SQL injection, cache poisoning) | Squad inteiro em war room ate fix em prod | Thales (incident commander) |
+| P1 (tipo de card quebrado, numero errado, merge de filtro quebrado) | Owner do modulo + Hugo + Thales (review) | Owner |
+| P2 (cosmetico, 1 tipo de card, operator edge case) | Owner (solo) + Hugo (review) | Owner |
+| P3 (edge case muito raro) | Owner (quando capacidade permitir) | Owner |
+| Perf alert query engine | Thales + Debora (se cache/invalidacao) + Iago (se render/shape) | Thales |
+| Security CVE / injection | Hugo + Thales | Hugo |
+
+### Matriz de mobilizacao — Atualizacao
+
+| Tipo | Membros tipicos | Lider |
+|---|---|---|
+| Aditivo simples (novo operator) | Renata + Hugo | Renata |
+| Novo `CardType` | Iago + Thales (query engine) + Hugo + squad FE Dashboards (coord) | Iago |
+| Novo `dataSource.entity` | Thales + Debora + Hugo + owner da entidade-fonte (Squad Orders/Financial/etc.) | Thales |
+| Cache/materialized view | Thales + Hugo + Debora | Thales |
+| Dashboard publico por link externo | Debora + Thales + Hugo | Debora |
+| Migracao de schema JSON dos cards (schemaVersion bump) | Thales + Iago + Hugo | Thales |
+| Deprecation de `CardType` | Iago + Thales + Hugo + squad FE Dashboards | Iago |
+| Alerta por threshold em card | Thales + Debora + Hugo + squad Notifications | Thales |
+
+### Quando delegar para subagentes
+
+Se um agente orquestrador (main) precisar acionar este squad, a regra e:
+- **Uma unica mensagem com multiplas tool calls `Agent` em paralelo** para todos os membros mobilizados (sprint corrente, ou time de incident, ou time de RFC).
+- Cada invocacao carrega no prompt: (1) nome do membro, (2) ownership vertical, (3) modo de operacao (implementacao/manutencao/atualizacao), (4) referencia ao `PLANO.md` secoes 1.5d + 2.6d + `agent-cto.md` + `99-referencia-completa.md` + RFC/ADR aplicavel, (5) story IDs ou ticket, (6) entregavel esperado + AC.
+- Jamais disparar membros mobilizados em serie — quebra a clausula de simultaneidade.
 
 ---
 
-## Ordem de Execucao
+## Principios Inegociaveis (Agent-CTO + 99-referencia-completa)
 
-### Etapa 1 — Golden Path (Thales): Query engine com 1 data source (Orders) + 1 tipo (KPI_NUMBER)
-### Etapa 2 — Paralelo: Debora (Dashboard CRUD), Iago (Cards + layout), Renata (Filters)
-### Etapa 3 — QA (Hugo): Testes, seed, todos os 8 tipos de card funcionando
+Aplicados nas TRES fases (implementacao, manutencao, atualizacao):
+
+1. **Multi-tenancy hermetico:** `WorkspaceGuard` + `@WorkspaceId()` em toda rota `/dashboards/**`; `workspaceId` do usuario autenticado e aplicado **antes** de qualquer filtro do `dataSource` ou `DashboardFilter`; cross-tenant retorna **404, nunca 403** (nao vaza existencia de dashboard).
+2. **Query engine e whitelist-only.** `dataSource.entity` deve estar numa whitelist explicita (ex: `orders`, `accountsReceivable`, `accountsPayable`, `products`, `workItems`, `productionOrders`, `stockRequisitions`). Entidade fora da whitelist → 400 `UnsupportedDataSourceException`. Mesma regra para `operator` dos filtros (EQUALS/NOT_EQUALS/GREATER/LESS/BETWEEN/IN apenas). Mesma regra para `field` por entidade — cada adapter declara a whitelist de campos filtravel/agregavel.
+3. **Zero SQL bruto a partir de JSON.** `dataSource.filters`, `DashboardFilter.value` e `axisConfig.xField/yField/groupBy` NUNCA sao concatenados em string SQL — sao traduzidos para objetos Prisma tipados por adapter dedicado por entidade. `$queryRaw` e proibido no query engine sem excecao. Violacao = P0 de seguranca.
+4. **Contratos tipados nas fronteiras:** DTOs com `class-validator` (back), Zod (front). Zero `any`. `ValidationPipe` `whitelist:true, forbidNonWhitelisted:true` global. JSON `dataSource`/`filters`/`axisConfig`/`config` sempre validado via schema Zod/class-validator com `@IsIn` nas chaves — nao basta `@IsObject`.
+5. **Versionamento do schema JSON dos cards.** Todo `DashboardCard.dataSource` e `config` carrega uma chave `schemaVersion: number`. Migracoes alteram schemaVersion e aplicam transformador em tempo de leitura (compat backward). Cards criados antes de existir `schemaVersion` sao tratados como versao 1.
+6. **Paginacao obrigatoria** em `GET /dashboards` (offset `page/limit≤50`) e em `TABLE` cards (limite padrao 100 linhas, max 500 linhas). `orderBy` whitelist estrita por entidade.
+7. **Budget de queries por endpoint ≤ 5** para `GET /dashboards/:id` (dashboard + cards + filtros + owner + membership check) — zero N+1.
+8. **Budget do `/cards/:cardId/data`:** p95 < 400ms em dataset de staging; acima disso, cache Redis por `(cardId, dashboardFiltersHash, workspaceId)` com TTL 60s (default) configuravel via `DashboardCard.config.cacheTTL`. Cache hit alvo ≥ 60%.
+9. **Invalidacao de cache via outbox (ADR-003):** quando entidade-fonte (Order, AR, AP, Product, WorkItem, etc.) sofre mutacao relevante, um evento no outbox invalida cache dos cards que referenciam aquela entidade naquele workspace. Nunca dupla escrita sincrona.
+10. **Idempotencia:** `DELETE /dashboards/:id` em ja deletada → 204; `PATCH /dashboards/:id/layout` e idempotente (recebe estado completo do layout de todos os cards).
+11. **Rate limiting restritivo:** `/cards/:cardId/data` 60/min/user (proteger query engine contra enumeration/DoS), `POST /dashboards` 10/min/user, `POST /dashboards/:id/cards` 30/min/user.
+12. **Dashboard publico = publico dentro do workspace.** `isPublic=true` permite leitura por qualquer membro do mesmo workspace, nunca cross-workspace. Teste E2E permanente que cria 2 workspaces, marca dashboard do W1 como publico, valida que usuario de W2 recebe 404.
+13. **RequestId + workspaceId + userId + dashboardId + cardId em todos os logs estruturados** do query engine. Log de `dataSource`/`filters` nao pode vazar valores sensiveis — truncar strings > 200 chars, nao logar valores monetarios/CPF/email em full, mascarar conforme configuracao.
+14. **Feature flag `DASHBOARDS_ENABLED`** por workspace — rollout/rollback. Toda nova funcionalidade pos-GA tem sua propria flag (`DASHBOARDS_FEATURE_NNN_ENABLED`).
+15. **Performance Budgets (CI bloqueante):** `GET /dashboards/:id` p95 < 400ms, `GET /dashboards/:id/cards/:cardId/data` p95 < 400ms (cache hit) / < 1.5s (cache miss dataset staging), cobertura unitaria do `DashboardCardQueryService` ≥ 90%, cobertura E2E de cross-tenant 404 e SQL injection fuzz obrigatoria.
+16. **Toda mudanca pos-GA exige RFC + flag de rollout per-workspace.** Sem excecao para mudancas que afetem whitelist de entidades, whitelist de operators, whitelist de fields, schema JSON dos cards, ou hot path da query engine.
+17. **`export default` proibido em componentes** (quando squad toca frontend em hardening coordenado com FE Dashboards).
+18. **Soft delete cascade:** `DELETE /dashboards/:id` faz soft delete do Dashboard e todos os seus `DashboardCard` e `DashboardFilter` associados em uma transaction.
+
+---
+
+## Entidades/Recursos sob Responsabilidade
+
+### Camada de Schema (1 migration inicial + manutencao continua)
+
+| Recurso | Secao PLANO | Owner | Modo |
+|---|---|---|---|
+| `Dashboard` model (name, description, ownerId, isPublic, autoRefreshSeconds, sortOrder, deletedAt para soft delete) | 1.5d | Debora | Implementacao |
+| `DashboardCard` model (type, title, dataSource JSON, filters JSON, axisConfig JSON, layoutX/Y/W/H, config JSON, sortOrder, schemaVersion) | 1.5d | Iago | Implementacao |
+| `DashboardFilter` model (dashboardId, field, operator, value JSON, label) | 1.5d | Renata | Implementacao |
+| Enum `CardType` (BAR_CHART, LINE_CHART, PIE_CHART, KPI_NUMBER, TABLE, DONUT, AREA_CHART, STACKED_BAR) | 1.5d | Iago | Implementacao |
+| Migration `dashboards_foundations` + indices em `ownerId`, `isPublic`, `(dashboardId, sortOrder)` em Card e Filter | 1.5d | Debora | Implementacao |
+| Seed de dashboard exemplo (1 Dashboard publico + 3-4 Cards variando tipos + 1-2 Filtros globais) | 1.5d | Hugo | Implementacao |
+| Migracoes aditivas de schema JSON dos cards (novas chaves em `dataSource`/`config`/`axisConfig` + bump schemaVersion) | — | Thales + Iago | Atualizacao via RFC |
+| Indices adicionais on-demand conforme query engine revelar hot paths nas entidades-fonte | — | Thales (coord com owner da entidade-fonte) | Manutencao |
+| Particionamento/archive de cache persistente (se materialized views forem introduzidas) | — | Thales | Atualizacao via ADR |
+
+### Camada Backend (modulo `dashboards/` + query engine + manutencao continua)
+
+| Recurso | Owner | Implementacao | Manutencao | Atualizacao |
+|---|---|---|---|---|
+| `DashboardCardQueryService` — **CORACAO da feature** (traduz `dataSource` + filtros globais em query Prisma tipada por entidade; adapters por `entity` na whitelist; sanitizacao de operators/fields; retorna shape por `CardType`; injeta `workspaceId` em toda query como primeira clausula) | Thales | Golden path + 1 entidade (Orders) + 1 tipo (KPI_NUMBER), depois expande para todas as entidades e 8 tipos | Bug fix, perf (cache, indice, query shape), sanitizacao de injection, regressao por mudanca de schema em entidade-fonte | Novos `dataSource.entity` (novos adapters), novos operators, novos shapes de retorno por `CardType`, materialized views |
+| `dashboards/` modulo (fachada): controller + service + repository + DTOs de `Dashboard`, endpoints `GET /dashboards` (lista do usuario + publicos do workspace), `GET /dashboards/:id` (com cards + filtros), `POST`, `PATCH`, `DELETE` (soft delete cascade), visibilidade (publico/privado dentro do workspace), `autoRefreshSeconds` | Debora | CRUD + visibility + soft delete cascade | Bug fix soft delete, auto-refresh configuration, dashboard duplicado, bug em listagem misturando proprio + publico | Dashboard publico compartilhavel por link externo (token assinado), dashboards favoritos, ordenacao custom |
+| `/dashboards/:id/cards` endpoints (POST/PATCH/DELETE) + `PATCH /dashboards/:id/layout` (batch layout — recebe estado completo de todos os cards em uma transaction) + validacao de 8 tipos de `CardType` (shape esperado de `axisConfig`, `config`, `dataSource` varia por tipo — cada tipo tem DTO dedicado) | Iago | CRUD + layout grid + 8 tipos validados | Bug em tipo especifico (edge case em DONUT, STACKED_BAR etc.), layout corrompido, axisConfig edge case, regressao visual coord com FE | Novos `CardType` (HEATMAP, FUNNEL, GAUGE, etc.), deprecation de tipo obsoleto com janela 90 dias, versionamento de schema JSON dos cards |
+| `/dashboards/:id/filters` endpoints (POST/DELETE) + aplicacao batch dos filtros globais sobre todos os Cards no query engine (merge com `DashboardCard.dataSource.filters` do card — regra documentada: filtro global do dashboard e INTERSECAO com filtro do card, nunca substitui), 6 operators (EQUALS, NOT_EQUALS, GREATER, LESS, BETWEEN, IN) com validacao estrita de tipo de `value` por operator, `field` na whitelist por entidade | Renata | CRUD + merge logic + 6 operators | Bug em merge de filtros, operator edge case (BETWEEN com um lado null, IN com array vazio, type coercion), perf de aplicacao batch em dashboard com muitos cards | Novos operators (IN_LAST_DAYS, RELATIVE_DATE, NOT_IN, CONTAINS, STARTS_WITH), filtros salvos como preset reutilizavel entre dashboards |
+| Cache Redis do `/cards/:cardId/data` por `(cardId, dashboardFiltersHash, workspaceId)` + invalidacao via outbox de mutacao nas entidades-fonte (Orders, AR, AP, Products, WorkItem, etc.) + TTL configuravel por card (`config.cacheTTL`) | Thales + Debora | Cache opcional na etapa 2; invalidacao MVP na etapa 3 | Monitoramento cache hit rate, TTL tuning, limpeza de cache orfao (card deletado), invalidacao seletiva por entidade-fonte | Materialized views para KPIs muito caros, projecao assincrona de pre-agregacoes, cache em layers (memoria + Redis) |
+
+### Camada de Integracao (entidades-fonte consumidas pelo query engine)
+
+| Entidade | Dono (squad de origem) | Ponto de integracao | Observacao |
+|---|---|---|---|
+| Orders | squad-orders | Adapter `orders` no query engine | Entidade-fonte mais consumida; SLI critico |
+| AccountsReceivable | squad-financial | Adapter `accountsReceivable` | Fluxo de caixa, DRE |
+| AccountsPayable | squad-financial | Adapter `accountsPayable` | Fluxo de caixa |
+| Products | squad-products | Adapter `products` | Catalogo, wizard |
+| WorkItem (Tasks) | squad-tasks | Adapter `workItems` (scope por Process→Department→Workspace) | Time-in-status, throughput, leadtime |
+| ProductionOrders | squad-production | Adapter `productionOrders` | Kanban producao, OPs |
+| StockRequisitions | squad-requisitions | Adapter `stockRequisitions` | Requisicoes estoque |
+| Clients | squad-clients | Adapter `clients` | Relatorios de cliente |
+| Suppliers | squad-suppliers | Adapter `suppliers` | Historico compras |
+| Quotations/PurchaseOrders | squad-quotations | Adapters `purchaseQuotations`/`purchaseOrders` | Compras |
+
+**Regra:** cada adapter e proprietario deste squad, mas **Hugo audita regressao** em todo release de qualquer squad-de-origem acima. Qualquer mudanca de schema (rename de coluna, nova restricao, delete de campo) em entidade-fonte exige validar adapters correspondentes.
+
+### Camada de QA + Security + Performance (transversal, todas as fases)
+
+| Recurso | Owner | Modo |
+|---|---|---|
+| Suite E2E supertest: cross-tenant 404 em `/dashboards/:id` (owner de outro workspace), SQL injection via `dataSource.filters` (fuzz com payloads maliciosos: `'; DROP TABLE--`, `OR 1=1`, JSON nested injection), whitelist de `entity`/`operator`/`field`, `isPublic` visivel intra-workspace mas nao cross-workspace, 8 tipos de card retornando shape correto, soft delete cascade | Hugo | Implementacao + execucao continua em CI |
+| Unit tests `DashboardCardQueryService` (cobertura ≥ 90%, mock Prisma, todos os adapters de entidade, todos os operators, todos os shapes por CardType) | Hugo + Thales | Implementacao + manutencao quando refactor |
+| Unit tests de merge de filtros globais × card (todas as combinacoes de operators, edge cases de null/array/type coercion) | Hugo + Renata | Implementacao |
+| Performance k6: 100 dashboards, 10 cards cada, dataset 100k+ por entidade, p95 budgets, cache hit rate | Hugo | Implementacao + execucao mensal em staging |
+| Seed de dashboard exemplo para QA manual + Storybook referencia (coord com squad FE) | Hugo | Implementacao |
+| Regressao zero em entidades-fonte (quando Orders/Financial/Production/BPM mudam schema, validar que nenhum card existente quebra, nenhum shape mudou, nenhum operator deixou de funcionar) | Hugo | Manutencao por-release de OUTROS squads |
+| Threat model review (SQL injection via JSON, owner spoofing, cache poisoning, dashboard publico cross-workspace, enumeration via isPublic, DoS via query complexa) | Hugo + Thales | Manutencao trimestral |
+| Pentest finding triage e fix no query engine | Hugo + Thales | Manutencao on-demand |
+| Rollout per-workspace + monitoramento Grafana (dashboards: p95 `/cards/data`, cache hit rate, top 10 cards lentos, top 10 erros 5xx, tamanho medio de dataSource JSON, uso de cada CardType) | Thales | Implementacao + manutencao continua |
+| Fuzz continuo de `dataSource.filters` em pipeline (dia-a-dia) + revisao manual de PR sensivel ao query engine | Hugo | Implementacao + manutencao |
+
+---
+
+## Composicao do Squad (5 membros)
+
+Nomes reais, cada um dono vertical de uma frente. Todos atuam **simultaneamente** dentro de cada fase (implementacao/manutencao/atualizacao).
+
+| # | Membro | Papel | Ownership Vertical (3 modos) |
+|---|---|---|---|
+| 1 | **Thales Rocha** (Senior) | Tech Lead / Query Engine Owner | **Implementacao:** `DashboardCardQueryService` (golden path + adapters por entidade + sanitizacao + shapes por `CardType` + injecao obrigatoria de `workspaceId` como primeira clausula), ADRs de decisoes arquiteturais (cache, materialized view, whitelist, schemaVersion), modulo de cache Redis por `(cardId, filtersHash, workspaceId)` + invalidacao via outbox, feature flag `DASHBOARDS_ENABLED`, observabilidade (p95 /cards/data, cache hit rate, top 10 erros, dashboards Grafana `dashboards-feature`). **Manutencao:** incident commander P0 (tenant leak, SQL injection, cache poisoning), on-call rotation, monthly health check, threat model trimestral, perf alert triage (query engine = hot path critico), rollout/rollback per-workspace, coordenacao com donos de entidades-fonte quando schema muda. **Atualizacao:** RFC owner principal para novos `dataSource.entity`, novos operators, materialized views, cache strategies, schemaVersion; ADR de decisoes irreversiveis; capacity planning trimestral; dono do contrato de adapter (documentar como criar adapter novo para squad vizinho que deseja expor entidade para dashboards). |
+| 2 | **Debora Lima** (Pleno) | Backend Dashboard CRUD + Visibility | **Implementacao:** modulo `dashboards/` (fachada): controller + service + repository + DTOs de `Dashboard`, endpoints `GET /dashboards` (merge de dashboards proprios + publicos do workspace), `GET /dashboards/:id` (com cards + filtros), `POST`, `PATCH`, `DELETE` (soft delete cascade em cards e filters em transaction), visibilidade publico/privado **dentro do workspace** com teste E2E permanente, soft delete com `deletedAt`, `autoRefreshSeconds` config, `sortOrder`. Trabalha com Thales na estrategia de invalidacao de cache via outbox das entidades-fonte. **Manutencao:** bug fix em CRUD, regressao de visibilidade `isPublic`, soft delete cascade incompleto, auto-refresh bugs, bug em listagem (ordenacao, mistura de proprio+publico). **Atualizacao:** dashboard publico compartilhavel por link externo com token assinado (RFC + ADR), dashboards favoritos, ordenacao custom, export PDF do dashboard, duplicacao de dashboard. |
+| 3 | **Iago Silveira** (Pleno) | Backend Cards + 8 tipos + Layout Grid | **Implementacao:** endpoints `POST/PATCH/DELETE /dashboards/:id/cards` + `PATCH /dashboards/:id/layout` (batch atomico em transaction), validacao de `DashboardCard` por `CardType` (cada tipo tem DTO dedicado para `axisConfig`, `config`, `dataSource`), 8 tipos de `CardType` funcionando ponta-a-ponta (BAR_CHART, LINE_CHART, PIE_CHART, KPI_NUMBER, TABLE, DONUT, AREA_CHART, STACKED_BAR — cada um com shape de retorno documentado), validacao de layout grid (posicao x,y + dimensao w,h dentro do grid + nao sobreposicao), `schemaVersion` em todos os JSON. **Manutencao:** bug em tipo especifico, layout corrompido, axisConfig quebrado, regressao visual coord com squad FE Dashboards, shape de retorno inconsistente com contrato FE. **Atualizacao:** novos `CardType` (HEATMAP, FUNNEL, GAUGE, TREEMAP, etc.), deprecation de tipo obsoleto com `Deprecation` header + janela 90 dias, versionamento de schema JSON dos cards (bump `schemaVersion` + transformador de leitura), migration de dados dos cards existentes quando schema evolui. |
+| 4 | **Renata Pires** (Pleno) | Backend Filtros Globais + Operators | **Implementacao:** endpoints `POST/DELETE /dashboards/:id/filters` + merge batch dos filtros globais sobre TODOS os cards no query engine (regra documentada: INTERSECAO entre filtro global e `dataSource.filters` do card — NUNCA substitui; documentado em ADR na Etapa 1), 6 operators (EQUALS, NOT_EQUALS, GREATER, LESS, BETWEEN, IN) com validacao estrita de tipo de `value` por operator (BETWEEN exige array de 2; IN exige array nao-vazio; NOT_EQUALS suporta null), `field` na whitelist por entidade (definida junto com Thales no adapter da query engine). **Manutencao:** bug em merge de filtros, operator edge case (BETWEEN com um lado null, IN com array vazio, type coercion entre Int/Float/Decimal, timezone em filtros de data), perf de aplicacao batch em dashboard com 10+ cards. **Atualizacao:** novos operators (IN_LAST_DAYS, RELATIVE_DATE, NOT_IN, CONTAINS, STARTS_WITH, BETWEEN_DATES), filtros condicionais avancados, filtros salvos como preset reutilizavel entre dashboards (novo model `DashboardFilterPreset`). |
+| 5 | **Hugo Monteiro** (Senior) | QA + Security + Seed | **Implementacao:** suite E2E supertest cobrindo cross-tenant 404 (2 workspaces, dashboard publico de W1 invisivel para W2), SQL injection fuzz em `dataSource.filters` (payloads `'; DROP TABLE--`, `OR 1=1`, nested JSON injection, prototype pollution), whitelist de `entity`/`operator`/`field`, `isPublic` intra-workspace (nunca cross), 8 tipos de card retornando shape correto, soft delete cascade. Unit tests `DashboardCardQueryService` ≥ 90% (todos adapters + operators + shapes). Perf k6 (100 dashboards × 10 cards × 100k+ rows por entidade). Seed de dashboard exemplo + Storybook referencia coord com squad FE. **Manutencao:** triagem P0-P3 diaria, regressao zero por release de OUTROS squads (Orders/Financial/Production/BPM/Products/Requisitions/Clients/Suppliers — qualquer mudanca de schema em entidade-fonte pode quebrar cards existentes), audit cross-tenant trimestral, pentest finding triage, on-call permanente para CVE/security P0 (query engine = superficie critica), threat model review trimestral (SQL injection, owner spoofing, cache poisoning, enumeration, DoS). **Atualizacao:** testes para nova story (E2E + unit + visual + fuzz), Lighthouse budget guard (coordenando com squad FE), regression suite expansion quando novo `CardType`/`entity`/`operator` entrar, validacao de feature flag rollout per-workspace, audit de novo endpoint para cross-tenant + RBAC + rate limit + envelope de resposta. |
+
+---
+
+## Ordem de Execucao (Fase F4C)
+
+### Etapa 1 — Golden Path Query Engine (Thales solo + Hugo em paralelo)
+- **Thales:** schema 3 models + enum CardType + migration `dashboards_foundations` + indices, `DashboardCardQueryService` MVP com 1 adapter (Orders) + 1 tipo (KPI_NUMBER) + endpoint `GET /cards/:cardId/data` funcional com `workspaceId` injetado como primeira clausula + feature flag `DASHBOARDS_ENABLED` + estrutura de whitelist documentada (como adicionar nova entidade/operator/field).
+- **Hugo:** estrutura de testes E2E + golden path test (cross-tenant 404 + SQL injection fuzz inicial + isPublic) + seed de dashboard exemplo ja apontando para adapter Orders + fuzz pipeline contra o query engine ativo desde o dia 1.
+- **Bloqueio para Etapa 2.**
+
+### Etapa 2 — Paralelo CRUD (Debora + Iago + Renata + Hugo simultaneos)
+- **Debora:** modulo `dashboards/` CRUD completo + visibilidade intra-workspace + endpoints list/detail/create/update/delete + soft delete cascade.
+- **Iago:** endpoints de Cards + layout batch atomico + 8 tipos de `CardType` com DTO dedicado por tipo + validacao (delega ao Thales novos adapters por entidade conforme tipo exigir).
+- **Renata:** endpoints de Filtros + 6 operators + merge batch (INTERSECAO com filtros do card) + whitelist de `field` por entidade coordenada com Thales.
+- **Hugo:** cobertura E2E + unit ≥ 90% no query engine + perf k6 inicial + seed completo + audit de PRs em tempo real.
+
+### Etapa 3 — Hardening & Cache (squad inteiro)
+- **Thales:** cache Redis `(cardId, filtersHash, workspaceId)` + invalidacao via outbox das entidades-fonte + monitoring Grafana + SLIs configurados.
+- **Iago:** 8 tipos passando todos os testes visuais (coordena com Squad FE Dashboards) + schemaVersion em todos os JSON.
+- **Renata:** operators avancados revisados + documentacao de regra de merge.
+- **Debora:** visibilidade publico/privado hardened + soft delete cascade validado em transaction.
+- **Hugo:** threat model inicial + audit cross-tenant + pentest interno do query engine + regression baseline.
+
+---
+
+## Roteamento por Tipo de Demanda
+
+A primeira pergunta sempre e: **qual o modo de operacao?** (implementacao/manutencao/atualizacao). Em seguida, **qual o recurso afetado?**
+
+### Implementacao (stories conforme PLANO.md Fase F4C)
+
+| Story / area | Procure... |
+|---|---|
+| Schema, migration, indice, seed | **Debora** (Dashboard) / **Iago** (Card) / **Renata** (Filter) / **Thales** (review) / **Hugo** (seed) |
+| `DashboardCardQueryService`, adapters por entidade, shapes por CardType, cache, invalidacao | **Thales** |
+| Dashboard CRUD + visibilidade intra-workspace + soft delete cascade | **Debora** |
+| Cards + 8 tipos + layout grid batch | **Iago** |
+| Filtros globais + 6 operators + merge INTERSECAO | **Renata** |
+| Testes E2E/unit/perf, seed exemplo, validacao seguranca, fuzz | **Hugo** |
+
+### Manutencao (bug fix, hotfix, perf, security)
+
+| Sintoma | Owner primario | Co-owner |
+|---|---|---|
+| Dashboard devolve dado de outro workspace | Thales + Hugo | Debora |
+| `/cards/data` lento (perf SLI degradado) | Thales | Debora (se cache), Iago (se shape/render) |
+| Cache hit rate caiu | Thales | Debora |
+| Tipo de card retornando shape errado | Iago | Thales |
+| Layout corrompido apos drag/batch | Iago | — |
+| Filtro global nao aplica a todos os cards | Renata | Thales |
+| Merge de filtro (global × card) quebrado | Renata | Thales |
+| Operator BETWEEN/IN edge case | Renata | Hugo |
+| Dashboard publico aparece em outro workspace | Debora + Hugo | Thales |
+| Soft delete de dashboard nao cascateou cards/filters | Debora | — |
+| Auto-refresh parado ou em loop | Debora | Iago (se coord com FE) |
+| SQL injection suspeito via `dataSource.filters` | Hugo + Thales | — |
+| CVE em dep de grafico (frontend coordena) | Hugo | Iago |
+| Entidade-fonte mudou schema e quebrou cards | Hugo + Thales | Owner da entidade-fonte (Squad Orders/Financial/etc.) |
+| Log do query engine vazando valor sensivel | Hugo + Thales | — |
+
+### Atualizacao (RFC → ADR → Story → PR)
+
+| Tipo de mudanca | Lider RFC | Membros tipicos | Necessita ADR? |
+|---|---|---|---|
+| Novo operator de filtro (IN_LAST_DAYS, etc.) | Renata | Renata + Thales + Hugo | Nao (aditivo) |
+| Novo `CardType` (HEATMAP, FUNNEL, GAUGE) | Iago | Iago + Thales + Hugo + squad FE Dashboards | Talvez (depende de shape novo) |
+| Novo `dataSource.entity` (ex: StockRequisitions, ProductionOrders) | Thales | Thales + Hugo + owner da entidade-fonte | Sim (novo adapter + whitelist + SLI) |
+| Cache estrategico (TTL dinamico, materialized view) | Thales | Thales + Hugo + Debora | Sim |
+| Dashboard publico compartilhavel por link externo | Debora | Debora + Thales + Hugo | Sim (novo modelo de auth/token) |
+| Export PDF de dashboard | Debora | Debora + Iago + Hugo + squad FE | Talvez |
+| Alerta por threshold em card (email/notification quando KPI passar limite) | Thales | Thales + Debora + Hugo + squad Notifications | Sim (novo side-effect) |
+| Versionamento schemaVersion dos cards (transformador de leitura) | Thales | Thales + Iago + Hugo | Sim |
+| Deprecation de `CardType` | Iago | Iago + Thales + Hugo + squad FE Dashboards | Talvez |
+| Filtros salvos como preset reutilizavel | Renata | Renata + Debora + Hugo | Nao |
+| Dashboards favoritos | Debora | Debora + Hugo + squad FE | Nao |
+| Duplicacao de dashboard | Debora | Debora + Iago + Renata + Hugo | Nao |
 
 ---
 
@@ -45,20 +310,165 @@ Paineis configuraveis: dashboards com cards de graficos/KPIs, query engine dinam
 
 ### Quem depende de nos
 
-Squad FE Dashboards (frontend).
+| Squad | O que consome | Estabilidade do contrato |
+|---|---|---|
+| **Squad FE Dashboards + Reports** | Todo endpoint `/api/v1/dashboards/**`, em especial `/cards/:cardId/data` (shape por `CardType`), schema JSON de `dataSource`/`axisConfig`/`config` (contrato via schemaVersion) | Estavel; mudancas via RFC; `Deprecation` ≥ 90 dias; breaking change proibido sem transformador de leitura |
+| **Squad Reports** | Reutiliza logica de adapters por entidade quando aplicavel, padrao de whitelist | Estavel; evolucao coordenada; colaboracao em adapters reutilizaveis |
 
 ### De quem dependemos
 
-Todos os squads de entidades — a query engine faz queries nos dados de Orders, AR, AP, Products, etc.
+| Squad | O que consumimos |
+|---|---|
+| **Squad Workspace** | `WorkspaceGuard`, `@WorkspaceId()`, scoping transitivo via `User.workspaceId` e entidades consultadas (Order→workspaceId; WorkItem→Process→Department→Workspace; etc.) |
+| **Squad Auth** | `JwtAuthGuard`, `@CurrentUser`, `@Roles`, `RolesGuard` (Viewer GET, Operator+ mutacoes de dashboards proprios, Manager/Admin mutacoes de dashboards publicos) |
+| **Squad Infra** | `PrismaService`, `CommonModule`, `ResponseInterceptor`, `PaginationDto`, `RequestIdInterceptor`, Throttler, Redis (cache), BullMQ + outbox (invalidacao de cache via eventos) |
+| **Squad Orders, Financial, Production, BPM, Reference Data, Products, Quotations, Suppliers, Clients, Requisitions** | Sao as **entidades-fonte consultadas pela query engine**. Cada adapter da query engine depende do schema estavel dessas entidades. Mudanca de schema deve ser comunicada em RFC ou PR notification — Hugo audita regressao em todo release de qualquer um desses squads |
+| **Squad FE Shell + FE Dashboards** | Align UI primitives, convencoes de design, Storybook compartilhado |
+| **Squad Coolify** | Deploy staging para testar query engine em clone com dataset, Redis provisionado, observabilidade (Grafana) |
+
+---
+
+## Protocolo de Consulta (Quando Precisamos de Mais Contexto)
+
+A ordem e **estrita** — nao pular etapas.
+
+1. **`PLANO.md` secoes 1.5d + 2.6d** — resposta oficial sobre O QUE na fase de implementacao. Se esta la, segue sem questionar specs.
+2. **RFCs em `.claude/rfc/dashboards-*.md`** — resposta oficial sobre O QUE em atualizacoes pos-GA.
+3. **`agent-cto.md`** — resposta oficial sobre COMO (performance, escala, seguranca, observabilidade, idempotencia).
+4. **`99-referencia-completa.md`** — nomenclatura, estrutura, padroes, anti-patterns, ordem para criar feature.
+5. **ADRs em `.claude/adr/`** — POR QUE em decisoes arquiteturais irreversiveis (cache, materialized view, whitelist, schemaVersion, regra de merge de filtros, etc.).
+6. **`squad-workspace.mdc`** — multi-tenancy: como `WorkspaceGuard` + `@WorkspaceId()` + scoping transitivo funcionam.
+7. **Memoria do projeto** (`MEMORY.md`) — contexto Mundial ERP, stack, decisoes anteriores, deploy Coolify.
+8. **Squad dono da entidade-fonte** — se o dataSource aponta para Orders, consulta `squad-orders.mdc`; para AR/AP consulta `squad-financial.mdc`; para WorkItem consulta `squad-tasks.mdc`; etc.
+9. **`squads-map.mdc`** — quando nao sabe a qual squad pertence o recurso.
+10. **`PLANO.md` principal** — somente se nada acima cobre.
+11. **Agent-CTO via delegacao** — para decisoes arquiteturais nao cobertas, invocar com contexto completo.
+
+**Nunca:**
+- Inventar `dataSource.entity` fora da whitelist do query engine.
+- Aceitar `operator` fora da whitelist (EQUALS/NOT_EQUALS/GREATER/LESS/BETWEEN/IN).
+- Aceitar `field` fora da whitelist por entidade (cada adapter declara os campos permitidos).
+- Usar `$queryRaw` no query engine — SEMPRE Prisma tipado por adapter dedicado.
+- Concatenar string SQL a partir de JSON de `dataSource`/`filters`.
+- Mergear codigo com `workspaceId` faltando em query da query engine (P0 do code review).
+- Usar `any` nos shapes de retorno por `CardType`.
+- Logar integralmente `dataSource.filters` sem truncar/mascarar valores sensiveis.
+- Migration breaking pos-GA em schema JSON dos cards — sempre aditiva + schemaVersion bump + transformador em leitura.
+- Mudanca pos-GA sem RFC, sem flag de rollout per-workspace, sem rollback documentado.
+- Remover `CardType` sem `Deprecation` header e janela ≥ 90 dias.
+- `isPublic=true` vazando entre workspaces — teste E2E obrigatorio permanente.
+- Cache key sem `workspaceId` (vazamento cross-tenant via cache).
+- Merge de filtros global × card substituindo em vez de INTERSECAO (quebra contrato documentado no ADR).
+
+---
+
+## Red Flags que o Squad SEMPRE Levanta em Code Review
+
+Aplicaveis nas TRES fases. Alem das red flags do agent-CTO + 99-referencia, este squad vigia especificamente:
+
+- Query `findMany`/`findFirst`/`findUnique` no `DashboardCardQueryService` **sem** `workspaceId` aplicado **antes** dos filtros do `dataSource`.
+- `$queryRaw` ou string SQL construida a partir de JSON no query engine — violacao P0.
+- `dataSource.entity` aceito sem checagem contra whitelist.
+- `operator` de filtro aceito sem checagem contra whitelist.
+- `field` de filtro aceito sem whitelist por entidade.
+- JSON `dataSource`/`filters`/`axisConfig`/`config` sem validacao class-validator/Zod com `@IsIn` nas chaves.
+- JSON schema mudado sem bump de `schemaVersion` + transformador de leitura.
+- Endpoint novo **sem** `WorkspaceGuard`.
+- DTO de response expondo `ownerId`/`workspaceId` de outro workspace.
+- Cross-tenant retornando 403 em vez de 404.
+- `isPublic=true` sem teste E2E validando que nao vaza cross-workspace.
+- Card retornando shape diferente do esperado para o `CardType` (contrato com squad FE Dashboards).
+- Cache sem chave incluindo `workspaceId` (vazamento cross-tenant via cache).
+- Cache sem TTL ou com TTL > 5 min sem justificativa em RFC.
+- Invalidacao de cache em linha sincrona (deve ser via outbox — ADR-003).
+- Budget de queries por endpoint nao verificado (> 5 em `GET /dashboards/:id` = fail CI).
+- Perf budget nao verificado (p95 `/cards/data` > 400ms cache hit = fail).
+- Listagem `GET /dashboards` sem paginacao.
+- TABLE card sem limite de linhas (max 500, default 100).
+- Rate limit ausente em `/cards/:cardId/data`.
+- Log de `dataSource.filters` sem truncar/mascarar valores.
+- Falta de teste E2E para: cross-tenant 404, SQL injection fuzz, `isPublic` intra-workspace, shape por `CardType`, soft delete cascade.
+- Falta de unit test em adapter de entidade novo no query engine.
+- Merge de filtros global × card substituindo em vez de INTERSECAO.
+- Soft delete `DELETE /dashboards/:id` sem cascade em cards e filters em transaction.
+- `PATCH /dashboards/:id/layout` nao-atomico (deve ser transaction com estado completo).
+- Validacao de layout grid sem checar sobreposicao/fora do grid.
+- **Manutencao especifica:** hotfix em main sem flag de rollback per-workspace; fix sem post-mortem em P0; bug fix sem teste de regressao adicionado; mudanca em query engine sem rodar regressao de todos os 8 tipos de card; mudanca em adapter sem validar que nenhum dashboard existente quebra.
+- **Atualizacao especifica:** mudanca de whitelist (`entity`/`operator`/`field`) sem RFC; nova feature sem flag `DASHBOARDS_FEATURE_NNN_ENABLED`; rollout 100% sem etapa canary; deprecation < 90 dias; migracao de schema JSON pos-GA sem dry-run + transformador + rollback; novo `CardType` sem coordenar contrato de shape com squad FE Dashboards antes de mergear; novo adapter de entidade sem coordenacao com squad dono da entidade-fonte.
 
 ---
 
 ## Contexto para Agentes
 
 ```
-REFERENCIAS:
-- Models: .claude/plan/PLANO.md secao 1.5d
-- Endpoints: .claude/plan/PLANO.md secao 2.6d
-- Arquitetura query engine: .claude/plan/PLANO.md secao 2.6d (endpoint /cards/:cardId/data)
-- Stories: .claude/plan/PLANO.md Fase 4C story F4C-4
+REFERENCIAS OBRIGATORIAS:
+- Plano da feature (implementacao):  .claude/plan/PLANO.md secoes 1.5d + 2.6d
+- Tela Paineis (UI spec):            .claude/plan/PLANO.md (Tela Paineis)
+- RFCs (atualizacoes pos-GA):        .claude/rfc/dashboards-*.md
+- Agent-CTO:                         .claude/agents/agent-cto.md
+- Standards completos:               .claude/standards/99-referencia-completa.md
+- ADRs:                              .claude/adr/*.md (decisoes de cache, whitelist, schemaVersion, merge de filtros)
+- Mapa de squads:                    .claude/skills/squads-map.mdc
+- Squad FE contraparte:              .claude/skills/squad-fe-dashboards.mdc
+- Memoria do projeto:                .claude/projects/c--Users-USER-Documents-vibecoding-mundial-erp/memory/MEMORY.md
+
+SQUADS CONSULTADOS COM FREQUENCIA:
+- squad-workspace.mdc     (multi-tenancy)
+- squad-auth.mdc          (guards, roles)
+- squad-infra.mdc         (PrismaService, Redis, outbox/BullMQ)
+- squad-orders.mdc        (entidade-fonte mais consumida)
+- squad-financial.mdc     (entidade-fonte AR/AP)
+- squad-production.mdc    (entidade-fonte ProductionOrders)
+- squad-bpm.mdc + squad-tasks.mdc (entidade-fonte WorkItem via Process)
+- squad-products.mdc      (entidade-fonte Products)
+- squad-fe-dashboards.mdc (contraparte frontend; contratos de shape por CardType)
+- squad-coolify.mdc       (deploy, Redis provisionado)
+
+OBJETIVO FINAL (3 modos):
+
+Implementacao — entregar feature Dashboards com:
+(1) 3 models Prisma + enum CardType + migration + seed exemplo,
+(2) `DashboardCardQueryService` com whitelist estrita de entity/operator/field + zero $queryRaw + adapters tipados Prisma por entidade + workspaceId injetado como primeira clausula,
+(3) 10 endpoints REST funcionais conforme PLANO.md 2.6d,
+(4) 8 tipos de CardType renderizando shape correto coordenado com squad FE Dashboards,
+(5) filtros globais + merge INTERSECAO com filtros do card (documentado em ADR),
+(6) isolamento cross-tenant comprovado (codigo + teste E2E permanente),
+(7) cache Redis por (cardId, filtersHash, workspaceId) com invalidacao via outbox,
+(8) feature flag DASHBOARDS_ENABLED para rollout per-workspace,
+(9) observabilidade completa (p95 /cards/data, cache hit rate, top 10 erros, uso por CardType),
+(10) cobertura ≥ 90% no DashboardCardQueryService + E2E de seguranca (fuzz SQL injection, cross-tenant, isPublic) + perf k6 100 dashboards × 10 cards × 100k+ rows.
+
+Manutencao — manter saude continua com:
+(1) SLAs P0/P1/P2/P3 cumpridos,
+(2) zero tenant leak detectado em audit trimestral,
+(3) zero SQL injection via query engine (fuzz continuo em pipeline),
+(4) p95 /cards/data < 400ms (cache hit) e < 1.5s (cache miss) sustentado,
+(5) regressao zero por release de entidades-fonte (Orders/Financial/Production/BPM/Products/Requisitions/Clients/Suppliers),
+(6) hotfix com mecanismo de rollback per-workspace,
+(7) post-mortem em 48h para todo P0,
+(8) threat model atualizado trimestralmente,
+(9) growth de cache sob controle,
+(10) cache hit rate ≥ 60% sustentado.
+
+Atualizacao — evoluir feature sem quebrar com:
+(1) RFC obrigatoria para qualquer mudanca pos-GA,
+(2) ADR para decisoes irreversiveis (novo adapter, materialized view, schemaVersion, regra de merge),
+(3) migracao sempre aditiva de schema JSON (novas chaves em dataSource/config/axisConfig) + bump schemaVersion + transformador de leitura,
+(4) feature flag por workspace para toda nova funcionalidade,
+(5) rollout canary → 10% → 50% → 100%,
+(6) deprecation de CardType ≥ 90 dias com header `Deprecation`,
+(7) Swagger + README + Storybook atualizados em paralelo ao codigo,
+(8) regressao zero em dashboards ja existentes,
+(9) testes E2E + unit para toda nova story + fuzz de injection para todo novo operator/field/entity,
+(10) contrato de shape por CardType coordenado com squad FE Dashboards antes de mergear.
+
+FLUXO DE EXECUCAO:
+- Implementacao: Fase F4C story F4C-4 (3 etapas: golden path → CRUD paralelo → hardening).
+- Manutencao: continua pos-GA, on-call rotation semanal, daily triage 15min.
+- Atualizacao: batches via RFC; cada batch tem sua propria sprint(s).
+- Ao delegar, SEMPRE disparar membros mobilizados em paralelo (uma unica mensagem com multiplas tool calls Agent).
 ```
+
+---
+
+> **Lema do squad:** Codigo simples, tipado, testavel. Query engine whitelist-only, zero SQL bruto, workspaceId sempre primeiro. Cada card retorna o shape certo, cada filtro passa pela whitelist, cada cache carrega workspaceId na chave. Zero breaking change em dashboards existentes quando uma entidade-fonte evolui — na implementacao, na manutencao e na atualizacao.

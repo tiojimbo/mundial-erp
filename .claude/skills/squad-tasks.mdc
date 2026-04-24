@@ -1,0 +1,512 @@
+---
+name: squad-tasks
+description: Squad responsavel pela IMPLEMENTACAO inicial, MANUTENCAO continua e ATUALIZACAO incremental da feature Tasks (paridade ClickUp Tasks/Checklists/Relationships + Task View). 10 membros em paralelismo maximo. Use sempre que a tarefa tocar `WorkItem`, modulos `tasks*`/`task-*`, rota `/tasks/[taskId]`, Task View, multi-assignees, watchers, tags, checklists, dependencies, merge, templates, anexos, comentarios, activity feed — seja em construcao greenfield, bug fix pos-GA, hotfix de seguranca, refactor de performance, ou expansao de contrato.
+---
+
+# Squad Tasks
+
+## Dominio
+
+Ciclo de vida COMPLETO da feature **Tasks** do Mundial ERP — paridade semantica com o grupo ClickUp Tasks + Checklists + Relationships, Task View fiel a `tasks.md`. Cobre as TRES fases de vida da feature:
+
+1. **Implementacao inicial (Sprints 0-8, ~4 meses):** 11 novos models Prisma + 3 migrations escalonadas, 12 modulos backend, Prisma extension `primary-assignee-cache`, outbox pattern + worker BullMQ, frontend `features/tasks/` integral (Task View, Board, List, Calendar, Gantt, Settings).
+2. **Manutencao continua (pos-GA, indefinida):** triagem e fix de bugs P0-P3, hotfixes de seguranca, monitoramento de SLIs, gestao de outbox/DLQ, atendimento a incidentes, manutencao de regressao zero a cada release de outras features, code review continuo de PRs que tocam Tasks.
+3. **Atualizacao incremental (pos-GA, em batches):** RFCs para novas funcionalidades (custom fields editaveis, integracoes externas, novos tipos custom de task, novos tipos de View, automacoes), evolucao aditiva de schema (sempre nullable→backfill→NOT NULL), expansao de contrato sem breaking change, refactor com feature flag, migracao de dados em background.
+
+**Fonte de verdade:** `.claude/plan/PLANO-TASKS.md` (UNICA fonte sobre O QUE construir na fase 1 — nenhum membro redefine specs, models, endpoints, sprints ou contratos).
+**Agent-CTO:** `.claude/agents/agent-cto.md` — principios inegociaveis aplicados nas TRES fases (separacao de camadas, contratos tipados, performance, idempotencia, observabilidade, seguranca).
+**Standards:** `.claude/standards/99-referencia-completa.md` (nomenclatura, estrutura backend/frontend, banco, API, auth, seguranca, anti-patterns).
+**Spec UI:** `tasks.md` (linhas 378-775) — Task View pixel-correta. Toda mudanca de UI e validada contra esta spec.
+**Squad Workspace (predecessor):** `.claude/skills/squad-workspace.mdc` — toda Task herda multi-tenancy via `WorkspaceGuard`, `@WorkspaceId()`, scoping por `workspaceId` derivado de `WorkItem.process.department.workspaceId`.
+
+**Hierarquia de scoping:** `Workspace → Department → Area → Process → WorkItem (Task)` — o repositorio de tasks SEMPRE filtra por `workspaceId` na 1a linha do where; RLS PostgreSQL e a 2a linha (Sprint 8 + manutencao continua das policies).
+
+---
+
+## Modos de Operacao do Squad
+
+O squad opera em TRES modos distintos, com cadencias e ritos diferentes. Todos os 10 membros estao engajados nos 3 modos — apenas a alocacao de tempo varia conforme a fase do produto.
+
+### Modo 1 — IMPLEMENTACAO (Sprints 0-8, paralelismo maximo)
+
+Cobre construcao greenfield. Cadencia 2 semanas/sprint, ceremonies (Planning, Daily, Review, Retro), backlog ordenado por sprint conforme PLANO-TASKS secao 13. **5 a 6 membros ativos por sprint, sempre em paralelo.**
+
+### Modo 2 — MANUTENCAO (pos-GA, continuo)
+
+Comeca apos Sprint 5 (GA com feature flag) e nunca termina. Cobre:
+
+| Tipo | SLA | Responsavel primario | Acao |
+|---|---|---|---|
+| **P0 — Incidente em prod** (data loss, tenant leak, outage Tasks > 5 min, DLQ outbox > 50) | < 1h ack, < 4h fix | Mariana (escala squad inteiro) | Hotfix + post-mortem em 48h |
+| **P1 — Bug bloqueante** (feature core quebrada para >10% workspaces) | < 4h ack, < 24h fix | Owner do modulo afetado | Hotfix em branch `hotfix/tasks-*` direto p/ main, com flag de rollback |
+| **P2 — Bug nao bloqueante** (workaround existe ou afeta <10% workspaces) | < 24h ack, < 1 sprint fix | Owner do modulo | Entra no backlog da proxima sprint |
+| **P3 — Bug cosmetico ou edge case raro** | < 1 semana ack | Owner do modulo | Backlog priorizado pelo Tech Lead |
+| **Regressao detectada por outro squad** (mudanca em outro modulo quebra Tasks) | < 24h investigacao | Tatiana + owner do modulo | PR de fix ou ajuste de contrato; teste de regressao adicionado |
+| **Performance degradation** (SLI degradado por > 5min: GET /tasks p95 > 800ms, outbox lag p95 > 30s, etc.) | < 30min ack via alerta Grafana | Mariana (perf) + owner do endpoint | Triagem: rollback de release recente OU fix targeted |
+| **Vulnerabilidade de seguranca** (CVE em dep, audit interno, pentest finding, MIME spoofing, signed URL leak) | < 4h ack, fix conforme severity CVSS | Tatiana + Mariana | CVSS ≥ 7: hotfix imediato com flag `TASKS_V2_ENABLED=false` per-workspace afetado |
+| **Crescimento descontrolado** (R14: outbox > 1M rows; R15: status_history > 10M rows) | Job semanal automatizado | Diego | Limpeza de COMPLETED > 30d, particionamento por mes |
+
+**Rituals de manutencao:**
+- **Daily triage 15 min** (Tech Lead + on-call): revisa novos issues, classifica P0-P3, atribui owner.
+- **On-call rotation semanal** entre Mariana, Felipe, Patricia, Lucas, Beatriz (backend) e Henrique, Juliana, Renato (frontend). Tatiana e on-call permanente para P0 de seguranca.
+- **Weekly bug review 30 min** (squad inteiro): revisar P2/P3 acumulados, decidir o que entra na proxima sprint.
+- **Monthly health check 1h** (squad inteiro): SLIs do mes, top 10 endpoints lentos, top 10 erros, churn de DLQ, custo de queries Postgres, Lighthouse trend.
+- **Quarterly threat model review** (Tatiana + Mariana): atualizar threat model de attachments, signed URL, comments, mention/notification spoofing, cross-tenant.
+
+### Modo 3 — ATUALIZACAO (pos-GA, batches incrementais)
+
+Para novas funcionalidades NAO presentes no PLANO-TASKS original (ou explicitamente listadas como nao-objetivos da secao 1.4: custom field write, custom task IDs, time tracking com sessoes start/stop, integracao bidirecional ClickUp real, hard delete via API). **Toda atualizacao segue um RFC explicito antes de codigo.**
+
+**Fluxo de atualizacao (RFC → ADR → Story → PR):**
+
+1. **RFC** em `.claude/rfc/tasks-NNN-titulo.md` (ownership: Mariana ou owner do modulo). Contexto, problema, opcoes A/B/C, recomendacao, impact analysis (regressao? breaking change? migration? perf?), rollout plan (flag? per-workspace?).
+2. **Discussao em squad async** (3-5 dias): cada membro afetado revisa, levanta red flags. Sem aprovacao tacita.
+3. **ADR** em `.claude/adr/NNN-titulo.md` se RFC introduz decisao arquitetural irreversivel (novo padrao, novo storage, nova lib pesada).
+4. **Story(s) no backlog** com AC explicitos, mesmo formato das Sprints 1-8 (ID, story, AC, pts).
+5. **Branch `feat/tasks-NNN-titulo`** derivada de main; mesmo paralelismo intra-sprint.
+6. **Migracao SEMPRE aditiva** (regra inviolavel pos-GA): nullable → seed/backfill → NOT NULL em release seguinte. Nunca breaking em uma migration unica.
+7. **Feature flag por workspace** (`TASKS_FEATURE_NNN_ENABLED`) durante rollout: 1 workspace canary → 10% → 50% → 100%. Cada etapa monitorada por 48h-7d.
+8. **Documentacao atualizada** em paralelo: Swagger, `features/tasks/README.md`, Storybook, e — se afeta contrato publico — addendum no PLANO-TASKS.
+
+**Tipos de atualizacao tipicos:**
+- **Aditivo simples** (novo campo opcional, novo filtro, novo include na whitelist): RFC leve, 1 sprint, low risk.
+- **Aditivo complexo** (novo tipo de View, nova View Calendar variant, nova integracao webhook): RFC + ADR, 1-2 sprints, flag rollout.
+- **Refactor performance** (substituir query, adicionar indice, mudar paginacao): RFC + benchmark antes/depois + canary.
+- **Migracao de dado pos-GA** (ex: normalizar tags antigas, recategorizar custom types): script idempotente em `prisma/migrations-data/` + dry-run obrigatorio + rollback documentado.
+- **Quebra controlada de contrato** (deprecation de endpoint): apenas com `Deprecation` header por 90 dias minimo + comunicacao a consumidores + remocao em release marcada.
+
+---
+
+## Modo de Operacao: Execucao Simultanea (Clausula Mandatoria)
+
+**Vale para os 3 modos. Nao e uma fila de tarefas — e um time ATUANDO AO MESMO TEMPO.**
+
+### Regras de simultaneidade (vinculantes)
+
+1. **Implementacao:** apos o golden path de schema (Sprint 1 — Diego solo: Migration 1/3 + extensoes WorkItem + Prisma extension + outbox), as 5-6 frentes de cada Sprint 2-8 sao executadas em paralelo. Cada membro em sua propria branch derivada de `feat/tasks-foundations`.
+2. **Manutencao:** P0/P1 mobilizam squad em paralelo (Mariana coordena; Tatiana audita regressao; owner do modulo aplica fix). Hotfix nunca espera outra task — abre branch `hotfix/tasks-*` direto.
+3. **Atualizacao:** apos RFC aprovada, todos os membros afetados trabalham simultaneamente em suas branches; Tatiana escreve testes em paralelo desde o dia 1.
+4. **Tatiana (QA) atua em paralelo aos demais nas TRES fases** — escreve testes assim que cada PR abre.
+5. **Mariana (Tech Lead) coordena, revisa PRs, mantem ADRs/RFCs, gerencia feature flags por workspace, e aplica RLS** — atua transversalmente desde Sprint 0 e indefinidamente pos-GA.
+6. **Ao delegar trabalho deste squad para subagentes, o agente orquestrador DEVE disparar multiplas invocacoes de Agent em uma unica mensagem** (em um unico bloco `<tool_use>` com varias chamadas em paralelo), salvo quando houver dependencia tecnica explicita (ex: Migration 1 bloqueia stories que tocam novas colunas; hotfix P0 pode bloquear novas features ate estabilizar).
+
+### Matriz de simultaneidade — Implementacao
+
+| Sprint | Membros em paralelo | Bloqueio |
+|---|---|---|
+| 0 — Calibragem | Mariana (solo) + Henrique (solo prototipo BlockNote) | — |
+| 1 — Foundations | Diego + Mariana + Felipe + Henrique + Tatiana | Aguarda Sprint 0 |
+| 2 — Collaboration | Diego + Patricia + Felipe + Henrique + Juliana + Tatiana | Aguarda Migration 1 |
+| 3 — Relationships | Diego + Lucas + Patricia + Juliana + Tatiana | Aguarda Sprint 2 |
+| 4 — Checklists/Attachments/Comments | Diego + Beatriz + Mariana + Henrique + Juliana + Tatiana | Aguarda Sprint 3 |
+| 5 — Task View Visual (GA) | Henrique + Juliana + Tatiana | Aguarda Sprint 4 |
+| 6 — Templates/Merge/Archive/Points | Lucas + Felipe + Juliana + Tatiana | Sprint 5 estavel |
+| 7 — Workspace-wide + Board | Renato + Felipe + Henrique + Tatiana | Sprint 6 mergeada |
+| 8 — Polish | Renato + Henrique + Mariana + Tatiana | Sprint 7 mergeada |
+
+### Matriz de mobilizacao — Manutencao
+
+| Severidade | Mobilizacao tipica | Coordenacao |
+|---|---|---|
+| P0 | Squad inteiro em war room ate fix em prod | Mariana (incident commander) |
+| P1 | Owner do modulo + Tatiana + Mariana (review) | Owner do modulo |
+| P2 | Owner do modulo (solo) + Tatiana (review) | Owner |
+| P3 | Owner do modulo (quando capacidade permitir) | Owner |
+| Perf alert | Mariana + owner do endpoint + Diego (se schema/index) | Mariana |
+| Security CVE | Tatiana + Mariana + Beatriz (se attachments) | Tatiana |
+
+### Matriz de mobilizacao — Atualizacao
+
+| Tipo | Membros tipicos | Lider |
+|---|---|---|
+| Aditivo simples (novo filtro) | Owner do modulo + Tatiana | Owner |
+| Aditivo complexo (nova View/integracao) | 3-5 membros (full-stack) + Tatiana | Mariana ou owner senior |
+| Refactor perf | Mariana + owner + Diego (se indices) + Tatiana | Mariana |
+| Migracao de dado pos-GA | Diego + owner do modulo + Tatiana + Mariana | Diego |
+| Deprecation de endpoint | Mariana + owner + Tatiana | Mariana |
+
+### Quando delegar para subagentes
+
+Se um agente orquestrador (main) precisar acionar este squad, a regra e:
+- **Uma unica mensagem com multiplas tool calls `Agent` em paralelo** para todos os membros mobilizados (sprint corrente, ou time de incident, ou time de RFC).
+- Cada invocacao carrega no prompt: (1) nome do membro, (2) ownership vertical, (3) modo de operacao (implementacao/manutencao/atualizacao), (4) referencia ao `PLANO-TASKS.md` + `agent-cto.md` + `99-referencia-completa.md` + RFC/ADR aplicavel, (5) story IDs ou ticket, (6) entregavel esperado + AC.
+- Jamais disparar membros mobilizados em serie — quebra a clausula de simultaneidade.
+
+---
+
+## Principios Inegociaveis (Agent-CTO + 99-referencia-completa)
+
+Aplicados nas TRES fases (implementacao, manutencao, atualizacao):
+
+1. **Multi-tenancy hermetico:** `WorkspaceGuard` + `@WorkspaceId()` em toda rota; `workspaceId` no where e a 1a linha de TODA query em tabela tasks-scoped (deduzido de `WorkItem.process.department.workspaceId`); cross-tenant retorna **404, nunca 403** (nao vaza existencia).
+2. **`CustomTaskType` builtin (`workspaceId=NULL`)** visivel a todos os workspaces; nunca vaza tipo privado entre workspaces. Teste E2E permanente (R12).
+3. **Contratos tipados nas fronteiras:** DTOs com `class-validator` (back), Zod (front). Zero `any`. `ValidationPipe` `whitelist:true, forbidNonWhitelisted:true` global.
+4. **Migracao SEMPRE aditiva pos-GA:** nullable → seed/backfill → NOT NULL em release seguinte. Nunca breaking em migration unica. Rollback SQL em `prisma/rollbacks/tasks_*.down.sql` obrigatorio.
+5. **Outbox pattern (ADR-003)** mandatorio para side-effects: status change, activity feed, notifications. EventEmitter2 in-process PROIBIDO no hot path. Worker BullMQ: concurrency 5, retry 3x backoff exponencial + jitter, DLQ → alerta Grafana.
+6. **Prisma extension `primary-assignee-cache` (ADR-001)** e UNICA fonte que escreve `WorkItem.primaryAssigneeCache`. Lint rule `no-direct-primary-assignee-cache-write` bloqueia SET direto.
+7. **Activity Feed e projecao assincrona (ADR-002):** `WorkItemActivity` populado via worker outbox, NUNCA dupla escrita sincrona. Lag p95 < 5s.
+8. **Paginacao obrigatoria:** offset (`page/limit≤100`) + cursor opcional. `orderBy` whitelist estrita.
+9. **Prisma `select` obrigatorio em listagens (CTO note #4):** `GET /tasks` retorna apenas campos sumarizados; `include` proibido em listagem; whitelist via `parse-task-include.pipe.ts` em detalhe.
+10. **Budget de queries por endpoint ≤ 10 (fail CI acima).** Listagens nunca fazem N+1.
+11. **Cycle detectors (deps + merge):** BFS limite 1000 nodes + timeout 2s (defesa DoS). Ciclo → 409 `CycleDependencyException` / `MergeCycleException`.
+12. **Idempotencia:** `DELETE /tasks/:id` em ja deletada → 204; `POST /tasks/:id/merge` aceita `Idempotency-Key` (Redis SETNX TTL 24h); todo backfill idempotente.
+13. **Rate limiting restritivo:** merge 3/min/user, attachments/signed-url 30/min/user, time-in-status:bulk 30/min/user.
+14. **Anexos seguros:** signed URL TTL 300s escopo PUT bucket privado; MIME whitelist; max 25 MB; UUID rename; ClamAV scan assincrono; bloqueio download se `scanStatus ≠ CLEAN`.
+15. **Markdown sanitizado via DOMPurify na leitura.** Nunca gravar HTML bruto; `bodyBlocks` (BlockNote AST) e canonical, `body` (texto puro) e cache.
+16. **RequestId + workspaceId + userId em todos os logs estruturados.** Nunca logar body de comentarios/markdown — truncar 200 chars.
+17. **Feature flag `TASKS_V2_ENABLED`** por workspace, controla rollout/rollback. Toda nova funcionalidade pos-GA tem sua propria flag (`TASKS_FEATURE_NNN_ENABLED`).
+18. **Performance Budgets (CI bloqueante):** `GET /tasks` p95 < 500ms (50k tasks), `GET /tasks/:id` p95 < 300ms, outbox lag p95 < 5s, Lighthouse Task View Performance ≥ 85, A11y ≥ 95, contraste WCAG AA texto ≥ 15:1.
+19. **`export default` proibido em componentes (regra #13)** — UNICA excecao documentada: `app/tasks/[taskId]/page.tsx` por exigencia do App Router.
+20. **BlockNote lazy-load obrigatorio** via `dynamic({ ssr: false })`. SSR fallback texto. Lighthouse budget bloqueia regressao de bundle em qualquer release.
+21. **Toda mudanca pos-GA exige RFC + flag de rollout per-workspace.** Sem excecao para mudancas que afetem contrato publico, schema, ou hot path.
+
+---
+
+## Entidades/Recursos sob Responsabilidade
+
+### Camada de Schema (3 migrations + manutencao continua)
+
+| Recurso | Owner | Modo |
+|---|---|---|
+| Migration 1/3 `tasks_foundations`: extensoes em `WorkItem`, `CustomTaskType`, `TaskOutboxEvent`, indices, seed builtin | Diego | Implementacao Sprint 1 |
+| Migration 2/3 `tasks_collaboration`: `WorkItemAssignee`, `WorkItemWatcher`, `WorkItemTag`, `WorkItemTagLink` | Diego | Implementacao Sprint 2 |
+| Migration 3/3 `tasks_advanced`: `WorkItemChecklist`, `WorkItemChecklistItem`, `WorkItemDependency`, `WorkItemLink`, `WorkItemStatusHistory`, `WorkItemTemplate`, `WorkItemAttachment`, `WorkItemComment`, `WorkItemActivity` | Diego | Implementacao Sprint 3-4 |
+| Backfill idempotente `backfill-tasks-feature.ts` | Diego | Implementacao + manutencao (re-run em incidentes) |
+| Job semanal limpeza outbox COMPLETED > 30d (R14) | Diego + Mariana | Manutencao continua |
+| Particionamento `WorkItemStatusHistory` por mes acima 10M rows (R15) | Diego | Atualizacao quando metricas dispararem |
+| Migracoes de dado pos-GA (normalizacao tags antigas, recategorizacao, etc.) | Diego | Atualizacao via RFC |
+| EXPLAIN ANALYZE de queries lentas + criacao de novos indices | Diego + Mariana | Manutencao on-demand |
+
+### Camada Backend (12 modulos + manutencao continua)
+
+| Modulo | Owner | Implementacao | Manutencao | Atualizacao |
+|---|---|---|---|---|
+| `tasks/` (fachada) | Felipe | Sprints 1-2, 6-7 | Bug fix, perf tuning de filtros, evolucao da whitelist `include` | Novos campos opcionais, novos filtros |
+| `task-outbox/` | Mariana | Sprint 1 | Monitoramento DLQ, retry policy, alerta lag, limpeza COMPLETED | Novos tipos de evento, mudancas de payload |
+| `task-tags/` | Patricia | Sprint 2 | Bug nameLower, perf attach/detach | Color schemes, scoping por department |
+| `task-watchers/` | Patricia | Sprint 2 | Bug notification on add | Watch all-tasks-in-process |
+| `task-dependencies/` | Lucas | Sprint 3 | CycleDetector edge cases, perf 100+ deps/task | Novos tipos de dep (FS/SS/FF/SF), lag em horas |
+| `task-links/` | Lucas | Sprint 3 | Simetria, soft delete cascade | Tipo de link semantico (related/blocks/duplicates) |
+| `task-templates/` | Lucas | Sprint 6 | Bug instantiate ids regerados, payload limit | Templates por department, versionamento de template |
+| `task-checklists/` | Beatriz | Sprint 4 | Reorder transaction, nesting deadlock | Templates de checklist, atribuicao em batch |
+| `task-attachments/` | Beatriz | Sprint 4 | ClamAV worker, signed URL, MIME spoofing | Preview inline (PDF.js), versionamento de anexo |
+| `task-comments/` | Beatriz | Sprint 4 | Mention parsing, soft delete | Reactions, threaded comments, @everyone |
+| `task-activities/` | Beatriz | Sprint 4 | Worker projecao, payload enriquecido | Filtros no feed (so meus, so mencoes) |
+| `custom-task-types/` | Felipe | Sprint 1 | Cache Redis invalidation, bug visibility builtin | CRUD de custom types via API (atual: GET-only) |
+| Extensoes em `work-items/` | Felipe | Sprints 1-2 | Compat com paginas legadas | Deprecation eventual de `work-items/` se Tasks substituir |
+
+### Camada Frontend (`features/tasks/` + manutencao continua)
+
+| Recurso | Owner | Implementacao | Manutencao | Atualizacao |
+|---|---|---|---|---|
+| Estrutura `features/tasks/` (services, hooks, schemas, types) | Henrique | Sprint 1 | Bug fix de hooks, refactor para React Query v5 quando upgrade | Novos hooks para novas APIs |
+| Design tokens OKLCH `--task-*` em `globals.css` | Henrique | Sprint 1 | Sync com Align UI quando subir versao | Novas variantes de tema (dark, contraste alto) |
+| BlockNote dynamic import + SSR fallback | Henrique | Sprint 1 | Lighthouse budget guard, upgrade BlockNote em majors | Plugins novos (table, mermaid, math) |
+| SSE client com Last-Event-ID + reconnect backoff | Henrique | Sprint 8 | Bug reconnect, max conn/user, leak | Migracao p/ WebSocket se SSE limitar |
+| Zustand `tasks.store` (filtros salvos + UI state) | Henrique | Sprint 1 | Bug persist localStorage, migracao versao | Novos filtros salvos compartilhados |
+| Rota `/tasks/[taskId]` + layout TaskView | Juliana | Sprint 5 | A11y regressions, responsividade quebrada | Novos blocos (custom fields editaveis, AI summary) |
+| TaskTypeRow / TaskTitle / TaskPropertyGrid | Juliana | Sprint 5 | Bug Command popovers, focus trap | Novos campos editaveis inline |
+| StatusBadge pipeline chevron | Juliana | Sprint 5 | Bug pipeline troca, contraste | Novos tipos visuais |
+| TaskDescription BlockNote + slash menu + Maximize2 | Juliana | Sprint 5 | Bug debounced save, conflict editing | Colaborativo realtime (CRDT/Y.js) |
+| CollapsibleSection (Custom Fields/Linked/Time/Subtasks/Checklists/Attachments) | Juliana | Sprint 5 | Bug persist localStorage, perf scroll interno | Reordenar secoes drag, ocultar secao por preferencia |
+| ActivitiesPanel (header + feed + composer) | Juliana | Sprint 5 | A11y `role=log`, perf scroll virtual | Filtro por tipo, busca textual, mark all as read |
+| ChecklistPanel dnd-kit + ProgressBar | Juliana | Sprint 4 | Bug a11y teclado, drag glitch | Templates de checklist aplicaveis com 1 click |
+| AttachmentsSection dropzone + grid | Juliana | Sprint 4 | Bug preview PDF, drag overlap | Preview inline ampliado, anotacoes |
+| CommentComposer BlockNote + slash + @mention | Juliana | Sprint 4 | Bug mention popover, perf | Reactions UI, threading visual |
+| AssigneeMultiPicker / TagPicker / WatchersPopover | Juliana | Sprint 2 | Bug Command, debounce, a11y | Picker virtualizado p/ workspaces 1000+ users |
+| LinkedTasksSection + badge "Bloqueada por X" | Juliana | Sprint 3 | Bug tooltip overflow | Visualizacao em grafo |
+| ConfirmDialog destrutivo (typing "CONFIRMAR") | Juliana | Sprint 6 | Bug a11y submit | Padronizar para outras acoes destrutivas (delete tag) |
+| `/tasks/all` data-table + bulk actions + cursor pagination | Renato | Sprint 7 | Bug filtros salvos, perf 50k+ | Saved views compartilhadas, exportar CSV |
+| TaskBoard Kanban dnd-kit + optimistic + rollback | Renato | Sprint 7 | Bug drag entre colunas, rollback inconsistente | Swimlanes, WIP limits, group by |
+| TaskCalendar (drag altera datas) | Renato | Sprint 8 | Bug timezone, drag confirm | Visualizacoes mensal/semanal/diario, recorrencia |
+| TaskGantt simples (deps visuais read-only) | Renato | Sprint 8 | Bug render edges | Edicao de datas via drag, critical path |
+| `/tasks` (my-tasks) visual novo | Renato | Sprint 7 | Manter contrato pre-existente | Sections customizaveis |
+| Settings (`/settings/task-tags`, `task-templates`, `custom-task-types`) | Renato | Sprint 8 | Bug listagem, paginacao | CRUD inline, bulk import |
+| Virtualizacao react-virtual ≥ 500 itens | Renato | Sprint 7 | Bug scroll jump, perf | Suporte a 100k+ rows com window |
+| Atalhos globais + help panel | Renato | Sprint 8 | Bug conflict atalhos, doc | Customizacao de atalhos por usuario |
+
+### Camada de QA + Security + Performance (transversal, todas as fases)
+
+| Recurso | Owner | Modo |
+|---|---|---|
+| Suite E2E supertest (cross-tenant 404, ciclo deps, merge cycle, Prisma extension consistency, outbox processado ≤5s, DLQ, CustomTaskType isolation, template recursivo, checklist nesting, ClamAV) | Tatiana | Implementacao + execucao continua em CI |
+| Unit tests Prisma extension (cobertura 100%) | Tatiana | Implementacao + manutencao quando refactor |
+| Performance k6 (50k tasks, p95 budgets, ≤ 10 queries) | Tatiana | Implementacao + execucao mensal em staging |
+| Vitest + Testing Library (hooks criticos) | Tatiana | Implementacao + por-PR |
+| Storybook + Chromatic visual regression | Tatiana | Implementacao + por-PR |
+| Playwright jornada completa | Tatiana | Implementacao + execucao diaria em staging |
+| `eslint-plugin-jsx-a11y` bloqueante + `axe-core` no Playwright + checklist manual WCAG AA | Tatiana | Implementacao + por-PR |
+| Regressao zero (orders/production-orders/financial-summary/invoices/bpm/work-items toda sprint) | Tatiana | Implementacao + por-release |
+| Lighthouse budget bloqueante em CI (≥ 85 Perf, ≥ 95 A11y) | Tatiana | Implementacao + por-PR |
+| Audit cross-tenant em todos endpoints (recurrente) | Tatiana | Manutencao trimestral |
+| Threat model review (attachments, signed URL, comments, mention spoofing) | Tatiana + Mariana | Manutencao trimestral |
+| Pentest finding triage e fix | Tatiana | Manutencao on-demand |
+| Rollout per-workspace + monitoramento Grafana | Mariana | Implementacao + manutencao continua |
+| RLS PostgreSQL policies workspace_isolation + GUC | Mariana | Implementacao Sprint 8 + manutencao continua |
+| Dashboards Grafana `tasks-feature` (RED + outbox lag + DLQ + scan queue) | Mariana | Implementacao + manutencao |
+| Capacity planning Postgres (R14, R15) | Diego + Mariana | Manutencao mensal |
+
+---
+
+## Composicao do Squad (10 membros)
+
+Nomes reais, cada um dono vertical de uma frente. Todos atuam **simultaneamente** dentro de cada fase (implementacao/manutencao/atualizacao).
+
+| # | Membro | Papel | Ownership Vertical (3 modos) |
+|---|---|---|---|
+| 1 | **Mariana Antunes** (Staff) | Tech Lead / Arquiteta | **Implementacao:** ADRs 001-003, Prisma extension `primary-assignee-cache` + lint rule, modulo `task-outbox/` (enqueue + worker BullMQ + DLQ), feature flag `TASKS_V2_ENABLED`, observabilidade (RED + outbox lag + dashboards Grafana), RLS PostgreSQL Sprint 8. **Manutencao:** incident commander P0, on-call rotation, monthly health check, threat model review, perf alert triage, rollout/rollback per-workspace, RLS policy review. **Atualizacao:** RFC owner principal, ADR de decisoes irreversiveis, capacity planning trimestral, rollout strategy per-workspace para nova feature. |
+| 2 | **Diego Vasconcelos** (Senior) | DBA / Schema Owner | **Implementacao:** 11 novos models Prisma + 4 enums + extensoes em `WorkItem` + indices compostos hot path, 3 migrations escalonadas (`tasks_foundations` → `tasks_collaboration` → `tasks_advanced`), rollback SQL em `prisma/rollbacks/tasks_*.down.sql`, seed `seed-reference-data.ts` (CustomTaskType builtin), backfill idempotente `backfill-tasks-feature.ts`, EXPLAIN ANALYZE p/ filtros workspace-wide. **Manutencao:** job semanal limpeza outbox COMPLETED > 30d, monitoring de crescimento (R14, R15), particionamento `WorkItemStatusHistory` por mes acima 10M rows, indice on-demand para queries lentas. **Atualizacao:** migracoes de dado pos-GA (sempre aditivas + idempotentes + dry-run), schema evolution para novas features, rebalanceamento de indices apos mudanca de padrao de query. |
+| 3 | **Felipe Maranhao** (Senior) | Backend Tasks Core | **Implementacao:** Modulo `tasks/` (fachada): controller + service + repository + DTOs + `parse-task-include.pipe.ts`, `GET /tasks` workspace-wide com `select` obrigatorio + filtros completos, `GET/PATCH/DELETE /tasks/:id`, `POST /tasks/:id/archive\|unarchive`, `GET/POST /tasks/:id/time-in-status[:bulk]`, modulo `custom-task-types/` (Redis cache 5min), extensoes em `work-items/` (enqueues outbox), cursor pagination, points. **Manutencao:** bug fix `tasks/`, perf tuning de filtros, evolucao da whitelist `include`, deprecation eventual de `work-items/` legado. **Atualizacao:** novos campos opcionais em `WorkItem`, novos filtros em `GET /tasks`, novos sort options, custom task types CRUD via API (atual: GET-only). |
+| 4 | **Patricia Rezende** (Pleno) | Backend Collaboration | **Implementacao:** Modulos `task-tags/`, `task-watchers/`, multi-assignees: `WorkItemAssignee` join table (fonte unica), `PATCH /tasks/:id` body `{ assignees:{add,rem}, watchers:{add,rem}, tagIds:{add,rem} }` em 1 transaction, normalizacao `nameLower` + unique `(workspaceId, nameLower)`, filtros workspace-wide, notifications `dependency-unblocked` via outbox. **Manutencao:** bug `nameLower`, perf attach/detach, bug notification on add, regressao de filtros. **Atualizacao:** color schemes de tags, scoping de tags por department, "watch all tasks in process", picker virtualizado para workspaces grandes. |
+| 5 | **Lucas Bernardes** (Senior) | Backend Relationships & Merge | **Implementacao:** Modulos `task-dependencies/` (com `CycleDetectorService` BFS limite 1000 + timeout 2s), `task-links/` (simetria), `task-templates/` (CRUD + snapshot + instantiate recursivo com max 200 nodes/depth 3), `POST /tasks/:id/merge` em `$transaction` com `MergeCycleException` + `Idempotency-Key` Redis SETNX TTL 24h + Throttle 3/min. **Manutencao:** CycleDetector edge cases, perf 100+ deps/task, simetria links pos-soft-delete, payload size templates. **Atualizacao:** novos tipos de dependencia (FS/SS/FF/SF, lag em horas), tipo semantico de link (related/blocks/duplicates), templates por department, versionamento de template, merge bulk. |
+| 6 | **Beatriz Camargo** (Senior) | Backend Content (Checklists/Attachments/Comments/Activities) | **Implementacao:** Modulos `task-checklists/` (CRUD + items + nesting via `parentId` + reorder em transaction), `task-attachments/` (signed URL TTL 5min escopo PUT bucket privado + MIME whitelist + max 25MB + UUID rename + ClamAV worker assincrono + bloqueio download), `task-comments/` (CRUD dedicado, `body` texto puro + `bodyBlocks` BlockNote AST, soft delete + editedAt + extracao de mencoes), `task-activities/` (read-only; worker outbox popula `WorkItemActivity` projecao). **Manutencao:** reorder transaction, nesting deadlock, ClamAV worker stuck, signed URL leak, mention parsing edge cases, soft delete cascade. **Atualizacao:** templates de checklist aplicaveis com 1 click, atribuicao de checklist em batch, versionamento de anexo, preview inline (PDF.js, imagens ampliadas, anotacoes), reactions em comentarios, threaded comments, @everyone, filtros no activity feed (so meus, so mencoes), mark all as read. |
+| 7 | **Henrique Sousa** (Senior) | Frontend Architect / Foundation | **Implementacao:** Estrutura `features/tasks/` completa (services, hooks React Query, schemas Zod, types, utils), design tokens OKLCH `--task-*`, BlockNote `dynamic({ ssr: false })` + Lighthouse budget, Zustand `tasks.store`, SSE client `workspace:<id>:task:<tid>` com `Last-Event-ID` + reconnect backoff + jitter (max 3 conn/user), filtros URL deeplink, virtualizacao react-virtual, prefetch hover, debounce 300ms. **Manutencao:** bug fix de hooks/services, refactor React Query upgrade, sync tokens com Align UI versionado, Lighthouse budget guard pos-PR, SSE leak/reconnect bug, persist localStorage migracao versao. **Atualizacao:** novos hooks para novas APIs, plugins BlockNote (table, mermaid, math), migracao SSE → WebSocket se necessario, novas variantes de tema, filtros salvos compartilhados. |
+| 8 | **Juliana Castelo** (Senior) | Frontend Task View | **Implementacao:** Rota `/tasks/[taskId]` (UNICA excecao documentada de `export default` em `page.tsx`), layout `TaskView` (Main flex-1 + Activities w-[400px] + colapso `»`), TaskTypeRow + TaskTitle (debounced 500ms) + TaskPropertyGrid (Command popovers + focus trap) + StatusBadge pipeline chevron + TaskDescription BlockNote lazy + slash menu + Maximize2 + CollapsibleSection (Custom Fields/Linked/Time/Subtasks/Checklists/Attachments com persist localStorage) + ActivitiesPanel (`role=log aria-live=polite`) + ChecklistPanel dnd-kit + AttachmentsSection dropzone + CommentComposer + AssigneeMultiPicker/TagPicker/WatchersPopover + LinkedTasksSection + ConfirmDialog destrutivo + responsividade 4 BPs. **Manutencao:** A11y regressions, responsividade quebrada por novo CSS, bug Command popovers, focus trap, debounced save conflict, drag glitch dnd-kit, mention popover, signature WCAG AA. **Atualizacao:** novos blocos (custom fields editaveis, AI summary), CRDT colaborativo (Y.js), reordenar secoes via drag, ocultar secao por preferencia, picker virtualizado p/ workspaces 1000+ users, visualizacao em grafo de linked tasks, padronizar ConfirmDialog para outras acoes destrutivas, reactions UI em comentarios. |
+| 9 | **Renato Pimentel** (Pleno) | Frontend Views (Board/List/Calendar/Gantt + Settings) | **Implementacao:** `/tasks/all` data-table shadcn com filtros + salvar como `ProcessView.config` scope=user + bulk actions sticky bar throttler + cursor pagination + `TaskBoard` Kanban dnd-kit por status + optimistic + rollback + `TaskCalendar` (drag altera datas + confirm) + `TaskGantt` simples (deps visuais read-only via CSS grid) + `/tasks` (my-tasks visual novo mantendo contrato) + virtualizacao react-virtual ≥ 500 itens (60fps) + filtros URL deeplink + atalhos globais + help panel + settings (`/settings/task-tags`, `task-templates`, `custom-task-types`). **Manutencao:** bug filtros salvos, perf 50k+, drag glitch entre colunas, rollback inconsistente, timezone calendar, render edges Gantt, scroll jump virtualizacao, conflito de atalhos. **Atualizacao:** Saved views compartilhadas, exportar CSV/Excel, swimlanes Kanban, WIP limits, group by, visualizacoes mensal/semanal/diario calendar, recorrencia, edicao Gantt drag, critical path, sections customizaveis my-tasks, CRUD inline settings, bulk import, suporte 100k+ rows window, customizacao de atalhos por usuario. |
+| 10 | **Tatiana Brandao** (Senior) | QA & Security | **Implementacao:** Suites E2E supertest + unit tests Prisma extension cobertura 100% + perf k6 50k tasks p95 budgets + Vitest + Storybook + Chromatic + Playwright jornada completa + a11y axe + manual WCAG AA + Lighthouse budget bloqueante. **Manutencao:** triagem P0-P3 diaria, regressao zero por release de OUTROS squads (orders/production-orders/financial-summary/invoices/bpm/work-items), audit cross-tenant trimestral, pentest finding triage, on-call permanente para CVE/security P0, threat model review trimestral. **Atualizacao:** testes para nova story (E2E + unit + visual), Lighthouse budget guard, regression suite expansion, validacao de feature flag rollout per-workspace, audit de novo endpoint para cross-tenant + RBAC + rate limit + envelope. |
+
+---
+
+## Roteamento por Tipo de Demanda
+
+A primeira pergunta sempre e: **qual o modo de operacao?** (implementacao/manutencao/atualizacao). Em seguida, **qual o recurso afetado?**
+
+### Implementacao (sprints conforme PLANO-TASKS)
+
+| Story / area | Procure... |
+|---|---|
+| Schema, migration, indice, backfill | **Diego** |
+| Prisma extension, outbox, observabilidade, ADR, RLS | **Mariana** |
+| Modulo `tasks/`, `custom-task-types/`, `work-items/` extensions | **Felipe** |
+| `task-tags/`, `task-watchers/`, multi-assignees | **Patricia** |
+| `task-dependencies/`, `task-links/`, `task-templates/`, merge | **Lucas** |
+| `task-checklists/`, `task-attachments/`, `task-comments/`, `task-activities/` | **Beatriz** |
+| Estrutura `features/tasks/`, services, hooks, tokens, BlockNote, SSE | **Henrique** |
+| Task View `/tasks/[taskId]`, todos blocos Main+Activities | **Juliana** |
+| `/tasks/all`, Board, Calendar, Gantt, Settings, my-tasks | **Renato** |
+| Testes (E2E, unit, visual, perf, a11y, regressao) | **Tatiana** |
+
+### Manutencao (bug fix, hotfix, perf, security)
+
+| Sintoma | Owner primario | Co-owner |
+|---|---|---|
+| Tasks listagem lenta (perf SLI degradado) | Felipe | Mariana, Diego |
+| Outbox lag alto / DLQ crescendo | Mariana | Beatriz (se activity), Diego (se schema) |
+| Tenant leak suspeito | Tatiana + Mariana | Owner do modulo afetado |
+| Migration falhou em staging | Diego | Mariana |
+| Bug em multi-assignee primary recalc | Patricia | Mariana (extension) |
+| CycleDetector retornando falso negativo | Lucas | Tatiana |
+| Merge corrompeu dados | Lucas + Mariana | Tatiana, Diego |
+| ClamAV worker stuck | Beatriz | Mariana |
+| Signed URL com TTL muito longo / leak | Beatriz + Tatiana | Mariana |
+| Comment mention nao notifica | Beatriz | Patricia (notifications) |
+| Activity feed atrasado / nao chega no UI | Beatriz + Mariana | Henrique (SSE client) |
+| Task View quebrada visualmente | Juliana | Henrique |
+| BlockNote crashou em produto | Juliana + Henrique | — |
+| ChecklistPanel drag perdeu item | Juliana | Beatriz (backend reorder) |
+| Board drag nao salva | Renato | Felipe (PATCH /tasks/:id) |
+| Calendar mostra data errada (timezone) | Renato | Henrique |
+| Bulk action atualizou wrong workspace | Renato + Tatiana | Mariana |
+| Lighthouse score caiu | Henrique + Juliana | Tatiana |
+| A11y regrediu | Tatiana | Juliana, Renato |
+| CVE em dependencia | Tatiana + Mariana | Owner do modulo que importa |
+| Pentest finding | Tatiana | Owner do modulo afetado |
+| Suite de regressao quebrou em outro squad | Tatiana | Owner da mudanca + Owner do modulo Tasks afetado |
+
+### Atualizacao (RFC → ADR → Story → PR)
+
+| Tipo de mudanca | Lider RFC | Membros tipicos | Necessita ADR? |
+|---|---|---|---|
+| Novo filtro/sort em `GET /tasks` | Felipe | Felipe + Tatiana | Nao |
+| Novo campo opcional em WorkItem | Felipe + Diego | Felipe + Diego + Henrique + Juliana + Tatiana | Nao (aditivo nullable) |
+| Custom Task Types CRUD via API | Felipe | Felipe + Patricia (RBAC) + Tatiana | Sim (era GET-only) |
+| Templates por department | Lucas | Lucas + Diego (schema) + Henrique + Renato (settings) + Tatiana | Talvez (depende de scoping) |
+| Novos tipos de dependencia (FS/SS/FF/SF + lag) | Lucas | Lucas + Diego + Juliana (UI badge) + Tatiana | Sim |
+| Reactions em comentarios | Beatriz | Beatriz + Diego + Juliana + Tatiana | Nao (aditivo) |
+| Threaded comments | Beatriz | Beatriz + Diego + Juliana + Tatiana | Sim (nova hierarquia) |
+| Realtime colaborativo BlockNote (CRDT) | Henrique + Juliana | Henrique + Juliana + Beatriz + Mariana + Tatiana | Sim (nova lib pesada Y.js, novo storage) |
+| Saved Views compartilhadas | Renato | Renato + Felipe (backend ProcessView extension) + Tatiana | Talvez |
+| Exportar CSV/Excel `/tasks/all` | Renato | Renato + Felipe + Tatiana | Nao (read-only) |
+| Swimlanes Kanban + WIP limits | Renato | Renato + Tatiana | Nao |
+| Visualizacao em grafo de linked tasks | Juliana + Renato | Juliana + Renato + Tatiana | Nao (frontend only) |
+| Recorrencia em Calendar | Renato | Renato + Felipe + Diego + Lucas (templates) + Tatiana | Sim (novo conceito de domain) |
+| Customizacao de atalhos por usuario | Renato | Renato + Henrique + Tatiana | Nao |
+| Particionamento StatusHistory por mes | Diego | Diego + Mariana + Tatiana | Sim (perf, irreversivel) |
+| Migracao SSE → WebSocket | Henrique | Henrique + Mariana + Tatiana | Sim |
+| Custom fields editaveis (escrita) | Felipe + Beatriz | Squad inteiro | Sim (escopo grande, schema novo) |
+
+---
+
+## Interface com Outros Squads
+
+### Quem depende de nos
+
+| Squad | O que consome | Estabilidade do contrato |
+|---|---|---|
+| **Squad BPM** | `WorkItem` estendido, transicoes via outbox `STATUS_CHANGED`, `WorkItemActivity` para auditoria de processo | Estavel; mudancas via RFC |
+| **Squad Orders** | Pedidos vinculam Tasks via `WorkItemLink` (R-API); subtasks; `WorkItem.attachments` e `comments` | Estavel; deprecation com 90 dias min |
+| **Squad Workspace** | Somos consumidores de `WorkspaceGuard`, `@WorkspaceId`, scoping transitivo | — |
+| **Squad FE Shell + Sidebar** | Item "Tasks" no menu lateral; AuthProvider | Estavel |
+| **Squad FE Home** | `/tasks` (substitui `/my-tasks` mantendo contrato); widgets de tasks atrasadas/proximas | Estavel; mudancas via RFC |
+| **Squad Notifications** | Enums `TASK_ASSIGNED`, `TASK_MENTIONED`, `DEPENDENCY_UNBLOCKED`; templates | Aditivo; novos enums via RFC |
+| **Squad Reports/Dashboards** | Metricas de tasks via `WorkItemStatusHistory` (time-in-status, throughput, leadtime, points/sprint) | Estavel; mudancas em payload via RFC |
+| **Squad Search** | Index de Tasks (titulo, descricao, comentarios, tags) | Quando feature search para Tasks for ativada |
+
+### De quem dependemos
+
+| Squad | O que consumimos |
+|---|---|
+| **Squad Workspace** | `WorkspaceGuard`, `@WorkspaceId()`, `WorkspaceMember`, scoping transitivo Process→Department→Workspace, RLS (compartilhado com Mariana na Sprint 8) |
+| **Squad Auth** | `JwtAuthGuard`, `@CurrentUser`, `@Roles`, `RolesGuard` (Viewer GET, Operator+ mutacoes, Manager/Admin destrutivas) |
+| **Squad Infra** | `PrismaService`, `CommonModule`, `ResponseInterceptor`, `PaginationDto`, `RequestIdInterceptor`, Throttler, BullMQ + Redis, EventEmitter2 (so listeners read-only) |
+| **Squad BPM** | `WorkflowStatus` (validar pertence ao Department do Process) |
+| **Squad FE Shell** | `AuthProvider`, layout base, Align UI primitives (Command, DropdownMenu, Avatar, Sheet, Popover), variaveis CSS sidebar |
+| **Squad Coolify** | Deploy staging para testar migration em clone, observabilidade, S3/MinIO provisionado ate Sprint 4, ClamAV ou alternativa de scan |
+| **Squad Reference Data** | `seed-reference-data.ts` recebe seed de CustomTaskType builtin (Diego entrega, Squad RD orquestra execucao) |
+
+---
+
+## Protocolo de Consulta (Quando Precisamos de Mais Contexto)
+
+A ordem e **estrita** — nao pular etapas.
+
+1. **`PLANO-TASKS.md`** — resposta oficial sobre O QUE na fase de implementacao. Se esta la, segue sem questionar specs.
+2. **RFCs em `.claude/rfc/tasks-*.md`** — resposta oficial sobre O QUE em atualizacoes pos-GA.
+3. **`agent-cto.md`** — resposta oficial sobre COMO (performance, escala, seguranca, observabilidade, idempotencia).
+4. **`99-referencia-completa.md`** — nomenclatura, estrutura, padroes, anti-patterns, ordem para criar feature.
+5. **3 ADRs em `.claude/adr/001-003`** + ADRs subsequentes — POR QUE em decisoes arquiteturais irreversiveis.
+6. **`tasks.md`** (linhas 378-775) — spec UI Task View. Juliana e a unica que pode propor desvio (com aprovacao do designer).
+7. **`squad-workspace.mdc`** — multi-tenancy: como `WorkspaceGuard` + `@WorkspaceId()` + scoping transitivo funcionam.
+8. **Memoria do projeto** (`MEMORY.md`) — contexto Mundial ERP, stack, decisoes anteriores, deploy Coolify.
+9. **Squad dono do recurso** — se escopo cruza, consulta o skill file daquele squad.
+10. **`squads-map.mdc`** — quando nao sabe a qual squad pertence o recurso.
+11. **`PLANO.md` principal** — somente se nada acima cobre.
+12. **Agent-CTO via delegacao** — para decisoes arquiteturais nao cobertas, invocar com contexto completo.
+
+**Nunca:**
+- Inventar specs que nao estao no PLANO-TASKS, RFC ou ADR.
+- Quebrar endpoint pre-existente para "melhorar" — regressao zero e obrigatoria toda sprint e toda manutencao (R9).
+- Mergear codigo com `workspaceId` faltando em query nova em tabela tasks-scoped (P0 do code review).
+- Usar `any` ou `console.log` (regras invioláveis 3 e 4 do 99-referencia).
+- Logar tokens de signed URL, body de comentarios/markdown, ou qualquer PII.
+- Escrever direto em `WorkItem.primaryAssigneeCache` fora da Prisma extension (ADR-001 + lint rule).
+- Escrever sincrono no `WorkItemActivity` — sempre via outbox (ADR-002).
+- Side-effects fora de outbox no hot path (ADR-003).
+- Migration breaking pos-GA — sempre aditiva (nullable → backfill → NOT NULL em release seguinte).
+- Mudanca pos-GA sem RFC, sem flag de rollout per-workspace, sem rollback documentado.
+- Fix de P0 em main sem mecanismo de rollback rapido (revert + flag desabilita per-workspace).
+- `include=*` em listagem `GET /tasks` (CTO note #4 — `select` obrigatorio).
+- `export default` em componente (regra #13) — UNICA excecao: `app/tasks/[taskId]/page.tsx` (R18).
+
+---
+
+## Red Flags que o Squad SEMPRE Levanta em Code Review
+
+Aplicaveis nas TRES fases. Alem das red flags do agent-CTO + 99-referencia, este squad vigia especificamente:
+
+- Query `findMany`/`findFirst`/`findUnique` em tabela tasks-scoped **sem** `workspaceId` (direto ou transitivo via Process→Department).
+- Endpoint novo **sem** `WorkspaceGuard` ou sem `@SkipWorkspaceGuard()` justificado.
+- DTO de response que expoe `workspaceId` para usuario que nao e membro daquele workspace.
+- Hook do frontend sem `workspaceId` + `taskId` na query key (causa stale data ao trocar workspace ou task).
+- Migration adicionando coluna NOT NULL sem fase aditiva+backfill antes (CTO note #16 + R9).
+- Cross-tenant retornando 403 em vez de 404.
+- `CustomTaskType` privado vazando entre workspaces (R12).
+- Activity Feed escrita sincrona (deve ser via outbox — ADR-002).
+- Side-effect emitido por `EventEmitter2` no hot path em vez de outbox (ADR-003).
+- SET direto em `WorkItem.primaryAssigneeCache` (ADR-001 + lint rule).
+- Listagem `GET /tasks` com `include` em vez de `select` (CTO note #4).
+- Endpoint novo sem budget de queries verificado (≤ 10 queries; fail CI acima).
+- Cycle detector sem limite de nodes ou timeout (DoS — limite 1000 + timeout 2s).
+- Merge sem `MergeCycle` check ou sem `Idempotency-Key`.
+- Attachment sem MIME whitelist, sem max 25MB, sem UUID rename, sem ClamAV, ou permitindo download com `scanStatus≠CLEAN`.
+- Signed URL sem TTL 5min ou sem escopo PUT.
+- Markdown gravando HTML bruto ou nao sanitizando via DOMPurify.
+- Body de comentario/markdown logado integralmente (truncar 200 chars).
+- BlockNote importado sem `dynamic({ ssr: false })`.
+- Componente Frontend usando `export default` (excecao apenas em `app/tasks/[taskId]/page.tsx`).
+- Listagem ≥ 500 itens sem virtualizacao.
+- React Query mutation sem optimistic update + rollback em toggles.
+- Falta de teste E2E para nova story.
+- Falta de `aria-label` em IconButton, falta de `role="log" aria-live="polite"` no feed, falta de `role="progressbar"` no ProgressBar.
+- Lighthouse Performance < 85 ou A11y < 95 na Task View.
+- Worker outbox sem retry exponencial + jitter + DLQ + alerta Grafana.
+- Outbox lag p95 > 5s sem investigacao imediata.
+- **Manutencao especifica:** hotfix em main sem flag de rollback per-workspace; fix sem post-mortem em P0; bug fix sem teste de regressao adicionado; mudanca em modulo Tasks sem rodar regressao de squads dependentes.
+- **Atualizacao especifica:** mudanca de schema/contrato sem RFC; nova feature sem flag `TASKS_FEATURE_NNN_ENABLED`; rollout 100% sem etapa canary; deprecation < 90 dias; migracao de dado pos-GA sem dry-run e rollback documentado.
+
+---
+
+## Contexto para Agentes
+
+```
+REFERENCIAS OBRIGATORIAS:
+- Plano da feature (implementacao):  .claude/plan/PLANO-TASKS.md
+- RFCs (atualizacoes pos-GA):        .claude/rfc/tasks-*.md
+- Agent-CTO:                         .claude/agents/agent-cto.md
+- Standards completos:               .claude/standards/99-referencia-completa.md
+- ADRs:                              .claude/adr/001-primary-assignee-cache.md
+                                     .claude/adr/002-activity-feed-via-outbox.md
+                                     .claude/adr/003-outbox-pattern.md
+                                     (+ ADRs subsequentes)
+- Spec UI Task View:                 tasks.md (linhas 378-775)
+- Mapa de squads:                    .claude/skills/squads-map.mdc
+- Memoria do projeto:                .claude/projects/c--Users-USER-Documents-vibecoding-mundial-erp/memory/MEMORY.md
+
+SQUADS CONSULTADOS COM FREQUENCIA:
+- squad-workspace.mdc     (multi-tenancy)
+- squad-bpm.mdc           (WorkflowStatus, hierarquia)
+- squad-auth.mdc          (guards, roles)
+- squad-infra.mdc         (PrismaService, BullMQ, Redis)
+- squad-fe-shell.mdc      (AuthProvider, sidebar, Align UI)
+- squad-orders.mdc        (WorkItemLink com pedidos, regressao zero)
+- squad-coolify.mdc       (deploy, S3/MinIO, ClamAV)
+- squad-reference-data.mdc (seed CustomTaskType builtin)
+
+OBJETIVO FINAL (3 modos):
+
+Implementacao — entregar feature Tasks com:
+(1) paridade semantica 100% com ClickUp Tasks + Checklists + Relationships,
+(2) Task View pixel-correta replicando tasks.md (Lighthouse Perf ≥ 85 / A11y ≥ 95 / WCAG AA),
+(3) zero regressao em orders/production-orders/financial-summary/invoices/bpm/work-items,
+(4) isolamento cross-tenant comprovado (codigo + RLS pos-GA),
+(5) outbox pattern garantindo zero perda de side-effects,
+(6) Prisma extension primary-assignee-cache mantendo cache sincronizado,
+(7) migracao reversivel via 3 migrations escalonadas + rollback SQL,
+(8) feature flag TASKS_V2_ENABLED para rollout per-workspace,
+(9) observabilidade completa,
+(10) cobertura ≥ 80% unit + E2E completos + perf k6 50k tasks p95 < 500ms.
+
+Manutencao — manter saude continua da feature com:
+(1) SLAs P0/P1/P2/P3 cumpridos,
+(2) zero data loss em prod,
+(3) zero tenant leak detectado em audit trimestral,
+(4) outbox lag p95 < 5s e DLQ < 100 sustentado,
+(5) regressao zero por release de outros squads,
+(6) hotfix com mecanismo de rollback per-workspace,
+(7) post-mortem em 48h para todo P0,
+(8) threat model atualizado trimestralmente,
+(9) Lighthouse trend nao-regressivo,
+(10) growth de outbox/status_history sob controle (jobs de limpeza + particionamento).
+
+Atualizacao — evoluir feature sem quebrar com:
+(1) RFC obrigatoria para qualquer mudanca pos-GA,
+(2) ADR para decisoes irreversiveis,
+(3) migracao sempre aditiva (nullable → backfill → NOT NULL em release seguinte),
+(4) feature flag por workspace para toda nova funcionalidade,
+(5) rollout canary → 10% → 50% → 100%,
+(6) deprecation ≥ 90 dias com header `Deprecation`,
+(7) Swagger + Storybook + README atualizados em paralelo ao codigo,
+(8) regressao zero em features ja entregues,
+(9) testes E2E + unit para toda nova story,
+(10) backwards-compatible sempre que tecnicamente possivel.
+
+FLUXO DE EXECUCAO:
+- Implementacao: Sprints 0-8 (~16 semanas + Sprint 0). GA apos Sprint 5.
+- Manutencao: continua pos-GA, on-call rotation semanal, daily triage 15min.
+- Atualizacao: batches via RFC; cada batch tem sua propria sprint(s).
+- Ao delegar, SEMPRE disparar membros mobilizados em paralelo (uma unica mensagem com multiplas tool calls Agent).
+```
+
+---
+
+> **Lema do squad:** Codigo simples, tipado, testavel, e que aguenta 10x o trafego atual sem reescrever. Zero breaking change em pedidos, producao, separacao, requisicoes, financeiro, PDF, BPM. Cada query, cada guard, cada hook, cada outbox event e uma trava de seguranca e correcao — na implementacao, na manutencao e na atualizacao.

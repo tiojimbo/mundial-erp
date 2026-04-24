@@ -1,0 +1,109 @@
+/**
+ * E2E scaffold — Security hardening (Tasks feature).
+ *
+ * Status: placeholder. Habilitar em Sprint 2/3 conforme endpoints reais
+ * saem. Este spec consolida casos transversais de seguranca que nao
+ * pertencem a um modulo unico — cross-tenant exfiltration, log sanitization,
+ * mention spoofing, payload limits.
+ *
+ * Cobertura planejada (PLANO-TASKS §16 R12 + ADR-logs-sanitization):
+ *   - Body limit: POST comments > 10000 chars → 400 (class-validator MaxLength).
+ *   - Cross-ws edit: PATCH /task-comments/:id com token de outro ws → 404.
+ *   - Log sanitization: signed URL response tem query string truncada em 200
+ *     chars nos logs (Winston transformer). Auditado via interceptor de log
+ *     mock.
+ *   - Comment body nos logs truncado em 200 chars (mesmo transformer).
+ *   - Mention spoofing: @fake-user referencia username de OUTRO workspace —
+ *     service.resolveMentions NAO retorna esse userId (unit test cobre; aqui
+ *     validamos o efeito end-to-end no payload outbox).
+ */
+
+import { Test, TestingModule } from '@nestjs/testing';
+import { INestApplication, ValidationPipe } from '@nestjs/common';
+import request from 'supertest';
+import type { App } from 'supertest/types';
+import { AppModule } from '../../../src/app.module';
+import {
+  cleanupWorkspace,
+  createTestProcess,
+  createTestTask,
+  createTestUser,
+  createTestWorkspace,
+  TestProcess,
+  TestUser,
+  TestWorkspace,
+} from './setup';
+
+describe.skip('Tasks security hardening (e2e) — Sprint 2/3 ativar', () => {
+  let app: INestApplication<App>;
+  let wsA: TestWorkspace;
+  let wsB: TestWorkspace;
+  let processA: TestProcess;
+  let taskAId: string;
+  let wsBUser: TestUser;
+
+  beforeAll(async () => {
+    const moduleFixture: TestingModule = await Test.createTestingModule({
+      imports: [AppModule],
+    }).compile();
+
+    app = moduleFixture.createNestApplication();
+    app.setGlobalPrefix('api/v1', {
+      exclude: ['health', 'health/ready', 'docs'],
+    });
+    app.useGlobalPipes(
+      new ValidationPipe({
+        whitelist: true,
+        forbidNonWhitelisted: true,
+        transform: true,
+        transformOptions: { enableImplicitConversion: true },
+      }),
+    );
+    await app.init();
+
+    wsA = await createTestWorkspace(app);
+    wsB = await createTestWorkspace(app);
+    processA = await createTestProcess(app, wsA.workspaceId);
+    taskAId = (await createTestTask(app, processA, wsA.ownerUserId)).taskId;
+    wsBUser = await createTestUser(app, wsB.workspaceId, 'OPERATOR');
+  }, 60_000);
+
+  afterAll(async () => {
+    if (!app) return;
+    await cleanupWorkspace(app, wsA.workspaceId);
+    await cleanupWorkspace(app, wsB.workspaceId);
+    await app.close();
+  });
+
+  // Payload size — R14
+  it.skip('POST /tasks/:id/comments rejeita body > 10000 chars → 400', async () => {
+    const res = await request(app.getHttpServer())
+      .post(`/api/v1/tasks/${taskAId}/comments`)
+      .set('Authorization', `Bearer ${wsA.token}`)
+      .send({ body: 'x'.repeat(10001) });
+    expect(res.status).toBe(400);
+  });
+
+  // Cross-tenant edit — R12
+  it.skip('PATCH /task-comments/:id de outro workspace retorna 404', async () => {
+    expect(wsBUser).toBeDefined();
+  });
+
+  // Log sanitization — ADR-logs-sanitization §2
+  it.skip('signed URL logs truncam query string em 200 chars (audit via log mock)', async () => {
+    expect(true).toBe(true);
+  });
+
+  it.skip('comment body nos logs truncado em 200 chars', async () => {
+    expect(true).toBe(true);
+  });
+
+  // Mention spoofing — R12 + ADR-comments
+  it.skip('@fake-user de outro workspace NAO resolve userId (mention descartada)', async () => {
+    expect(true).toBe(true);
+  });
+
+  it.skip('mention spoofing nao aparece em COMMENT_ADDED outbox payload', async () => {
+    expect(true).toBe(true);
+  });
+});

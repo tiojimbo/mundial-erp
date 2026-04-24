@@ -64,14 +64,14 @@ function ChannelIcon({
   const colorClass = DEPT_BADGE_COLORS[abbr] ?? 'bg-gray-500';
 
   return (
-    <span className='flex items-center gap-[2px]'>
+    <span className='relative inline-block size-5 shrink-0'>
       {type === 'PRIVATE' ? (
-        <RiLockLine className='size-4 text-[oklch(55.6%_0_0)]' />
+        <RiLockLine className='absolute top-0 left-0 size-4 text-[oklch(55.6%_0_0)]' />
       ) : (
-        <RiHashtag className='size-4 text-[oklch(55.6%_0_0)]' />
+        <RiHashtag className='absolute top-0 left-0 size-4 text-[oklch(55.6%_0_0)]' />
       )}
       <span
-        className={`flex size-3 items-center justify-center rounded-[3px] text-[5px] font-semibold text-white ${colorClass}`}
+        className={`absolute -right-0.5 -bottom-0.5 flex size-3 items-center justify-center rounded-[3px] text-[5px] leading-none font-semibold text-white ${colorClass}`}
       >
         {abbr}
       </span>

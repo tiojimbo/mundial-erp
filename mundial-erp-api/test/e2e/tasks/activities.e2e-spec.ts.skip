@@ -1,0 +1,90 @@
+/**
+ * E2E scaffold — Task Activities (read model, event-sourced).
+ *
+ * Status: placeholder. Habilitar em Sprint 2 quando projetor outbox →
+ * TaskActivity rodar (Beatriz + Diego). Este endpoint e READ-ONLY (CQRS):
+ * activities sao projecao de eventos outbox, nunca escritos diretos por
+ * controllers/services externos.
+ *
+ * Cobertura planejada (PLANO-TASKS §8.5 + ADR-activities + lint rule
+ * `no-direct-activity-write`):
+ *   - GET /tasks/:id/activities retorna paginado (cursor) ordered DESC por
+ *     occurredAt.
+ *   - Nenhum endpoint escreve direto — tentativa via Prisma raw em outro spec
+ *     (unit) falha ou lint bloqueia.
+ *   - Projecao assincrona: dado evento outbox STATUS_CHANGED publicado em t0,
+ *     activity aparece no GET em <=5s (SLA interno — ADR-activities §3).
+ *   - Cross-tenant: activity de wsA nao vazada para wsB (implicito via task
+ *     404, mas teste explicito).
+ */
+
+import { Test, TestingModule } from '@nestjs/testing';
+import { INestApplication, ValidationPipe } from '@nestjs/common';
+import type { App } from 'supertest/types';
+import { AppModule } from '../../../src/app.module';
+import {
+  cleanupWorkspace,
+  createTestProcess,
+  createTestTask,
+  createTestWorkspace,
+  TestProcess,
+  TestWorkspace,
+} from './setup';
+
+describe.skip('Task Activities (e2e) — Sprint 2 ativar', () => {
+  let app: INestApplication<App>;
+  let ws: TestWorkspace;
+  let processCtx: TestProcess;
+  let taskId: string;
+
+  beforeAll(async () => {
+    const moduleFixture: TestingModule = await Test.createTestingModule({
+      imports: [AppModule],
+    }).compile();
+
+    app = moduleFixture.createNestApplication();
+    app.setGlobalPrefix('api/v1', {
+      exclude: ['health', 'health/ready', 'docs'],
+    });
+    app.useGlobalPipes(
+      new ValidationPipe({
+        whitelist: true,
+        forbidNonWhitelisted: true,
+        transform: true,
+        transformOptions: { enableImplicitConversion: true },
+      }),
+    );
+    await app.init();
+
+    ws = await createTestWorkspace(app);
+    processCtx = await createTestProcess(app, ws.workspaceId);
+    taskId = (await createTestTask(app, processCtx, ws.ownerUserId)).taskId;
+  }, 60_000);
+
+  afterAll(async () => {
+    if (!app) return;
+    await cleanupWorkspace(app, ws.workspaceId);
+    await app.close();
+  });
+
+  // Story ACT-01 — listagem paginada
+  it.skip('GET /tasks/:id/activities retorna ordered DESC + cursor pagination', async () => {
+    expect(taskId).toBeTruthy();
+  });
+
+  // Story ACT-02 — read-only invariant
+  it.skip('nenhum endpoint documentado em OpenAPI escreve direto em TaskActivity (read-only)', async () => {
+    // Varredura estatica em outro layer (lint). Aqui confirma OpenAPI spec.
+    expect(true).toBe(true);
+  });
+
+  // Story ACT-03 — projecao assincrona
+  it.skip('evento outbox STATUS_CHANGED vira activity visivel em GET em <=5s', async () => {
+    expect(true).toBe(true);
+  });
+
+  // Story ACT-04 — cross-tenant
+  it.skip('activity de wsA com token de wsB retorna 404 (via task 404)', async () => {
+    expect(true).toBe(true);
+  });
+});

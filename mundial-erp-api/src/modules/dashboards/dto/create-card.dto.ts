@@ -11,6 +11,17 @@ import {
   Min,
 } from 'class-validator';
 
+/**
+ * Nota sobre `schemaVersion` (squad-dashboards principio #5):
+ *
+ * O model Prisma `DashboardCard` carrega a coluna nativa `schemaVersion`
+ * (default 1) desde a migration `20260424_000008_dashboard_card_schema_version`.
+ * Este DTO NAO exige `schemaVersion` como campo top-level: o default do DB
+ * cobre clients que nao enviam, e clients legados que passam `schemaVersion`
+ * dentro de `config` JSON continuam compativeis (backward compat). Bumps
+ * futuros serao introduzidos via RFC com sub-DTO por CardType (plano em
+ * RFC-002 §5.4 / RFC-003 futura).
+ */
 export class CreateCardDto {
   @ApiProperty({ enum: CardType, example: 'KPI_NUMBER' })
   @IsEnum(CardType)

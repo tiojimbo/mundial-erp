@@ -1,0 +1,35 @@
+/**
+ * Frontend test scaffold — TaskView responsividade 4 breakpoints.
+ *
+ * Status: skipped — aguarda vitest + componente real (Juliana).
+ *
+ * Cobertura planejada (PLANO-TASKS §13 UX responsive):
+ *   - Breakpoints: mobile (< 640px), tablet (640-1023px),
+ *     laptop (1024-1279px), desktop (>= 1280px).
+ *   - mobile: layout single column, side panel vira bottom sheet.
+ *   - tablet: 2 colunas (detail + propriedades), activity panel colapsa.
+ *   - laptop/desktop: 3 colunas com activities sidebar aberta.
+ *   - Resize triggers re-layout sem perder estado (scroll, draft).
+ */
+
+describe.skip('TaskView responsividade — Sprint 3 ativar', () => {
+  it.skip('mobile (< 640px): layout single column + bottom sheet', () => {
+    expect(true).toBe(true);
+  });
+
+  it.skip('tablet (640-1023px): 2 colunas', () => {
+    expect(true).toBe(true);
+  });
+
+  it.skip('laptop (1024-1279px): 3 colunas com activities aberta', () => {
+    expect(true).toBe(true);
+  });
+
+  it.skip('desktop (>= 1280px): 3 colunas expanded', () => {
+    expect(true).toBe(true);
+  });
+
+  it.skip('resize triggers re-layout sem perder scroll/draft', () => {
+    expect(true).toBe(true);
+  });
+});

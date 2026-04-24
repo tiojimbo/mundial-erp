@@ -4,6 +4,7 @@ export type WorkItemStatus = {
   category: 'NOT_STARTED' | 'ACTIVE' | 'DONE' | 'CLOSED';
   color: string;
   icon: string | null;
+  sortOrder?: number;
 };
 
 export type WorkItem = {

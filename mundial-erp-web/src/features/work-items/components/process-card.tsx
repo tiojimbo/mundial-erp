@@ -13,9 +13,15 @@ type ProcessCardProps = {
   process: ProcessSummary;
   parentName: string;
   deptSlug: string;
+  departmentId: string;
 };
 
-export function ProcessCard({ process, parentName, deptSlug }: ProcessCardProps) {
+export function ProcessCard({
+  process,
+  parentName,
+  deptSlug,
+  departmentId,
+}: ProcessCardProps) {
   const [collapsed, setCollapsed] = useState(false);
 
   const totalCount =
@@ -25,7 +31,7 @@ export function ProcessCard({ process, parentName, deptSlug }: ProcessCardProps)
     process.featureRoute || `/d/${deptSlug}/p/${process.slug}`;
 
   return (
-    <div className="mx-4 min-w-fit shrink-0 overflow-auto rounded-xl border border-stroke-soft-200 bg-bg-white-0 md:mx-6 lg:mx-10">
+    <div className="mx-4 min-w-fit shrink-0 rounded-xl border border-stroke-soft-200 bg-bg-white-0 md:mx-6 lg:mx-10">
       {/* Card Header */}
       <div className="group/header flex items-center gap-3 px-5 py-4">
         {/* Collapse button */}
@@ -82,7 +88,11 @@ export function ProcessCard({ process, parentName, deptSlug }: ProcessCardProps)
       {!collapsed && (
         <div>
           {process.processType === 'LIST' ? (
-            <ProcessCardListBody process={process} />
+            <ProcessCardListBody
+              process={process}
+              departmentId={departmentId}
+              areaId={process.areaId}
+            />
           ) : (
             <ProcessCardBpmBody process={process} deptSlug={deptSlug} />
           )}

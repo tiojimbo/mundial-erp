@@ -1,0 +1,32 @@
+-- ============================================================================
+-- DashboardCard.schema_version — coluna aditiva (squad-dashboards principio #5)
+-- ----------------------------------------------------------------------------
+-- CONTEXTO:
+--   O principio #5 de `.claude/skills/squad-dashboards.mdc` exige que todo
+--   DashboardCard carregue `schemaVersion: number` no shape JSON de
+--   `dataSource`/`config`. Ate agora, isso vivia APENAS dentro do JSON
+--   `config` (ver `prisma/seeds/kommo-analytics-comercial.seed.ts`), o que e
+--   fragil: qualquer PR pode esquecer, nao aparece em queries e nao e
+--   indexavel.
+--
+--   A lacuna foi registrada formalmente na RFC-002 GAUGE (`.claude/rfc/
+--   dashboards-002-gauge-cardtype.md` §6.1) como risco conhecido. Esta
+--   migration resolve o gap promovendo `schemaVersion` a coluna nativa
+--   NOT NULL com default 1.
+--
+-- NATUREZA:
+--   ADITIVA. Nenhum dado perdido, nenhum contrato quebrado. Cards legados
+--   (criados antes desta migration) recebem schemaVersion = 1 automaticamente
+--   via DEFAULT — mesmo valor que ja usam dentro do JSON config.
+--
+-- COMPATIBILIDADE BACKWARD:
+--   - Clientes que ainda enviam `schemaVersion` dentro de `config` JSON
+--     continuam funcionando (DTO nao exige campo top-level; DB preenche
+--     default=1 quando o client omite).
+--   - Bumps futuros de schemaVersion seguem o procedimento do principio #5:
+--     nullable → seed/backfill → NOT NULL em release seguinte. Aqui o
+--     backfill e trivial (default=1 cobre 100% dos cards existentes).
+-- ============================================================================
+
+ALTER TABLE "dashboard_cards"
+  ADD COLUMN "schema_version" INTEGER NOT NULL DEFAULT 1;

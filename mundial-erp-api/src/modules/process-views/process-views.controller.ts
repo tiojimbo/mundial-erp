@@ -21,7 +21,7 @@ import { ProcessViewsService } from './process-views.service';
 import { CreateProcessViewDto } from './dto/create-process-view.dto';
 import { UpdateProcessViewDto } from './dto/update-process-view.dto';
 import { ProcessViewResponseDto } from './dto/process-view-response.dto';
-import { PaginationDto } from '../../common/dtos/pagination.dto';
+import { ListProcessViewsQueryDto } from './dto/list-process-views-query.dto';
 import { Roles } from '../auth/decorators';
 import { WorkspaceId } from '../workspaces/decorators/workspace-id.decorator';
 
@@ -47,13 +47,12 @@ export class ProcessViewsController {
   @ApiOperation({ summary: 'Listar visões de um processo' })
   findAll(
     @WorkspaceId() workspaceId: string,
-    @Query('processId') processId: string,
-    @Query() pagination: PaginationDto,
+    @Query() query: ListProcessViewsQueryDto,
   ) {
     return this.processViewsService.findAllByProcess(
       workspaceId,
-      processId,
-      pagination,
+      query.processId,
+      query,
     );
   }
 

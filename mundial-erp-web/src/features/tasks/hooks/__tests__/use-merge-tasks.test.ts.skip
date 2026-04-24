@@ -1,0 +1,33 @@
+/**
+ * Frontend test scaffold — useMergeTasks (Idempotency-Key por mutacao).
+ *
+ * Status: skipped — aguarda vitest infra + hook entregue por Henrique.
+ *
+ * Cobertura planejada (PLANO-TASKS §12 + ADR idempotency):
+ *   - Cada chamada a mutate() gera Idempotency-Key unico (crypto.randomUUID).
+ *   - Chamadas simultaneas com mesmo payload usam keys DIFERENTES (nao
+ *     compartilham — cada intent e independente).
+ *   - Retry automatico (React Query default) REUSA o mesmo key ate a
+ *     resposta definitiva (evita double-merge).
+ *   - Header `Idempotency-Key` incluido em `fetch`/`axios`.
+ *   - Em network error, proxima tentativa manual (retry user-triggered)
+ *     gera NOVO key.
+ */
+
+describe.skip('useMergeTasks() idempotency — Sprint 3 ativar', () => {
+  it.skip('gera Idempotency-Key unico por invocacao de mutate()', () => {
+    expect(true).toBe(true);
+  });
+
+  it.skip('retry automatico React Query reusa mesmo key', () => {
+    expect(true).toBe(true);
+  });
+
+  it.skip('header Idempotency-Key vai no request HTTP', () => {
+    expect(true).toBe(true);
+  });
+
+  it.skip('retry manual user-triggered gera NOVO key', () => {
+    expect(true).toBe(true);
+  });
+});

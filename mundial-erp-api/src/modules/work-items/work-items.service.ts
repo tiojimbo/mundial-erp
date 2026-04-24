@@ -16,6 +16,13 @@ import type {
   MyTasksDayGroupDto,
 } from './dto/my-tasks-response.dto';
 
+const CATEGORY_ORDER: Record<string, number> = {
+  NOT_STARTED: 0,
+  ACTIVE: 1,
+  DONE: 2,
+  CLOSED: 3,
+};
+
 @Injectable()
 export class WorkItemsService {
   constructor(private readonly workItemsRepository: WorkItemsRepository) {}
@@ -143,11 +150,13 @@ export class WorkItemsService {
 
   private mapToMyTask(item: any): MyTaskDto {
     const assignees: { id: string; name: string; email: string }[] = [];
-    if (item.assignee) {
+    // Relacao Prisma renomeada: `assignee` -> `primaryAssignee` (ADR-001).
+    // Semantica externa preservada: DTO de resposta continua expondo `assignees[]`.
+    if (item.primaryAssignee) {
       assignees.push({
-        id: item.assignee.id,
-        name: item.assignee.name,
-        email: item.assignee.email,
+        id: item.primaryAssignee.id,
+        name: item.primaryAssignee.name,
+        email: item.primaryAssignee.email,
       });
     }
 
@@ -239,7 +248,12 @@ export class WorkItemsService {
       statusId: dto.statusId,
       itemType: dto.itemType,
       priority: dto.priority,
-      assigneeId: dto.assigneeId,
+      // Mapeamento ADR-001: DTO externo mantem `assigneeId` (compat de API);
+      // coluna Prisma foi renomeada para `primaryAssigneeCache`. Em Sprint 1 a
+      // aplicacao ainda escreve aqui diretamente; a partir da Migration 2
+      // (TSK-106, Mariana) a Prisma extension recalcula este cache via
+      // WorkItemAssignee[] e escrita direta sera bloqueada por lint rule.
+      primaryAssigneeCache: dto.assigneeId,
       creatorId,
       parentId: dto.parentId,
       startDate: dto.startDate ? new Date(dto.startDate) : undefined,
@@ -258,7 +272,9 @@ export class WorkItemsService {
         take: filters.limit,
         processId: filters.processId,
         statusId: filters.statusId,
-        assigneeId: filters.assigneeId,
+        // DTO externo continua `assigneeId` (compat); mapeado internamente ao
+        // campo Prisma renomeado `primaryAssigneeCache` (ADR-001).
+        primaryAssigneeCache: filters.assigneeId,
         priority: filters.priority,
         itemType: filters.itemType,
         search: filters.search,
@@ -336,7 +352,12 @@ export class WorkItemsService {
       group.count++;
     }
 
-    const groups = Array.from(groupMap.values());
+    const groups = Array.from(groupMap.values()).sort((a, b) => {
+      const catDiff =
+        (CATEGORY_ORDER[a.category] ?? 99) - (CATEGORY_ORDER[b.category] ?? 99);
+      if (catDiff !== 0) return catDiff;
+      return a.statusName.localeCompare(b.statusName);
+    });
 
     return {
       groups,
@@ -371,7 +392,11 @@ export class WorkItemsService {
     if (dto.description !== undefined) updateData.description = dto.description;
     if (dto.itemType !== undefined) updateData.itemType = dto.itemType;
     if (dto.priority !== undefined) updateData.priority = dto.priority;
-    if (dto.assigneeId !== undefined) updateData.assigneeId = dto.assigneeId;
+    // DTO externo continua `assigneeId`; coluna Prisma `primaryAssigneeCache`
+    // (ADR-001). Sprint 1: aplicacao ainda escreve direto; Sprint 2+: extensao
+    // Prisma recalcula via WorkItemAssignee[].
+    if (dto.assigneeId !== undefined)
+      updateData.primaryAssigneeCache = dto.assigneeId;
     if (dto.parentId !== undefined) updateData.parentId = dto.parentId;
     if (dto.startDate !== undefined)
       updateData.startDate = dto.startDate ? new Date(dto.startDate) : null;

@@ -61,6 +61,28 @@ import { WorkItemsModule } from './modules/work-items/work-items.module';
 import { NotificationsModule } from './modules/notifications/notifications.module';
 import { WorkspacesModule } from './modules/workspaces/workspaces.module';
 
+// Tasks feature (Sprints 1-7) — facade semantica sobre WorkItem.
+// Registrar APOS WorkItemsModule para honrar dependencia de providers
+// compartilhados (WorkItemsService eh importado por TasksModule).
+import { TasksModule } from './modules/tasks/tasks.module';
+import { TaskOutboxModule } from './modules/task-outbox/task-outbox.module';
+import { CustomTaskTypesModule } from './modules/custom-task-types/custom-task-types.module';
+import { TaskTagsModule } from './modules/task-tags/task-tags.module';
+import { TaskWatchersModule } from './modules/task-watchers/task-watchers.module';
+import { TaskDependenciesModule } from './modules/task-dependencies/task-dependencies.module';
+import { TaskLinksModule } from './modules/task-links/task-links.module';
+import { TaskTemplatesModule } from './modules/task-templates/task-templates.module';
+import { TaskChecklistsModule } from './modules/task-checklists/task-checklists.module';
+import { TaskAttachmentsModule } from './modules/task-attachments/task-attachments.module';
+import { TaskCommentsModule } from './modules/task-comments/task-comments.module';
+import { TaskActivitiesModule } from './modules/task-activities/task-activities.module';
+import { FeatureFlagsModule } from './common/feature-flags/feature-flags.module';
+import { CommonModule } from './common/common.module';
+
+// Kommo integration (Sprint 1 — skeleton; webhook/worker/crons na proxima
+// rodada). Fornece `KommoApiClient` (HMAC validator + fachada OAuth stub).
+import { KommoApiClientModule } from './modules/kommo-api-client/kommo-api-client.module';
+
 @Module({
   imports: [
     // Config with Zod validation
@@ -83,6 +105,12 @@ import { WorkspacesModule } from './modules/workspaces/workspaces.module';
 
     // Database (Prisma)
     DatabaseModule,
+
+    // Feature flags transversais (TasksFeatureFlagGuard, etc.)
+    FeatureFlagsModule,
+
+    // Common providers (@Global): CycleDetectorService, S3AdapterService, FileTypeDetectorService
+    CommonModule,
 
     // Redis (shared connection)
     RedisModule,
@@ -192,8 +220,34 @@ import { WorkspacesModule } from './modules/workspaces/workspaces.module';
     // Notifications (Notificacoes Inbox)
     NotificationsModule,
 
+    // Tasks feature (paridade ClickUp — Sprints 1-7). Ordem logica:
+    //   1. TaskOutboxModule primeiro (produtor transacional de eventos).
+    //   2. CustomTaskTypesModule (dependencia de TasksModule via include).
+    //   3. TasksModule (facade principal `/tasks/*`).
+    //   4. Sub-recursos: tags, watchers, dependencies, links, templates,
+    //      checklists, attachments, comments, activities.
+    // Todos sao gated pelo TasksFeatureFlagGuard (per-workspace opt-out).
+    TaskOutboxModule,
+    CustomTaskTypesModule,
+    TasksModule,
+    TaskTagsModule,
+    TaskWatchersModule,
+    TaskDependenciesModule,
+    TaskLinksModule,
+    TaskTemplatesModule,
+    TaskChecklistsModule,
+    TaskAttachmentsModule,
+    TaskCommentsModule,
+    TaskActivitiesModule,
+
     // Workspaces (Multi-tenancy — Squad Workspace F1.4)
     WorkspacesModule,
+
+    // Kommo integration (Squad Kommo — Sprint 1 skeleton). Gate global
+    // via `KOMMO_SYNC_ENABLED` + `KommoFeatureFlagGuard` (ja registrado
+    // em FeatureFlagsModule). Controllers de webhook/OAuth/management
+    // entram em rodada seguinte (depende de schema Prisma + OAuth flow).
+    KommoApiClientModule,
   ],
   providers: [
     // Global guards (order: Throttler → JWT Auth → Workspace → Roles)

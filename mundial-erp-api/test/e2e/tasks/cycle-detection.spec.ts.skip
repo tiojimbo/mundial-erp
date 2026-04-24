@@ -1,0 +1,88 @@
+/**
+ * E2E scaffold — Dependency + Merge cycle detection.
+ *
+ * Status: placeholder. Habilitar em Sprint 3 junto com
+ * `POST /api/v1/tasks/:id/dependencies` e `POST /api/v1/tasks/:id/merge`.
+ *
+ * Cobertura planejada (PLANO-TASKS §8.3, §8.4, §16 risco R3):
+ *   - BFS de deteccao de ciclo em dependencies — A -> B -> C -> A retorna 409.
+ *   - Merge cycle: target nao pode ser descendente de nenhum source.
+ *   - Defesa DoS: limite 1000 nodes + timeout 2s.
+ */
+
+import { Test, TestingModule } from '@nestjs/testing';
+import { INestApplication, ValidationPipe } from '@nestjs/common';
+import type { App } from 'supertest/types';
+import { AppModule } from '../../../src/app.module';
+import {
+  cleanupWorkspace,
+  createTestProcess,
+  createTestTask,
+  createTestWorkspace,
+  TestProcess,
+  TestWorkspace,
+} from './setup';
+
+describe.skip('Tasks cycle detection (e2e) — Sprint 3 ativar', () => {
+  let app: INestApplication<App>;
+  let ws: TestWorkspace;
+  let processCtx: TestProcess;
+  let taskAId: string;
+  let taskBId: string;
+  let taskCId: string;
+
+  beforeAll(async () => {
+    const moduleFixture: TestingModule = await Test.createTestingModule({
+      imports: [AppModule],
+    }).compile();
+
+    app = moduleFixture.createNestApplication();
+    app.setGlobalPrefix('api/v1', {
+      exclude: ['health', 'health/ready', 'docs'],
+    });
+    app.useGlobalPipes(
+      new ValidationPipe({
+        whitelist: true,
+        forbidNonWhitelisted: true,
+        transform: true,
+        transformOptions: { enableImplicitConversion: true },
+      }),
+    );
+    await app.init();
+
+    ws = await createTestWorkspace(app);
+    processCtx = await createTestProcess(app, ws.workspaceId);
+
+    taskAId = (await createTestTask(app, processCtx, ws.ownerUserId, { title: 'A' })).taskId;
+    taskBId = (await createTestTask(app, processCtx, ws.ownerUserId, { title: 'B' })).taskId;
+    taskCId = (await createTestTask(app, processCtx, ws.ownerUserId, { title: 'C' })).taskId;
+  }, 60_000);
+
+  afterAll(async () => {
+    if (!app) return;
+    await cleanupWorkspace(app, ws.workspaceId);
+    await app.close();
+  });
+
+  // Story TS-S3-12 — PLANO-TASKS §8.3
+  it.skip('dependency cycle A -> B -> C -> A retorna 409 CycleDependencyException', async () => {
+    expect(taskAId).toBeTruthy();
+    expect(taskBId).toBeTruthy();
+    expect(taskCId).toBeTruthy();
+  });
+
+  // Story TS-S3-12 — PLANO-TASKS §8.3
+  it.skip('dependencia entre task e sua propria subtree de subtasks retorna 400', async () => {
+    expect(true).toBe(true);
+  });
+
+  // Story TS-S4-02 — PLANO-TASKS §8.4
+  it.skip('merge cycle: target e descendente de source retorna 409 MergeCycleException', async () => {
+    expect(true).toBe(true);
+  });
+
+  // Story TS-S3-13 — defesa DoS (PLANO-TASKS §8.3)
+  it.skip('BFS respeita limite 1000 nodes + timeout 2s e aborta com 422', async () => {
+    expect(true).toBe(true);
+  });
+});

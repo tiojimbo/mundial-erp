@@ -6,6 +6,8 @@ import {
   QUEUE_SYNC,
   QUEUE_REPORTS,
   QUEUE_SEARCH_REINDEX,
+  QUEUE_KOMMO_WEBHOOKS,
+  QUEUE_KOMMO_BACKFILL,
 } from './queue.constants';
 
 function buildRedisOptions(config: ConfigService): RedisOptions {
@@ -70,6 +72,8 @@ function createBullConnection(config: ConfigService): Redis {
       { name: QUEUE_SYNC },
       { name: QUEUE_REPORTS },
       { name: QUEUE_SEARCH_REINDEX },
+      { name: QUEUE_KOMMO_WEBHOOKS },
+      { name: QUEUE_KOMMO_BACKFILL },
     ),
   ],
   exports: [BullModule],

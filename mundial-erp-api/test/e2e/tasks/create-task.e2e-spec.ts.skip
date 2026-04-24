@@ -1,0 +1,278 @@
+/**
+ * E2E scaffold — POST /api/v1/processes/:processId/tasks (PLANO-TASKS §7.2).
+ *
+ * Status: placeholder. Habilitar apos Felipe estabilizar o endpoint em
+ * staging (Sprint 1, story TSK-S1-11). Arquivo termina em `.skip` para
+ * ficar fora do glob do Jest (`*.e2e-spec.ts$`).
+ *
+ * Cobertura planejada:
+ *   - Defaults (statusId auto-resolvido para NOT_STARTED do process).
+ *   - Collections: assignees, tagIds, watchers via sync services.
+ *   - Cross-tenant 404 silencioso (§8.1).
+ *   - Validacoes 400 (title min, dueDate >= startDate, etc — §8.9).
+ *   - RBAC 403 para VIEWER.
+ *   - CustomTaskType builtin (workspaceId=NULL) vs privado cross-tenant.
+ *   - parentId cross-process (valida mesmo workspace).
+ *   - Outbox CREATED event emitido.
+ *
+ * Pre-requisitos:
+ *   - POST /api/v1/processes/:processId/tasks implementado.
+ *   - CustomTaskType builtin seedado no bootstrap.
+ *   - Prisma extension (ADR-001) recalculando primaryAssigneeCache.
+ */
+
+import { Test, TestingModule } from '@nestjs/testing';
+import { INestApplication, ValidationPipe } from '@nestjs/common';
+import request from 'supertest';
+import type { App } from 'supertest/types';
+import { AppModule } from '../../../src/app.module';
+import { PrismaService } from '../../../src/database/prisma.service';
+import {
+  cleanupWorkspace,
+  createTestProcess,
+  createTestUser,
+  createTestWorkspace,
+  TestProcess,
+  TestUser,
+  TestWorkspace,
+} from './setup';
+
+describe.skip('POST /api/v1/processes/:processId/tasks (e2e) — ativar em Sprint 1', () => {
+  let app: INestApplication<App>;
+  let prisma: PrismaService;
+  let wsA: TestWorkspace;
+  let wsB: TestWorkspace;
+  let processA: TestProcess;
+  let processB: TestProcess;
+  let operatorA: TestUser;
+  let viewerA: TestUser;
+  let memberA: TestUser;
+
+  beforeAll(async () => {
+    const moduleFixture: TestingModule = await Test.createTestingModule({
+      imports: [AppModule],
+    }).compile();
+
+    app = moduleFixture.createNestApplication();
+    app.setGlobalPrefix('api/v1', {
+      exclude: ['health', 'health/ready', 'docs'],
+    });
+    app.useGlobalPipes(
+      new ValidationPipe({
+        whitelist: true,
+        forbidNonWhitelisted: true,
+        transform: true,
+        transformOptions: { enableImplicitConversion: true },
+      }),
+    );
+    await app.init();
+    prisma = app.get(PrismaService);
+
+    wsA = await createTestWorkspace(app);
+    wsB = await createTestWorkspace(app);
+    processA = await createTestProcess(app, wsA.workspaceId);
+    processB = await createTestProcess(app, wsB.workspaceId);
+    operatorA = await createTestUser(app, wsA.workspaceId, 'OPERATOR');
+    viewerA = await createTestUser(app, wsA.workspaceId, 'OPERATOR');
+    memberA = await createTestUser(app, wsA.workspaceId, 'OPERATOR');
+  });
+
+  afterAll(async () => {
+    if (wsA) await cleanupWorkspace(app, wsA.workspaceId);
+    if (wsB) await cleanupWorkspace(app, wsB.workspaceId);
+    await app?.close();
+  });
+
+  it.skip('POST /processes/:processId/tasks cria task com defaults (statusId resolvido para NOT_STARTED)', async () => {
+    const res = await request(app.getHttpServer())
+      .post(`/api/v1/processes/${processA.processId}/tasks`)
+      .set('Authorization', `Bearer ${operatorA.token}`)
+      .send({ title: 'Primeira task' })
+      .expect(201);
+
+    expect(res.body.data).toMatchObject({
+      title: 'Primeira task',
+      processId: processA.processId,
+      statusId: processA.defaultStatusId,
+      priority: 'NONE',
+      archived: false,
+    });
+    expect(res.body.data.status).toMatchObject({ category: 'NOT_STARTED' });
+  });
+
+  it.skip('POST /processes/:processId/tasks com assignees aplica via AssigneesSyncService e atualiza primaryAssigneeCache via extension', async () => {
+    const res = await request(app.getHttpServer())
+      .post(`/api/v1/processes/${processA.processId}/tasks`)
+      .set('Authorization', `Bearer ${operatorA.token}`)
+      .send({
+        title: 'Com assignees',
+        assignees: [memberA.userId],
+      })
+      .expect(201);
+
+    const taskId = res.body.data.id as string;
+
+    // Verifica via DB que WorkItemAssignee foi criado e primaryAssigneeCache
+    // foi recalculado pela extension (ADR-001).
+    const task = await prisma.workItem.findUnique({
+      where: { id: taskId },
+      select: { primaryAssigneeCache: true },
+    });
+    expect(task?.primaryAssigneeCache).toBe(memberA.userId);
+
+    const assignees = await prisma.workItemAssignee.findMany({
+      where: { workItemId: taskId },
+    });
+    expect(assignees).toHaveLength(1);
+    expect(assignees[0].userId).toBe(memberA.userId);
+  });
+
+  it.skip('POST /processes/:processId/tasks com tagIds cria WorkItemTagLink para cada tag do workspace', async () => {
+    const tag1 = await prisma.workItemTag.create({
+      data: { workspaceId: wsA.workspaceId, name: 'urgente', color: '#ff0000' },
+    });
+    const tag2 = await prisma.workItemTag.create({
+      data: { workspaceId: wsA.workspaceId, name: 'review', color: '#00ff00' },
+    });
+
+    const res = await request(app.getHttpServer())
+      .post(`/api/v1/processes/${processA.processId}/tasks`)
+      .set('Authorization', `Bearer ${operatorA.token}`)
+      .send({
+        title: 'Com tags',
+        tagIds: [tag1.id, tag2.id],
+      })
+      .expect(201);
+
+    const taskId = res.body.data.id as string;
+    const links = await prisma.workItemTagLink.findMany({
+      where: { workItemId: taskId },
+    });
+    expect(links.map((l) => l.tagId).sort()).toEqual([tag1.id, tag2.id].sort());
+  });
+
+  it.skip('POST /processes/:processId/tasks com watchers emite outbox WATCHER_ADDED por user', async () => {
+    const extra = await createTestUser(app, wsA.workspaceId, 'OPERATOR');
+
+    const res = await request(app.getHttpServer())
+      .post(`/api/v1/processes/${processA.processId}/tasks`)
+      .set('Authorization', `Bearer ${operatorA.token}`)
+      .send({
+        title: 'Com watchers',
+        watchers: [memberA.userId, extra.userId],
+      })
+      .expect(201);
+
+    const taskId = res.body.data.id as string;
+    const events = await prisma.taskOutbox.findMany({
+      where: { aggregateId: taskId, eventType: 'WATCHER_ADDED' },
+    });
+    expect(events).toHaveLength(2);
+  });
+
+  it.skip('POST /processes/:processId/tasks cross-tenant (processId de outro workspace) → 404', async () => {
+    await request(app.getHttpServer())
+      .post(`/api/v1/processes/${processB.processId}/tasks`)
+      .set('Authorization', `Bearer ${operatorA.token}`)
+      .send({ title: 'Invasao' })
+      .expect(404);
+  });
+
+  it.skip('POST /processes/:processId/tasks sem title → 400 com mensagem "Minimo 3 caracteres"', async () => {
+    const res = await request(app.getHttpServer())
+      .post(`/api/v1/processes/${processA.processId}/tasks`)
+      .set('Authorization', `Bearer ${operatorA.token}`)
+      .send({ title: 'ab' })
+      .expect(400);
+
+    const msg = Array.isArray(res.body.message)
+      ? res.body.message.join(' ')
+      : String(res.body.message);
+    expect(msg).toMatch(/Minimo 3 caracteres|min.*3/i);
+  });
+
+  it.skip('POST /processes/:processId/tasks Role.VIEWER → 403 (apenas OPERATOR+)', async () => {
+    // viewerA criado como OPERATOR acima; para este teste, trocar role para VIEWER
+    // ANTES: via prisma.workspaceMember.update (VIEWER = read-only).
+    await prisma.workspaceMember.updateMany({
+      where: { userId: viewerA.userId, workspaceId: wsA.workspaceId },
+      data: { role: 'VIEWER' as unknown as 'MEMBER' },
+    });
+
+    await request(app.getHttpServer())
+      .post(`/api/v1/processes/${processA.processId}/tasks`)
+      .set('Authorization', `Bearer ${viewerA.token}`)
+      .send({ title: 'Nao deveria passar' })
+      .expect(403);
+  });
+
+  it.skip('POST /processes/:processId/tasks com customTypeId builtin (workspaceId=NULL) → 201', async () => {
+    const builtin = await prisma.customTaskType.findFirst({
+      where: { workspaceId: null, name: 'Task' },
+    });
+    if (!builtin) {
+      throw new Error('Seed builtin CustomTaskType ausente');
+    }
+
+    await request(app.getHttpServer())
+      .post(`/api/v1/processes/${processA.processId}/tasks`)
+      .set('Authorization', `Bearer ${operatorA.token}`)
+      .send({ title: 'Com builtin type', customTypeId: builtin.id })
+      .expect(201);
+  });
+
+  it.skip('POST /processes/:processId/tasks com customTypeId privado de outro workspace → 404', async () => {
+    const privateTypeB = await prisma.customTaskType.create({
+      data: {
+        workspaceId: wsB.workspaceId,
+        name: 'Tipo privado B',
+        icon: null,
+        color: '#123456',
+      },
+    });
+
+    await request(app.getHttpServer())
+      .post(`/api/v1/processes/${processA.processId}/tasks`)
+      .set('Authorization', `Bearer ${operatorA.token}`)
+      .send({ title: 'Cross tenant type', customTypeId: privateTypeB.id })
+      .expect(404);
+  });
+
+  it.skip('POST /processes/:processId/tasks com parentId de outro process → valida mesmo workspace, senão 400/404', async () => {
+    // Parent em processB (workspace diferente) deve ser rejeitado 404.
+    const parentOtherWs = await prisma.workItem.create({
+      data: {
+        processId: processB.processId,
+        statusId: processB.defaultStatusId,
+        title: 'Parent cross ws',
+        creatorId: wsB.ownerUserId,
+      },
+      select: { id: true },
+    });
+
+    await request(app.getHttpServer())
+      .post(`/api/v1/processes/${processA.processId}/tasks`)
+      .set('Authorization', `Bearer ${operatorA.token}`)
+      .send({ title: 'Child invalido', parentId: parentOtherWs.id })
+      .expect((res) => {
+        if (res.status !== 400 && res.status !== 404) {
+          throw new Error(`expected 400 or 404, got ${res.status}`);
+        }
+      });
+  });
+
+  it.skip('POST /processes/:processId/tasks emite outbox CREATED', async () => {
+    const res = await request(app.getHttpServer())
+      .post(`/api/v1/processes/${processA.processId}/tasks`)
+      .set('Authorization', `Bearer ${operatorA.token}`)
+      .send({ title: 'Com outbox' })
+      .expect(201);
+
+    const taskId = res.body.data.id as string;
+    const events = await prisma.taskOutbox.findMany({
+      where: { aggregateId: taskId, eventType: 'CREATED' },
+    });
+    expect(events).toHaveLength(1);
+    expect(events[0].workspaceId).toBe(wsA.workspaceId);
+  });
+});

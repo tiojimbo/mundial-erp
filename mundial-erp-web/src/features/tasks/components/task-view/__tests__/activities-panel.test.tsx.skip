@@ -1,0 +1,37 @@
+/**
+ * Frontend test scaffold — ActivitiesPanel (a11y role=log + aria-live).
+ *
+ * Status: skipped — aguarda vitest + componente (Juliana).
+ *
+ * Cobertura planejada (PLANO-TASKS §13.2 a11y):
+ *   - Container tem role="log" para screen readers anunciarem novas linhas.
+ *   - aria-live="polite" (nao interrompe fala em progresso).
+ *   - aria-relevant="additions" (anuncia apenas novos items).
+ *   - Cada ActivityItem tem aria-label com "Tipo + ator + timestamp
+ *     relativo".
+ *   - Auto-scroll para o topo em novo item respeitando
+ *     prefers-reduced-motion.
+ *   - Empty state com role="status" (nao log, para nao repetir).
+ */
+
+describe.skip('ActivitiesPanel a11y — Sprint 3 ativar', () => {
+  it.skip('container tem role=log + aria-live=polite', () => {
+    expect(true).toBe(true);
+  });
+
+  it.skip('aria-relevant=additions', () => {
+    expect(true).toBe(true);
+  });
+
+  it.skip('ActivityItem tem aria-label informativo', () => {
+    expect(true).toBe(true);
+  });
+
+  it.skip('respeita prefers-reduced-motion no auto-scroll', () => {
+    expect(true).toBe(true);
+  });
+
+  it.skip('empty state usa role=status (nao log)', () => {
+    expect(true).toBe(true);
+  });
+});

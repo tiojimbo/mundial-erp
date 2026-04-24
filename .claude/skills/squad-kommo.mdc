@@ -1,0 +1,474 @@
+---
+name: squad-kommo
+description: Squad responsavel pela IMPLEMENTACAO inicial, MANUTENCAO continua e ATUALIZACAO incremental da integracao Kommo (CRM externo) — pipeline de replicacao Kommo→banco local em tempo-quase-real (webhook-primary + cron-secondary de reconciliacao), OAuth2 por workspace, rate-limit awareness, HMAC de webhook, models replicas (KommoConversation, KommoMessage, KommoLead, KommoAgent, KommoPipeline, etc.), adapters para o query engine do squad-dashboards e contrato de leitura para squad-dashboards/squad-fe-dashboards. 4 membros em paralelismo maximo. Use sempre que a tarefa tocar `kommo-*` modulos, `KommoApiClient`, `KommoAccount`, webhooks `POST /webhooks/kommo/:workspaceId`, workers BullMQ de processamento, crons de reconciliacao (5min/hourly/daily), backfill historico, adapters `kommoConversations`/`kommoMessages`/`kommoLeads`/`kommoAgents` — seja em construcao greenfield, bug fix pos-GA (eventos perdidos, drift detectado), hotfix de seguranca (HMAC bypass, token leak), refactor de performance (rate-limit saturado, DLQ crescendo), ou expansao de contrato (novos tipos de evento Kommo, nova entidade replicada, novo pipeline/stage custom).
+---
+
+# Squad Kommo
+
+## Dominio
+
+Ciclo de vida COMPLETO da integracao **Kommo** (CRM externo de gestao comercial) com o Mundial ERP. Sua missao unica e ser **dono do pipeline Kommo→banco local**, garantindo replica em tempo-quase-real (latencia p95 ≤ 10s entre evento no Kommo e commit no banco), reconciliacao automatica de eventos perdidos, e contrato estavel de leitura para consumidores internos (squad-dashboards primariamente, squad-reports e squad-bpm secundariamente). Cobre as TRES fases de vida da feature:
+
+1. **Implementacao inicial (construcao greenfield):** modulo `kommo/` com `KommoApiClient` (OAuth2, rate-limit, retry, circuit breaker), endpoint publico `POST /webhooks/kommo/:workspaceId` (HMAC + idempotencia + enqueue ≤100ms), models Prisma replicas (`KommoAccount`, `KommoConversation`, `KommoMessage`, `KommoLead`, `KommoAgent`, `KommoPipeline`, `KommoStatus`, `KommoDepartment`, `KommoSyncCheckpoint`, `KommoWebhookEvent`, `KommoMetricSnapshot`), 1 worker BullMQ de processamento + 3 crons de reconciliacao (5min/hourly/daily), backfill historico (90 dias), 4 adapters para query engine do squad-dashboards (`kommoConversations`, `kommoMessages`, `kommoLeads`, `kommoAgents`), fluxo OAuth `/kommo/connect`, feature flag `KOMMO_SYNC_ENABLED` por workspace, observabilidade Grafana `kommo-sync`.
+2. **Manutencao continua (pos-GA, indefinida):** triagem e fix de bugs P0-P3 no pipeline (maior superficie: webhook, worker, crons), hotfixes de seguranca (HMAC bypass, token leak, PII em logs), monitoramento de SLIs (latencia webhook→banco, taxa de eventos perdidos, rate-limit budget, DLQ), atendimento a incidentes (Kommo API fora do ar, drift detectado em reconciliacao), regressao zero a cada release dos consumidores (squad-dashboards muda contrato de adapter → audit imediato), rotacao de tokens Kommo, compliance LGPD (retencao de PII de mensagens).
+3. **Atualizacao incremental (pos-GA, em batches):** RFCs para novas funcionalidades (novos tipos de evento Kommo cobertos, nova entidade replicada — ex: tasks, notes, files; novo pipeline custom do cliente; retencao configuravel por workspace; multi-account por workspace; dashboard de sync saude), evolucao aditiva de schema (sempre nullable→backfill→NOT NULL), adapters evoluindo conforme squad-dashboards pede novos `field` na whitelist, migracao quando Kommo publica breaking change na API.
+
+**Fonte de verdade:**
+- **API Kommo:** https://developers.kommo.com/docs — UNICA fonte sobre eventos, payloads, rate-limits e autenticacao. Nao inventar semantica.
+- **RFCs em `.claude/rfc/kommo-*.md`** — resposta oficial sobre O QUE construir em cada batch. A integracao Kommo nao existe no `PLANO.md` original — foi decidida pos-GA; portanto TODA story comeca por RFC.
+- **Agent-CTO:** `.claude/agents/agent-cto.md` — principios inegociaveis (separacao de camadas, contratos tipados, performance, idempotencia, observabilidade, seguranca — **especialmente relevante aqui porque integracao externa amplifica risco de tenant leak via token cross-workspace, PII em logs, DoS via webhook flood, e incoerencia por eventos perdidos**).
+- **Standards:** `.claude/standards/99-referencia-completa.md` (nomenclatura, estrutura, banco, API, auth, seguranca, anti-patterns).
+- **Consumidor principal:** `.claude/skills/squad-dashboards.mdc` — contrato de adapter + whitelist de `field` coordenados com Thales Rocha (Tech Lead de Dashboards).
+- **Squad Workspace (predecessor):** `.claude/skills/squad-workspace.mdc` — todo `KommoAccount` pertence a um workspace; todo model replica carrega `workspaceId` obtido via `KommoAccount`.
+- **Squad Sync (vizinho):** `.claude/skills/squad-sync.mdc` — integracao Pro Financas. NAO e a mesma coisa: squad-sync cobre ERP legado migracao; squad-kommo cobre CRM externo ativo em producao. Convencoes de worker/cron/idempotencia podem ser reaproveitadas mas modulos sao separados.
+
+**Hierarquia de scoping:** `Workspace → KommoAccount (1:N) → entidades replicadas (KommoConversation, KommoMessage, KommoLead, KommoAgent) → consumidores (query engine adapters)`. Toda query em tabelas Kommo-scoped SEMPRE filtra por `workspaceId` na 1a linha do where. Token do Kommo e derivado do `KommoAccount.workspaceId` — nunca cross-workspace.
+
+---
+
+## Modos de Operacao do Squad
+
+O squad opera em TRES modos distintos, com cadencias e ritos diferentes. Todos os 4 membros estao engajados nos 3 modos — apenas a alocacao de tempo varia conforme a fase do produto.
+
+### Modo 1 — IMPLEMENTACAO (greenfield, paralelismo maximo)
+
+Cobre construcao inicial. Cadencia 2 semanas/sprint, ceremonies (Planning, Daily, Review, Retro), backlog ordenado por RFC `kommo-001-foundations.md` + RFCs subsequentes. **3 a 4 membros ativos em paralelo apos o golden path de webhook + 1 evento.**
+
+### Modo 2 — MANUTENCAO (pos-GA, continuo)
+
+Comeca apos GA e nunca termina. Cobre:
+
+| Tipo | SLA | Responsavel primario | Acao |
+|---|---|---|---|
+| **P0 — Incidente em prod** (HMAC bypass confirmado, token Kommo de workspace A aceito para escrever em workspace B, PII em log cru de producao, DLQ > 500 eventos acumulados, webhook endpoint com 5xx sustentado > 5min — Kommo suspende envio) | < 1h ack, < 4h fix | Rafael (escala squad inteiro) | Hotfix + post-mortem em 48h + comunicacao a workspaces afetados + rotacao de token se aplicavel |
+| **P1 — Bug bloqueante** (reconciliacao detectou drift > 1% em workspace, evento de tipo X perdido consistente, OAuth refresh falhando para >10% accounts, cron parado por > 30min) | < 4h ack, < 24h fix | Owner do modulo afetado | Hotfix em branch `hotfix/kommo-*` direto p/ main, com flag de rollback |
+| **P2 — Bug nao bloqueante** (workaround existe ou afeta <10% accounts — ex: tipo de evento raro nao processado, metric snapshot atrasado em 1 workspace especifico) | < 24h ack, < 1 sprint fix | Owner | Entra no backlog da proxima sprint |
+| **P3 — Bug cosmetico ou edge case muito raro** | < 1 semana ack | Owner | Backlog priorizado pelo Tech Lead |
+| **Regressao detectada por consumidor** (squad-dashboards muda adapter e numero do KPI muda; squad-reports reclama que um campo sumiu) | < 24h investigacao | Carolina + owner do modulo que mudou | PR de fix no adapter ou comunicacao de breaking change via RFC |
+| **Kommo API degradada** (rate-limit 429 sustentado, 5xx do upstream, breaking change nao anunciado no payload) | < 30min ack via alerta Grafana | Rafael + Mateus | Circuit breaker ativa automaticamente; fallback para cron de reconciliacao enquanto API normaliza; se breaking change: hotfix + RFC retroativa |
+| **Vulnerabilidade de seguranca** (HMAC algorithm weakness, token em log de erro, webhook aceito sem signature, IDOR em `/kommo/*`, PII retida alem do configurado) | < 4h ack, fix conforme CVSS | Carolina + Rafael | CVSS ≥ 7: hotfix imediato com flag `KOMMO_SYNC_ENABLED=false` per-workspace afetado + rotacao de tokens do workspace |
+| **Crescimento descontrolado** (tabela `KommoMessage` > 50M rows, `KommoWebhookEvent` > 10M rows) | Job semanal automatizado | Larissa | Purge de `KommoWebhookEvent` > 30 dias, particionamento `KommoMessage` por mes acima 50M, arquivamento de conversas fechadas > 6 meses conforme politica de retencao |
+| **Token Kommo expirando** (refreshToken perto de vencer em massa) | Proativo (cron diario) | Rafael | Refresh automatico 24h antes; se refresh falhar, notificar workspace admin via squad-notifications |
+
+**Rituals de manutencao:**
+- **Daily triage 15 min** (Rafael + on-call): revisa novos issues, classifica P0-P3, atribui owner, checa metricas de SLI do dia anterior.
+- **On-call rotation semanal** entre Rafael, Mateus, Larissa, Carolina. Carolina e on-call permanente para P0 de seguranca (HMAC, token, PII).
+- **Weekly DLQ & drift review 30 min** (squad inteiro): eventos no DLQ nao processaveis, drift detectado nas reconciliacoes diarias, top 10 accounts com maior rate-limit consumido, top 10 workspaces com mais eventos/dia.
+- **Monthly health check 1h** (squad inteiro): SLIs do mes, latencia webhook→banco p95, taxa de eventos reconciliados vs webhook, custo de storage por workspace, saude de OAuth refresh, Kommo API uptime observado.
+- **Quarterly threat model review** (Carolina + Rafael): HMAC algorithm rotation, token encryption envelope, PII exposure surface, LGPD compliance review, audit trail de quem acessa mensagens, IDOR em endpoints `/kommo/*`.
+- **Quarterly Kommo API changelog review** (Rafael): Kommo publica changelog — revisar breaking changes iminentes, planejar migracao.
+
+### Modo 3 — ATUALIZACAO (pos-GA, batches incrementais)
+
+Para novas funcionalidades NAO presentes na RFC inicial. **Toda atualizacao segue um RFC explicito antes de codigo.**
+
+**Fluxo de atualizacao (RFC → ADR → Story → PR):**
+
+1. **RFC** em `.claude/rfc/kommo-NNN-titulo.md` (ownership: Rafael ou owner do modulo). Contexto, problema, opcoes A/B/C, recomendacao, impact analysis (regressao? breaking change no adapter do dashboard? migration? perf? rate-limit? PII?), rollout plan (flag? per-workspace?).
+2. **Discussao em squad async** (3-5 dias): cada membro afetado revisa, levanta red flags. **squad-dashboards (Thales) e consultado quando a mudanca afeta adapter ou whitelist de field.** Sem aprovacao tacita.
+3. **ADR** em `.claude/adr/NNN-titulo.md` se RFC introduz decisao arquitetural irreversivel (novo padrao de idempotencia, nova estrategia de snapshot, mudanca de algoritmo HMAC, particionamento, nova fila BullMQ dedicada).
+4. **Story(s) no backlog** com AC explicitos.
+5. **Branch `feat/kommo-NNN-titulo`** derivada de main; paralelismo intra-sprint.
+6. **Migracao SEMPRE aditiva** (regra inviolavel pos-GA): nullable → seed/backfill → NOT NULL em release seguinte. Adapter do query engine so pode ganhar `field` novo, nunca remover — remocao exige `Deprecation` + 90 dias.
+7. **Feature flag por workspace** (`KOMMO_FEATURE_NNN_ENABLED`) durante rollout: 1 workspace canary → 10% → 50% → 100%. Cada etapa monitorada por 48h-7d.
+8. **Documentacao atualizada** em paralelo: README do modulo `kommo/`, Swagger do `/webhooks/kommo` e `/kommo/connect`, RFC referenciada no contrato com squad-dashboards.
+
+**Tipos de atualizacao tipicos:**
+- **Novo tipo de evento Kommo coberto** (ex: `note_added`, `task_created`): RFC leve se entidade ja existe; RFC + ADR se exige model novo.
+- **Nova entidade replicada** (ex: `KommoTask`, `KommoNote`, `KommoFile`): RFC + ADR, 1-2 sprints, flag rollout, backfill historico.
+- **Novo `field` na whitelist do adapter** (squad-dashboards precisa filtrar por algum campo nao exposto): RFC leve, coordenacao com squad-dashboards, 1 sprint.
+- **Multi-account por workspace** (workspace quer conectar 2 contas Kommo — ex: B2B e B2C separados): RFC + ADR, mudanca de unique key em `KommoAccount`, migracao de dados existentes.
+- **Retencao de PII configuravel** (workspace A quer 30d, workspace B quer 12m): RFC + ADR, novo model `KommoRetentionPolicy`, cron de purge respeitando politica.
+- **Refactor de performance** (substituir `KommoMetricSnapshot` por materialized view, mudar BullMQ para stream): RFC + benchmark antes/depois + canary.
+- **Migracao de algoritmo HMAC** (Kommo muda de HMAC-SHA1 para HMAC-SHA256 ou forca rotacao): RFC + ADR + janela de dupla aceitacao + cutover.
+- **Quebra controlada de contrato do adapter** (remover `field` obsoleto da whitelist): apenas com `Deprecation` header no adapter + comunicacao ao squad-dashboards + 90 dias minimo + remocao em release marcada.
+
+---
+
+## Modo de Operacao: Execucao Simultanea (Clausula Mandatoria)
+
+**Vale para os 3 modos. Nao e uma fila de tarefas — e um time ATUANDO AO MESMO TEMPO.**
+
+### Regras de simultaneidade (vinculantes)
+
+1. **Implementacao:** apos o golden path (Etapa 1 — Rafael solo: `KommoApiClient` MVP + webhook endpoint + HMAC + idempotencia + 1 evento processado `incoming_chat_message` ponta-a-ponta ate `KommoMessage` gravado), as frentes da Etapa 2 sao executadas em paralelo (Mateus nos workers+crons, Larissa nos models+adapters expandindo alem de Message, Carolina nos testes+security). Carolina entra em paralelo desde o dia 1 escrevendo fuzz de HMAC contra o golden path.
+2. **Manutencao:** P0/P1 mobilizam squad em paralelo (Rafael coordena; Carolina audita seguranca/regressao; owner do modulo aplica fix; Mateus replica incidente em staging com trace completo). Hotfix nunca espera outra task — abre branch `hotfix/kommo-*` direto.
+3. **Atualizacao:** apos RFC aprovada, todos os membros afetados trabalham simultaneamente em suas branches; Carolina escreve testes em paralelo desde o dia 1.
+4. **Carolina (QA+Security) atua em paralelo aos demais nas TRES fases** — escreve testes e audita seguranca assim que cada PR abre, especialmente em PR que toca HMAC, OAuth, PII, IDOR, rate-limit.
+5. **Rafael (Tech Lead) coordena, revisa PRs, mantem ADRs/RFCs, gerencia feature flags por workspace, e e dono absoluto do `KommoApiClient` e da ponte HMAC** — atua transversalmente desde a Etapa 1 e indefinidamente pos-GA.
+6. **Ao delegar trabalho deste squad para subagentes, o agente orquestrador DEVE disparar multiplas invocacoes de Agent em uma unica mensagem** (em um unico bloco com varias chamadas em paralelo), salvo quando houver dependencia tecnica explicita (golden path do webhook bloqueia workers paralelos; P0 bloqueia novas features ate estabilizar).
+
+### Matriz de simultaneidade — Implementacao
+
+| Etapa | Membros em paralelo | Bloqueio |
+|---|---|---|
+| 1 — Golden Path (webhook + HMAC + 1 evento → 1 model) | Rafael (solo) + Carolina (fuzz HMAC, testes seguranca iniciais) | — |
+| 2 — Paralelo Expansao | Mateus (3 crons + worker processor + DLQ) + Larissa (6+ models replicas + schema indices) + Carolina (E2E cross-tenant + idempotencia) + Rafael (review + feature flag + observabilidade) | Aguarda Etapa 1 estavel |
+| 3 — Adapters + Backfill + Hardening | Larissa (4 adapters para squad-dashboards + whitelist) + Rafael (OAuth `/kommo/connect` + token rotation) + Mateus (backfill 90d idempotente) + Carolina (threat model + pentest interno + audit LGPD) | Aguarda Etapa 2 mergeada |
+
+### Matriz de mobilizacao — Manutencao
+
+| Severidade | Mobilizacao tipica | Coordenacao |
+|---|---|---|
+| P0 (HMAC bypass, token leak, PII em log, DLQ > 500, endpoint 5xx sustentado) | Squad inteiro em war room ate fix em prod | Rafael (incident commander) |
+| P1 (drift > 1%, OAuth refresh falhando, cron parado) | Owner do modulo + Carolina + Rafael (review) | Owner |
+| P2 (evento raro, snapshot atrasado) | Owner (solo) + Carolina (review) | Owner |
+| P3 (edge case raro) | Owner (quando capacidade permitir) | Owner |
+| Kommo API degradada | Rafael + Mateus (circuit breaker + fallback cron) | Rafael |
+| Security CVE / HMAC / PII | Carolina + Rafael | Carolina |
+| Crescimento tabelas | Larissa + Rafael | Larissa |
+
+### Matriz de mobilizacao — Atualizacao
+
+| Tipo | Membros tipicos | Lider |
+|---|---|---|
+| Novo tipo de evento (entidade existente) | Mateus + Larissa + Carolina | Mateus |
+| Nova entidade replicada (KommoTask, KommoNote) | Larissa + Mateus + Rafael + Carolina | Larissa |
+| Novo `field` na whitelist do adapter | Larissa + Carolina + squad-dashboards (coord) | Larissa |
+| Multi-account por workspace | Rafael + Larissa + Carolina | Rafael |
+| Retencao PII configuravel | Carolina + Larissa + Mateus | Carolina |
+| Refactor perf (materialized view, stream) | Rafael + Larissa + Mateus + Carolina | Rafael |
+| Migracao algoritmo HMAC | Rafael + Carolina | Rafael |
+| Deprecation de field no adapter | Larissa + Rafael + Carolina + squad-dashboards | Larissa |
+
+### Quando delegar para subagentes
+
+Se um agente orquestrador (main) precisar acionar este squad, a regra e:
+- **Uma unica mensagem com multiplas tool calls `Agent` em paralelo** para todos os membros mobilizados.
+- Cada invocacao carrega no prompt: (1) nome do membro, (2) ownership vertical, (3) modo de operacao (implementacao/manutencao/atualizacao), (4) referencia a RFC `kommo-*.md` + `agent-cto.md` + `99-referencia-completa.md` + API Kommo + ADR aplicavel, (5) story IDs ou ticket, (6) entregavel esperado + AC.
+- Jamais disparar membros mobilizados em serie — quebra a clausula de simultaneidade.
+
+---
+
+## Principios Inegociaveis (Agent-CTO + 99-referencia-completa)
+
+Aplicados nas TRES fases (implementacao, manutencao, atualizacao):
+
+1. **Multi-tenancy hermetico:** `workspaceId` na 1a linha do where em TODA query de tabela Kommo-scoped; `KommoAccount.workspaceId` determina o token usado em cada chamada a API Kommo; token de workspace A jamais usado para chamar API em nome de workspace B. Cross-tenant retorna **404, nunca 403**.
+2. **Webhook e whitelist + HMAC only.** `POST /webhooks/kommo/:workspaceId` SEMPRE valida HMAC contra o secret do `KommoAccount` daquele workspace. Payload sem signature valida → 401. Signature invalida → 401. Signature valida mas `workspaceId` da URL nao bate com account do Kommo que enviou → 403 + alerta de seguranca.
+3. **Idempotencia obrigatoria.** Todo evento carrega `event_id` unico (Kommo garante); `KommoWebhookEvent` tem unique constraint em `(workspaceId, eventId)`. Re-envio de mesmo evento → 200 com `deduplicated=true` no body, **sem** reprocessar.
+4. **Resposta ao webhook ≤ 100ms.** Kommo da timeout curto (varia — ≤ 3s documentado, ≤ 1s observado em producao). Endpoint SO valida HMAC + idempotency + enqueue BullMQ; processamento real e assincrono. Nunca fazer query pesada no handler do webhook.
+5. **Outbox pattern para eventos internos (ADR-003).** Quando worker grava entidade Kommo, emite `KOMMO_ENTITY_CHANGED` no outbox → consumidores (squad-dashboards invalidando cache) leem assincronamente. EventEmitter2 in-process PROIBIDO fora do worker.
+6. **Contratos tipados nas fronteiras:** DTOs com `class-validator` nos endpoints publicos; TypeScript tipado no `KommoApiClient` (reflete schema da API Kommo versionada); Zod no OAuth callback. Zero `any` em payload de webhook — se Kommo adicionar campo novo, validador descarta (`whitelist: true`) ate RFC atualizar.
+7. **Tokens Kommo encriptados em rest.** `KommoAccount.accessToken` e `refreshToken` armazenados com envelope encryption (KMS ou chave por workspace). Nunca em plaintext no banco, nunca em log, nunca em response DTO. Rotation automatica 24h antes de expirar.
+8. **Rate-limit awareness obrigatoria.** `KommoApiClient` mantem budget por workspace em Redis (sliding window 1s + 1min). Pre-flight check antes de cada chamada; backoff exponencial em 429; circuit breaker abre apos 5 falhas consecutivas e espera 60s antes de tentar de novo.
+9. **PII em mensagens respeitando LGPD.** `KommoMessage.content` (texto da mensagem do cliente) armazenado conforme politica de retencao do workspace. Default: 6 meses. Purge automatico via cron. Nunca logar `content` integral — truncar para 50 chars + hash. Campos `client_phone`, `client_email` mascarados em logs.
+10. **Paginacao obrigatoria** em todo endpoint de listagem (`GET /kommo/accounts`, `GET /kommo/sync/status`). Cursor pagination preferido (Kommo API usa cursor).
+11. **Budget de queries por endpoint ≤ 5** em rotas de management. Workers podem fazer mais — mas sempre com `select` explicito, nunca `include=*`.
+12. **Reconciliacao e idempotente.** Crons 5min/hourly/daily podem ser reaplicados sem efeito colateral. `KommoSyncCheckpoint` marca progresso; re-run a partir do ultimo checkpoint.
+13. **RequestId + workspaceId + kommoAccountId + eventId + eventType em todos os logs estruturados.** Log de payload de webhook nao pode vazar PII — truncar `content` > 50 chars, mascarar phone/email.
+14. **Feature flag `KOMMO_SYNC_ENABLED`** por workspace — rollout/rollback. Toda nova funcionalidade pos-GA tem sua propria flag (`KOMMO_FEATURE_NNN_ENABLED`).
+15. **Performance Budgets (CI bloqueante):** webhook handler p95 < 80ms (sem contar fila), worker processamento p95 < 500ms por evento, cron reconciliacao 5min executa em < 2min para 100k eventos/workspace, latencia fim-a-fim webhook→banco p95 < 10s, cobertura unitaria do `KommoApiClient` + worker processor ≥ 85%.
+16. **Toda mudanca pos-GA exige RFC + flag de rollout per-workspace.** Sem excecao para mudancas que afetem HMAC, schema, adapter contract, politica de retencao, ou hot path do worker.
+17. **Circuit breaker tem default seguro.** Quando aberto, fallback para reconciliacao (cron cobre o gap) — NUNCA descartar evento silenciosamente.
+18. **Jamais log de `accessToken`, `refreshToken`, `HMAC secret`, ou `content` integral de mensagem.** Lint rule custom + code review bloqueante.
+
+---
+
+## Entidades/Recursos sob Responsabilidade
+
+### Camada de Schema (1 migration inicial + evolucao aditiva)
+
+| Recurso | Owner | Modo |
+|---|---|---|
+| `KommoAccount` (workspaceId, subdomain, accessToken enc, refreshToken enc, expiresAt, hmacSecret enc, status, createdAt) + unique `(workspaceId, subdomain)` | Larissa | Implementacao |
+| `KommoConversation` (id local UUID, kommoChatId, workspaceId, leadId, responsibleUserId, status, departmentId, firstMessageAt, resolvedAt, lastMessageAt) + indices em `(workspaceId, status)`, `(workspaceId, responsibleUserId)`, `(workspaceId, resolvedAt)` | Larissa | Implementacao |
+| `KommoMessage` (id, kommoMessageId, conversationId, direction IN/OUT, authorUserId, createdAt, content, workspaceId) + indices `(workspaceId, createdAt DESC)`, `(conversationId, createdAt)` | Larissa | Implementacao |
+| `KommoLead` (id, kommoLeadId, workspaceId, pipelineId, statusId, responsibleUserId, createdAt, closedAt, valueCents) + indices `(workspaceId, statusId)`, `(workspaceId, createdAt)` | Larissa | Implementacao |
+| `KommoAgent` (id, kommoUserId, workspaceId, name, email, departmentId, isActive) + unique `(workspaceId, kommoUserId)` | Larissa | Implementacao |
+| `KommoPipeline` / `KommoStatus` / `KommoDepartment` (metadata replicada para display) | Larissa | Implementacao |
+| `KommoSyncCheckpoint` (workspaceId, entity, lastCursor, lastSyncAt, entityCount) | Mateus | Implementacao |
+| `KommoWebhookEvent` (workspaceId, eventId, eventType, payloadHash, receivedAt, processedAt, status IDEMPOTENT/PROCESSED/DLQ, errorMessage?) + unique `(workspaceId, eventId)`, indice `(workspaceId, receivedAt)` | Rafael | Implementacao |
+| `KommoMetricSnapshot` (workspaceId, metricKey, windowStart, windowEnd, value, updatedAt) — pre-agregados (Conversas em Aberto, Total Resolvidas, etc.) | Larissa | Implementacao (Etapa 3) |
+| Migration `kommo_foundations` + indices hot path | Larissa | Implementacao |
+| Purge cron para `KommoWebhookEvent > 30d` e `KommoMessage` conforme retencao | Mateus | Manutencao |
+| Particionamento `KommoMessage` por mes acima de 50M rows | Larissa | Atualizacao via ADR |
+| Migracoes aditivas (novos campos em entidades existentes, novas entidades) | Larissa | Atualizacao via RFC |
+
+### Camada Backend (modulo `kommo/` + workers + crons)
+
+| Recurso | Owner | Implementacao | Manutencao | Atualizacao |
+|---|---|---|---|---|
+| `KommoApiClient` — **PONTE DE CONFIANCA** com a API Kommo (OAuth2, refresh, rate-limit awareness com Redis sliding window, retry backoff exponencial + jitter, circuit breaker 5-falhas/60s, logging estruturado sem token/PII) | Rafael | Golden path com OAuth + 1 endpoint (chats.get) + rate-limit + retry | Bug OAuth refresh, circuit breaker edge case, Kommo breaking change na API | Novos endpoints Kommo cobertos, migracao de auth (se Kommo evoluir), cache de metadata (pipelines) |
+| `kommo-webhooks/` modulo — controller publico `POST /webhooks/kommo/:workspaceId`, HMAC validator, idempotency checker (`KommoWebhookEvent`), enqueue BullMQ `kommo-events` queue. **Response ≤ 100ms sempre.** | Rafael | Golden path com 1 tipo de evento | Bug HMAC edge case, payload nao-documentado do Kommo, IDOR tentativa | Novos tipos de evento cobertos, migracao HMAC algorithm |
+| `kommo-workers/` modulo — worker BullMQ `kommo-event-processor` (consome `kommo-events`, roteia por eventType para handler dedicado, escreve no banco, emite outbox `KOMMO_ENTITY_CHANGED`, retry 3x + DLQ + alerta Grafana) | Mateus | 1 worker + handlers dos 10+ eventos prioritarios (chat messages, lead status, lead responsible, note added) | Bug handler de tipo especifico, retry nao-idempotente, DLQ crescendo, regressao por mudanca em payload Kommo | Novos handlers para tipos novos, refactor para stream (se BullMQ saturar) |
+| `kommo-reconciliation/` modulo — 3 crons: `kommo-recon-5min` (ultimos 15min + reaplica missing), `kommo-recon-hourly` (ultima hora + checksum), `kommo-recon-daily` (full dia + drift alert) | Mateus | 3 crons idempotentes + metricas de drift | Bug drift falso-positivo, checkpoint corrompido, cron parado por OOM | Adicionar reconciliacao de nova entidade, tunning de janela |
+| `kommo-backfill/` modulo — script `backfill-kommo.ts` idempotente (90 dias historico, progress tracking, retomavel, rate-limit aware, paraleliza por entidade) | Mateus | Golden path para 1 workspace | Bug em retomada, rate-limit saturado, tempo total > estimado | Backfill de nova entidade, strategy incremental vs full |
+| `kommo-accounts/` modulo — fluxo OAuth `/kommo/connect` (gera state, redirect), callback `/kommo/callback` (troca code por token, cria `KommoAccount`), `GET /kommo/accounts`, `DELETE /kommo/accounts/:id` (disconnect + purge opcional), token rotation cron (refresh 24h antes de expirar) | Rafael | OAuth end-to-end + cron rotation | Bug callback com state invalido, refresh falhando em lote, usuario reinstalando app Kommo | Multi-account por workspace (2+ contas), UI de gestao (coord FE) |
+| **Adapters para query engine do squad-dashboards** — 4 adapters iniciais (`kommoConversations`, `kommoMessages`, `kommoLeads`, `kommoAgents`) com whitelist de `field` por entidade, shapes tipados, traducao de operator de filtro para Prisma. **Contrato coordenado com Thales Rocha (squad-dashboards).** | Larissa | 4 adapters com whitelist + unit tests | Bug em filtro especifico, shape divergindo de contrato com FE, regressao por mudanca de field Kommo | Novos fields na whitelist, novos adapters para novas entidades, deprecation de field obsoleto |
+| Observabilidade Grafana `kommo-sync` (latencia webhook→banco p95/p99, eventos/min por workspace, DLQ, drift detectado, rate-limit budget, OAuth refresh rate, Kommo API uptime) | Rafael | Dashboards + SLIs + alertas | Alerta ruidoso/mudo, SLI definition drift | Novos SLIs para nova entidade |
+| Feature flag `KOMMO_SYNC_ENABLED` por workspace + flags `KOMMO_FEATURE_NNN_ENABLED` para cada batch de atualizacao | Rafael | Flag infra + wire em todo entry point | Rollback emergencial, ativacao canary | Nova flag por feature nova |
+
+### Camada de QA + Security + Performance (transversal, todas as fases)
+
+| Recurso | Owner | Modo |
+|---|---|---|
+| Suite E2E supertest: HMAC valid/invalid/rotacionado, idempotencia (re-envio de mesmo `event_id` nao duplica), cross-tenant 404 (token de W1 nao processa evento enviado para `/webhooks/kommo/W2`), rate-limit 429 handling, circuit breaker abre/fecha, OAuth callback com state invalido, 10+ tipos de evento processados corretamente, shape dos 4 adapters | Carolina | Implementacao + execucao continua em CI |
+| Unit tests `KommoApiClient` (cobertura ≥ 85%, mocks Kommo API, todos os handlers de erro, circuit breaker state machine) | Carolina + Rafael | Implementacao + manutencao quando refactor |
+| Unit tests worker processor por handler de evento (cobertura ≥ 85%, todos os eventTypes, idempotencia, retry, DLQ path) | Carolina + Mateus | Implementacao |
+| Performance k6: 1000 webhooks/min por 10min sem degradar p95, worker processor 100 eventos/s, cron 5min completa em < 2min para 100k eventos | Carolina | Implementacao + execucao mensal em staging |
+| Seed de 2 `KommoAccount` (2 workspaces) + fixtures de evento para QA manual | Carolina | Implementacao |
+| Regressao zero em consumidores (squad-dashboards, squad-reports) por release do squad-kommo | Carolina | Manutencao por-release |
+| Threat model review (HMAC algorithm, token encryption, PII exposure, IDOR em `/kommo/*`, cross-workspace via URL manipulation, webhook replay, DoS via flood) | Carolina + Rafael | Manutencao trimestral |
+| Pentest finding triage e fix | Carolina + Rafael | Manutencao on-demand |
+| Audit LGPD (retencao, direito de apagamento via disconnect, logs sem PII, backup de PII isolado) | Carolina | Manutencao trimestral |
+| Audit de Kommo API changelog (breaking changes, deprecations anunciadas) | Rafael + Carolina | Manutencao trimestral |
+| Fuzz continuo de payload HMAC + webhook malformado em pipeline | Carolina | Implementacao + manutencao |
+
+---
+
+## Composicao do Squad (4 membros)
+
+Nomes reais, cada um dono vertical de uma frente. Todos atuam **simultaneamente** dentro de cada fase (implementacao/manutencao/atualizacao).
+
+| # | Membro | Papel | Ownership Vertical (3 modos) |
+|---|---|---|---|
+| 1 | **Rafael Quintella** (Staff) | Tech Lead / Integration Architect | **Implementacao:** `KommoApiClient` completo (OAuth2 + refresh + rate-limit awareness Redis sliding window + retry backoff + circuit breaker + zero PII em log), modulo `kommo-webhooks/` (endpoint publico + HMAC validator + idempotency gate + enqueue BullMQ com response ≤100ms), modulo `kommo-accounts/` (fluxo OAuth `/kommo/connect` + callback + token rotation cron), ADRs (HMAC algorithm, envelope encryption de token, circuit breaker policy, rate-limit strategy, outbox para KOMMO_ENTITY_CHANGED), feature flag `KOMMO_SYNC_ENABLED`, observabilidade Grafana `kommo-sync` completa (SLIs, alertas, dashboards). **Manutencao:** incident commander P0 (HMAC bypass, token leak, DLQ explosion, Kommo API outage), on-call rotation, monthly health check, threat model trimestral, perf alert triage, rollout/rollback per-workspace, coordenacao com suporte Kommo em incidentes upstream, audit Kommo API changelog. **Atualizacao:** RFC owner principal para mudancas em HMAC/OAuth/circuit breaker/rate-limit, ADR de decisoes irreversiveis, capacity planning trimestral, dono do contrato de `KommoApiClient` (qualquer consumidor interno que precise chamar Kommo usa o client, nunca API direta). |
+| 2 | **Mateus Figueiredo** (Senior) | Backend Workers + Reconciliation + Backfill | **Implementacao:** worker BullMQ `kommo-event-processor` (consome `kommo-events` queue, roteia por eventType para handlers dedicados — `incoming_chat_message`, `outgoing_chat_message`, `chat_created`, `chat_resolved`, `lead_created`, `lead_status_changed`, `lead_responsible_changed`, `note_added` — grava via service, emite outbox `KOMMO_ENTITY_CHANGED`, retry 3x + jitter + DLQ + alerta), 3 crons de reconciliacao idempotentes (`kommo-recon-5min` / `hourly` / `daily` com `KommoSyncCheckpoint`), script `backfill-kommo.ts` (90 dias historico, progress tracking, retomavel, paraleliza por entidade respeitando rate-limit), purge cron de `KommoWebhookEvent > 30d` e `KommoMessage` conforme retencao. **Manutencao:** bug em handler especifico, DLQ crescendo (triagem diaria), drift alert do cron diario, OAuth refresh em massa falhando (cron rotation cooperado com Rafael), retomada de backfill apos incidente, trace de evento perdido (correlacionar `KommoWebhookEvent` + outbox + entidade). **Atualizacao:** novos handlers para novos eventos Kommo, refactor para BullMQ stream se volume saturar, reconciliacao de entidades novas (KommoTask, KommoNote), tunning de janelas de cron, backfill incremental vs full strategy. |
+| 3 | **Larissa Bezerra** (Pleno) | Backend Models + Adapters para Query Engine | **Implementacao:** 11 models Prisma (`KommoAccount`, `KommoConversation`, `KommoMessage`, `KommoLead`, `KommoAgent`, `KommoPipeline`, `KommoStatus`, `KommoDepartment`, `KommoSyncCheckpoint`, `KommoWebhookEvent`, `KommoMetricSnapshot`) + indices compostos hot path + unique constraints de idempotencia, migration `kommo_foundations`, services de escrita (chamados pelos handlers do worker de Mateus — fachada que aplica evento ao model respectivo respeitando idempotencia e invariantes), **4 adapters para o query engine do squad-dashboards** (`kommoConversations`, `kommoMessages`, `kommoLeads`, `kommoAgents`) com whitelist estrita de `field` por entidade, shapes tipados por `CardType` consumidos por Thales Rocha, traducao de operator para Prisma seguindo o contrato definido no ADR de merge (INTERSECAO global × card), `KommoMetricSnapshot` pre-agregado para KPIs caros (Conversas em Aberto, Total Resolvidas Desde o Inicio — atualizado por evento para evitar `COUNT(*)` em 1M+ rows). **Manutencao:** bug em service de escrita (violacao de unique, invariante quebrado), bug em adapter (shape divergindo, filtro retornando errado), crescimento de tabela (particionamento, arquivamento), regressao por mudanca em payload Kommo que afete field ja mapeado. **Atualizacao:** nova entidade replicada (KommoTask, KommoNote, KommoFile) com seus services + adapter, novos `field` na whitelist coordenando com Thales, refactor de `KommoMetricSnapshot` para materialized view se volume pedir, deprecation de field obsoleto. |
+| 4 | **Carolina Andrade** (Senior) | QA + Security + Compliance | **Implementacao:** suite E2E supertest cobrindo HMAC valid/invalid/algorithm-rotation, idempotencia (re-envio de mesmo event_id → `deduplicated=true`), cross-tenant 404 (token W1 processando evento de W2), rate-limit 429 + circuit breaker abre/fecha, OAuth callback com state invalido, 10+ tipos de evento ponta-a-ponta, shape dos 4 adapters consumido pelo query engine (fixtures), reconciliacao detecta missing events injetados manualmente. Unit tests `KommoApiClient` + worker processor ≥ 85%. Perf k6 (1000 webhooks/min sustentado + worker 100 eventos/s + cron 5min < 2min para 100k eventos/workspace). Seed + fixtures. **Manutencao:** triagem P0-P3 diaria, regressao zero por release do squad-kommo em consumidores (squad-dashboards / squad-reports — valida que KPI nao mudou, shape nao mudou, field nao sumiu), audit cross-tenant trimestral, audit LGPD trimestral (retencao, direito de apagamento, logs sem PII, backup isolado), pentest finding triage, on-call permanente para CVE/security P0 (HMAC, OAuth, IDOR), threat model review trimestral (HMAC algorithm rotation, token envelope encryption, PII exposure, webhook replay, DoS por flood, IDOR em `/kommo/*`), audit de Kommo API changelog (colabora com Rafael para detectar breaking change antes que quebre producao). **Atualizacao:** testes para nova story (E2E + unit + visual + fuzz), regression suite expansion por novo tipo de evento / nova entidade / novo adapter, validacao de feature flag rollout per-workspace, audit de novo endpoint para cross-tenant + HMAC + rate-limit + envelope, compliance review por politica nova de retencao. |
+
+---
+
+## Ordem de Execucao (greenfield)
+
+### Etapa 1 — Golden Path (Rafael solo + Carolina em paralelo)
+- **Rafael:** schema inicial reduzido (`KommoAccount`, `KommoWebhookEvent`, 1 model-alvo `KommoMessage`), `KommoApiClient` MVP com OAuth2 (authorization code + refresh) + rate-limit Redis + 1 endpoint (`chats.get`), fluxo OAuth `/kommo/connect` + callback funcional, webhook endpoint `POST /webhooks/kommo/:workspaceId` com HMAC + idempotency + enqueue BullMQ, 1 handler `incoming_chat_message` ponta-a-ponta ate `KommoMessage` gravado + outbox `KOMMO_ENTITY_CHANGED` emitido, feature flag `KOMMO_SYNC_ENABLED`.
+- **Carolina:** estrutura de testes E2E + fuzz HMAC desde dia 1 (payloads malformados, signature invalida, algorithm downgrade, replay) + teste cross-tenant (token W1 chega em URL W2 → 403) + teste de idempotencia (re-envio de mesmo event_id → deduplicated) + seed inicial de 2 accounts.
+- **Bloqueio para Etapa 2.**
+
+### Etapa 2 — Paralelo Expansao (Mateus + Larissa + Carolina + Rafael simultaneos)
+- **Mateus:** worker `kommo-event-processor` completo com 10+ handlers (todos os eventos prioritarios para os 17 cards do dashboard comercial) + retry + DLQ + alerta, 3 crons de reconciliacao com `KommoSyncCheckpoint`, script `backfill-kommo.ts` idempotente (90 dias) funcional em 1 workspace.
+- **Larissa:** todos os 10 models restantes + migration completa + indices hot path + services de escrita chamados pelos handlers do Mateus + `KommoMetricSnapshot` com refresh-on-event para KPIs caros.
+- **Carolina:** cobertura E2E completa (cross-tenant, HMAC, idempotencia, 10+ eventos, rate-limit, circuit breaker), unit ≥ 85% em `KommoApiClient` + worker processor, perf k6 inicial, audit LGPD draft.
+- **Rafael:** review de todos os PRs, observabilidade Grafana `kommo-sync` completa (SLIs, alertas), ADRs (HMAC, encryption, circuit breaker, rate-limit).
+
+### Etapa 3 — Adapters + Hardening (squad inteiro)
+- **Larissa:** 4 adapters para query engine do squad-dashboards (`kommoConversations`, `kommoMessages`, `kommoLeads`, `kommoAgents`) com whitelist de field coordenada com Thales Rocha, contrato de shape validado com squad-fe-dashboards, unit tests ≥ 90% nos adapters.
+- **Rafael:** token rotation cron + multi-workspace canary (2-3 workspaces), OAuth reconnect flow, audit de Kommo API changelog baseline.
+- **Mateus:** backfill idempotente validado em 3+ workspaces, DLQ instrumentado com trace completo (correlaciona `KommoWebhookEvent` ↔ outbox ↔ entidade).
+- **Carolina:** threat model completo + pentest interno + audit LGPD + validacao de regressao nos consumidores (squad-dashboards consumindo os adapters sem quebrar dashboard existente).
+
+---
+
+## Roteamento por Tipo de Demanda
+
+A primeira pergunta sempre e: **qual o modo de operacao?** (implementacao/manutencao/atualizacao). Em seguida, **qual o recurso afetado?**
+
+### Implementacao
+
+| Area | Procure... |
+|---|---|
+| `KommoApiClient`, OAuth, rate-limit, circuit breaker, HMAC, webhook endpoint | **Rafael** |
+| Worker BullMQ, handlers de evento, crons de reconciliacao, backfill | **Mateus** |
+| Models Prisma, services de escrita, adapters para query engine, `KommoMetricSnapshot` | **Larissa** |
+| Testes E2E/unit/perf/fuzz, seeds, audit seguranca e LGPD | **Carolina** |
+
+### Manutencao
+
+| Sintoma | Owner primario | Co-owner |
+|---|---|---|
+| HMAC bypass confirmado ou suspeito | Rafael + Carolina | — |
+| Token Kommo em log | Carolina + Rafael | — |
+| DLQ > 500 eventos | Mateus | Rafael |
+| Cron parado / checkpoint corrompido | Mateus | Rafael |
+| Drift > 1% detectado | Mateus + Carolina | Larissa |
+| OAuth refresh em massa falhando | Rafael | Mateus (cron) |
+| Kommo API retornando 5xx sustentado | Rafael | Mateus |
+| Rate-limit saturado | Rafael | Mateus |
+| Adapter retornando shape errado para squad-dashboards | Larissa | Rafael |
+| Event perdido (webhook chegou, entidade nao gravou) | Mateus | Larissa (service), Carolina (repro) |
+| Crescimento de `KommoMessage` estourou limite | Larissa | Mateus (purge cron) |
+| Endpoint `/webhooks/kommo` com 5xx | Rafael | Mateus (fila saturada?) |
+| PII vazando em log | Carolina | Rafael |
+| LGPD finding (auditoria externa, solicitacao de apagamento) | Carolina | Larissa |
+| Regressao em consumidor (squad-dashboards/squad-reports) por mudanca no squad-kommo | Carolina + Larissa | Owner que mudou |
+
+### Atualizacao (RFC → ADR → Story → PR)
+
+| Tipo de mudanca | Lider RFC | Membros tipicos | Necessita ADR? |
+|---|---|---|---|
+| Novo tipo de evento em entidade existente | Mateus | Mateus + Larissa + Carolina | Nao |
+| Nova entidade replicada (KommoTask, KommoNote) | Larissa | Larissa + Mateus + Rafael + Carolina | Sim |
+| Novo `field` na whitelist do adapter | Larissa | Larissa + Carolina + squad-dashboards (coord) | Nao |
+| Multi-account por workspace | Rafael | Rafael + Larissa + Carolina | Sim |
+| Retencao PII configuravel | Carolina | Carolina + Larissa + Mateus | Sim (LGPD) |
+| Refactor `KommoMetricSnapshot` → materialized view | Larissa | Larissa + Rafael + Mateus + Carolina | Sim |
+| Migracao algoritmo HMAC | Rafael | Rafael + Carolina | Sim |
+| Migracao BullMQ → stream | Mateus | Mateus + Rafael + Carolina | Sim |
+| Deprecation de field no adapter | Larissa | Larissa + Rafael + Carolina + squad-dashboards | Nao |
+| Kommo breaking change na API | Rafael | Rafael + Mateus + Carolina | Talvez |
+
+---
+
+## Interface com Outros Squads
+
+### Quem depende de nos
+
+| Squad | O que consome | Estabilidade do contrato |
+|---|---|---|
+| **Squad Dashboards** | 4 adapters (`kommoConversations`, `kommoMessages`, `kommoLeads`, `kommoAgents`) com whitelist de `field`, shape por `CardType`, invalidacao via outbox `KOMMO_ENTITY_CHANGED`, `KommoMetricSnapshot` para KPIs caros | Estavel; `Deprecation` ≥ 90 dias; toda mudanca em whitelist passa por RFC coordenado com Thales Rocha |
+| **Squad FE Dashboards** | Shape dos adapters consumido via endpoint `/cards/:cardId/data` (indireto via squad-dashboards), componente eventual de "conectar conta Kommo" (coord com Rafael) | Via squad-dashboards |
+| **Squad Reports** | Possivel consumo futuro de `KommoLead`, `KommoConversation` para relatorios comerciais customizados | Sob RFC quando surgir demanda |
+| **Squad BPM** | Possivel consumo futuro — evento `lead_status_changed` poderia disparar transicao em WorkItem | Sob RFC quando surgir demanda |
+| **Squad Notifications** | Consumimos alertas quando token Kommo expira, quando DLQ cresce, quando reconciliacao detecta drift (nos publicamos; Notifications distribui) | Eventos bem definidos |
+
+### De quem dependemos
+
+| Squad | O que consumimos |
+|---|---|
+| **Squad Workspace** | `WorkspaceGuard`, `@WorkspaceId()`, scoping transitivo, `Workspace` model (para FK em `KommoAccount`) |
+| **Squad Auth** | `JwtAuthGuard`, `@CurrentUser`, `@Roles`, `RolesGuard` (Admin/Manager podem conectar/desconectar conta Kommo; Viewer so le) |
+| **Squad Infra** | `PrismaService`, `CommonModule`, `ResponseInterceptor`, `RequestIdInterceptor`, Throttler, Redis (rate-limit + circuit breaker + idempotency cache), BullMQ + outbox (worker + eventos), KMS/envelope encryption para token |
+| **Squad Dashboards** | Contrato do query engine (como escrever adapter, whitelist convention, shape por CardType) — docs mantidos por Thales Rocha |
+| **Squad Coolify** | Deploy, secret management para HMAC secrets + Kommo client credentials, Redis provisionado, BullMQ provisionado, observabilidade Grafana |
+| **Squad Sync (Pro Financas)** | Convencoes de worker/cron/idempotencia reaproveitaveis — mas modulos separados; podemos compartilhar lint rules + helpers genericos |
+
+---
+
+## Protocolo de Consulta (Quando Precisamos de Mais Contexto)
+
+A ordem e **estrita** — nao pular etapas.
+
+1. **API Kommo oficial** (https://developers.kommo.com/docs) — resposta oficial sobre payloads, rate-limits, eventos, autenticacao. Nunca inventar.
+2. **RFCs em `.claude/rfc/kommo-*.md`** — resposta oficial sobre O QUE construir e POR QUE.
+3. **`agent-cto.md`** — resposta oficial sobre COMO (performance, escala, seguranca, observabilidade, idempotencia).
+4. **`99-referencia-completa.md`** — nomenclatura, estrutura, padroes, anti-patterns.
+5. **ADRs em `.claude/adr/`** — POR QUE em decisoes irreversiveis (HMAC algorithm, envelope encryption, circuit breaker, rate-limit strategy, outbox para KOMMO_ENTITY_CHANGED, schemaVersion do snapshot, etc.).
+6. **`squad-workspace.mdc`** — multi-tenancy: como `WorkspaceGuard` + `@WorkspaceId()` + scoping transitivo funcionam.
+7. **`squad-dashboards.mdc`** — contrato do query engine, convencao de adapter, whitelist, invalidacao via outbox.
+8. **Memoria do projeto** (`MEMORY.md`) — contexto Mundial ERP, stack, decisoes anteriores, deploy Coolify, pasta externa `C:\Users\USER\Documents\agents\kommo` com scaffolding existente (MCP server, scripts, n8n) que pode ser inventariado antes de reescrever.
+9. **Kommo API changelog** (audit trimestral) — breaking changes anunciados.
+10. **`squads-map.mdc`** — quando nao sabe a qual squad pertence o recurso.
+11. **Agent-CTO via delegacao** — para decisoes arquiteturais nao cobertas, invocar com contexto completo.
+
+**Nunca:**
+- Aceitar webhook sem HMAC valido (qualquer scenario).
+- Processar webhook sincronamente (response > 100ms quebra a integracao).
+- Guardar `accessToken`/`refreshToken`/`hmacSecret` em plaintext.
+- Logar `content` integral de mensagem (PII — truncar 50 chars + hash).
+- Logar `phone`/`email` em full (mascarar).
+- Usar token de workspace A para chamar API em nome de workspace B.
+- Chamar API Kommo direto (fora do `KommoApiClient`) — quebra rate-limit awareness e circuit breaker.
+- Mergear codigo com `workspaceId` faltando em query de tabela Kommo-scoped.
+- Retry sem idempotencia em worker.
+- Cron nao-idempotente (re-run causa duplicata ou efeito colateral).
+- Migration breaking pos-GA — sempre aditiva.
+- Remover `field` da whitelist do adapter sem `Deprecation` + 90 dias.
+- Mudar algoritmo HMAC sem ADR + janela de dupla aceitacao.
+- Expandir retencao de PII sem coordenacao com Carolina (LGPD).
+- Descartar evento do webhook silenciosamente — se nao consegue processar, manda para DLQ + alerta.
+
+---
+
+## Red Flags que o Squad SEMPRE Levanta em Code Review
+
+Aplicaveis nas TRES fases. Alem das red flags do agent-CTO + 99-referencia, este squad vigia especificamente:
+
+- Endpoint `/webhooks/kommo/**` sem HMAC validator, ou HMAC validator sem checar algoritmo + secret rotation.
+- Response do webhook fazendo query Prisma pesada (quebra budget 100ms).
+- Enqueue BullMQ sem checar idempotency gate antes (re-envio duplica).
+- `accessToken`/`refreshToken`/`hmacSecret` em coluna sem envelope encryption.
+- Log com `accessToken`, `refreshToken`, `hmacSecret`, `content` integral, `phone` em full, `email` em full.
+- Chamada a API Kommo fora do `KommoApiClient` (usando fetch/axios direto).
+- Worker handler sem idempotencia (retry cria duplicata).
+- Worker sem rota para DLQ quando retries esgotam.
+- Cron sem `KommoSyncCheckpoint` — nao retoma de onde parou.
+- Cron reaplicando eventos sem checar `KommoWebhookEvent` idempotency.
+- Adapter do query engine sem whitelist de `field` (aceita qualquer campo = quebra contrato com squad-dashboards).
+- Adapter retornando shape divergente do combinado com Thales (squad-dashboards).
+- Query em tabela Kommo-scoped sem `workspaceId` na 1a linha do where.
+- Cross-tenant retornando 403 em vez de 404.
+- Service de escrita sem unique constraint respaldando idempotencia.
+- Backfill script nao-retomavel (crash = reinicia do zero).
+- Rate-limit check ausente antes de chamada Kommo.
+- Circuit breaker sem fallback para cron de reconciliacao.
+- `KommoMetricSnapshot` atualizado sem transaction atomica (snapshot + outbox).
+- Invalidacao de cache do squad-dashboards feita sincrona (deve ser via outbox).
+- Migration NOT NULL pos-GA sem fase nullable+backfill antes.
+- Adapter removendo `field` da whitelist sem `Deprecation` + 90 dias.
+- Endpoint `/kommo/connect` com state nao-aleatorio (CSRF).
+- Endpoint `/kommo/accounts/:id` sem check de ownership por `workspaceId` (IDOR).
+- Retencao de PII sem politica configuravel por workspace (LGPD).
+- Purge cron nao respeitando politica do workspace.
+- Teste E2E faltando: HMAC invalid/valid/rotated, idempotencia, cross-tenant, rate-limit 429, circuit breaker abre/fecha, OAuth state invalid, shape dos 4 adapters.
+- Unit test de `KommoApiClient` sem mock do rate-limit + circuit breaker state machine.
+- **Manutencao especifica:** hotfix em main sem flag de rollback per-workspace; fix sem post-mortem em P0; bug sem teste de regressao adicionado; mudanca em `KommoApiClient` sem rodar regressao de todos os handlers.
+- **Atualizacao especifica:** mudanca sem RFC; nova feature sem flag `KOMMO_FEATURE_NNN_ENABLED`; rollout 100% sem canary; deprecation < 90 dias; novo tipo de evento sem coordenar com squad-dashboards se afeta adapter; retencao PII nova sem aprovacao de Carolina.
+
+---
+
+## Contexto para Agentes
+
+```
+REFERENCIAS OBRIGATORIAS:
+- API Kommo oficial:                 https://developers.kommo.com/docs
+- RFCs do squad:                     .claude/rfc/kommo-*.md
+- Agent-CTO:                         .claude/agents/agent-cto.md
+- Standards completos:               .claude/standards/99-referencia-completa.md
+- ADRs:                              .claude/adr/*.md (HMAC, envelope encryption, circuit breaker, rate-limit, outbox KOMMO_ENTITY_CHANGED)
+- Mapa de squads:                    .claude/skills/squads-map.mdc
+- Consumidor principal:              .claude/skills/squad-dashboards.mdc (Thales Rocha e quem coordena adapter/whitelist)
+- Squad vizinho (integracoes):       .claude/skills/squad-sync.mdc
+- Memoria do projeto:                .claude/projects/c--Users-USER-Documents-vibecoding-mundial-erp/memory/MEMORY.md
+- Scaffolding externo existente:     C:\Users\USER\Documents\agents\kommo (MCP server, scripts, n8n, CLAUDE.md — inventariar antes de reescrever)
+
+SQUADS CONSULTADOS COM FREQUENCIA:
+- squad-workspace.mdc     (multi-tenancy)
+- squad-auth.mdc          (guards, roles, OAuth callback)
+- squad-infra.mdc         (PrismaService, Redis, BullMQ, outbox, KMS/envelope encryption)
+- squad-dashboards.mdc    (contrato do query engine + whitelist + invalidacao via outbox)
+- squad-reports.mdc       (consumidor secundario, quando surgir demanda)
+- squad-notifications.mdc (alertas de token expirando, DLQ, drift)
+- squad-coolify.mdc       (deploy, secret management, observabilidade)
+- squad-sync.mdc          (convencoes de integracao reusaveis)
+
+OBJETIVO FINAL (3 modos):
+
+Implementacao — entregar integracao Kommo com:
+(1) 11 models Prisma + migration + indices hot path,
+(2) `KommoApiClient` com OAuth2 + rate-limit awareness Redis + retry + circuit breaker + zero PII em log,
+(3) webhook publico com HMAC + idempotencia + response ≤ 100ms + enqueue BullMQ,
+(4) worker `kommo-event-processor` com 10+ handlers + retry + DLQ + outbox KOMMO_ENTITY_CHANGED,
+(5) 3 crons de reconciliacao idempotentes + backfill 90d idempotente,
+(6) fluxo OAuth `/kommo/connect` + callback + token rotation,
+(7) 4 adapters para query engine do squad-dashboards com whitelist coordenada com Thales,
+(8) `KommoMetricSnapshot` pre-agregado para KPIs caros,
+(9) feature flag `KOMMO_SYNC_ENABLED` per-workspace,
+(10) observabilidade Grafana completa (latencia webhook→banco p95 ≤ 10s, DLQ, drift, rate-limit, OAuth refresh, Kommo API uptime),
+(11) cobertura ≥ 85% no client + worker + E2E de seguranca (HMAC, cross-tenant, idempotencia, rate-limit, circuit breaker) + perf k6.
+
+Manutencao — manter saude continua com:
+(1) SLAs P0/P1/P2/P3 cumpridos,
+(2) zero tenant leak detectado em audit trimestral,
+(3) zero HMAC bypass, zero token leak, zero PII em log (pentest trimestral),
+(4) latencia webhook→banco p95 ≤ 10s sustentado,
+(5) taxa de eventos perdidos (caught by reconciliacao) < 0.1%,
+(6) DLQ sempre triada em < 24h,
+(7) hotfix com mecanismo de rollback per-workspace,
+(8) post-mortem em 48h para todo P0,
+(9) threat model + audit LGPD atualizados trimestralmente,
+(10) Kommo API changelog acompanhado trimestralmente,
+(11) regressao zero em consumidores (squad-dashboards / squad-reports) por release do squad-kommo.
+
+Atualizacao — evoluir sem quebrar com:
+(1) RFC obrigatoria para qualquer mudanca pos-GA,
+(2) ADR para decisoes irreversiveis (HMAC, encryption, circuit breaker, snapshot strategy, partitioning),
+(3) migracao sempre aditiva + flag per-workspace + canary → 10% → 50% → 100%,
+(4) deprecation de field/adapter ≥ 90 dias com header `Deprecation`,
+(5) Swagger + README + RFC atualizados em paralelo ao codigo,
+(6) regressao zero em consumidores,
+(7) testes E2E + unit para toda nova story + fuzz HMAC para todo endpoint novo,
+(8) contrato de adapter coordenado com Thales Rocha (squad-dashboards) antes de mergear,
+(9) politicas LGPD validadas com Carolina antes de qualquer mudanca em retencao ou PII.
+
+FLUXO DE EXECUCAO:
+- Implementacao: 3 etapas (golden path → expansao paralela → adapters+hardening), ~6 sprints.
+- Manutencao: continua pos-GA, on-call rotation semanal, daily triage 15min.
+- Atualizacao: batches via RFC; cada batch tem sua propria sprint(s).
+- Ao delegar, SEMPRE disparar membros mobilizados em paralelo (uma unica mensagem com multiplas tool calls Agent).
+```
+
+---
+
+> **Lema do squad:** HMAC sempre valida, webhook responde em 100ms, evento nunca se perde (tem webhook + cron), token nunca vaza (nem em log, nem em response), PII respeita LGPD, rate-limit e sagrado, reconciliacao e rede de seguranca. Zero breaking change em consumidores (squad-dashboards/squad-reports) quando Kommo evolui do outro lado — na implementacao, na manutencao e na atualizacao.

@@ -1,0 +1,41 @@
+/**
+ * Frontend test scaffold — ChecklistPanel (dnd-kit com suporte a teclado).
+ *
+ * Status: skipped — aguarda vitest + componente (Juliana).
+ *
+ * Cobertura planejada (PLANO-TASKS §13.2 + WCAG 2.1.1):
+ *   - Mouse drag funcional (dnd-kit PointerSensor).
+ *   - Keyboard drag: Tab foca item, Space inicia drag, Arrow Up/Down move,
+ *     Space confirma, Esc cancela.
+ *   - Screen reader: live region anuncia "Item X movido para posicao Y".
+ *   - Reorder dispara mutation PATCH /task-checklists/reorder com newOrder[].
+ *   - Feedback visual: item sendo arrastado tem opacity reduzida + drop
+ *     indicator linha acima/abaixo.
+ *   - Aninhamento (drop into parent) limita depth=3 (PLANO §4.3).
+ */
+
+describe.skip('ChecklistPanel dnd-kit teclado — Sprint 3 ativar', () => {
+  it.skip('mouse drag-and-drop aplica nova ordem', () => {
+    expect(true).toBe(true);
+  });
+
+  it.skip('Space + Arrow Up/Down move item via teclado', () => {
+    expect(true).toBe(true);
+  });
+
+  it.skip('Esc cancela drag em progresso', () => {
+    expect(true).toBe(true);
+  });
+
+  it.skip('live region anuncia mudanca de posicao', () => {
+    expect(true).toBe(true);
+  });
+
+  it.skip('PATCH /task-checklists/reorder invocado com newOrder[]', () => {
+    expect(true).toBe(true);
+  });
+
+  it.skip('drop em nivel 4 bloqueado (depth cap=3)', () => {
+    expect(true).toBe(true);
+  });
+});

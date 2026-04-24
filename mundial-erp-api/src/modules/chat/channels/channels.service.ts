@@ -32,8 +32,12 @@ export class ChannelsService {
   async createChannel(
     dto: CreateChannelDto,
     userId: string,
+    workspaceId: string,
   ): Promise<ChannelResponseDto> {
-    const existing = await this.channelsRepository.findByName(dto.name);
+    const existing = await this.channelsRepository.findByName(
+      dto.name,
+      workspaceId,
+    );
     if (existing) return ChannelResponseDto.fromEntity(existing);
 
     const entity = await this.channelsRepository.create({
@@ -41,6 +45,7 @@ export class ChannelsService {
       description: dto.description,
       topic: dto.topic,
       type: dto.type ?? 'PUBLIC',
+      workspace: { connect: { id: workspaceId } },
       createdBy: { connect: { id: userId } },
       members: {
         create: { userId, role: 'OWNER' },
@@ -64,10 +69,12 @@ export class ChannelsService {
   async createChannelByLocation(
     dto: CreateChannelLocationDto,
     userId: string,
+    workspaceId: string,
   ): Promise<ChannelResponseDto> {
     const existing = await this.channelsRepository.findByLocation(
       dto.locationEntity,
       dto.locationId,
+      workspaceId,
     );
     if (existing) return ChannelResponseDto.fromEntity(existing);
 
@@ -77,6 +84,7 @@ export class ChannelsService {
       type: dto.type ?? 'PUBLIC',
       locationEntity: dto.locationEntity,
       locationId: dto.locationId,
+      workspace: { connect: { id: workspaceId } },
       createdBy: { connect: { id: userId } },
       members: { create: { userId, role: 'OWNER' } },
     });
@@ -95,6 +103,7 @@ export class ChannelsService {
   async createDm(
     dto: CreateDmDto,
     userId: string,
+    workspaceId: string,
   ): Promise<ChannelResponseDto> {
     const participantIds = [
       ...new Set([userId, ...(dto.userIds ?? [])]),
@@ -110,6 +119,7 @@ export class ChannelsService {
     const entity = await this.channelsRepository.create({
       type: participantIds.length > 2 ? 'GROUP_DM' : 'DIRECT',
       participantHash: hash,
+      workspace: { connect: { id: workspaceId } },
       createdBy: { connect: { id: userId } },
       members: {
         createMany: {

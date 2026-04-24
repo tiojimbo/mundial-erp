@@ -21,7 +21,7 @@ import {
   useCreateArea,
   useDeleteArea,
 } from '../hooks/use-departments';
-import { StatusConfig } from './status-config';
+import { StatusEditorDialog } from './status-editor/status-editor-dialog';
 import type { DepartmentConfig } from '../types/settings.types';
 
 const DEPT_COLORS = [
@@ -324,15 +324,18 @@ export function DepartmentsConfig() {
         </Modal.Root>
       )}
 
-      {/* Status Config Modal */}
+      {/* Status Editor Dialog */}
       {statusConfigDept && (
-        <StatusConfig
-          departmentId={statusConfigDept.id}
-          departmentName={statusConfigDept.name}
+        <StatusEditorDialog
           open
           onOpenChange={(open) => {
             if (!open) setStatusConfigDept(null);
           }}
+          targetType='department'
+          targetId={statusConfigDept.id}
+          targetName={statusConfigDept.name}
+          departmentId={statusConfigDept.id}
+          initialMode='custom'
         />
       )}
     </div>

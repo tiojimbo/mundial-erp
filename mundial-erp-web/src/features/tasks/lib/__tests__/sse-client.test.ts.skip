@@ -1,0 +1,37 @@
+/**
+ * Frontend test scaffold — SSE client (reconnect + max conn + backoff).
+ *
+ * Status: skipped — aguarda vitest + EventSource mock + cliente real (Henrique).
+ *
+ * Cobertura planejada (PLANO-TASKS §11):
+ *   - Connection open: GET /api/v1/tasks/stream com Last-Event-ID header.
+ *   - Disconnect (error event): reconnect com backoff exponencial
+ *     (250ms, 500ms, 1s, 2s, 4s, cap 8s). Jitter <= 20% para evitar
+ *     thundering herd.
+ *   - Max 3 conexoes simultaneas por cliente (1 por aba ativa); tentativa
+ *     de 4a cai em polling fallback.
+ *   - Message handler aplica patch ao cache React Query (optimistic mirror).
+ *   - Cleanup: unmount/close fecha EventSource e limpa listeners.
+ */
+
+describe.skip('SSE client — reconnect + backoff + max conn — Sprint 3 ativar', () => {
+  it.skip('abre conexao com Last-Event-ID quando ha cursor salvo', () => {
+    expect(true).toBe(true);
+  });
+
+  it.skip('reconnect segue backoff exponencial (250ms → 8s cap)', () => {
+    expect(true).toBe(true);
+  });
+
+  it.skip('nao excede 3 conexoes simultaneas por cliente', () => {
+    expect(true).toBe(true);
+  });
+
+  it.skip('cai para polling fallback em 4a conexao', () => {
+    expect(true).toBe(true);
+  });
+
+  it.skip('cleanup no unmount fecha EventSource', () => {
+    expect(true).toBe(true);
+  });
+});

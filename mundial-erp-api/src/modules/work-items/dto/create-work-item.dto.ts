@@ -39,6 +39,12 @@ export class CreateWorkItemDto {
   @IsEnum(TaskPriority)
   priority?: TaskPriority;
 
+  /**
+   * Campo externo preservado (ADR-001). Aceita o id do assignee primario e
+   * sera mapeado para `primaryAssigneeCache` pelo service. A partir de Sprint 2
+   * a fonte de verdade sera o join `WorkItemAssignee[]` e a Prisma extension
+   * recalculara o cache automaticamente.
+   */
   @ApiPropertyOptional({ example: 'clxxxxxxxxxxxxxxxxxxxxxxxxx' })
   @IsOptional()
   @IsString()

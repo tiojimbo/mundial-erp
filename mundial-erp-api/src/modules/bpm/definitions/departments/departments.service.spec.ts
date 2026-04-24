@@ -2,6 +2,7 @@ import { Test, TestingModule } from '@nestjs/testing';
 import { ForbiddenException, NotFoundException } from '@nestjs/common';
 import { DepartmentsService } from './departments.service';
 import { DepartmentsRepository } from './departments.repository';
+import { PrismaService } from '../../../../database/prisma.service';
 
 const mockDepartment = {
   id: 'dept-1',
@@ -106,12 +107,27 @@ describe('DepartmentsService', () => {
             create: jest.fn(),
             findById: jest.fn(),
             findBySlug: jest.fn(),
+            slugExists: jest.fn().mockResolvedValue(false),
             findMany: jest.fn(),
             update: jest.fn(),
             softDelete: jest.fn(),
             getSidebarTree: jest.fn(),
             findBySlugWithDetails: jest.fn(),
             getProcessSummaries: jest.fn(),
+          },
+        },
+        {
+          // O create agora roda dentro de `prisma.$transaction` para seedar
+          // statuses default em atomicidade com o department.
+          provide: PrismaService,
+          useValue: {
+            $transaction: jest.fn(
+              async (cb: (tx: unknown) => unknown) =>
+                cb({
+                  department: { create: jest.fn().mockResolvedValue(mockDepartment) },
+                  workflowStatus: { create: jest.fn().mockResolvedValue({}) },
+                }),
+            ),
           },
         },
       ],

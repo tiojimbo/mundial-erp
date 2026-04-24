@@ -28,16 +28,25 @@ export class ChannelsRepository {
     });
   }
 
-  async findByName(name: string) {
+  async findByName(name: string, workspaceId: string) {
     return this.prisma.chatChannel.findFirst({
-      where: { name, type: { in: ['PUBLIC', 'PRIVATE'] }, deletedAt: null },
+      where: {
+        name,
+        workspaceId,
+        type: { in: ['PUBLIC', 'PRIVATE'] },
+        deletedAt: null,
+      },
       include: CHANNEL_INCLUDE,
     });
   }
 
-  async findByLocation(locationEntity: string, locationId: string) {
+  async findByLocation(
+    locationEntity: string,
+    locationId: string,
+    workspaceId: string,
+  ) {
     return this.prisma.chatChannel.findFirst({
-      where: { locationEntity, locationId, deletedAt: null },
+      where: { locationEntity, locationId, workspaceId, deletedAt: null },
       include: CHANNEL_INCLUDE,
     });
   }

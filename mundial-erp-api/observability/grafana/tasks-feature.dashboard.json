@@ -1,0 +1,229 @@
+{
+  "annotations": {
+    "list": [
+      {
+        "builtIn": 1,
+        "datasource": { "type": "grafana", "uid": "-- Grafana --" },
+        "enable": true,
+        "hide": true,
+        "iconColor": "rgba(0, 211, 255, 1)",
+        "name": "Annotations & Alerts",
+        "type": "dashboard"
+      }
+    ]
+  },
+  "description": "Tasks feature (paridade ClickUp) — SLOs + outbox + perfs + attachment scan. Ver PLANO-TASKS.md §9.2.",
+  "editable": true,
+  "fiscalYearStartMonth": 0,
+  "graphTooltip": 1,
+  "id": null,
+  "links": [],
+  "liveNow": false,
+  "panels": [
+    {
+      "id": 1,
+      "title": "RED — /tasks/* (rate / error rate / p95 duration)",
+      "description": "Rate de requisicoes, taxa de erros 5xx e latencia p95 nas rotas /tasks/*. SLO: p95 < 500ms, error rate < 1%.",
+      "type": "timeseries",
+      "datasource": { "type": "prometheus", "uid": "${DS_PROMETHEUS}" },
+      "gridPos": { "h": 9, "w": 12, "x": 0, "y": 0 },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "reqps",
+          "custom": {
+            "drawStyle": "line",
+            "lineWidth": 2,
+            "fillOpacity": 10,
+            "gradientMode": "opacity",
+            "pointSize": 4
+          }
+        },
+        "overrides": [
+          {
+            "matcher": { "id": "byName", "options": "p95 (ms)" },
+            "properties": [{ "id": "unit", "value": "ms" }]
+          },
+          {
+            "matcher": { "id": "byName", "options": "error rate" },
+            "properties": [{ "id": "unit", "value": "percentunit" }]
+          }
+        ]
+      },
+      "options": {
+        "legend": { "displayMode": "table", "placement": "bottom", "calcs": ["mean", "lastNotNull"] },
+        "tooltip": { "mode": "multi", "sort": "desc" }
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "expr": "sum(rate(http_request_duration_seconds_count{route=~\"/tasks.*\"}[5m]))",
+          "legendFormat": "req/s"
+        },
+        {
+          "refId": "B",
+          "expr": "sum(rate(http_request_duration_seconds_count{route=~\"/tasks.*\",status_code=~\"5..\"}[5m])) / clamp_min(sum(rate(http_request_duration_seconds_count{route=~\"/tasks.*\"}[5m])), 1)",
+          "legendFormat": "error rate"
+        },
+        {
+          "refId": "C",
+          "expr": "histogram_quantile(0.95, sum by (le) (rate(http_request_duration_seconds_bucket{route=~\"/tasks.*\"}[5m]))) * 1000",
+          "legendFormat": "p95 (ms)"
+        }
+      ]
+    },
+    {
+      "id": 2,
+      "title": "Outbox — lag de processamento & DLQ size",
+      "description": "Lag (p95 entre enqueue e processed_at) e tamanho da DLQ. SLO: lag < 30s, DLQ sempre 0 (pagina se > 0 por 5min).",
+      "type": "timeseries",
+      "datasource": { "type": "prometheus", "uid": "${DS_PROMETHEUS}" },
+      "gridPos": { "h": 9, "w": 12, "x": 12, "y": 0 },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "s",
+          "custom": { "drawStyle": "line", "lineWidth": 2, "fillOpacity": 10 }
+        },
+        "overrides": [
+          {
+            "matcher": { "id": "byName", "options": "DLQ size" },
+            "properties": [
+              { "id": "unit", "value": "short" },
+              { "id": "custom.axisPlacement", "value": "right" },
+              { "id": "thresholds", "value": { "mode": "absolute", "steps": [{ "color": "green", "value": null }, { "color": "red", "value": 1 }] } }
+            ]
+          }
+        ]
+      },
+      "options": {
+        "legend": { "displayMode": "table", "placement": "bottom", "calcs": ["max", "lastNotNull"] },
+        "tooltip": { "mode": "multi" }
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "expr": "histogram_quantile(0.95, sum by (le) (rate(task_outbox_processing_lag_seconds_bucket[5m])))",
+          "legendFormat": "p95 lag"
+        },
+        {
+          "refId": "B",
+          "expr": "histogram_quantile(0.99, sum by (le) (rate(task_outbox_processing_lag_seconds_bucket[5m])))",
+          "legendFormat": "p99 lag"
+        },
+        {
+          "refId": "C",
+          "expr": "sum(task_outbox_dlq_size)",
+          "legendFormat": "DLQ size"
+        }
+      ]
+    },
+    {
+      "id": 3,
+      "title": "Query count por request — /tasks/* (N+1 detector)",
+      "description": "Numero de queries Prisma por request. SLO: max <= 10 no path quente (list, detail). Spike > 20 = regressao de N+1.",
+      "type": "timeseries",
+      "datasource": { "type": "prometheus", "uid": "${DS_PROMETHEUS}" },
+      "gridPos": { "h": 9, "w": 12, "x": 0, "y": 9 },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "short",
+          "custom": { "drawStyle": "line", "lineWidth": 2, "fillOpacity": 10 },
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              { "color": "green", "value": null },
+              { "color": "orange", "value": 10 },
+              { "color": "red", "value": 20 }
+            ]
+          }
+        }
+      },
+      "options": {
+        "legend": { "displayMode": "table", "placement": "bottom", "calcs": ["mean", "max"] },
+        "tooltip": { "mode": "multi" }
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "expr": "histogram_quantile(0.5, sum by (le, route) (rate(prisma_queries_per_request_bucket{route=~\"/tasks.*\"}[5m])))",
+          "legendFormat": "p50 {{route}}"
+        },
+        {
+          "refId": "B",
+          "expr": "histogram_quantile(0.95, sum by (le, route) (rate(prisma_queries_per_request_bucket{route=~\"/tasks.*\"}[5m])))",
+          "legendFormat": "p95 {{route}}"
+        }
+      ]
+    },
+    {
+      "id": 4,
+      "title": "Attachment scan queue (ClamAV)",
+      "description": "Backlog da fila BullMQ `attachment-scan` e tempo medio de scan. SLO: backlog < 50, scan p95 < 10s.",
+      "type": "timeseries",
+      "datasource": { "type": "prometheus", "uid": "${DS_PROMETHEUS}" },
+      "gridPos": { "h": 9, "w": 12, "x": 12, "y": 9 },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "short",
+          "custom": { "drawStyle": "line", "lineWidth": 2, "fillOpacity": 10 }
+        },
+        "overrides": [
+          {
+            "matcher": { "id": "byName", "options": "p95 scan (s)" },
+            "properties": [
+              { "id": "unit", "value": "s" },
+              { "id": "custom.axisPlacement", "value": "right" }
+            ]
+          }
+        ]
+      },
+      "options": {
+        "legend": { "displayMode": "table", "placement": "bottom", "calcs": ["mean", "max"] },
+        "tooltip": { "mode": "multi" }
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "expr": "sum(bullmq_queue_waiting{queue=\"attachment-scan\"})",
+          "legendFormat": "waiting"
+        },
+        {
+          "refId": "B",
+          "expr": "sum(bullmq_queue_active{queue=\"attachment-scan\"})",
+          "legendFormat": "active"
+        },
+        {
+          "refId": "C",
+          "expr": "sum(bullmq_queue_failed{queue=\"attachment-scan\"})",
+          "legendFormat": "failed"
+        },
+        {
+          "refId": "D",
+          "expr": "histogram_quantile(0.95, sum by (le) (rate(attachment_scan_duration_seconds_bucket[5m])))",
+          "legendFormat": "p95 scan (s)"
+        }
+      ]
+    }
+  ],
+  "refresh": "30s",
+  "schemaVersion": 38,
+  "style": "dark",
+  "tags": ["tasks", "sprint-8", "feature-flag", "outbox"],
+  "templating": {
+    "list": [
+      {
+        "name": "DS_PROMETHEUS",
+        "type": "datasource",
+        "query": "prometheus",
+        "current": { "selected": false, "text": "Prometheus", "value": "Prometheus" },
+        "hide": 0
+      }
+    ]
+  },
+  "time": { "from": "now-6h", "to": "now" },
+  "timepicker": {},
+  "timezone": "",
+  "title": "Tasks feature — RED + outbox + perf",
+  "uid": "tasks-feature",
+  "version": 1,
+  "weekStart": ""
+}

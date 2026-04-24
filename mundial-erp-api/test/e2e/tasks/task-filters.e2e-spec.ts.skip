@@ -1,0 +1,139 @@
+/**
+ * E2E scaffold — GET /tasks filter matrix + query budget.
+ *
+ * Status: placeholder. Habilitar em Sprint 1 apos controller GET /tasks
+ * (Felipe) expor filtros oficiais + middleware X-DB-Query-Count ativo.
+ *
+ * Cobertura planejada (PLANO-TASKS §7 + §14 CTO note query budget):
+ *   - Cada filtro individual (processIds, assigneeIds, tagIds, customTypeIds,
+ *     statusIds, priority, startDateFrom/To, dueDateFrom/To, search) retorna
+ *     subset correto sem vazar linhas fora do criterio.
+ *   - Combinacao AND entre filtros aplicada corretamente.
+ *   - Pagination: offset-based (page + limit) e cursor-based (cursor + limit)
+ *     ambas funcionais. Cursor retorna nextCursor quando ha mais.
+ *   - Query budget: nenhum request acima de 10 queries Prisma. Middleware
+ *     expoe header X-DB-Query-Count; assertiva explicita.
+ *   - Smoke: listagem vazia retorna [] com meta zerada, sem erro.
+ */
+
+import { Test, TestingModule } from '@nestjs/testing';
+import { INestApplication, ValidationPipe } from '@nestjs/common';
+import request from 'supertest';
+import type { App } from 'supertest/types';
+import { AppModule } from '../../../src/app.module';
+import {
+  cleanupWorkspace,
+  createTestProcess,
+  createTestTask,
+  createTestWorkspace,
+  TestProcess,
+  TestWorkspace,
+} from './setup';
+
+describe.skip('GET /tasks filter matrix + query budget (e2e) — Sprint 1 ativar', () => {
+  let app: INestApplication<App>;
+  let ws: TestWorkspace;
+  let processCtx: TestProcess;
+
+  beforeAll(async () => {
+    const moduleFixture: TestingModule = await Test.createTestingModule({
+      imports: [AppModule],
+    }).compile();
+
+    app = moduleFixture.createNestApplication();
+    app.setGlobalPrefix('api/v1', {
+      exclude: ['health', 'health/ready', 'docs'],
+    });
+    app.useGlobalPipes(
+      new ValidationPipe({
+        whitelist: true,
+        forbidNonWhitelisted: true,
+        transform: true,
+        transformOptions: { enableImplicitConversion: true },
+      }),
+    );
+    await app.init();
+
+    ws = await createTestWorkspace(app);
+    processCtx = await createTestProcess(app, ws.workspaceId);
+    // Seed 20 tasks com distribuicao variada para filter matrix.
+    for (let i = 0; i < 20; i += 1) {
+      await createTestTask(app, processCtx, ws.ownerUserId, {
+        title: `Filter task ${i}`,
+        priority: i % 2 === 0 ? 'HIGH' : 'LOW',
+      });
+    }
+  }, 60_000);
+
+  afterAll(async () => {
+    if (!app) return;
+    await cleanupWorkspace(app, ws.workspaceId);
+    await app.close();
+  });
+
+  // Story FLT-01 — processIds
+  it.skip('filter by processIds retorna apenas tasks dos processos informados', async () => {
+    const res = await request(app.getHttpServer())
+      .get(`/api/v1/tasks?processIds=${processCtx.processId}`)
+      .set('Authorization', `Bearer ${ws.token}`);
+    expect(res.status).toBe(200);
+    expect(Array.isArray(res.body.data)).toBe(true);
+  });
+
+  // Story FLT-02 — assigneeIds
+  it.skip('filter by assigneeIds retorna apenas tasks com esses assignees', async () => {
+    expect(true).toBe(true);
+  });
+
+  // Story FLT-03 — tagIds
+  it.skip('filter by tagIds retorna apenas tasks com esses tags', async () => {
+    expect(true).toBe(true);
+  });
+
+  // Story FLT-04 — customTypeIds
+  it.skip('filter by customTypeIds retorna apenas tasks do tipo', async () => {
+    expect(true).toBe(true);
+  });
+
+  // Story FLT-05 — statusIds + priority + date ranges
+  it.skip('filter by statusIds aplica corretamente', async () => {
+    expect(true).toBe(true);
+  });
+
+  it.skip('filter by priority retorna apenas tasks da prioridade', async () => {
+    expect(true).toBe(true);
+  });
+
+  it.skip('filter by dueDateFrom/dueDateTo aplica intervalo fechado', async () => {
+    expect(true).toBe(true);
+  });
+
+  // Story FLT-06 — pagination
+  it.skip('offset pagination page=1 limit=10 retorna primeiros 10', async () => {
+    const res = await request(app.getHttpServer())
+      .get('/api/v1/tasks?page=1&limit=10')
+      .set('Authorization', `Bearer ${ws.token}`);
+    expect(res.status).toBe(200);
+    expect(res.body.meta.page).toBe(1);
+    expect(res.body.meta.limit).toBe(10);
+  });
+
+  it.skip('cursor pagination retorna nextCursor quando ha mais paginas', async () => {
+    expect(true).toBe(true);
+  });
+
+  // Story FLT-07 — query budget
+  it.skip('GET /tasks respeita budget <= 10 queries (X-DB-Query-Count header)', async () => {
+    const res = await request(app.getHttpServer())
+      .get('/api/v1/tasks?limit=50')
+      .set('Authorization', `Bearer ${ws.token}`);
+    expect(res.status).toBe(200);
+    const queryCount = Number(res.headers['x-db-query-count']);
+    expect(queryCount).toBeLessThanOrEqual(10);
+  });
+
+  // Story FLT-08 — AND combination
+  it.skip('combinacao de filtros aplica AND (priority=HIGH AND processIds=X)', async () => {
+    expect(true).toBe(true);
+  });
+});

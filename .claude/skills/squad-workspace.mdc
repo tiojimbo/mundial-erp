@@ -1,0 +1,337 @@
+# Squad Workspace
+
+## Dominio
+
+Multi-tenancy. Introducao do **Workspace** como container raiz (root tenant) no Mundial ERP, transformando o sistema de single-tenant em multi-tenant sem regressao. Cobre TODAS as pontas: schema Prisma, migrations, backend (modulo workspaces + auth + guards + decorators), scoping de ~37 repositories, RLS no PostgreSQL, frontend (store, selector, providers, invalidacao de cache) e QA de isolamento cross-tenant.
+
+**Fonte de verdade:** `.claude/plan/PLANO-WORKSPACE.md` (UNICA fonte sobre O QUE construir — nenhum membro redefine specs, models ou endpoints).
+**Agent-CTO:** `.claude/agents/agent-cto.md` — principios inegociaveis aplicados por todo o squad (separacao de camadas, contratos tipados, performance, idempotencia, observabilidade, seguranca).
+**Standards:** `.claude/standards/` (nomenclatura, backend, frontend, banco, API, auth, seguranca).
+**Hierarquia alvo:** `Workspace → Department → Area → Process → WorkItem`.
+**Fase:** Feature vertical — executada em paralelo pelas 6 frentes do squad.
+
+---
+
+## Modo de Operacao: Execucao Simultanea (Clausula Mandatoria)
+
+**Este squad opera em paralelismo maximo. Nao e uma fila de tarefas — e um time ATUANDO AO MESMO TEMPO.**
+
+### Regras de simultaneidade (vinculantes)
+
+1. **Apos o golden path de schema (Etapa 1, solo do Rodrigo), as 6 frentes da Etapa 2 sao executadas em paralelo — nunca em serie.** Cada membro trabalha na sua propria branch derivada de `feature/workspace-foundation` e avanca independentemente.
+2. **Rafael (QA) comeca na Etapa 2, simultaneamente aos demais — nao espera o backend terminar.** Escreve teste assim que cada PR abre.
+3. **Sofia (Integration) inicia a Etapa 3 em paralelo com a Etapa 2** — conforme Helena e Vinicius destravam as pecas basicas do frontend, Sofia ja comeca a amarrar o fluxo.
+4. **Andre nao espera o modulo workspaces estar 100%** — comeca o scoping P1 (BPM) assim que Rodrigo entrega o schema com `workspaceId` nullable. P1+P2 rodam durante a Etapa 2; P3+P4 continuam apos merge.
+5. **Camila executa Migrations 2 e 3 em paralelo com o desenvolvimento** — prepara os scripts de seed e NOT NULL enquanto Thiago constroi o modulo.
+6. **Ao delegar trabalho deste squad para subagentes, o agente orquestrador DEVE disparar multiplas invocacoes de Agent em uma unica mensagem** (em um unico bloco `<tool_use>` com varias chamadas em paralelo), salvo quando houver dependencia tecnica explicita (ex: Etapa 1 bloqueia Etapa 2).
+
+### Matriz de simultaneidade
+
+| Etapa | Membros em paralelo | Bloqueio |
+|---|---|---|
+| 0 — Alinhamento | Gabriela (solo) | — |
+| 1 — Golden path schema | Rodrigo (solo) | Aguarda Etapa 0 |
+| **2 — PARALELO (core)** | **Camila + Thiago + Larissa + Andre + Helena + Vinicius + Rafael (7 em paralelo)** | Aguarda Etapa 1 |
+| **3 — PARALELO (integration)** | **Sofia + Gabriela (2 em paralelo, ja rodando desde meio da Etapa 2)** | Parcialmente paralelo a Etapa 2 |
+| 4 — Scoping cauda longa | Andre (continua) + Rafael (continua) | Apos Fase 1 em main |
+| 5 — RLS | Gabriela (solo) | Apos Fase 2 estabilizar |
+
+### Quando delegar para subagentes
+
+Se um agente orquestrador (main) precisar acionar este squad, a regra e:
+- **Uma unica mensagem com multiplas tool calls `Agent` em paralelo** para todos os membros da Etapa 2.
+- Cada invocacao carrega no prompt: (1) nome do membro, (2) ownership vertical do membro, (3) referencia ao PLANO-WORKSPACE.md e ao agent-CTO.md, (4) entregavel esperado.
+- Jamais disparar os 6 em serie — quebra a clausula de simultaneidade.
+
+---
+
+## Principios Inegociaveis (Agent-CTO aplicado)
+
+Todo membro aplica — sem excecao — os seguintes principios do agent-CTO:
+
+1. **Stateless + multi-tenant hermetico:** nenhuma query cruza fronteira de workspace. `workspaceId` no `where` e a 1a linha; RLS no PostgreSQL e a 2a linha.
+2. **Contratos tipados nas fronteiras:** DTOs de entrada/saida (`class-validator` no backend, Zod no frontend). Nada de `any`.
+3. **Migrations zero-downtime:** aditiva → seed → NOT NULL. Nunca uma migration que quebra deploy rolling.
+4. **Paginacao obrigatoria:** toda listagem (`/workspaces`, `/members`, `/invites`) com `PaginationDto` e `take <= 100`.
+5. **Idempotencia:** `POST /workspaces/join/:token` idempotente. `POST /workspaces/:id/select` nao duplica membership.
+6. **Rate limiting restritivo** em `/invites` (anti-abuso) e `/join/:token` (anti-brute-force de tokens).
+7. **RequestId propagado** — toda request atravessa guards → service → repository com `requestId` nos logs estruturados.
+8. **Nenhum `console.log`** — Logger do NestJS apenas. Nunca logar tokens ou emails completos (mask PII).
+9. **Invalidacao de cache agressiva** ao trocar workspace — `qc.clear()` no React Query. Dados do workspace anterior nao servem.
+10. **Feature flag `MULTI_WORKSPACE_ENABLED`** controla enforcement na Fase 1 (nullable) — permite rollback rapido.
+
+---
+
+## Entidades/Recursos sob Responsabilidade
+
+### Camada de Schema (Fase 1.1 e 1.2 do PLANO-WORKSPACE)
+
+| Recurso | Secao |
+|---|---|
+| `Workspace` model (id, name, slug, logoUrl, color, plan, ownerId, deletedAt) | 1.1 |
+| `WorkspaceMember` (workspaceId + userId unico, role, joinedAt) | 1.1 |
+| `WorkspaceInvite` (token unico, email, role, status, expiresAt) | 1.1 |
+| Enums `WorkspaceMemberRole`, `WorkspacePlan`, `InviteStatus` | 1.1 |
+| `workspaceId` nullable em ~25 models existentes (Department, Client, Order, Product, Supplier, Company, Dashboard, ChatChannel, AuditLog, Carrier, PaymentMethod, etc.) | 1.2 |
+| `user.lastAccessedWorkspaceId` + relacoes `workspaceMembers`, `ownedWorkspaces`, `workspaceInvites` | 1.2 |
+
+### Camada de Migracao (Fase 1.3)
+
+| Recurso | Descricao |
+|---|---|
+| Migration 1 — aditiva | Cria tabelas + colunas `workspace_id` nullable + indices |
+| Migration 2 — seed (`prisma/seed-workspace.ts`) | Workspace default `mundial-telhas`, backfill em batch, mapeamento Role → WorkspaceMemberRole |
+| Migration 3 — NOT NULL | `ALTER` + FK constraints |
+
+### Camada Backend (Fase 1.4 a 1.7)
+
+| Recurso | Secao |
+|---|---|
+| Modulo `src/modules/workspaces/` (controller + service + repository) | 1.4 |
+| Submodulo `members/` (CRUD membership) | 1.4 |
+| Submodulo `invites/` (criar, aceitar, listar, revogar) | 1.4 |
+| DTOs `class-validator` (Create/Update/Response + AddMember + CreateInvite) | 1.4 |
+| JWT payload estendido (`workspaceId`, `workspaceRole`) | 1.5 |
+| `authService.resolveInitialWorkspace(userId)` | 1.5 |
+| `authService.selectWorkspace(userId, workspaceId)` | 1.5 |
+| `WorkspaceGuard` (global, apos JwtAuthGuard) | 1.6 |
+| `@WorkspaceId()` decorator | 1.7 |
+| `@SkipWorkspaceGuard()` decorator | 1.6 |
+
+### Camada de Scoping (Fase 2)
+
+| Prioridade | Repositories | Qtd |
+|---|---|---|
+| P1 — Hierarquia BPM | departments, sectors, areas, processes, work-items, workflow-statuses, process-views | 7 |
+| P2 — Entidades de negocio | clients, orders, products, suppliers, companies, dashboards, price-tables, financial-categories, invoices, cash-registers | 10 |
+| P3 — Referencia | carriers, payment-methods, client-classifications, delivery-routes, order-types, order-flows, order-models, product-types, brands, product-departments, unit-measures, status-templates | 12 |
+| P4 — Derivados | production-orders, separation-orders, stock-requisitions, accounts-receivable, accounts-payable, notifications, chat, audit-log | 8 |
+
+### Camada de RLS (Fase 2.4)
+
+| Recurso | Descricao |
+|---|---|
+| Migration habilitando RLS nas tabelas workspace-scoped | `ALTER TABLE ... ENABLE ROW LEVEL SECURITY` |
+| Policies `workspace_isolation` usando `current_setting('app.current_workspace_id')` | Uma por tabela |
+| Interceptor Prisma que injeta GUC `SET LOCAL app.current_workspace_id` em cada transacao | Wrapper em `$transaction` |
+
+### Camada Frontend (Fase 1.8 e 1.9)
+
+| Recurso | Secao |
+|---|---|
+| `features/workspaces/` (components, hooks, services, schemas, types, utils) | 1.8 |
+| `WorkspaceSwitcher` no `SidebarHeader` (responsivo ao collapsed mode) | 1.9 |
+| `CreateWorkspaceDialog` + `WorkspaceForm` (React Hook Form + zodResolver) | 1.8 |
+| Helpers `getWorkspaceInitials`, `getWorkspaceColor` | 1.9 |
+| Schemas Zod: `createWorkspaceSchema`, `addMemberSchema`, `createInviteSchema` | 1.8 |
+| Zustand `stores/workspace.store.ts` (persist localStorage) | 1.8 |
+| Hooks: `useWorkspaces`, `useCurrentWorkspace`, `useSelectWorkspace`, `useCreateWorkspace` | 1.8 |
+| `providers/auth-provider.tsx` — popular workspace no login/refresh | 1.8 |
+| `middleware.ts` — continua checando `auth_token` (workspace resolvido no login) | 1.8 |
+| React Query keys incluindo `workspaceId` (invalidacao correta ao trocar) | 1.8 |
+
+### Camada de QA (Transversal)
+
+| Recurso | Descricao |
+|---|---|
+| Testes E2E de isolamento cross-tenant | Autenticar como workspace A, tentar acessar dados de workspace B → 403/404 |
+| Testes unitarios `auth.service.spec.ts` (resolveInitialWorkspace + selectWorkspace) | Cobertura dos 4 cenarios de resolucao |
+| Teste de regressao zero | Todos os endpoints existentes continuam funcionando com workspaceId populado |
+| Teste de performance da migration | Backfill em clone de producao, medir duracao por tabela |
+| Swagger/OpenAPI dos novos endpoints | Documentacao completa para consumo frontend |
+
+---
+
+## Composicao do Squad (10 membros)
+
+Nomes reais, cada um dono vertical de uma frente. Todos atuam **simultaneamente** em etapa 2.
+
+| # | Membro | Papel | Ownership Vertical |
+|---|---|---|---|
+| 1 | **Gabriela Prado** (Staff) | Tech Lead / Arquiteta | Coordenacao do squad, decisoes arquiteturais, ADR (Context/Options/Decision/Consequences), RLS PostgreSQL (Fase 2.4), revisao de PRs, feature flag `MULTI_WORKSPACE_ENABLED` |
+| 2 | **Rodrigo Teixeira** (Senior) | DBA / Schema Owner | Prisma schema: novos models (Workspace, WorkspaceMember, WorkspaceInvite) + adicao de `workspaceId` em ~25 tabelas + indices compostos `(workspace_id, campo_freq)` + FKs — Fase 1.1 e 1.2 |
+| 3 | **Camila Fonseca** (Senior) | Migrations Specialist | 3 migrations (aditiva → seed → NOT NULL), script `prisma/seed-workspace.ts`, backfill em batch, mapeamento de roles legados (ADMIN/MANAGER/OPERATOR/VIEWER → OWNER/ADMIN/MEMBER/GUEST), teste em clone de producao — Fase 1.3 |
+| 4 | **Thiago Monteiro** (Senior) | Backend Lead | Modulo `workspaces/` completo: controller + service + repository, submodulos `members/` e `invites/`, DTOs `class-validator`, endpoints paginados com `PaginationDto`, envelope via `ResponseInterceptor` global — Fase 1.4 |
+| 5 | **Larissa Moura** (Pleno) | Auth Specialist | Estender `JwtPayload` com `workspaceId`/`workspaceRole`, `resolveInitialWorkspace`, `selectWorkspace`, `WorkspaceGuard` global, `@WorkspaceId()` e `@SkipWorkspaceGuard()` decorators, rate limiting em `/invites` e `/join/:token` — Fase 1.5, 1.6, 1.7 |
+| 6 | **Andre Barros** (Senior) | Repository Refactor Specialist | Propagacao de `workspaceId` em 37 repositories (P1 BPM → P2 Negocio → P3 Referencia → P4 Derivados), padrao direto vs transitivo, scoping da sidebar tree — Fase 2.1, 2.2, 2.3 |
+| 7 | **Helena Cardoso** (Senior) | Frontend Architect | Estrutura `features/workspaces/`: services, hooks, schemas Zod, types, utils, Zustand `workspace.store` com persist localStorage, atualizacao do `AuthProvider` e `middleware.ts`, scoping de query keys do React Query — Fase 1.8 |
+| 8 | **Vinicius Tavares** (Pleno) | Frontend UI | `WorkspaceSwitcher` no `SidebarHeader` (responsivo ao `data-collapsible=icon`), `CreateWorkspaceDialog`, `WorkspaceForm` reusavel, integracao visual com Align UI (DropdownMenu + Avatar), helpers `getWorkspaceInitials`/`getWorkspaceColor`, variaveis CSS do sidebar — Fase 1.9 |
+| 9 | **Sofia Albuquerque** (Pleno) | Frontend Integration | Fluxo de login (auto-selecao sem tela intermediaria), edge case user-sem-workspace (redirect `/workspaces/new`), `useSelectWorkspace` com `qc.clear()` + router.push, prefetch estrategico de `availableWorkspaces`, hidratacao apos F5 via `/auth/me` — Fase 1.8 (integracao) |
+| 10 | **Rafael Correia** (Senior) | QA & Security | Testes E2E de isolamento cross-tenant (A nao ve B), unitarios de `resolveInitialWorkspace`/`selectWorkspace`, regressao zero em endpoints pre-existentes, performance da migration em clone de prod, Swagger/OpenAPI, audit de leaks cross-tenant |
+
+---
+
+## Ordem de Execucao (Simultaneidade Maxima)
+
+### Etapa 0 — Alinhamento (Gabriela, solo, 1 sessao curta)
+
+- Le `PLANO-WORKSPACE.md` de ponta a ponta e publica ADR no squad com trade-offs ja decididos (RLS apos Fase 2, feature flag, estrategia aditiva→seed→NOT NULL).
+- Confirma com Product Owner o slug do workspace default: `mundial-telhas`.
+- Cria branch base `feature/workspace-foundation`.
+
+### Etapa 1 — Golden Path Schema (Rodrigo, solo)
+
+Constroi o schema completo como **referencia** antes da paralelizacao:
+
+1. Novos models `Workspace`, `WorkspaceMember`, `WorkspaceInvite` + 3 enums (PLANO 1.1)
+2. `workspaceId` nullable em todos os ~25 models listados (PLANO 1.2)
+3. Relacoes em `User` (`lastAccessedWorkspaceId`, `workspaceMembers`, `ownedWorkspaces`, `workspaceInvites`)
+4. Indices: `idx_ws_members_user`, `idx_ws_members_ws_role`, `idx_ws_invites_email_ws` + `(workspace_id, deleted_at)` compostos nas tabelas de negocio
+5. Executa `npx prisma migrate dev --name workspace_foundation` local → gera Migration 1
+
+### Etapa 2 — Paralelismo Total (6 frentes simultaneas)
+
+**A partir desse ponto, todos trabalham em paralelo. Cada um em sua propria branch derivada de `feature/workspace-foundation`.**
+
+```
+Camila   → Migration 2 (seed) + Migration 3 (NOT NULL) + script prisma/seed-workspace.ts
+Thiago   → Modulo workspaces backend (CRUD + members + invites + DTOs + endpoints)
+Larissa  → Auth: JWT payload + resolveInitialWorkspace + selectWorkspace + WorkspaceGuard + @WorkspaceId
+Andre    → Scoping: comeca pela P1 BPM (7 repos) → P2 Negocio (10 repos)
+Helena   → Frontend core: store Zustand + services + hooks + schemas Zod + types + AuthProvider update
+Vinicius → Frontend UI: WorkspaceSwitcher + CreateWorkspaceDialog + WorkspaceForm + integracao sidebar
+```
+
+Sincronizacao: daily assync no canal do squad. Bloqueios resolvidos em <4h (Gabriela escalando se preciso).
+
+### Etapa 3 — Integracao (Sofia + Gabriela)
+
+- **Sofia:** liga frontend ao backend — login retorna `{ workspace, availableWorkspaces }`, `useSelectWorkspace` troca tokens e limpa cache, AuthProvider popula store, middleware valida fluxo completo.
+- **Gabriela:** valida integracao end-to-end (login → selector → CRUD em entidade scoped → troca workspace → dados isolados). Aprova merge da branch `feature/workspace-foundation` em `main`.
+
+### Etapa 4 — Scoping P3 e P4 (Andre, continua solo)
+
+Apos Fase 1 em main, Andre continua:
+- P3 Referencia (12 repos)
+- P4 Derivados (8 repos)
+- Sidebar tree (`GET /departments` scoped)
+
+### Etapa 5 — QA Transversal (Rafael, continuo desde Etapa 2)
+
+- Desde o dia 1 da Etapa 2, Rafael escreve testes para cada PR que entra.
+- E2E de isolamento cross-tenant rodando em CI antes de cada merge.
+- Regressao zero: suite completa de endpoints legados passa verde.
+- Performance: mede backfill em clone de producao antes de Camila rodar Migration 2 em staging.
+
+### Etapa 6 — RLS PostgreSQL (Gabriela, apos Fase 2 estabilizar)
+
+- Migration dedicada habilitando RLS nas tabelas workspace-scoped (PLANO 2.4).
+- Policies `workspace_isolation` via GUC `app.current_workspace_id`.
+- Interceptor Prisma injetando GUC em cada transacao.
+- Trade-off documentado: ~5-10% overhead em queries, elimina classe inteira de bugs de tenant-leak.
+- Desabilitar em dev para facilitar debug via Prisma Studio.
+
+---
+
+## Manutencao (Roteamento por Responsabilidade)
+
+| Quando... | Procure... |
+|---|---|
+| Decisao arquitetural, ADR, RLS, feature flag, coordenacao | **Gabriela Prado** |
+| Mudanca no schema Prisma (novo model, novo `workspaceId`, indice) | **Rodrigo Teixeira** |
+| Nova migration, backfill, seed, mapeamento de roles legados | **Camila Fonseca** |
+| Endpoints de workspaces/members/invites, DTOs, paginacao | **Thiago Monteiro** |
+| JWT, guards, decorators, rate limiting de auth | **Larissa Moura** |
+| Repository ainda sem `workspaceId` no where / query cross-tenant | **Andre Barros** |
+| Store Zustand, hooks, services, schemas Zod, React Query | **Helena Cardoso** |
+| WorkspaceSwitcher, Dialog, Form, variaveis CSS sidebar | **Vinicius Tavares** |
+| Fluxo de login/refresh/select no frontend, invalidacao de cache | **Sofia Albuquerque** |
+| Teste e2e de isolamento, regressao, performance, Swagger | **Rafael Correia** |
+
+---
+
+## Interface com Outros Squads
+
+### Quem depende de nos
+
+| Squad | O que consome |
+|---|---|
+| **Squad Auth** (`squad-auth.mdc`) | JWT payload estendido, `selectWorkspace`, `WorkspaceGuard`, `@WorkspaceId()` |
+| **Squad BPM** (`squad-bpm.mdc`) | Scoping de Department (topo da hierarquia) por `workspaceId` — toda a arvore BPM herda transitivamente |
+| **Squad Orders, Clients, Products, Suppliers, Financial, Production, Requisitions** | Repositories com `workspaceId` no where — Andre Barros entrega por prioridade |
+| **Squad FE Shell + Sidebar** | `WorkspaceSwitcher` no `SidebarHeader`, variaveis CSS, padrao `data-collapsible=icon` |
+| **Squad FE *** (todos) | `workspace.store`, hooks `useCurrentWorkspace`, invalidacao de cache ao trocar workspace, React Query keys com `workspaceId` |
+| **Squad Infra** | Migrations workspace-foundation, RLS policies, GUC injection via interceptor Prisma |
+
+### De quem dependemos
+
+| Squad | O que consumimos |
+|---|---|
+| **Squad Infra** (F1) | PrismaService, CommonModule, `ResponseInterceptor` (envelope `{data, meta}`), `PaginationDto`, `RequestId`, Throttler |
+| **Squad Auth** (F2) | `JwtAuthGuard`, `@CurrentUser`, `@Roles`, Role enum legado, `auth.service.login/refresh` (para estender) |
+| **Squad BPM** (F3) | `Department` como topo da hierarquia — primeiro model de negocio a receber `workspaceId` |
+| **Squad FE Shell** (F6) | `AuthProvider`, `middleware.ts`, layout base, Align UI primitives (DropdownMenu + Avatar), variaveis CSS do sidebar |
+| **Squad Coolify** | Deploy staging para testar migration em clone de prod, observabilidade, health checks |
+
+---
+
+## Protocolo de Consulta (Quando Precisamos de Mais Contexto)
+
+A ordem e **estrita** — nao pular etapas.
+
+1. **PLANO-WORKSPACE.md (`.claude/plan/PLANO-WORKSPACE.md`)** — resposta oficial sobre O QUE. Se esta la, segue sem questionar specs.
+2. **agent-CTO.md (`.claude/agents/agent-cto.md`)** — resposta oficial sobre COMO (performance, escala, seguranca, tomada de decisao).
+3. **Standards (`.claude/standards/`)** — nomenclatura, estrutura de pastas, padroes de backend/frontend/banco/api/auth/seguranca.
+4. **Memoria do projeto (`.claude/projects/.../memory/MEMORY.md`)** — contexto do Mundial ERP, stack, decisoes anteriores, deploy Coolify, integracoes Pro Financas.
+5. **Squad dono do recurso consultado** — se o escopo cruza com outro squad (ex: scoping de Orders), consulta o skill file daquele squad (`squad-orders.mdc`) e identifica o membro responsavel pelo recurso.
+6. **Mapa de squads (`squads-map.mdc`)** — quando nao sabe a qual squad pertence o recurso.
+7. **PLANO.md principal (`.claude/plan/PLANO.md`)** — somente se PLANO-WORKSPACE nao cobre (ex: estrutura de rotas, design system, portas locais).
+8. **Agent-CTO via delegacao** — para decisoes arquiteturais nao cobertas pelos itens acima, invocar o agent-CTO com contexto completo e pedir recomendacao com trade-offs explicitos.
+
+**Nunca:**
+- Inventar specs que nao estao no PLANO-WORKSPACE.
+- Quebrar endpoint pre-existente para "melhorar" — regressao zero e obrigatoria na Fase 1.
+- Mergear codigo com `workspaceId` faltando em query nova (P0 do code review).
+- Usar `any` no TypeScript (regra inviolavel do agent-CTO).
+- Logar tokens de convite, emails completos, ou qualquer PII.
+
+---
+
+## Red Flags que o Squad SEMPRE Levanta em Code Review
+
+Alem das red flags do agent-CTO, este squad vigia especificamente:
+
+- Query `findMany`/`findFirst`/`findUnique` em tabela workspace-scoped **sem** `workspaceId` no where
+- Endpoint novo **sem** `WorkspaceGuard` aplicado (ou sem `@SkipWorkspaceGuard()` explicito e justificado)
+- DTO de response que expoe `workspaceId` para usuario que nao e membro daquele workspace
+- Hook do frontend sem `workspaceId` na query key (causa stale data ao trocar workspace)
+- Migration adicionando `workspaceId` NOT NULL sem passar pela fase aditiva+seed antes
+- Token de convite sendo logado, ou email de convite sem mask
+- Mutation de `selectWorkspace` sem `qc.clear()` depois — vaza dados do workspace anterior
+- Criacao de workspace sem `WorkspaceMember` com role OWNER na mesma transacao
+- Convite aceito sem validar `expiresAt` e `status === PENDING`
+- Teste e2e que nao cobre o caso "user A nao ve dados do workspace de user B"
+
+---
+
+## Contexto para Agentes
+
+```
+REFERENCIAS OBRIGATORIAS:
+- Plano da feature:       .claude/plan/PLANO-WORKSPACE.md
+- Agent-CTO:              .claude/agents/agent-cto.md
+- Standards completos:    .claude/standards/
+- Mapa de squads:         .claude/skills/squads-map.mdc
+- Memoria do projeto:     .claude/projects/c--Users-USER-Documents-vibecoding-mundial-erp/memory/MEMORY.md
+
+SQUADS CONSULTADOS COM FREQUENCIA:
+- squad-auth.mdc          (integracao JWT, guards, @CurrentUser)
+- squad-bpm.mdc           (Department como primeiro model a receber workspaceId)
+- squad-infra.mdc         (PrismaService, CommonModule, RLS, migrations)
+- squad-fe-shell.mdc      (AuthProvider, sidebar, middleware, Align UI)
+- squad-fe-sidebar.mdc    (integracao do WorkspaceSwitcher no SidebarHeader)
+- squad-orders.mdc        (scoping prioritario P2, modulo central do ERP)
+- squad-coolify.mdc       (deploy staging para testar migrations em clone)
+
+OBJETIVO FINAL:
+Entregar multi-tenancy funcional com:
+(1) zero regressao em endpoints e telas existentes,
+(2) isolamento comprovado cross-tenant (cod + RLS),
+(3) UX fluida de troca de workspace sem F5 ou tela intermediaria,
+(4) migracao reversivel ate Migration 3, e
+(5) observabilidade completa (requestId + workspaceId em todos os logs estruturados).
+```
+
+---
+
+> **Lema do squad:** Tenant-leak nao e bug — e incidente. Cada query, cada guard, cada hook e uma trava de seguranca.

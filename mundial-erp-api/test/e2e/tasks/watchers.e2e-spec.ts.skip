@@ -1,0 +1,90 @@
+/**
+ * E2E scaffold — Task Watchers (self vs add-other).
+ *
+ * Status: placeholder. Habilitar em Sprint 2 apos completion do modulo
+ * task-watchers (Patricia).
+ *
+ * Cobertura planejada (PLANO-TASKS §8.8):
+ *   - POST /tasks/:id/watchers sem body permite self-add (Viewer+).
+ *   - POST /tasks/:id/watchers { userId: "other" } requer role Manager+.
+ *     Operator tentando add-other → 403.
+ *   - Outbox enfileira WATCHER_ADDED para projecao em TaskActivity + push
+ *     de notification ao watched user.
+ *   - Cross-tenant: add watcher em task de outro ws → 404.
+ */
+
+import { Test, TestingModule } from '@nestjs/testing';
+import { INestApplication, ValidationPipe } from '@nestjs/common';
+import type { App } from 'supertest/types';
+import { AppModule } from '../../../src/app.module';
+import {
+  cleanupWorkspace,
+  createTestProcess,
+  createTestTask,
+  createTestUser,
+  createTestWorkspace,
+  TestProcess,
+  TestUser,
+  TestWorkspace,
+} from './setup';
+
+describe.skip('Task Watchers (e2e) — Sprint 2 ativar', () => {
+  let app: INestApplication<App>;
+  let ws: TestWorkspace;
+  let processCtx: TestProcess;
+  let taskId: string;
+  let operator: TestUser;
+  let manager: TestUser;
+
+  beforeAll(async () => {
+    const moduleFixture: TestingModule = await Test.createTestingModule({
+      imports: [AppModule],
+    }).compile();
+
+    app = moduleFixture.createNestApplication();
+    app.setGlobalPrefix('api/v1', {
+      exclude: ['health', 'health/ready', 'docs'],
+    });
+    app.useGlobalPipes(
+      new ValidationPipe({
+        whitelist: true,
+        forbidNonWhitelisted: true,
+        transform: true,
+        transformOptions: { enableImplicitConversion: true },
+      }),
+    );
+    await app.init();
+
+    ws = await createTestWorkspace(app);
+    processCtx = await createTestProcess(app, ws.workspaceId);
+    taskId = (await createTestTask(app, processCtx, ws.ownerUserId)).taskId;
+    operator = await createTestUser(app, ws.workspaceId, 'OPERATOR');
+    manager = await createTestUser(app, ws.workspaceId, 'MANAGER');
+  }, 60_000);
+
+  afterAll(async () => {
+    if (!app) return;
+    await cleanupWorkspace(app, ws.workspaceId);
+    await app.close();
+  });
+
+  // Story WTCH-01 — self-add permitido
+  it.skip('self-add permitido para role Viewer+ (Operator self-add 201)', async () => {
+    expect(operator).toBeDefined();
+    expect(taskId).toBeTruthy();
+  });
+
+  // Story WTCH-02 — add-other requer Manager+
+  it.skip('Operator tentando add-other retorna 403', async () => {
+    expect(true).toBe(true);
+  });
+
+  it.skip('Manager pode adicionar outro user como watcher', async () => {
+    expect(manager).toBeDefined();
+  });
+
+  // Story WTCH-03 — outbox event
+  it.skip('WATCHER_ADDED enfileirado no outbox apos add (self ou other)', async () => {
+    expect(true).toBe(true);
+  });
+});

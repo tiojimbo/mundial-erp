@@ -15,6 +15,10 @@ export class WorkItemFiltersDto extends PaginationDto {
   @IsString()
   statusId?: string;
 
+  /**
+   * Filtro externo mantido como `assigneeId` (ADR-001). Service mapeia para o
+   * campo Prisma renomeado `primaryAssigneeCache`.
+   */
   @ApiPropertyOptional({ example: 'clxxxxxxxxxxxxxxxxxxxxxxxxx' })
   @IsOptional()
   @IsString()

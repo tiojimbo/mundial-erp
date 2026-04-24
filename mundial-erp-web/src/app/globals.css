@@ -48,6 +48,33 @@
   color-scheme: light;
 }
 
+/*
+ * Feature Tasks — design tokens (PLANO-TASKS.md §10.2 / §10.3).
+ * Namespaceados em `--task-*` para evitar colisao com Align UI e shadcn acima.
+ * Sempre que um token Align UI equivalente existir, preferir o namespace local
+ * para permitir iteracao da Task View sem impactar outras features.
+ */
+:root {
+  --task-radius-card: 14px;
+  --task-radius-badge: 4px;
+  --task-text-xs: 0.75rem;
+  --task-text-sm: 0.875rem;
+  --task-text-base: 1rem;
+  --task-text-2xl: 1.5rem;
+  --task-fw-normal: 400;
+  --task-fw-medium: 500;
+  --task-fw-semibold: 600;
+  --task-fw-bold: 700;
+  --task-transition: 150ms cubic-bezier(0.4, 0, 0.2, 1);
+
+  /* Paleta de status — PLANO-TASKS.md §10.3 */
+  --task-status-todo: oklch(55% 0.01 60);
+  --task-status-in-progress: oklch(62.3% 0.214 259.8);
+  --task-status-in-review: oklch(76.9% 0.188 70.08);
+  --task-status-done: oklch(69.6% 0.17 162.48);
+  --task-status-cancelled: oklch(57.7% 0.245 27.325);
+}
+
 .dark {
   --background: #171717;
   --foreground: oklch(98.5% 0 0);

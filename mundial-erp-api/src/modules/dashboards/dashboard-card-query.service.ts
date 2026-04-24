@@ -1,6 +1,12 @@
 import { Injectable, Logger, BadRequestException } from '@nestjs/common';
 import { CardType } from '@prisma/client';
 import { PrismaService } from '../../database/prisma.service';
+import {
+  EMPTY_INTERSECTION,
+  mergeFilters,
+  type EmptyIntersection,
+  type MergedWhere,
+} from './utils/merge-filters';
 
 /**
  * Heart of the Dashboards module — PLANO 2.6d.
@@ -165,26 +171,65 @@ export class DashboardCardQueryService {
     globalFilters: GlobalFilter[],
   ): Promise<CardDataResult> {
     const entity = this.normalizeEntity(dataSource.entity);
-    const where = this.buildWhere(
+    const built = this.buildWhere(
       entity,
       dataSource,
       cardFilters,
       globalFilters,
     );
 
+    if (built === EMPTY_INTERSECTION) {
+      return this.emptyResultFor(cardType, entity);
+    }
+
     switch (cardType) {
       case 'KPI_NUMBER':
-        return this.executeKpi(entity, where, axisConfig);
+        return this.executeKpi(entity, built, axisConfig);
       case 'TABLE':
-        return this.executeTable(entity, where);
+        return this.executeTable(entity, built);
       case 'PIE_CHART':
       case 'DONUT':
       case 'BAR_CHART':
       case 'STACKED_BAR':
-        return this.executeGrouped(entity, where, axisConfig);
+        return this.executeGrouped(entity, built, axisConfig);
       case 'LINE_CHART':
       case 'AREA_CHART':
-        return this.executeTimeSeries(entity, where, axisConfig);
+        return this.executeTimeSeries(entity, built, axisConfig);
+      default:
+        throw new BadRequestException(
+          `Tipo de card nao suportado: ${cardType}`,
+        );
+    }
+  }
+
+  // ---------------------------------------------------------------------------
+  // Empty-result shapes (ADR-008)
+  // ---------------------------------------------------------------------------
+
+  /**
+   * Quando o merge de filtros detecta interseccao vazia (card x global com
+   * mesmo field incompativel), retornamos o shape "vazio" correspondente ao
+   * CardType, sem tocar o Prisma. ADR-008 secao 2.
+   */
+  private emptyResultFor(
+    cardType: CardType,
+    entity: SupportedEntity,
+  ): CardDataResult {
+    switch (cardType) {
+      case 'KPI_NUMBER':
+        return { value: 0, label: 'Total' };
+      case 'TABLE': {
+        const columns = ['id', ...Array.from(ALLOWED_FIELDS[entity])];
+        return { columns, rows: [] };
+      }
+      case 'PIE_CHART':
+      case 'DONUT':
+      case 'BAR_CHART':
+      case 'STACKED_BAR':
+        return [] as LabelValue[];
+      case 'LINE_CHART':
+      case 'AREA_CHART':
+        return [] as XYPoint[];
       default:
         throw new BadRequestException(
           `Tipo de card nao suportado: ${cardType}`,
@@ -231,9 +276,31 @@ export class DashboardCardQueryService {
     dataSource: DataSource,
     cardFilters: Record<string, unknown> | null,
     globalFilters: GlobalFilter[],
-  ): Record<string, unknown> {
-    const where: Record<string, unknown> = { deletedAt: null };
+  ): Record<string, unknown> | EmptyIntersection {
     const allowed = ALLOWED_FIELDS[entity];
+
+    // Validar operators antecipadamente (mantem contrato da whitelist de
+    // operators — T-T4). Se algum operator e invalido, aborta com 400 antes
+    // de chegar ao helper de merge.
+    for (const gf of globalFilters) {
+      if (allowed.has(gf.field)) {
+        this.assertOperatorAllowed(gf.operator);
+      }
+    }
+
+    // INTERSECAO (ADR-008): nunca substitui — card x global sempre restringe.
+    // `workspaceId` NAO entra aqui; e aplicado depois, como primeira clausula.
+    const merged = mergeFilters(cardFilters ?? {}, globalFilters, allowed);
+    if (merged === EMPTY_INTERSECTION) {
+      return EMPTY_INTERSECTION;
+    }
+
+    // Clausulas intrinsecas aplicadas DEPOIS do merge — soft-delete guard e
+    // clausulas de dataSource nao podem ser sobrescritas via cardFilters ou
+    // globalFilters (o merge ja opera apenas sobre `allowed`, que nao inclui
+    // `deletedAt`; esta ordem garante a invariante mesmo contra futuras
+    // adicoes a whitelist).
+    const where: MergedWhere = { ...merged, deletedAt: null };
 
     if (dataSource.statusFilter && allowed.has('status')) {
       where.status = dataSource.statusFilter;
@@ -250,23 +317,32 @@ export class DashboardCardQueryService {
       }
     }
 
-    // Card-level filters — only allowed fields
-    if (cardFilters) {
-      for (const [key, val] of Object.entries(cardFilters)) {
-        if (val !== undefined && val !== null && allowed.has(key)) {
-          where[key] = val;
-        }
-      }
-    }
-
-    // Global dashboard filters — only allowed fields
-    for (const gf of globalFilters) {
-      if (allowed.has(gf.field)) {
-        where[gf.field] = this.operatorToPrisma(gf.operator, gf.value);
-      }
-    }
-
     return where;
+  }
+
+  /**
+   * Valida operator contra a whitelist. Mantem paridade com
+   * `operatorToPrisma` (unica fonte da verdade) mas sem converter — usado
+   * para validacao antecipada antes do merge. Unsupported => 400.
+   */
+  private assertOperatorAllowed(operator: string): void {
+    switch (operator) {
+      case 'EQUALS':
+      case 'NOT_EQUALS':
+      case 'GREATER':
+      case 'LESS':
+      case 'BETWEEN':
+      case 'IN':
+        return;
+      default:
+        this.logger.warn(
+          { operator, context: 'assertOperatorAllowed' },
+          'Unsupported operator rejected',
+        );
+        throw new BadRequestException(
+          `Unsupported operator: ${operator}. Allowed: EQUALS, NOT_EQUALS, GREATER, LESS, BETWEEN, IN`,
+        );
+    }
   }
 
   private getDateField(entity: SupportedEntity): string {
@@ -303,26 +379,9 @@ export class DashboardCardQueryService {
     }
   }
 
-  private operatorToPrisma(operator: string, value: unknown): unknown {
-    switch (operator) {
-      case 'EQUALS':
-        return value;
-      case 'NOT_EQUALS':
-        return { not: value };
-      case 'GREATER':
-        return { gt: value };
-      case 'LESS':
-        return { lt: value };
-      case 'BETWEEN': {
-        const arr = value as [unknown, unknown];
-        return { gte: arr[0], lte: arr[1] };
-      }
-      case 'IN':
-        return { in: Array.isArray(value) ? value : [value] };
-      default:
-        return value;
-    }
-  }
+  // NOTE: `operatorToPrisma` foi removido em ADR-008 — traducao operator->Prisma
+  // agora vive em `utils/merge-filters.ts` (unica fonte da verdade). Validacao
+  // de operator permanece em `assertOperatorAllowed` (acima).
 
   // ---------------------------------------------------------------------------
   // Prisma delegate resolver
@@ -412,23 +471,26 @@ export class DashboardCardQueryService {
     entity: SupportedEntity,
     where: Record<string, unknown>,
   ): Promise<TableData> {
+    // Invariant: never return fields outside ALLOWED_FIELDS[entity] (+ id) — prevents leaking workspaceId/deletedAt/tokens/etc.
     const delegate = this.getDelegate(entity);
+    const allowedColumns = ['id', ...Array.from(ALLOWED_FIELDS[entity])];
+    const select = Object.fromEntries(allowedColumns.map((c) => [c, true]));
+
     const rows = await delegate.findMany({
       where,
       take: 100,
       orderBy: { createdAt: 'desc' },
+      select,
     });
 
     if (rows.length === 0) {
       return { columns: [], rows: [] };
     }
 
-    const excluded = new Set(['deletedAt', 'updatedAt']);
-    const columns = Object.keys(rows[0] as Record<string, unknown>).filter(
-      (k: string) => !excluded.has(k),
-    );
-
-    return { columns, rows: rows as Record<string, unknown>[] };
+    return {
+      columns: allowedColumns,
+      rows: rows as Record<string, unknown>[],
+    };
   }
 
   private async executeGrouped(

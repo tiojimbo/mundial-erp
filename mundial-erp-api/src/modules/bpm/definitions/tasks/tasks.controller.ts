@@ -24,9 +24,12 @@ import { TaskResponseDto } from './dto/task-response.dto';
 import { PaginationDto } from '../../../../common/dtos/pagination.dto';
 import { Roles } from '../../../auth/decorators';
 
-@ApiTags('BPM - Tasks')
+@ApiTags('BPM - Activity Tasks')
 @ApiBearerAuth()
-@Controller('tasks')
+// Prefix renomeado para nao colidir com o squad Tasks (fachada WorkItem em
+// `/tasks/:taskId`). Este controller expoe tarefas-template de atividades
+// BPM (activityId, isMandatory, sortOrder) — conceito distinto do WorkItem.
+@Controller('activity-tasks')
 export class TasksController {
   constructor(private readonly tasksService: TasksService) {}
 

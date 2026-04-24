@@ -1,4 +1,5 @@
 import { api } from '@/lib/api';
+import type { ApiResponse } from '@/types/api.types';
 import type { WorkItemStatus } from '@/features/work-items/types/work-item.types';
 
 export type CreateWorkflowStatusPayload = {
@@ -21,21 +22,34 @@ export type ReorderWorkflowStatusItem = {
 };
 
 export const workflowStatusesService = {
-  async getByDepartment(departmentId: string): Promise<WorkItemStatus[]> {
-    const { data } = await api.get<WorkItemStatus[]>('/workflow-statuses', {
-      params: { departmentId },
+  async getByDepartment(
+    departmentId: string,
+    areaId?: string,
+  ): Promise<WorkItemStatus[]> {
+    const { data: envelope } = await api.get<
+      ApiResponse<WorkItemStatus[] | Record<string, WorkItemStatus[]>>
+    >('/workflow-statuses', {
+      params: { departmentId, areaId },
     });
-    return data;
+    const payload = envelope.data;
+    if (Array.isArray(payload)) return payload;
+    return Object.values(payload).flat();
   },
 
   async create(payload: CreateWorkflowStatusPayload): Promise<WorkItemStatus> {
-    const { data } = await api.post<WorkItemStatus>('/workflow-statuses', payload);
-    return data;
+    const { data: envelope } = await api.post<ApiResponse<WorkItemStatus>>(
+      '/workflow-statuses',
+      payload,
+    );
+    return envelope.data;
   },
 
   async update(id: string, payload: UpdateWorkflowStatusPayload): Promise<WorkItemStatus> {
-    const { data } = await api.patch<WorkItemStatus>(`/workflow-statuses/${id}`, payload);
-    return data;
+    const { data: envelope } = await api.patch<ApiResponse<WorkItemStatus>>(
+      `/workflow-statuses/${id}`,
+      payload,
+    );
+    return envelope.data;
   },
 
   async remove(id: string, migrateToStatusId?: string): Promise<void> {

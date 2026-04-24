@@ -18,7 +18,9 @@ type ProcessListViewProps = {
   isSummariesLoading: boolean;
   parentNameFn: (process: ProcessSummary) => string;
   deptSlug: string;
+  departmentId: string;
   emptyMessage?: string;
+  onCreateTask?: () => void;
 };
 
 export function ProcessListView({
@@ -27,7 +29,9 @@ export function ProcessListView({
   isSummariesLoading,
   parentNameFn,
   deptSlug,
+  departmentId,
   emptyMessage = 'Nenhum processo encontrado.',
+  onCreateTask,
 }: ProcessListViewProps) {
   const [showClosed, setShowClosed] = useState(false);
   const [search, setSearch] = useState('');
@@ -62,7 +66,7 @@ export function ProcessListView({
         {header}
 
         {/* Tabs */}
-        <nav className="flex items-center overflow-x-auto border-b-[0.8px] border-stroke-soft-200 px-10">
+        <nav className="flex items-center overflow-x-auto border-b-[0.25px] border-stroke-soft-200 px-10">
           <button
             type="button"
             className="relative flex h-[35.5px] items-center gap-1.5 px-3 py-2 text-[13px] font-medium text-text-sub-600 transition-colors hover:text-text-strong-950"
@@ -103,6 +107,7 @@ export function ProcessListView({
             showClosed={showClosed}
             onShowClosedChange={setShowClosed}
             closedCount={closedCount}
+            onCreateTask={onCreateTask}
           />
 
           <div className="flex w-full flex-1 flex-col gap-4 overflow-auto pb-24">
@@ -131,6 +136,7 @@ export function ProcessListView({
                     process={process}
                     parentName={parentNameFn(process)}
                     deptSlug={deptSlug}
+                    departmentId={departmentId}
                   />
                 ))}
               </div>

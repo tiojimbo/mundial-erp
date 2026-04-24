@@ -49,6 +49,11 @@ export class WorkItemResponseDto {
   @ApiProperty({ enum: TaskPriority })
   priority: TaskPriority;
 
+  /**
+   * Campo externo preservado por decisao de compat (ADR-001): Prisma renomeou
+   * `assigneeId` -> `primaryAssigneeCache`, mas a API publica segue expondo
+   * `assigneeId` para zero breaking change. Mapeado no `fromEntity` abaixo.
+   */
   @ApiPropertyOptional()
   assigneeId: string | null;
 
@@ -105,7 +110,8 @@ export class WorkItemResponseDto {
     }
     dto.itemType = entity.itemType;
     dto.priority = entity.priority;
-    dto.assigneeId = entity.assigneeId;
+    // ADR-001: coluna renomeada, contrato externo mantido.
+    dto.assigneeId = entity.primaryAssigneeCache;
     dto.creatorId = entity.creatorId;
     dto.parentId = entity.parentId;
     dto.startDate = entity.startDate;

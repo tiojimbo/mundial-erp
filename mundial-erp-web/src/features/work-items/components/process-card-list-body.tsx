@@ -1,6 +1,7 @@
 'use client';
 
 import { useState } from 'react';
+import { useRouter } from 'next/navigation';
 import {
   RiArrowDownSLine,
   RiArrowRightSLine,
@@ -12,9 +13,12 @@ import {
   RiPriceTag3Line,
   RiEditLine,
 } from '@remixicon/react';
+import { RiCheckLine } from '@remixicon/react';
 import { cn } from '@/lib/cn';
 import { StatusIcon } from './status-icon';
+import { StatusIconPopover } from './status-icon-popover';
 import { formatShortDate } from '@/lib/formatters';
+import { useTasksSelectionStore } from '@/stores/tasks-selection.store';
 import type {
   ProcessSummaryList,
   StatusGroupSummary,
@@ -23,9 +27,15 @@ import type {
 
 type ProcessCardListBodyProps = {
   process: ProcessSummaryList;
+  departmentId: string;
+  areaId?: string | null;
 };
 
-export function ProcessCardListBody({ process }: ProcessCardListBodyProps) {
+export function ProcessCardListBody({
+  process,
+  departmentId,
+  areaId,
+}: ProcessCardListBodyProps) {
   if (process.groups.length === 0) {
     return (
       <div className="px-5 pb-4">
@@ -39,13 +49,26 @@ export function ProcessCardListBody({ process }: ProcessCardListBodyProps) {
   return (
     <div className="flex flex-col gap-4 pb-3 pt-2">
       {process.groups.map((group) => (
-        <StatusGroupSection key={group.statusId} group={group} />
+        <StatusGroupSection
+          key={group.statusId}
+          group={group}
+          departmentId={departmentId}
+          areaId={areaId}
+        />
       ))}
     </div>
   );
 }
 
-function StatusGroupSection({ group }: { group: StatusGroupSummary }) {
+function StatusGroupSection({
+  group,
+  departmentId,
+  areaId,
+}: {
+  group: StatusGroupSummary;
+  departmentId: string;
+  areaId?: string | null;
+}) {
   const [expanded, setExpanded] = useState(
     group.statusCategory === 'NOT_STARTED' || group.statusCategory === 'ACTIVE',
   );
@@ -53,7 +76,7 @@ function StatusGroupSection({ group }: { group: StatusGroupSummary }) {
   return (
     <div className="relative">
       {/* Status badge header — sticky */}
-      <div className="sticky top-0 z-[25] flex min-h-10 items-center pl-6">
+      <div className="sticky top-0 z-[25] flex min-h-10 items-center bg-bg-white-0 pl-6">
         <div className="flex w-fit items-center gap-2">
           <button
             type="button"
@@ -94,7 +117,7 @@ function StatusGroupSection({ group }: { group: StatusGroupSummary }) {
       {expanded && (
         <div className="relative min-w-max">
           {/* Column headers — sticky below status badge */}
-          <div className="sticky top-10 z-20 flex h-11 items-center pl-[44px] text-[12.8px] font-medium text-text-soft-400">
+          <div className="sticky top-10 z-20 flex h-11 items-center bg-bg-white-0 pl-[44px] text-[12.8px] font-medium text-text-soft-400">
             <div className="w-[400px] px-2 py-1.5">Nome</div>
             <div className="w-[200px] px-2 py-1.5">Responsável</div>
             <div className="w-[200px] px-2 py-1.5">Início</div>
@@ -105,7 +128,13 @@ function StatusGroupSection({ group }: { group: StatusGroupSummary }) {
 
           {/* Task rows */}
           {group.items.map((item) => (
-            <TaskRow key={item.id} item={item} group={group} />
+            <TaskRow
+              key={item.id}
+              item={item}
+              group={group}
+              departmentId={departmentId}
+              areaId={areaId}
+            />
           ))}
 
           {/* Nova tarefa */}
@@ -124,38 +153,90 @@ function StatusGroupSection({ group }: { group: StatusGroupSummary }) {
 function TaskRow({
   item,
   group,
+  departmentId,
+  areaId,
 }: {
   item: WorkItemSummary;
   group: StatusGroupSummary;
+  departmentId: string;
+  areaId?: string | null;
 }) {
+  const router = useRouter();
+  const isSelected = useTasksSelectionStore((s) => s.selectedIds.includes(item.id));
+  const toggleSelection = useTasksSelectionStore((s) => s.toggle);
   const isOverdue =
     item.dueDate &&
     group.statusCategory !== 'DONE' &&
     group.statusCategory !== 'CLOSED' &&
     new Date(item.dueDate) < new Date();
 
+  const openTask = () => router.push(`/tasks/${item.id}`);
+  const stop = (e: React.SyntheticEvent) => e.stopPropagation();
+
   return (
-    <div className="group relative flex cursor-pointer select-none pl-[44px] pr-10 -mt-px border-t border-t-transparent border-b border-b-transparent hover:border-t-stroke-soft-200 hover:border-b-stroke-soft-200 hover:bg-bg-weak-50 hover:z-[1]">
+    <div
+      role="button"
+      tabIndex={0}
+      aria-label={`Abrir tarefa ${item.title}`}
+      onClick={openTask}
+      onKeyDown={(e) => {
+        if (e.key === 'Enter' || e.key === ' ') {
+          e.preventDefault();
+          openTask();
+        }
+      }}
+      data-selected={isSelected || undefined}
+      className="group relative flex cursor-pointer select-none pl-[44px] pr-10 -mt-px border-t border-t-transparent border-b border-b-transparent hover:border-t-stroke-soft-200 hover:border-b-stroke-soft-200 hover:bg-bg-weak-50 data-[selected]:bg-[#F5F5F5] hover:z-[1] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-stroke-strong-950/30"
+    >
       {/* Hover actions overlay (drag handle + checkbox) */}
-      <div className="absolute left-0 top-0 bottom-0 z-10 flex w-[44px] shrink-0 items-center justify-end gap-0.5 pr-1 opacity-0 group-hover:opacity-100">
+      <div
+        className={cn(
+          'absolute left-0 top-0 bottom-0 z-10 flex w-[44px] shrink-0 items-center justify-end gap-0.5 pr-1 transition-opacity',
+          isSelected ? 'opacity-100' : 'opacity-0 group-hover:opacity-100',
+        )}
+        onClick={stop}
+      >
         <div className="flex size-3.5 items-center justify-center text-text-soft-400 hover:text-text-sub-600">
           <RiDraggable className="size-3.5" />
         </div>
-        <div className="flex size-[14px] items-center justify-center rounded-[4px] border-[1.5px] border-text-soft-400 bg-bg-white-0 cursor-pointer hover:border-text-sub-600" />
+        <button
+          type="button"
+          role="checkbox"
+          aria-checked={isSelected}
+          aria-label={isSelected ? `Desmarcar ${item.title}` : `Marcar ${item.title}`}
+          onClick={(e) => {
+            e.stopPropagation();
+            toggleSelection(item.id);
+          }}
+          className={cn(
+            'flex size-[14px] items-center justify-center rounded-[4px] border-[1.5px] cursor-pointer transition-colors',
+            isSelected
+              ? 'border-primary-base bg-primary-base text-static-white'
+              : 'border-text-soft-400 bg-bg-white-0 hover:border-text-sub-600',
+          )}
+        >
+          {isSelected && <RiCheckLine className="size-3" />}
+        </button>
       </div>
 
       {/* Name column */}
       <div className="flex w-[400px] shrink-0 items-center gap-1.5 px-2 py-2">
         <button
           type="button"
-          className="flex size-5 shrink-0 items-center justify-center rounded-md border border-transparent text-text-soft-400 transition-colors hover:border-stroke-soft-200"
+          onClick={stop}
+          aria-label="Expandir subtasks"
+          className="flex size-5 shrink-0 items-center justify-center rounded-md border border-transparent text-text-soft-400 opacity-0 transition-all duration-150 group-hover:opacity-100 hover:border-stroke-soft-200"
         >
           <RiArrowRightSLine className="size-3.5 transition-transform duration-150" />
         </button>
 
-        <StatusIcon
-          category={group.statusCategory}
-          color={group.statusColor}
+        <StatusIconPopover
+          taskId={item.id}
+          departmentId={departmentId}
+          areaId={areaId}
+          currentStatusId={item.statusId}
+          currentCategory={group.statusCategory}
+          currentColor={group.statusColor}
           size={14}
         />
 
@@ -164,9 +245,13 @@ function TaskRow({
         </span>
 
         {/* Quick actions (hover only) */}
-        <div className="ml-auto flex items-center gap-1 opacity-0 group-hover:opacity-100">
+        <div
+          className="ml-auto flex items-center gap-1 opacity-0 group-hover:opacity-100"
+          onClick={stop}
+        >
           <button
             type="button"
+            aria-label="Criar subtask"
             className="flex size-7 items-center justify-center rounded-lg border-[0.8px] border-stroke-soft-200 text-text-soft-400 transition-colors hover:bg-bg-weak-50 hover:text-text-sub-600"
           >
             <RiAddLine className="size-3.5" />
@@ -176,6 +261,7 @@ function TaskRow({
           </div>
           <button
             type="button"
+            aria-label="Editar tarefa"
             className="flex size-7 items-center justify-center rounded-lg border-[0.8px] border-stroke-soft-200 text-text-soft-400 transition-colors hover:bg-bg-weak-50 hover:text-text-sub-600"
           >
             <RiEditLine className="size-3.5" />

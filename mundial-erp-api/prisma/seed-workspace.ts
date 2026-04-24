@@ -20,6 +20,7 @@
 import 'dotenv/config';
 import { PrismaClient, Role, WorkspaceMemberRole } from '@prisma/client';
 import { PrismaPg } from '@prisma/adapter-pg';
+import { seedKommoAnalyticsComercial } from './seeds/kommo-analytics-comercial.seed';
 
 // Safeguard CTO: nao deixar rodar acidentalmente com a feature flag
 // desligada. Alguem pode subir M3 (NOT NULL) sem ter ligado a flag e ter
@@ -102,6 +103,14 @@ async function main() {
     console.log(
       `  Workspace "${DEFAULT_WORKSPACE.slug}" ja existe (id=${existing.id}). Nada a fazer.`,
     );
+
+    // Kommo Analytics Comercial dashboard re-seed (idempotente via upsert).
+    // Guard por env-var para nao rodar em ambientes que nao queiram o dashboard.
+    if (process.env.SEED_KOMMO_DASHBOARD === 'true') {
+      console.log('Seeding Kommo Analytics Comercial dashboard (existing workspace)...');
+      await seedKommoAnalyticsComercial(prisma, existing.id, existing.ownerId);
+      console.log('Kommo Analytics Comercial dashboard seeded.');
+    }
     return;
   }
 
@@ -132,6 +141,7 @@ async function main() {
   console.log(`  ${allUsers.length} users encontrados para mapear como membros.`);
 
   // ---------- Transacao atomica ---------------------------------------------
+  let createdWorkspaceId: string | null = null;
   await prisma.$transaction(async (tx) => {
     // 1) Cria workspace default
     const workspace = await tx.workspace.create({
@@ -141,6 +151,7 @@ async function main() {
         ownerId: owner.id,
       },
     });
+    createdWorkspaceId = workspace.id;
     console.log(`  Workspace criado: ${workspace.name} (id=${workspace.id})`);
 
     // 2) Backfill workspace_id em batch nas 23 tabelas
@@ -185,6 +196,15 @@ async function main() {
       console.log(`  ${updatedUsers.count} users com lastAccessedWorkspaceId atualizado.`);
     }
   });
+
+  // ---------- Kommo Analytics Comercial dashboard seed (guarded) ------------
+  // Roda FORA da transacao anterior porque seedKommoAnalyticsComercial abre
+  // sua propria $transaction internamente. Idempotente via upsert-by-id.
+  if (process.env.SEED_KOMMO_DASHBOARD === 'true' && createdWorkspaceId) {
+    console.log('Seeding Kommo Analytics Comercial dashboard...');
+    await seedKommoAnalyticsComercial(prisma, createdWorkspaceId, owner.id);
+    console.log('Kommo Analytics Comercial dashboard seeded.');
+  }
 
   console.log('Workspace Foundation seed completo.');
 }

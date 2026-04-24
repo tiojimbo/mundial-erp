@@ -262,6 +262,97 @@ enum InviteStatus {
   REVOKED
 }
 
+// Tasks feature (ClickUp parity) — Sprint 1 Migration 1/3 "tasks_foundations"
+// Ver PLANO-TASKS.md secao 5.1 e ADRs 001/002/003.
+enum OutboxEventStatus {
+  PENDING
+  PROCESSING
+  COMPLETED
+  FAILED
+  DEAD
+}
+
+// Tasks feature (ClickUp parity) — Sprint 3-4 Migration 3/3 "tasks_advanced"
+// Ver PLANO-TASKS.md secao 5.1.
+enum TaskTemplateScope {
+  WORKSPACE
+  DEPARTMENT
+  PROCESS
+}
+
+enum ChecklistItemSource {
+  MANUAL
+  TEMPLATE
+}
+
+enum TaskActivityType {
+  CREATED
+  RENAMED
+  DESCRIPTION_CHANGED
+  STATUS_CHANGED
+  PRIORITY_CHANGED
+  DUE_DATE_CHANGED
+  START_DATE_CHANGED
+  ASSIGNEE_ADDED
+  ASSIGNEE_REMOVED
+  WATCHER_ADDED
+  WATCHER_REMOVED
+  TAG_ADDED
+  TAG_REMOVED
+  CUSTOM_TYPE_CHANGED
+  POINTS_CHANGED
+  ARCHIVED
+  UNARCHIVED
+  MERGED_INTO
+  DEPENDENCY_ADDED
+  DEPENDENCY_REMOVED
+  LINK_ADDED
+  LINK_REMOVED
+  CHECKLIST_CREATED
+  CHECKLIST_ITEM_RESOLVED
+  ATTACHMENT_ADDED
+  SUBTASK_ADDED
+  SUBTASK_COMPLETED
+  COMMENT_ADDED
+}
+
+// ----------------------------------------------------------------------------
+// Kommo integration enums (PLANO-KOMMO-DASHBOARD §5.1)
+// Sprint 1 — introduced by migration `kommo_foundations_1`.
+// ----------------------------------------------------------------------------
+
+enum KommoAuthType {
+  OAUTH2
+  LONG_LIVED_TOKEN
+}
+
+enum KommoAccountStatus {
+  ACTIVE
+  TOKEN_EXPIRED
+  REVOKED
+  SUSPENDED
+}
+
+enum KommoMessageDirection {
+  IN
+  OUT
+}
+
+enum KommoConversationStatus {
+  OPEN
+  WAITING_RESPONSE
+  WAITING_CLIENT
+  RESOLVED
+  ARCHIVED
+}
+
+enum KommoWebhookEventStatus {
+  RECEIVED
+  PROCESSED
+  DEDUPLICATED
+  DLQ
+}
+
 // ============================================================================
 // 1.2 — Auth & Organization
 // ============================================================================
@@ -304,6 +395,16 @@ model User {
   // --- WorkItems ---
   workItemsAssigned WorkItem[] @relation("WorkItemAssignee")
   workItemsCreated  WorkItem[] @relation("WorkItemCreator")
+
+  // --- WorkItems collaboration (Sprint 2 Migration 2/3 tasks_collaboration) ---
+  workItemAssignments WorkItemAssignee[] @relation("WorkItemAssigneeUser")
+  workItemWatchings   WorkItemWatcher[]  @relation("WorkItemWatcherUser")
+
+  // --- WorkItems advanced (Sprint 3-4 Migration 3/3 tasks_advanced) ---
+  checklistItemAssignments WorkItemChecklistItem[] @relation("ChecklistItemAssignee")
+  workItemAttachments      WorkItemAttachment[]    @relation("AttachmentUploader")
+  workItemComments         WorkItemComment[]       @relation("CommentAuthor")
+  workItemActivities       WorkItemActivity[]      @relation("TaskActivityActor")
 
   // --- Chat ---
   chatChannelsCreated      ChatChannel[]         @relation("ChatChannelCreatedBy")
@@ -367,6 +468,9 @@ model Department {
   users     User[]
   statuses  WorkflowStatus[]
   processes Process[]        @relation("ProcessDepartment")
+
+  // Tasks feature (Sprint 3-4 Migration 3/3 tasks_advanced)
+  workItemTemplates WorkItemTemplate[] @relation("TemplateDepartment")
 
   @@index([workspaceId])
   @@index([workspaceId, deletedAt], name: "idx_departments_ws_deleted")
@@ -439,6 +543,9 @@ model Process {
   processInstances ProcessInstance[]
   workItems        WorkItem[]
   views            ProcessView[]
+
+  // Tasks feature (Sprint 3-4 Migration 3/3 tasks_advanced)
+  workItemTemplates WorkItemTemplate[] @relation("TemplateProcess")
 
   @@index([departmentId], name: "idx_processes_department")
   @@index([areaId], name: "idx_processes_area")
@@ -610,6 +717,9 @@ model WorkflowStatus {
   area       Area?      @relation("AreaStatuses", fields: [areaId], references: [id])
   workItems  WorkItem[]
 
+  // Tasks feature (Sprint 3-4 Migration 3/3 tasks_advanced)
+  statusHistory WorkItemStatusHistory[] @relation("StatusHistoryStatus")
+
   @@index([departmentId, sortOrder], name: "idx_wf_statuses_dept_sort")
   @@index([areaId, sortOrder], name: "idx_wf_statuses_area_sort")
   @@map("workflow_statuses")
@@ -648,40 +758,382 @@ model StatusTemplateItem {
 // ============================================================================
 
 model WorkItem {
-  id               String       @id @default(cuid())
-  processId        String       @map("process_id")
-  title            String
-  description      String?      @db.Text
-  statusId         String       @map("status_id")
-  itemType         WorkItemType @default(TASK) @map("item_type")
-  priority         TaskPriority @default(NONE)
-  assigneeId       String?      @map("assignee_id")
-  creatorId        String       @map("creator_id")
-  parentId         String?      @map("parent_id")
-  startDate        DateTime?    @map("start_date")
-  dueDate          DateTime?    @map("due_date")
-  completedAt      DateTime?    @map("completed_at")
-  closedAt         DateTime?    @map("closed_at")
-  estimatedMinutes Int?         @map("estimated_minutes")
-  trackedMinutes   Int          @default(0) @map("tracked_minutes")
-  sortOrder        Int          @default(0) @map("sort_order")
-  createdAt        DateTime     @default(now()) @map("created_at")
-  updatedAt        DateTime     @updatedAt @map("updated_at")
-  deletedAt        DateTime?    @map("deleted_at")
+  id                   String       @id @default(cuid())
+  processId            String       @map("process_id")
+  title                String
+  description          String?      @db.Text
+  statusId             String       @map("status_id")
+  itemType             WorkItemType @default(TASK) @map("item_type")
+  priority             TaskPriority @default(NONE)
+  /// CACHE DERIVADO: nunca escrever direto. Atualizado pela Prisma extension
+  /// `primary-assignee-cache.extension.ts` em eventos de insert/delete de
+  /// WorkItemAssignee (Migration 2). Lint rule custom bloqueia SET direto.
+  /// Ver ADR-001.
+  primaryAssigneeCache String?      @map("primary_assignee_cache")
+  creatorId            String       @map("creator_id")
+  parentId             String?      @map("parent_id")
+  startDate            DateTime?    @map("start_date")
+  dueDate              DateTime?    @map("due_date")
+  completedAt          DateTime?    @map("completed_at")
+  closedAt             DateTime?    @map("closed_at")
+  estimatedMinutes     Int?         @map("estimated_minutes")
+  trackedMinutes       Int          @default(0) @map("tracked_minutes")
+  sortOrder            Int          @default(0) @map("sort_order")
 
-  process  Process        @relation(fields: [processId], references: [id])
-  status   WorkflowStatus @relation(fields: [statusId], references: [id])
-  assignee User?          @relation("WorkItemAssignee", fields: [assigneeId], references: [id])
-  creator  User           @relation("WorkItemCreator", fields: [creatorId], references: [id])
-  parent   WorkItem?      @relation("Subtasks", fields: [parentId], references: [id])
-  children WorkItem[]     @relation("Subtasks")
+  // Tasks feature (Sprint 1 Migration 1/3 tasks_foundations) — additive-only, tudo nullable.
+  markdownContent  String?   @map("markdown_content") @db.Text
+  points           Decimal?  @db.Decimal(10, 2)
+  archived         Boolean   @default(false)
+  archivedAt       DateTime? @map("archived_at")
+  customTypeId     String?   @map("custom_type_id")
+  mergedIntoId     String?   @map("merged_into_id")
+  // CTO note #7: Int em segundos (64k dias cabem em Int32); evita BigInt no JSON.
+  timeSpentSeconds Int       @default(0) @map("time_spent_seconds")
+
+  createdAt DateTime  @default(now()) @map("created_at")
+  updatedAt DateTime  @updatedAt @map("updated_at")
+  deletedAt DateTime? @map("deleted_at")
+
+  process         Process         @relation(fields: [processId], references: [id])
+  status          WorkflowStatus  @relation(fields: [statusId], references: [id])
+  primaryAssignee User?           @relation("WorkItemAssignee", fields: [primaryAssigneeCache], references: [id])
+  creator         User            @relation("WorkItemCreator", fields: [creatorId], references: [id])
+  parent          WorkItem?       @relation("Subtasks", fields: [parentId], references: [id])
+  children        WorkItem[]      @relation("Subtasks")
+  customType      CustomTaskType? @relation(fields: [customTypeId], references: [id])
+  mergedInto      WorkItem?       @relation("MergeTarget", fields: [mergedIntoId], references: [id])
+  merges          WorkItem[]      @relation("MergeTarget")
+
+  // Tasks feature (Sprint 2 Migration 2/3 tasks_collaboration) — join tables.
+  assignees WorkItemAssignee[]
+  watchers  WorkItemWatcher[]
+  tags      WorkItemTagLink[]
+
+  // Tasks feature (Sprint 3-4 Migration 3/3 tasks_advanced) — relacoes reversas.
+  checklists      WorkItemChecklist[]
+  attachments     WorkItemAttachment[]
+  comments        WorkItemComment[]
+  statusHistory   WorkItemStatusHistory[]
+  dependenciesOut WorkItemDependency[]    @relation("DependencyFrom")
+  dependenciesIn  WorkItemDependency[]    @relation("DependencyTo")
+  linksFrom       WorkItemLink[]          @relation("LinkFrom")
+  linksTo         WorkItemLink[]          @relation("LinkTo")
+  activities      WorkItemActivity[]
 
   @@index([processId, statusId], name: "idx_work_items_process_status")
-  @@index([assigneeId, statusId], name: "idx_work_items_assignee_status")
+  @@index([primaryAssigneeCache, statusId], name: "idx_work_items_assignee_status")
   @@index([dueDate], name: "idx_work_items_due_date")
   @@index([parentId], name: "idx_work_items_parent")
   @@index([processId, deletedAt, parentId], name: "idx_workitems_process_deleted_parent")
+  @@index([primaryAssigneeCache, dueDate], name: "idx_work_items_assignee_due")
+  @@index([archived, processId, deletedAt], name: "idx_work_items_archived_process")
+  @@index([customTypeId], name: "idx_work_items_custom_type")
+  @@index([mergedIntoId], name: "idx_work_items_merged_into")
   @@map("work_items")
+}
+
+// ============================================================================
+// Tasks feature — Custom Task Types e Outbox (Migration 1/3 tasks_foundations)
+// Ver PLANO-TASKS.md secao 5.3 e ADR-003.
+// ============================================================================
+
+/// CustomTaskType — builtin (workspaceId NULL) + custom por workspace.
+/// Builtins sao seeds (Task, Milestone); workspace pode futuramente criar
+/// tipos proprios. API expoe apenas leitura (GET /custom-task-types).
+model CustomTaskType {
+  id          String    @id @default(cuid())
+  workspaceId String?   @map("workspace_id")
+  name        String
+  namePlural  String?   @map("name_plural")
+  description String?
+  icon        String?
+  color       String?
+  avatarUrl   String?   @map("avatar_url")
+  isBuiltin   Boolean   @default(false) @map("is_builtin")
+  sortOrder   Int       @default(0) @map("sort_order")
+  createdAt   DateTime  @default(now()) @map("created_at")
+  updatedAt   DateTime  @updatedAt @map("updated_at")
+  deletedAt   DateTime? @map("deleted_at")
+
+  workspace Workspace? @relation(fields: [workspaceId], references: [id])
+  workItems WorkItem[]
+
+  @@index([workspaceId, deletedAt], name: "idx_custom_task_types_ws_deleted")
+  @@map("custom_task_types")
+}
+
+/// TaskOutboxEvent — outbox pattern para side-effects garantidos (ADR-003).
+/// Escrito na mesma $transaction do commit de WorkItem; worker BullMQ
+/// consome com retry + DLQ. Limpeza periodica de COMPLETED > 30d (R14).
+model TaskOutboxEvent {
+  id          String            @id @default(cuid())
+  aggregateId String            @map("aggregate_id")
+  eventType   String            @map("event_type")
+  payload     Json
+  status      OutboxEventStatus @default(PENDING)
+  attempts    Int               @default(0)
+  lastError   String?           @map("last_error")
+  createdAt   DateTime          @default(now()) @map("created_at")
+  processedAt DateTime?         @map("processed_at")
+
+  @@index([status, createdAt], name: "idx_outbox_status_created")
+  @@index([aggregateId], name: "idx_outbox_aggregate")
+  @@map("task_outbox_events")
+}
+
+// ============================================================================
+// Tasks feature — Collaboration (Migration 2/3 tasks_collaboration)
+// Multi-assignees (fonte unica), watchers, tags (case-insensitive), tag links.
+// Ver PLANO-TASKS.md secao 5.3 e ADR-001.
+// ============================================================================
+
+/// Multi-assignees — fonte unica da verdade para quem esta atribuido a uma
+/// task. `WorkItem.primaryAssigneeCache` e cache derivado escrito pela Prisma
+/// extension (ADR-001) em eventos de insert/delete aqui.
+model WorkItemAssignee {
+  workItemId String   @map("work_item_id")
+  userId     String   @map("user_id")
+  isPrimary  Boolean  @default(false) @map("is_primary")
+  assignedAt DateTime @default(now()) @map("assigned_at")
+  assignedBy String?  @map("assigned_by")
+
+  workItem WorkItem @relation(fields: [workItemId], references: [id], onDelete: Cascade)
+  user     User     @relation("WorkItemAssigneeUser", fields: [userId], references: [id])
+
+  @@id([workItemId, userId])
+  @@index([userId, workItemId], name: "idx_wi_assignees_user")
+  @@index([workItemId, isPrimary], name: "idx_wi_assignees_primary")
+  @@map("work_item_assignees")
+}
+
+/// Watchers — usuarios que seguem a task para receber notificacoes.
+model WorkItemWatcher {
+  workItemId String   @map("work_item_id")
+  userId     String   @map("user_id")
+  addedAt    DateTime @default(now()) @map("added_at")
+
+  workItem WorkItem @relation(fields: [workItemId], references: [id], onDelete: Cascade)
+  user     User     @relation("WorkItemWatcherUser", fields: [userId], references: [id])
+
+  @@id([workItemId, userId])
+  @@index([userId], name: "idx_wi_watchers_user")
+  @@map("work_item_watchers")
+}
+
+/// Tag por workspace. `nameLower` garante unicidade case-insensitive e
+/// permite busca eficiente. Normalizado pela aplicacao (LOWER(name)).
+model WorkItemTag {
+  id          String    @id @default(cuid())
+  workspaceId String    @map("workspace_id")
+  name        String
+  nameLower   String    @map("name_lower")
+  color       String?
+  bgColor     String?   @map("bg_color")
+  createdAt   DateTime  @default(now()) @map("created_at")
+  updatedAt   DateTime  @updatedAt @map("updated_at")
+  deletedAt   DateTime? @map("deleted_at")
+
+  workspace Workspace         @relation(fields: [workspaceId], references: [id])
+  links     WorkItemTagLink[]
+
+  @@unique([workspaceId, nameLower])
+  @@index([workspaceId, deletedAt], name: "idx_wi_tags_ws_deleted")
+  @@map("work_item_tags")
+}
+
+/// Join table entre WorkItem e WorkItemTag (many-to-many).
+model WorkItemTagLink {
+  workItemId String @map("work_item_id")
+  tagId      String @map("tag_id")
+
+  workItem WorkItem    @relation(fields: [workItemId], references: [id], onDelete: Cascade)
+  tag      WorkItemTag @relation(fields: [tagId], references: [id], onDelete: Cascade)
+
+  @@id([workItemId, tagId])
+  @@index([tagId], name: "idx_wi_tag_links_tag")
+  @@map("work_item_tag_links")
+}
+
+// ============================================================================
+// Tasks feature — Advanced (Migration 3/3 tasks_advanced)
+// Checklists, dependencies, links, status history, templates, attachments,
+// comments e activities. Ver PLANO-TASKS.md secao 5.3.
+// ============================================================================
+
+/// Checklist por task (multiplas). Items sao nested (WorkItemChecklistItem).
+model WorkItemChecklist {
+  id         String    @id @default(cuid())
+  workItemId String    @map("work_item_id")
+  name       String
+  position   Int       @default(0)
+  createdAt  DateTime  @default(now()) @map("created_at")
+  updatedAt  DateTime  @updatedAt @map("updated_at")
+  deletedAt  DateTime? @map("deleted_at")
+
+  workItem WorkItem                @relation(fields: [workItemId], references: [id], onDelete: Cascade)
+  items    WorkItemChecklistItem[]
+
+  @@index([workItemId, position], name: "idx_checklists_wi_pos")
+  @@map("work_item_checklists")
+}
+
+/// Item de checklist com nesting opcional (max depth 3 via service).
+model WorkItemChecklistItem {
+  id          String              @id @default(cuid())
+  checklistId String              @map("checklist_id")
+  parentId    String?             @map("parent_id")
+  name        String
+  assigneeId  String?             @map("assignee_id")
+  resolved    Boolean             @default(false)
+  resolvedAt  DateTime?           @map("resolved_at")
+  resolvedBy  String?             @map("resolved_by")
+  position    Int                 @default(0)
+  source      ChecklistItemSource @default(MANUAL)
+  createdAt   DateTime            @default(now()) @map("created_at")
+  updatedAt   DateTime            @updatedAt @map("updated_at")
+  deletedAt   DateTime?           @map("deleted_at")
+
+  checklist WorkItemChecklist       @relation(fields: [checklistId], references: [id], onDelete: Cascade)
+  parent    WorkItemChecklistItem?  @relation("ChecklistItemNesting", fields: [parentId], references: [id])
+  children  WorkItemChecklistItem[] @relation("ChecklistItemNesting")
+  assignee  User?                   @relation("ChecklistItemAssignee", fields: [assigneeId], references: [id])
+
+  @@index([checklistId, position], name: "idx_checklist_items_list_pos")
+  @@index([parentId], name: "idx_checklist_items_parent")
+  @@map("work_item_checklist_items")
+}
+
+/// Dependencia forte: `from` bloqueia / `to` espera (depends_on).
+/// Detector de ciclo obrigatorio no service (BFS, limite 1000 nodes / 2s).
+model WorkItemDependency {
+  id         String   @id @default(cuid())
+  fromTaskId String   @map("from_task_id")
+  toTaskId   String   @map("to_task_id")
+  createdAt  DateTime @default(now()) @map("created_at")
+  createdBy  String?  @map("created_by")
+
+  fromTask WorkItem @relation("DependencyFrom", fields: [fromTaskId], references: [id], onDelete: Cascade)
+  toTask   WorkItem @relation("DependencyTo", fields: [toTaskId], references: [id], onDelete: Cascade)
+
+  @@unique([fromTaskId, toTaskId])
+  @@index([toTaskId], name: "idx_wi_deps_to")
+  @@map("work_item_dependencies")
+}
+
+/// Link leve entre tasks (sem semantica de bloqueio).
+model WorkItemLink {
+  id         String   @id @default(cuid())
+  fromTaskId String   @map("from_task_id")
+  toTaskId   String   @map("to_task_id")
+  createdAt  DateTime @default(now()) @map("created_at")
+  createdBy  String?  @map("created_by")
+
+  fromTask WorkItem @relation("LinkFrom", fields: [fromTaskId], references: [id], onDelete: Cascade)
+  toTask   WorkItem @relation("LinkTo", fields: [toTaskId], references: [id], onDelete: Cascade)
+
+  @@unique([fromTaskId, toTaskId])
+  @@index([toTaskId], name: "idx_wi_links_to")
+  @@map("work_item_links")
+}
+
+/// Time in Status — 1 linha por transicao de status. Worker outbox fecha a
+/// linha anterior (`leftAt`, `durationSeconds`) e insere a nova.
+/// Particionar por mes se ultrapassar 10M rows (R15).
+model WorkItemStatusHistory {
+  id              String    @id @default(cuid())
+  workItemId      String    @map("work_item_id")
+  statusId        String    @map("status_id")
+  enteredAt       DateTime  @default(now()) @map("entered_at")
+  leftAt          DateTime? @map("left_at")
+  durationSeconds Int?      @map("duration_seconds")
+  byUserId        String?   @map("by_user_id")
+
+  workItem WorkItem       @relation(fields: [workItemId], references: [id], onDelete: Cascade)
+  status   WorkflowStatus @relation("StatusHistoryStatus", fields: [statusId], references: [id])
+
+  @@index([workItemId, enteredAt(sort: Desc)], name: "idx_status_history_task_entered")
+  @@map("work_item_status_history")
+}
+
+/// Template de task — snapshot para instanciacao em `Process`.
+/// Validador custom garante max 200 nodes cumulativos e depth <= 3.
+model WorkItemTemplate {
+  id             String            @id @default(cuid())
+  workspaceId    String            @map("workspace_id")
+  name           String
+  scope          TaskTemplateScope @default(WORKSPACE)
+  departmentId   String?           @map("department_id")
+  processId      String?           @map("process_id")
+  payload        Json
+  subtaskCount   Int               @default(0) @map("subtask_count")
+  checklistCount Int               @default(0) @map("checklist_count")
+  createdBy      String?           @map("created_by")
+  createdAt      DateTime          @default(now()) @map("created_at")
+  updatedAt      DateTime          @updatedAt @map("updated_at")
+  deletedAt      DateTime?         @map("deleted_at")
+
+  workspace  Workspace   @relation(fields: [workspaceId], references: [id])
+  department Department? @relation("TemplateDepartment", fields: [departmentId], references: [id])
+  process    Process?    @relation("TemplateProcess", fields: [processId], references: [id])
+
+  @@index([workspaceId, scope, deletedAt], name: "idx_wi_templates_ws_scope_del")
+  @@map("work_item_templates")
+}
+
+/// Attachment com signed-url upload e ClamAV scan async.
+model WorkItemAttachment {
+  id         String    @id @default(cuid())
+  workItemId String    @map("work_item_id")
+  filename   String
+  mimeType   String    @map("mime_type")
+  sizeBytes  Int       @map("size_bytes")
+  storageKey String    @map("storage_key")
+  scanStatus String    @default("PENDING") @map("scan_status")
+  uploadedBy String    @map("uploaded_by")
+  createdAt  DateTime  @default(now()) @map("created_at")
+  deletedAt  DateTime? @map("deleted_at")
+
+  workItem WorkItem @relation(fields: [workItemId], references: [id], onDelete: Cascade)
+  uploader User     @relation("AttachmentUploader", fields: [uploadedBy], references: [id])
+
+  @@index([workItemId, deletedAt], name: "idx_wi_attachments_task")
+  @@map("work_item_attachments")
+}
+
+/// Comentario dedicado (nao reusa ChatChannel). BlockNote JSON opcional.
+model WorkItemComment {
+  id         String    @id @default(cuid())
+  workItemId String    @map("work_item_id")
+  authorId   String    @map("author_id")
+  body       String    @db.Text
+  bodyBlocks Json?     @map("body_blocks")
+  editedAt   DateTime? @map("edited_at")
+  createdAt  DateTime  @default(now()) @map("created_at")
+  updatedAt  DateTime  @updatedAt @map("updated_at")
+  deletedAt  DateTime? @map("deleted_at")
+
+  workItem WorkItem @relation(fields: [workItemId], references: [id], onDelete: Cascade)
+  author   User     @relation("CommentAuthor", fields: [authorId], references: [id])
+
+  @@index([workItemId, createdAt(sort: Desc)], name: "idx_wi_comments_task_created")
+  @@map("work_item_comments")
+}
+
+/// Activity feed — projecao assincrona (ADR-002 + ADR-003).
+/// Worker outbox enriquece `payload` com nomes antes de inserir.
+model WorkItemActivity {
+  id         String           @id @default(cuid())
+  workItemId String           @map("work_item_id")
+  type       TaskActivityType
+  actorId    String?          @map("actor_id")
+  payload    Json
+  createdAt  DateTime         @default(now()) @map("created_at")
+
+  workItem WorkItem @relation(fields: [workItemId], references: [id], onDelete: Cascade)
+  actor    User?    @relation("TaskActivityActor", fields: [actorId], references: [id])
+
+  @@index([workItemId, createdAt(sort: Desc)], name: "idx_wi_activities_task_created")
+  @@map("work_item_activities")
 }
 
 // ============================================================================
@@ -1177,21 +1629,26 @@ model Dashboard {
 }
 
 model DashboardCard {
-  id          String   @id @default(cuid())
-  dashboardId String   @map("dashboard_id")
-  type        CardType
-  title       String
-  dataSource  Json     @map("data_source")
-  filters     Json?
-  axisConfig  Json?    @map("axis_config")
-  layoutX     Int      @map("layout_x")
-  layoutY     Int      @map("layout_y")
-  layoutW     Int      @map("layout_w")
-  layoutH     Int      @map("layout_h")
-  config      Json?
-  sortOrder   Int      @default(0) @map("sort_order")
-  createdAt   DateTime @default(now()) @map("created_at")
-  updatedAt   DateTime @updatedAt @map("updated_at")
+  id            String   @id @default(cuid())
+  dashboardId   String   @map("dashboard_id")
+  type          CardType
+  title         String
+  dataSource    Json     @map("data_source")
+  filters       Json?
+  axisConfig    Json?    @map("axis_config")
+  layoutX       Int      @map("layout_x")
+  layoutY       Int      @map("layout_y")
+  layoutW       Int      @map("layout_w")
+  layoutH       Int      @map("layout_h")
+  config        Json?
+  sortOrder     Int      @default(0) @map("sort_order")
+  // schemaVersion: versao do shape JSON em `dataSource`/`filters`/`axisConfig`/`config`.
+  // Requerido pelo principio #5 de `squad-dashboards.mdc`. Default 1 cobre cards
+  // legados criados antes da coluna existir. Bumps sao aditivos e acompanhados
+  // de transformador de leitura (RFC/ADR em `.claude/rfc/`).
+  schemaVersion Int      @default(1) @map("schema_version")
+  createdAt     DateTime @default(now()) @map("created_at")
+  updatedAt     DateTime @updatedAt @map("updated_at")
 
   dashboard Dashboard @relation(fields: [dashboardId], references: [id])
 
@@ -1879,7 +2336,7 @@ model AuditLog {
 
 model ChatChannel {
   id              String      @id @default(cuid())
-  workspaceId     String?     @map("workspace_id")
+  workspaceId     String      @map("workspace_id")
   name            String?     @db.VarChar(255)
   description     String?     @db.VarChar(1000)
   topic           String?     @db.VarChar(255)
@@ -1892,7 +2349,7 @@ model ChatChannel {
   updatedAt       DateTime    @updatedAt @map("updated_at")
   deletedAt       DateTime?   @map("deleted_at")
 
-  workspace Workspace?          @relation(fields: [workspaceId], references: [id])
+  workspace Workspace           @relation(fields: [workspaceId], references: [id])
   createdBy User                @relation("ChatChannelCreatedBy", fields: [createdById], references: [id])
   members   ChatChannelMember[]
   messages  ChatMessage[]
@@ -2043,6 +2500,11 @@ model Workspace {
   color     String?
   plan      WorkspacePlan @default(FREE)
   ownerId   String        @map("owner_id")
+  /// Bag de configuracoes livres por workspace (Json). Feature flags
+  /// per-workspace vivem aqui sob chaves especificas (ex.: `tasksV2Enabled`).
+  /// Migration de policies (Sprint 8) adiciona a coluna como JSONB not null
+  /// default '{}'. Evoluir com cautela — nao usar para dados operacionais.
+  settings  Json          @default("{}")
   createdAt DateTime      @default(now()) @map("created_at")
   updatedAt DateTime      @updatedAt @map("updated_at")
   deletedAt DateTime?     @map("deleted_at")
@@ -2078,6 +2540,12 @@ model Workspace {
   financialCategories   FinancialCategory[]
   statusTemplates       StatusTemplate[]
   priceTables           PriceTable[]
+  customTaskTypes       CustomTaskType[]
+  workItemTags          WorkItemTag[]
+  workItemTemplates     WorkItemTemplate[]
+
+  // Kommo integration (1:1) — PLANO-KOMMO-DASHBOARD §5.3
+  kommoAccount KommoAccount?
 
   @@index([deletedAt], name: "idx_workspaces_deleted")
   @@map("workspaces")
@@ -2118,4 +2586,112 @@ model WorkspaceInvite {
 
   @@index([email, workspaceId], name: "idx_ws_invites_email_ws")
   @@map("workspace_invites")
+}
+
+// ============================================================================
+// Kommo integration — Sprint 1 (migration `kommo_foundations_1`)
+// ----------------------------------------------------------------------------
+// PLANO-KOMMO-DASHBOARD §5.2 — 4 dos 11 models prioritarios.
+// Os 7 restantes (KommoPipeline, KommoStatus, KommoDepartment, KommoAgent,
+// KommoLead, KommoSyncCheckpoint, KommoMetricSnapshot) chegam em Sprint 2
+// via migration `kommo_foundations_2`. Campos FK nullable que apontam para
+// esses models (leadId, responsibleAgentId, departmentId, authorAgentId)
+// ja existem como colunas String sem @relation; as @relation serao
+// adicionadas na migration seguinte, sem mexer na coluna.
+// ============================================================================
+
+model KommoAccount {
+  id                String             @id @default(cuid())
+  workspaceId       String             @unique @map("workspace_id")
+  subdomain         String
+  authType          KommoAuthType      @map("auth_type")
+  accessToken       String             @map("access_token") // ENCRYPTED (envelope — ADR-006 pending)
+  refreshToken      String?            @map("refresh_token") // ENCRYPTED (envelope — ADR-006 pending); nullable p/ long-lived token
+  expiresAt         DateTime?          @map("expires_at")
+  hmacSecret        String             @map("hmac_secret") // ENCRYPTED (envelope — ADR-006 pending)
+  status            KommoAccountStatus @default(ACTIVE)
+  lastSyncAt        DateTime?          @map("last_sync_at")
+  connectedByUserId String?            @map("connected_by_user_id")
+  createdAt         DateTime           @default(now()) @map("created_at")
+  updatedAt         DateTime           @updatedAt @map("updated_at")
+  deletedAt         DateTime?          @map("deleted_at")
+
+  workspace     Workspace           @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  conversations KommoConversation[]
+  messages      KommoMessage[]
+
+  @@map("kommo_accounts")
+}
+
+model KommoConversation {
+  id                 String                  @id @default(cuid())
+  workspaceId        String                  @map("workspace_id")
+  accountId          String                  @map("account_id")
+  kommoChatId        BigInt                  @map("kommo_chat_id")
+  leadId             String?                 @map("lead_id") // FK -> KommoLead (Sprint 2)
+  responsibleAgentId String?                 @map("responsible_agent_id") // FK -> KommoAgent (Sprint 2)
+  departmentId       String?                 @map("department_id") // FK -> KommoDepartment (Sprint 2)
+  status             KommoConversationStatus @default(OPEN)
+  firstMessageAt     DateTime?               @map("first_message_at")
+  firstResponseAt    DateTime?               @map("first_response_at")
+  resolvedAt         DateTime?               @map("resolved_at")
+  lastMessageAt      DateTime?               @map("last_message_at")
+  createdAt          DateTime                @default(now()) @map("created_at")
+  updatedAt          DateTime                @updatedAt @map("updated_at")
+  deletedAt          DateTime?               @map("deleted_at")
+
+  account  KommoAccount   @relation(fields: [accountId], references: [id], onDelete: Cascade)
+  messages KommoMessage[]
+
+  @@unique([workspaceId, kommoChatId])
+  @@index([workspaceId, status])
+  @@index([workspaceId, responsibleAgentId])
+  @@index([workspaceId, resolvedAt])
+  @@index([workspaceId, createdAt])
+  @@map("kommo_conversations")
+}
+
+model KommoMessage {
+  id             String                @id @default(cuid())
+  workspaceId    String                @map("workspace_id")
+  accountId      String                @map("account_id")
+  conversationId String                @map("conversation_id")
+  kommoMessageId String                @map("kommo_message_id")
+  direction      KommoMessageDirection
+  authorAgentId  String?               @map("author_agent_id") // FK -> KommoAgent (Sprint 2)
+  contentPreview String                @map("content_preview") // truncado a 200 chars (squad-kommo principio #9)
+  contentHash    String                @map("content_hash") // SHA-256 do conteudo full
+  createdAt      DateTime              @default(now()) @map("created_at")
+  updatedAt      DateTime              @updatedAt @map("updated_at")
+  deletedAt      DateTime?             @map("deleted_at")
+
+  account      KommoAccount      @relation(fields: [accountId], references: [id], onDelete: Cascade)
+  conversation KommoConversation @relation(fields: [conversationId], references: [id], onDelete: Cascade)
+
+  @@unique([workspaceId, kommoMessageId])
+  @@index([workspaceId, createdAt(sort: Desc)])
+  @@index([conversationId, createdAt])
+  @@index([workspaceId, direction, createdAt]) // "Horarios de Pico"
+  @@index([workspaceId, authorAgentId, createdAt]) // "Performance por Atendente"
+  @@map("kommo_messages")
+}
+
+// Operacional — hard delete via purge cron (>30 dias). NAO carrega deletedAt.
+model KommoWebhookEvent {
+  id           String                  @id @default(cuid())
+  workspaceId  String                  @map("workspace_id")
+  eventId      String                  @map("event_id")
+  eventType    String                  @map("event_type")
+  payloadHash  String                  @map("payload_hash") // SHA-256
+  signature    String
+  status       KommoWebhookEventStatus @default(RECEIVED)
+  receivedAt   DateTime                @default(now()) @map("received_at")
+  processedAt  DateTime?               @map("processed_at")
+  errorMessage String?                 @map("error_message")
+  retryCount   Int                     @default(0) @map("retry_count")
+
+  @@unique([workspaceId, eventId])
+  @@index([workspaceId, status, receivedAt])
+  @@index([workspaceId, eventType, receivedAt])
+  @@map("kommo_webhook_events")
 }

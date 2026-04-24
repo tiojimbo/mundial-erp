@@ -6,7 +6,6 @@ import {
   RiFilterLine,
   RiEyeLine,
   RiEyeOffLine,
-  RiLayoutGridLine,
   RiNodeTree,
   RiEqualizerLine,
   RiCheckLine,
@@ -15,6 +14,7 @@ import {
   RiDeleteBinLine,
   RiAddLine,
 } from '@remixicon/react';
+import { Group } from 'lucide-react';
 import * as Popover from '@/components/ui/popover';
 
 const GROUP_OPTIONS = [
@@ -71,7 +71,7 @@ export function ProcessToolbar({
                 type="button"
                 className="flex h-7 items-center gap-1.5 rounded-lg bg-[oklch(20.5%_0_0/0.10)] px-2.5 text-[12px] font-medium text-[oklch(20.5%_0_0)] transition-colors hover:bg-[oklch(20.5%_0_0/0.15)]"
               >
-                <RiLayoutGridLine className="size-3.5" />
+                <Group className="size-3.5" />
                 Agrupar:{' '}
                 <span className="font-semibold">
                   {GROUP_OPTIONS.find((o) => o.value === groupBy)?.label}

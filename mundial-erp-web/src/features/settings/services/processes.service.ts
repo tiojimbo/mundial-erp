@@ -1,4 +1,5 @@
 import { api } from '@/lib/api';
+import type { ApiResponse } from '@/types/api.types';
 import type {
   ProcessConfig,
   CreateProcessPayload,
@@ -15,8 +16,10 @@ export const processesService = {
   },
 
   async getById(id: string): Promise<ProcessConfig> {
-    const { data } = await api.get<ProcessConfig>(`/processes/${id}`);
-    return data;
+    const { data: envelope } = await api.get<ApiResponse<ProcessConfig>>(
+      `/processes/${id}`,
+    );
+    return envelope.data;
   },
 
   async create(payload: CreateProcessPayload): Promise<ProcessConfig> {

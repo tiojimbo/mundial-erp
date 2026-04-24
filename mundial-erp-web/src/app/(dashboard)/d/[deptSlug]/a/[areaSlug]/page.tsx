@@ -1,6 +1,7 @@
 'use client';
 
-import { useParams } from 'next/navigation';
+import { useState } from 'react';
+import { useParams, useRouter } from 'next/navigation';
 import Link from 'next/link';
 import {
   RiStarLine,
@@ -10,14 +11,17 @@ import {
 import { ProcessListView } from '@/features/work-items/components/process-list-view';
 import { useAreaDetail } from '@/features/navigation/hooks/use-area-detail';
 import { useAreaSummaries } from '@/features/navigation/hooks/use-area-summaries';
+import { CreateTaskDialog } from '@/features/tasks/components/create-task-dialog';
 
 export default function AreaPage() {
   const params = useParams<{ deptSlug: string; areaSlug: string }>();
+  const router = useRouter();
   const { data: area, isLoading: isAreaLoading } = useAreaDetail(
     params.areaSlug,
   );
   const { data: summaries, isLoading: isSummariesLoading } =
     useAreaSummaries(area?.id ?? '', false);
+  const [isCreateOpen, setIsCreateOpen] = useState(false);
 
   if (isAreaLoading) {
     return (
@@ -39,41 +43,51 @@ export default function AreaPage() {
   }
 
   return (
-    <ProcessListView
-      header={
-        <header className="flex items-center gap-[6px] px-10 py-4">
-          <Link
-            href={`/d/${area.departmentSlug}`}
-            className="max-w-[200px] truncate text-[13px] font-normal tracking-[-0.143px] text-text-sub-600 transition-colors hover:text-text-strong-950"
-          >
-            {area.departmentName}
-          </Link>
-          <span className="text-[12px] tracking-[-0.143px] text-text-sub-600/40">
-            /
-          </span>
-          <RiFolderOpenLine className="size-4 text-text-sub-600" />
-          <span className="max-w-[200px] truncate text-[13px] font-semibold tracking-[-0.143px] text-text-strong-950">
-            {area.name}
-          </span>
-          <button
-            type="button"
-            className="flex items-center text-text-sub-600 transition-colors hover:text-text-strong-950"
-          >
-            <RiArrowDownSLine className="size-3.5" />
-          </button>
-          <button
-            type="button"
-            className="ml-1 text-text-sub-600 transition-colors hover:text-text-strong-950"
-          >
-            <RiStarLine className="size-3.5" />
-          </button>
-        </header>
-      }
-      summaries={summaries}
-      isSummariesLoading={isSummariesLoading}
-      parentNameFn={() => area.name}
-      deptSlug={area.departmentSlug}
-      emptyMessage="Nenhum processo nesta área."
-    />
+    <>
+      <ProcessListView
+        header={
+          <header className="flex items-center gap-[6px] px-10 py-4">
+            <Link
+              href={`/d/${area.departmentSlug}`}
+              className="max-w-[200px] truncate text-[13px] font-normal tracking-[-0.143px] text-text-sub-600 transition-colors hover:text-text-strong-950"
+            >
+              {area.departmentName}
+            </Link>
+            <span className="text-[12px] tracking-[-0.143px] text-text-sub-600/40">
+              /
+            </span>
+            <RiFolderOpenLine className="size-4 text-text-sub-600" />
+            <span className="max-w-[200px] truncate text-[13px] font-semibold tracking-[-0.143px] text-text-strong-950">
+              {area.name}
+            </span>
+            <button
+              type="button"
+              className="flex items-center text-text-sub-600 transition-colors hover:text-text-strong-950"
+            >
+              <RiArrowDownSLine className="size-3.5" />
+            </button>
+            <button
+              type="button"
+              className="ml-1 text-text-sub-600 transition-colors hover:text-text-strong-950"
+            >
+              <RiStarLine className="size-3.5" />
+            </button>
+          </header>
+        }
+        summaries={summaries}
+        isSummariesLoading={isSummariesLoading}
+        parentNameFn={() => area.name}
+        deptSlug={area.departmentSlug}
+        departmentId={area.departmentId}
+        emptyMessage="Nenhum processo nesta área."
+        onCreateTask={() => setIsCreateOpen(true)}
+      />
+      <CreateTaskDialog
+        open={isCreateOpen}
+        onOpenChange={setIsCreateOpen}
+        areaId={area.id}
+        onCreated={(taskId) => router.push(`/tasks/${taskId}`)}
+      />
+    </>
   );
 }

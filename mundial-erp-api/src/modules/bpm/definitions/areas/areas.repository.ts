@@ -145,7 +145,9 @@ export class AreasRepository {
               title: true,
               statusId: true,
               priority: true,
-              assigneeId: true,
+              // ADR-001: campo Prisma renomeado. Consumidores podem re-mapear
+              // para `assigneeId` na fronteira da API se necessario.
+              primaryAssigneeCache: true,
               startDate: true,
               dueDate: true,
               sortOrder: true,
@@ -238,7 +240,13 @@ export class AreasRepository {
         const groups = statuses.map((s) => {
           const items = processItems
             .filter((wi) => wi.statusId === s.id)
-            .slice(0, 50);
+            .slice(0, 50)
+            .map((wi) => {
+              // ADR-001: remapeia campo Prisma renomeado para o contrato
+              // externo historico `assigneeId`, preservando compat do front.
+              const { primaryAssigneeCache, ...rest } = wi;
+              return { ...rest, assigneeId: primaryAssigneeCache };
+            });
           return {
             statusId: s.id,
             statusName: s.name,

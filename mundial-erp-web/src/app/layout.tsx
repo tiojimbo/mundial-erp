@@ -6,6 +6,7 @@ import { ThemeProvider } from 'next-themes';
 import { cn } from '@/lib/cn';
 import { Provider as TooltipProvider } from '@/components/ui/tooltip';
 import { NotificationProvider } from '@/components/ui/notification-provider';
+import { Toaster } from 'sonner';
 import { QueryProvider } from '@/providers/query-provider';
 import { AuthProvider } from '@/providers/auth-provider';
 import { ThemeColorProvider } from '@/providers/theme-color-provider';
@@ -55,6 +56,7 @@ export default function RootLayout({
           </QueryProvider>
         </ThemeProvider>
         <NotificationProvider />
+        <Toaster position='bottom-right' richColors closeButton />
       </body>
     </html>
   );

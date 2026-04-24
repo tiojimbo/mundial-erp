@@ -4,16 +4,33 @@ import {
   Injectable,
   NotFoundException,
 } from '@nestjs/common';
-import { Prisma } from '@prisma/client';
+import { Prisma, StatusCategory } from '@prisma/client';
 import { DepartmentsRepository } from './departments.repository';
 import { CreateDepartmentDto } from './dto/create-department.dto';
 import { UpdateDepartmentDto } from './dto/update-department.dto';
 import { DepartmentResponseDto } from './dto/department-response.dto';
 import { PaginationDto } from '../../../../common/dtos/pagination.dto';
+import { PrismaService } from '../../../../database/prisma.service';
+
+/**
+ * Default workflow statuses que todo department novo recebe.
+ * Espelha `prisma/seed-bpm.ts` §2c. Se estes nao existem, nenhuma Task
+ * consegue ser criada nesse department (tasks.service.ts resolve o primeiro
+ * status NOT_STARTED ao criar a task e lanca 400 se nao encontrar).
+ */
+const DEFAULT_WORKFLOW_STATUSES = [
+  { name: 'Para Fazer', category: StatusCategory.NOT_STARTED, color: '#94a3b8', sortOrder: 1 },
+  { name: 'Em Andamento', category: StatusCategory.ACTIVE, color: '#3b82f6', sortOrder: 2 },
+  { name: 'Concluído', category: StatusCategory.DONE, color: '#22c55e', sortOrder: 3 },
+  { name: 'Finalizado', category: StatusCategory.CLOSED, color: '#16a34a', sortOrder: 4 },
+] as const;
 
 @Injectable()
 export class DepartmentsService {
-  constructor(private readonly departmentsRepository: DepartmentsRepository) {}
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly departmentsRepository: DepartmentsRepository,
+  ) {}
 
   private generateSlug(name: string): string {
     return name
@@ -45,14 +62,35 @@ export class DepartmentsService {
     const slug = await this.resolveUniqueSlug(workspaceId, baseSlug);
 
     try {
-      const entity = await this.departmentsRepository.create(workspaceId, {
-        name: dto.name,
-        slug,
-        description: dto.description,
-        icon: dto.icon,
-        color: dto.color,
-        isPrivate: dto.isPrivate,
-        sortOrder: dto.sortOrder ?? 0,
+      // Department + workflow statuses default em uma unica tx: se statuses
+      // falham, o department nao persiste (caso contrario /tasks para esse
+      // department ficaria bloqueado com 400 ate backfill manual).
+      const entity = await this.prisma.$transaction(async (tx) => {
+        const created = await tx.department.create({
+          data: {
+            name: dto.name,
+            slug,
+            description: dto.description,
+            icon: dto.icon,
+            color: dto.color,
+            isPrivate: dto.isPrivate,
+            sortOrder: dto.sortOrder ?? 0,
+            workspace: { connect: { id: workspaceId } },
+          },
+        });
+        for (const status of DEFAULT_WORKFLOW_STATUSES) {
+          await tx.workflowStatus.create({
+            data: {
+              name: status.name,
+              category: status.category,
+              color: status.color,
+              sortOrder: status.sortOrder,
+              isDefault: true,
+              department: { connect: { id: created.id } },
+            },
+          });
+        }
+        return created;
       });
 
       return DepartmentResponseDto.fromEntity(entity);

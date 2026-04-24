@@ -1,0 +1,135 @@
+/**
+ * Playwright journey — Task View feliz (PLANO-TASKS §14.2 + §10).
+ *
+ * Status: placeholder. Habilitar em Sprint 5 (TaskView integrada).
+ * Arquivo termina em `.spec.ts.skip` — ignorado pelo glob do Playwright
+ * (`*.spec.ts`) ate removermos o sufixo.
+ *
+ * Jornada:
+ *   criar -> assign -> checklist -> comment -> status change -> archive
+ *
+ * Cobertura adicional:
+ *   - axe-core em cada passo (checkA11y) — PLANO §14.4 / R10.
+ *   - Snapshots visuais marcados como TODO (integrar com Chromatic em Sprint 5).
+ */
+
+import { test, expect } from '@playwright/test';
+import { checkA11y } from './a11y-helpers';
+
+test.describe.skip('Tasks journey — habilitar em Sprint 5', () => {
+  test.skip('criar task a partir de Department: cascata area -> process funciona', async ({
+    page,
+  }) => {
+    // Pre: login + selecionar workspace + navegar para /departments/:id
+    await page.goto('/departments/dept-1');
+    await page.getByRole('button', { name: /nova task/i }).click();
+
+    // Dialog abre com role=dialog (a11y baseline)
+    const dialog = page.getByRole('dialog');
+    await expect(dialog).toBeVisible();
+    await checkA11y(page);
+
+    // Cascata: Area combobox -> Process combobox
+    await dialog.getByLabel(/area/i).click();
+    await page.getByRole('option', { name: /area comercial/i }).click();
+    await dialog.getByLabel(/processo/i).click();
+    await page.getByRole('option', { name: /leads/i }).click();
+
+    await dialog.getByLabel(/titulo/i).fill('Lead novo ACME');
+    await dialog.getByRole('button', { name: /criar/i }).click();
+
+    await expect(page.getByText(/task criada/i)).toBeVisible();
+    await expect(dialog).not.toBeVisible();
+  });
+
+  test.skip('criar task a partir de Area: select de process funciona', async ({
+    page,
+  }) => {
+    await page.goto('/areas/area-1');
+    await page.getByRole('button', { name: /nova task/i }).click();
+
+    const dialog = page.getByRole('dialog');
+    await expect(dialog).toBeVisible();
+    await checkA11y(page);
+
+    // Sem cascata de area (pre-resolvida). Process combobox visivel.
+    await expect(dialog.getByLabel(/area/i)).toHaveCount(0);
+    await dialog.getByLabel(/processo/i).click();
+    await page.getByRole('option', { name: /propostas/i }).click();
+
+    await dialog.getByLabel(/titulo/i).fill('Proposta X');
+    await dialog.getByRole('button', { name: /criar/i }).click();
+    await expect(page.getByText(/task criada/i)).toBeVisible();
+  });
+
+  test.skip('criar task a partir de Process: processo pre-selecionado travado', async ({
+    page,
+  }) => {
+    await page.goto('/processes/process-1');
+    await page.getByRole('button', { name: /nova task/i }).click();
+
+    const dialog = page.getByRole('dialog');
+    await expect(dialog).toBeVisible();
+    await checkA11y(page);
+
+    // lockedProcessId: nem Area nem Process sao renderizados.
+    await expect(dialog.getByLabel(/area/i)).toHaveCount(0);
+    await expect(dialog.getByLabel(/processo/i)).toHaveCount(0);
+
+    await dialog.getByLabel(/titulo/i).fill('Subtask do processo');
+    await dialog.getByRole('button', { name: /criar/i }).click();
+    await expect(page.getByText(/task criada/i)).toBeVisible();
+  });
+
+  test.skip('criar -> assign -> checklist -> comment -> status change -> archive', async ({
+    page,
+  }) => {
+    // Passo 1 — Story TS-S1-10 (criar task via quick-add)
+    await page.goto('/tasks');
+    await page.getByRole('button', { name: /nova task/i }).click();
+    await page.getByLabel(/titulo/i).fill('Visita cliente ACME');
+    await page.getByRole('button', { name: /criar/i }).click();
+    await expect(
+      page.getByRole('heading', { name: 'Visita cliente ACME' }),
+    ).toBeVisible();
+    await checkA11y(page);
+    // TODO Chromatic snapshot: await expect(page).toHaveScreenshot('task-created.png');
+
+    // Passo 2 — Story TS-S2-08 (assign multi-user)
+    await page.getByRole('button', { name: /assignees/i }).click();
+    await page.getByRole('option', { name: /ana silva/i }).click();
+    await expect(page.getByTestId('assignee-ana-silva')).toBeVisible();
+    await checkA11y(page);
+
+    // Passo 3 — Story TS-S3-03 (adicionar checklist com 3 items)
+    await page.getByRole('button', { name: /adicionar checklist/i }).click();
+    await page.getByLabel(/nome da checklist/i).fill('Preparacao');
+    for (const item of ['Ligar cliente', 'Confirmar endereco', 'Levantar material']) {
+      await page.getByRole('button', { name: /adicionar item/i }).click();
+      await page.getByLabel(/descricao do item/i).last().fill(item);
+    }
+    await checkA11y(page);
+
+    // Passo 4 — Story TS-S4-05 (comentario com mention)
+    await page
+      .getByTestId('comment-composer')
+      .fill('@ana Reviso a proposta amanha.');
+    await page.getByRole('button', { name: /comentar/i }).click();
+    await expect(page.getByText('Reviso a proposta amanha.')).toBeVisible();
+    await checkA11y(page);
+
+    // Passo 5 — Story TS-S2-02 (mudar status)
+    await page.getByTestId('status-selector').click();
+    await page.getByRole('option', { name: /em andamento/i }).click();
+    await expect(page.getByTestId('status-badge')).toHaveText(/em andamento/i);
+    await checkA11y(page);
+
+    // Passo 6 — Story TS-S4-10 (archive)
+    await page.getByRole('button', { name: /mais acoes/i }).click();
+    await page.getByRole('menuitem', { name: /arquivar/i }).click();
+    await page.getByRole('button', { name: /confirmar/i }).click();
+    await expect(page.getByText(/task arquivada/i)).toBeVisible();
+    await checkA11y(page);
+    // TODO Chromatic snapshot final
+  });
+});

@@ -152,6 +152,58 @@ async function main() {
   console.log(`  ✔ ${states.length} states`);
 
   // =========================================================================
+  // 2b. CUSTOM TASK TYPES — builtins (Tasks feature, Sprint 1 TSK-103)
+  // --------------------------------------------------------------------------
+  // workspaceId=NULL => tipo global visivel a todos os workspaces.
+  // IDs deterministicos "builtin-task"/"builtin-milestone" garantem
+  // idempotencia: reexecutar nao duplica (PK conflict -> upsert).
+  // =========================================================================
+  const builtinCustomTaskTypes = [
+    {
+      id: 'builtin-task',
+      name: 'Task',
+      namePlural: 'Tasks',
+      icon: 'CircleDot',
+      color: '#6b7280',
+      sortOrder: 0,
+    },
+    {
+      id: 'builtin-milestone',
+      name: 'Milestone',
+      namePlural: 'Milestones',
+      icon: 'Flag',
+      color: '#f59e0b',
+      sortOrder: 1,
+    },
+  ];
+
+  for (const ct of builtinCustomTaskTypes) {
+    await prisma.customTaskType.upsert({
+      where: { id: ct.id },
+      update: {
+        name: ct.name,
+        namePlural: ct.namePlural,
+        icon: ct.icon,
+        color: ct.color,
+        sortOrder: ct.sortOrder,
+        isBuiltin: true,
+        workspaceId: null,
+      },
+      create: {
+        id: ct.id,
+        name: ct.name,
+        namePlural: ct.namePlural,
+        icon: ct.icon,
+        color: ct.color,
+        sortOrder: ct.sortOrder,
+        isBuiltin: true,
+        workspaceId: null,
+      },
+    });
+  }
+  console.log(`  ✔ ${builtinCustomTaskTypes.length} builtin custom task types`);
+
+  // =========================================================================
   // 3. MAIN COMPANY (Mundial Telhas)
   // =========================================================================
   const company = await prisma.company.upsert({

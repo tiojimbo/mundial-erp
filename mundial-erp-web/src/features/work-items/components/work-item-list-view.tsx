@@ -8,6 +8,7 @@ import * as Badge from '@/components/ui/badge';
 import { RiArrowDownSLine, RiEyeLine, RiEyeOffLine } from '@remixicon/react';
 import { useWorkItemsGrouped } from '../hooks/use-work-items';
 import { StatusIcon } from './status-icon';
+import { StatusIconPopover } from './status-icon-popover';
 import type { WorkItem, WorkItemGroup } from '../types/work-item.types';
 
 function isOverdue(dueDate: string): boolean {
@@ -42,9 +43,13 @@ function PriorityBadge({ priority }: { priority: WorkItem['priority'] }) {
 function GroupSection({
   group,
   defaultExpanded,
+  departmentId,
+  areaId,
 }: {
   group: WorkItemGroup;
   defaultExpanded: boolean;
+  departmentId: string;
+  areaId?: string | null;
 }) {
   const [expanded, setExpanded] = useState(defaultExpanded);
 
@@ -104,9 +109,13 @@ function GroupSection({
                     <Table.Row key={item.id}>
                       <Table.Cell>
                         <div className='flex items-center gap-2'>
-                          <StatusIcon
-                            category={group.category}
-                            color={group.statusColor}
+                          <StatusIconPopover
+                            taskId={item.id}
+                            departmentId={departmentId}
+                            areaId={areaId}
+                            currentStatusId={item.statusId}
+                            currentCategory={group.category}
+                            currentColor={group.statusColor}
                             size={12}
                           />
                           <span className='text-label-sm text-text-strong-950'>
@@ -154,10 +163,12 @@ function GroupSection({
 
 export function WorkItemListView({
   processId,
-  departmentId: _departmentId,
+  departmentId,
+  areaId,
 }: {
   processId: string;
   departmentId: string;
+  areaId?: string | null;
 }) {
   const [showClosed, setShowClosed] = useState(false);
   const { data, isLoading } = useWorkItemsGrouped(processId, 'status');
@@ -191,6 +202,8 @@ export function WorkItemListView({
           defaultExpanded={
             group.category === 'NOT_STARTED' || group.category === 'ACTIVE'
           }
+          departmentId={departmentId}
+          areaId={areaId}
         />
       ))}
 

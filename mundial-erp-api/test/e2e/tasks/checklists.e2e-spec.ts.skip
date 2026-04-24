@@ -1,0 +1,95 @@
+/**
+ * E2E scaffold — Task Checklists (nested todos, drag reorder).
+ *
+ * Status: placeholder. Habilitar em Sprint 2 quando controller completo
+ * (Beatriz) estiver fechado. Repository existe (`task-checklists.repository`)
+ * mas reorder em transacao unica ainda em WIP.
+ *
+ * Cobertura planejada (PLANO-TASKS §8.3 + ADR-checklists):
+ *   - POST /tasks/:id/checklists cria checklist item com parentId null ou
+ *     aponta para outra da MESMA checklist (validacao cross-checklist).
+ *   - PATCH /task-checklists/reorder aplica nova ordem em transacao unica
+ *     (nenhuma linha fica com position invalida entre updates).
+ *   - PATCH /task-checklists/:id resolved=true seta resolvedAt + resolvedBy.
+ *     resolved=false limpa ambos.
+ *   - Nesting profundidade max=3 (PLANO §4.3). Insercao nivel 4 → 400.
+ *   - Cross-tenant → 404.
+ */
+
+import { Test, TestingModule } from '@nestjs/testing';
+import { INestApplication, ValidationPipe } from '@nestjs/common';
+import type { App } from 'supertest/types';
+import { AppModule } from '../../../src/app.module';
+import {
+  cleanupWorkspace,
+  createTestProcess,
+  createTestTask,
+  createTestWorkspace,
+  TestProcess,
+  TestWorkspace,
+} from './setup';
+
+describe.skip('Task Checklists (e2e) — Sprint 2 ativar', () => {
+  let app: INestApplication<App>;
+  let wsA: TestWorkspace;
+  let wsB: TestWorkspace;
+  let processA: TestProcess;
+  let taskAId: string;
+
+  beforeAll(async () => {
+    const moduleFixture: TestingModule = await Test.createTestingModule({
+      imports: [AppModule],
+    }).compile();
+
+    app = moduleFixture.createNestApplication();
+    app.setGlobalPrefix('api/v1', {
+      exclude: ['health', 'health/ready', 'docs'],
+    });
+    app.useGlobalPipes(
+      new ValidationPipe({
+        whitelist: true,
+        forbidNonWhitelisted: true,
+        transform: true,
+        transformOptions: { enableImplicitConversion: true },
+      }),
+    );
+    await app.init();
+
+    wsA = await createTestWorkspace(app);
+    wsB = await createTestWorkspace(app);
+    processA = await createTestProcess(app, wsA.workspaceId);
+    taskAId = (await createTestTask(app, processA, wsA.ownerUserId)).taskId;
+  }, 60_000);
+
+  afterAll(async () => {
+    if (!app) return;
+    await cleanupWorkspace(app, wsA.workspaceId);
+    await cleanupWorkspace(app, wsB.workspaceId);
+    await app.close();
+  });
+
+  // Story CHK-01 — transactional reorder
+  it.skip('PATCH /task-checklists/reorder aplica nova ordem em transacao unica', async () => {
+    expect(taskAId).toBeTruthy();
+  });
+
+  // Story CHK-02 — parent validation
+  it.skip('parentId aponta para item da mesma checklist (rejeita cross-checklist)', async () => {
+    expect(true).toBe(true);
+  });
+
+  // Story CHK-03 — resolved metadata
+  it.skip('setar resolved=true grava resolvedAt + resolvedBy; false limpa ambos', async () => {
+    expect(true).toBe(true);
+  });
+
+  // Story CHK-04 — nesting cap
+  it.skip('nesting depth cap=3 (insercao em nivel 4 retorna 400)', async () => {
+    expect(true).toBe(true);
+  });
+
+  // Story CHK-05 — cross-tenant
+  it.skip('GET/PATCH/DELETE checklist de wsA com token de wsB retorna 404', async () => {
+    expect(wsB).toBeDefined();
+  });
+});

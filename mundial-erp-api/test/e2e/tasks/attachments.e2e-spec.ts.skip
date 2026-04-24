@@ -1,0 +1,143 @@
+/**
+ * E2E scaffold — Task Attachments (storage + ClamAV pipeline).
+ *
+ * Status: placeholder. Habilitar em Sprint 2 quando:
+ *   - Modulo `task-attachments` (Beatriz) estiver em staging
+ *   - S3 adapter + bucket tasks-attachments provisionados (Diego)
+ *   - ClamAV worker em BullMQ queue `attachment-scan` rodando
+ *
+ * Cobertura planejada (PLANO-TASKS §8.7 + ADR-attachments + §16 risco R5):
+ *   - MIME whitelist (image/*, application/pdf, office docs) validada antes
+ *     do signed URL. Extensoes perigosas (.exe, .sh, .bat) retornam 400.
+ *   - Size cap 25MB aplicado na geracao do signed URL (metadata contentLength).
+ *   - register-attachment cria linha em WorkItemAttachment com scanStatus=PENDING.
+ *   - GET /tasks/:id/attachments/:aid/download-url retorna 403 enquanto
+ *     scanStatus in (PENDING, INFECTED). 200 + signed URL em CLEAN.
+ *   - storageKey preserva UUID prefix: `{workspaceId}/{workItemId}/{uuid}-{filename}`.
+ *   - Worker ClamAV atualiza scanStatus em <=30s (teste com TTL relaxado em CI).
+ *   - Cross-tenant: wsB nao pode pedir signed URL de attachment de wsA → 404.
+ */
+
+import { Test, TestingModule } from '@nestjs/testing';
+import { INestApplication, ValidationPipe } from '@nestjs/common';
+import request from 'supertest';
+import type { App } from 'supertest/types';
+import { AppModule } from '../../../src/app.module';
+import {
+  cleanupWorkspace,
+  createTestProcess,
+  createTestTask,
+  createTestWorkspace,
+  TestProcess,
+  TestWorkspace,
+} from './setup';
+
+describe.skip('Task Attachments (e2e) — Sprint 2 ativar', () => {
+  let app: INestApplication<App>;
+  let wsA: TestWorkspace;
+  let wsB: TestWorkspace;
+  let processA: TestProcess;
+  let taskAId: string;
+
+  beforeAll(async () => {
+    const moduleFixture: TestingModule = await Test.createTestingModule({
+      imports: [AppModule],
+    }).compile();
+
+    app = moduleFixture.createNestApplication();
+    app.setGlobalPrefix('api/v1', {
+      exclude: ['health', 'health/ready', 'docs'],
+    });
+    app.useGlobalPipes(
+      new ValidationPipe({
+        whitelist: true,
+        forbidNonWhitelisted: true,
+        transform: true,
+        transformOptions: { enableImplicitConversion: true },
+      }),
+    );
+    await app.init();
+
+    wsA = await createTestWorkspace(app);
+    wsB = await createTestWorkspace(app);
+    processA = await createTestProcess(app, wsA.workspaceId);
+    taskAId = (await createTestTask(app, processA, wsA.ownerUserId)).taskId;
+  }, 60_000);
+
+  afterAll(async () => {
+    if (!app) return;
+    await cleanupWorkspace(app, wsA.workspaceId);
+    await cleanupWorkspace(app, wsB.workspaceId);
+    await app.close();
+  });
+
+  // Story ATT-01 — signed URL issue
+  it.skip('signed URL request valida MIME whitelist (application/octet-stream rejeitado)', async () => {
+    const res = await request(app.getHttpServer())
+      .post(`/api/v1/tasks/${taskAId}/attachments/signed-url`)
+      .set('Authorization', `Bearer ${wsA.token}`)
+      .send({
+        filename: 'payload.exe',
+        mimeType: 'application/octet-stream',
+        sizeBytes: 1024,
+      });
+    expect(res.status).toBe(400);
+    expect(res.body.message).toMatch(/mime/i);
+  });
+
+  // Story ATT-02 — size cap
+  it.skip('signed URL rejeita arquivos maiores que 25MB (26_214_401 bytes)', async () => {
+    const res = await request(app.getHttpServer())
+      .post(`/api/v1/tasks/${taskAId}/attachments/signed-url`)
+      .set('Authorization', `Bearer ${wsA.token}`)
+      .send({
+        filename: 'huge.pdf',
+        mimeType: 'application/pdf',
+        sizeBytes: 26_214_401,
+      });
+    expect(res.status).toBe(400);
+    expect(res.body.message).toMatch(/size|25/i);
+  });
+
+  // Story ATT-03 — register cria PENDING
+  it.skip('register-attachment cria registro com scanStatus=PENDING', async () => {
+    expect(taskAId).toBeTruthy();
+  });
+
+  // Story ATT-04 — download-url bloqueado
+  it.skip('download-url retorna 403 quando scanStatus=PENDING', async () => {
+    expect(true).toBe(true);
+  });
+
+  it.skip('download-url retorna 403 quando scanStatus=INFECTED', async () => {
+    expect(true).toBe(true);
+  });
+
+  // Story ATT-05 — download-url liberado
+  it.skip('download-url retorna 200 + signed URL quando scanStatus=CLEAN', async () => {
+    expect(true).toBe(true);
+  });
+
+  // Story ATT-06 — storageKey format
+  it.skip('storageKey preserva UUID prefix: {workspaceId}/{workItemId}/{uuid}-{filename}', async () => {
+    expect(true).toBe(true);
+  });
+
+  // Story ATT-07 — worker SLA
+  it.skip('ClamAV worker atualiza scanStatus em <= 30s apos registro', async () => {
+    expect(true).toBe(true);
+  });
+
+  // Story ATT-08 — cross-tenant (R12)
+  it.skip('signed URL request de wsB sobre task de wsA retorna 404', async () => {
+    const res = await request(app.getHttpServer())
+      .post(`/api/v1/tasks/${taskAId}/attachments/signed-url`)
+      .set('Authorization', `Bearer ${wsB.token}`)
+      .send({
+        filename: 'doc.pdf',
+        mimeType: 'application/pdf',
+        sizeBytes: 1024,
+      });
+    expect(res.status).toBe(404);
+  });
+});

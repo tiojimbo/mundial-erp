@@ -1,0 +1,41 @@
+/**
+ * Frontend test scaffold — useUploadAttachment (flow 3 etapas).
+ *
+ * Status: skipped — aguarda vitest infra + hook real.
+ *
+ * Flow (PLANO-TASKS §8.7 + ADR-attachments):
+ *   1) POST /tasks/:id/attachments/signed-url com metadata.
+ *   2) PUT no signed URL com body binario (browser fetch direto S3).
+ *   3) POST /tasks/:id/attachments/register confirmando upload.
+ *
+ * Cobertura planejada:
+ *   - Fluxo feliz: 3 chamadas em sequencia, cada proxima so dispara apos
+ *     200/201 da anterior.
+ *   - Se step 1 falhar (MIME rejeitado), nao tenta step 2/3.
+ *   - Se step 2 falhar (S3 timeout), NAO chama step 3; marca estado
+ *     como `FAILED` e expoe retry sem re-pedir signed URL se ainda valido.
+ *   - Progress callback invocado durante step 2 (XHR progress events).
+ *   - MIME + size checadas client-side ANTES de step 1 (UX rapido).
+ */
+
+describe.skip('useUploadAttachment() 3-step flow — Sprint 2 ativar', () => {
+  it.skip('happy path: signed-url → PUT S3 → register', () => {
+    expect(true).toBe(true);
+  });
+
+  it.skip('step 1 falha → nao tenta step 2/3', () => {
+    expect(true).toBe(true);
+  });
+
+  it.skip('step 2 falha → nao chama register, estado = FAILED', () => {
+    expect(true).toBe(true);
+  });
+
+  it.skip('progress callback invocado durante PUT S3', () => {
+    expect(true).toBe(true);
+  });
+
+  it.skip('valida MIME + size client-side antes do signed-url request', () => {
+    expect(true).toBe(true);
+  });
+});

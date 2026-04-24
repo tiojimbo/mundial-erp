@@ -12,10 +12,11 @@ import {
 
 export const WORKFLOW_STATUSES_KEY = ['workflow-statuses'];
 
-export function useWorkflowStatuses(departmentId: string) {
+export function useWorkflowStatuses(departmentId: string, areaId?: string) {
   return useQuery({
-    queryKey: [...WORKFLOW_STATUSES_KEY, departmentId],
-    queryFn: () => workflowStatusesService.getByDepartment(departmentId),
+    queryKey: [...WORKFLOW_STATUSES_KEY, departmentId, areaId ?? null],
+    queryFn: () =>
+      workflowStatusesService.getByDepartment(departmentId, areaId),
     enabled: !!departmentId,
   });
 }

@@ -1,0 +1,118 @@
+/**
+ * E2E scaffold — Task Comments (BlockNote AST + mentions).
+ *
+ * Status: placeholder. Habilitar em Sprint 2 quando:
+ *   - Modulo `task-comments` (Beatriz) em staging
+ *   - Outbox projeta COMMENT_ADDED como TaskActivity + Notification
+ *
+ * Cobertura planejada (PLANO-TASKS §8.4 + ADR-comments + §16 risco R7):
+ *   - POST /tasks/:id/comments com body + bodyBlocks (BlockNote AST) persiste
+ *     ambos campos.
+ *   - Regex @([\w\.-]+) extrai menções e enfileira evento outbox COMMENT_ADDED
+ *     com mentionedUserIds resolvidos no workspace.
+ *   - PATCH exige authorId == userId OU workspaceRole in (ADMIN, MANAGER).
+ *   - DELETE e soft (deletedAt set), mas editedAt preservado para auditoria.
+ *   - Cross-tenant: wsB nao ve comment de wsA → 404.
+ */
+
+import { Test, TestingModule } from '@nestjs/testing';
+import { INestApplication, ValidationPipe } from '@nestjs/common';
+import request from 'supertest';
+import type { App } from 'supertest/types';
+import { AppModule } from '../../../src/app.module';
+import {
+  cleanupWorkspace,
+  createTestProcess,
+  createTestTask,
+  createTestUser,
+  createTestWorkspace,
+  TestProcess,
+  TestUser,
+  TestWorkspace,
+} from './setup';
+
+describe.skip('Task Comments (e2e) — Sprint 2 ativar', () => {
+  let app: INestApplication<App>;
+  let wsA: TestWorkspace;
+  let wsB: TestWorkspace;
+  let processA: TestProcess;
+  let taskAId: string;
+  let managerA: TestUser;
+  let operatorA: TestUser;
+
+  beforeAll(async () => {
+    const moduleFixture: TestingModule = await Test.createTestingModule({
+      imports: [AppModule],
+    }).compile();
+
+    app = moduleFixture.createNestApplication();
+    app.setGlobalPrefix('api/v1', {
+      exclude: ['health', 'health/ready', 'docs'],
+    });
+    app.useGlobalPipes(
+      new ValidationPipe({
+        whitelist: true,
+        forbidNonWhitelisted: true,
+        transform: true,
+        transformOptions: { enableImplicitConversion: true },
+      }),
+    );
+    await app.init();
+
+    wsA = await createTestWorkspace(app);
+    wsB = await createTestWorkspace(app);
+    processA = await createTestProcess(app, wsA.workspaceId);
+    taskAId = (await createTestTask(app, processA, wsA.ownerUserId)).taskId;
+    managerA = await createTestUser(app, wsA.workspaceId, 'MANAGER');
+    operatorA = await createTestUser(app, wsA.workspaceId, 'OPERATOR');
+  }, 60_000);
+
+  afterAll(async () => {
+    if (!app) return;
+    await cleanupWorkspace(app, wsA.workspaceId);
+    await cleanupWorkspace(app, wsB.workspaceId);
+    await app.close();
+  });
+
+  // Story CMT-01 — mentions + outbox
+  it.skip('POST extrai @mencoes do body e enfileira COMMENT_ADDED com mentionedUserIds', async () => {
+    const res = await request(app.getHttpServer())
+      .post(`/api/v1/tasks/${taskAId}/comments`)
+      .set('Authorization', `Bearer ${operatorA.token}`)
+      .send({
+        body: `Ola @${managerA.email.split('@')[0]}, por favor revise.`,
+        bodyBlocks: [
+          {
+            type: 'paragraph',
+            content: [{ type: 'text', text: 'Ola ' }, { type: 'mention', userId: managerA.userId }],
+          },
+        ],
+      });
+    expect(res.status).toBe(201);
+    expect(res.body.data.mentionedUserIds).toContain(managerA.userId);
+  });
+
+  // Story CMT-02 — authorization edit
+  it.skip('PATCH rejeita edicao por outro operator que nao author (403)', async () => {
+    expect(true).toBe(true);
+  });
+
+  it.skip('PATCH permite edicao por MANAGER mesmo sem ser author', async () => {
+    expect(managerA).toBeDefined();
+  });
+
+  // Story CMT-03 — soft delete
+  it.skip('DELETE soft-delete preserva editedAt para audit trail', async () => {
+    expect(true).toBe(true);
+  });
+
+  // Story CMT-04 — AST coexistence
+  it.skip('body (texto plano) e bodyBlocks (BlockNote AST) coexistem e round-trip', async () => {
+    expect(true).toBe(true);
+  });
+
+  // Story CMT-05 — cross-tenant
+  it.skip('GET comment de wsA com token de wsB retorna 404', async () => {
+    expect(wsB).toBeDefined();
+  });
+});

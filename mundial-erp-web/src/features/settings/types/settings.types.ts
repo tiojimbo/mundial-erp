@@ -141,6 +141,15 @@ export type UpdateAreaPayload = {
   name?: string;
   description?: string;
   isActive?: boolean;
+  isPrivate?: boolean;
+  icon?: string;
+  color?: string;
+  /**
+   * Se `true`, a área herda os statuses do departamento.
+   * Se alterado para `false`, o backend copia os statuses atuais do
+   * departamento para a área (ver `AreasService.update`).
+   */
+  useSpaceStatuses?: boolean;
 };
 
 export type WorkflowStatusConfig = {

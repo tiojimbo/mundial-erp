@@ -1,0 +1,43 @@
+/**
+ * Frontend test scaffold — useTasks hook (React Query infinite + optimistic).
+ *
+ * Status: skipped — runner FE (vitest + @testing-library/react) ainda nao
+ * configurado no projeto. Habilitar apos Renato adicionar vitest em
+ * `mundial-erp-web/package.json` (Sprint 1, story FE-INFRA-01).
+ *
+ * Cobertura planejada:
+ *   - useTasks() retorna infinite query com pageParam cursor-based.
+ *   - fetchNextPage envia query param `cursor` da ultima response.
+ *   - Optimistic archive: mutate archive → lista atualizada localmente ANTES
+ *     da resposta do server. Em caso de 4xx/5xx, rollback automatico.
+ *   - query key [workspaceId, filters] muda → invalidation triggers refetch.
+ *
+ * Setup (quando habilitar):
+ *   - msw server para interceptar /api/v1/tasks
+ *   - createWrapper com QueryClient isolada por teste
+ *
+ * Deps a declarar: vitest, @testing-library/react, @testing-library/jest-dom,
+ * msw, @testing-library/user-event.
+ */
+
+describe.skip('useTasks() infinite query — Sprint 1 ativar', () => {
+  it.skip('retorna primeira pagina com cursor', () => {
+    expect(true).toBe(true);
+  });
+
+  it.skip('fetchNextPage envia query param cursor do ultimo item', () => {
+    expect(true).toBe(true);
+  });
+
+  it.skip('archive optimistic update remove task da lista localmente', () => {
+    expect(true).toBe(true);
+  });
+
+  it.skip('rollback automatico quando server retorna 500', () => {
+    expect(true).toBe(true);
+  });
+
+  it.skip('query key muda com filters → refetch disparado', () => {
+    expect(true).toBe(true);
+  });
+});

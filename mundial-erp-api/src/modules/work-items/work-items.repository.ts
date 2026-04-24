@@ -2,12 +2,17 @@ import { Injectable } from '@nestjs/common';
 import { Prisma, TaskPriority, WorkItemType } from '@prisma/client';
 import { PrismaService } from '../../database/prisma.service';
 
+/**
+ * Parametros internos de busca. Campo `primaryAssigneeCache` corresponde
+ * ao campo Prisma renomeado (ADR-001). DTO externo `WorkItemFiltersDto.assigneeId`
+ * continua existindo para compat de API; service faz o mapeamento.
+ */
 export interface WorkItemFindManyParams {
   skip?: number;
   take?: number;
   processId?: string;
   statusId?: string;
-  assigneeId?: string;
+  primaryAssigneeCache?: string;
   priority?: TaskPriority;
   itemType?: WorkItemType;
   search?: string;
@@ -56,7 +61,7 @@ export class WorkItemsRepository {
       take = 20,
       processId,
       statusId,
-      assigneeId,
+      primaryAssigneeCache,
       priority,
       itemType,
       search,
@@ -71,7 +76,8 @@ export class WorkItemsRepository {
 
     if (processId) where.processId = processId;
     if (statusId) where.statusId = statusId;
-    if (assigneeId) where.assigneeId = assigneeId;
+    if (primaryAssigneeCache)
+      where.primaryAssigneeCache = primaryAssigneeCache;
     if (priority) where.priority = priority;
     if (itemType) where.itemType = itemType;
 
@@ -178,7 +184,9 @@ export class WorkItemsRepository {
   async findByAssignee(workspaceId: string, userId: string) {
     return this.prisma.workItem.findMany({
       where: {
-        assigneeId: userId,
+        // Campo renomeado (ADR-001). Fonte multi-assignee migrara em Sprint 2
+        // (join WorkItemAssignee); cache continua servindo o hot path.
+        primaryAssigneeCache: userId,
         deletedAt: null,
         process: { department: { workspaceId } },
       },
@@ -197,7 +205,7 @@ export class WorkItemsRepository {
             department: { select: { name: true } },
           },
         },
-        assignee: {
+        primaryAssignee: {
           select: { id: true, name: true, email: true },
         },
       },

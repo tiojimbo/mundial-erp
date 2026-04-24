@@ -1,0 +1,115 @@
+/**
+ * E2E scaffold — Cross-tenant isolation (Tasks feature).
+ *
+ * Status: placeholder. Habilitar em Sprint 1 apos Migration 1/3 e modulo
+ * `tasks` foundations em staging. Nome do arquivo termina em `.skip` para
+ * ficar fora do regex `.e2e-spec.ts$` do Jest ate que removamos o sufixo.
+ *
+ * Cobertura planejada (PLANO-TASKS §8.1 + §16 risco R12):
+ *   - 404 (nunca 403) em leituras cross-tenant — nao vazar existencia.
+ *   - 404 em PATCH/DELETE cross-tenant.
+ *   - CustomTaskType privado (workspaceId != null) isolado entre workspaces.
+ *   - CustomTaskType builtin (workspaceId = null) visivel a todos.
+ *
+ * Pre-requisitos Sprint 1:
+ *   - POST /api/v1/tasks, GET /api/v1/tasks/:id, PATCH, DELETE implementados.
+ *   - GET /api/v1/custom-task-types implementado.
+ *   - Seed de builtin CustomTaskType (Task, Milestone) rodando no bootstrap.
+ */
+
+import { Test, TestingModule } from '@nestjs/testing';
+import { INestApplication, ValidationPipe } from '@nestjs/common';
+import request from 'supertest';
+import type { App } from 'supertest/types';
+import { AppModule } from '../../../src/app.module';
+import {
+  createTestProcess,
+  createTestTask,
+  createTestWorkspace,
+  cleanupWorkspace,
+  TestProcess,
+  TestWorkspace,
+} from './setup';
+
+describe.skip('Tasks cross-tenant isolation (e2e) — Sprint 1 ativar', () => {
+  let app: INestApplication<App>;
+  let wsA: TestWorkspace;
+  let wsB: TestWorkspace;
+  let processA: TestProcess;
+  let processB: TestProcess;
+  let taskAId: string;
+
+  beforeAll(async () => {
+    const moduleFixture: TestingModule = await Test.createTestingModule({
+      imports: [AppModule],
+    }).compile();
+
+    app = moduleFixture.createNestApplication();
+    app.setGlobalPrefix('api/v1', {
+      exclude: ['health', 'health/ready', 'docs'],
+    });
+    app.useGlobalPipes(
+      new ValidationPipe({
+        whitelist: true,
+        forbidNonWhitelisted: true,
+        transform: true,
+        transformOptions: { enableImplicitConversion: true },
+      }),
+    );
+    await app.init();
+
+    wsA = await createTestWorkspace(app);
+    wsB = await createTestWorkspace(app);
+    processA = await createTestProcess(app, wsA.workspaceId);
+    processB = await createTestProcess(app, wsB.workspaceId);
+    const task = await createTestTask(app, processA, wsA.ownerUserId);
+    taskAId = task.taskId;
+  }, 60_000);
+
+  afterAll(async () => {
+    if (!app) return;
+    await cleanupWorkspace(app, wsA.workspaceId);
+    await cleanupWorkspace(app, wsB.workspaceId);
+    await app.close();
+  });
+
+  // Story TS-S1-03 (cross-tenant GET) — PLANO-TASKS §8.1
+  it.skip('GET /tasks/:id de workspace diferente retorna 404, nunca 403', async () => {
+    const res = await request(app.getHttpServer())
+      .get(`/api/v1/tasks/${taskAId}`)
+      .set('Authorization', `Bearer ${wsB.token}`);
+    expect(res.status).toBe(404);
+  });
+
+  // Story TS-S2-05 (PATCH cross-tenant) — PLANO-TASKS §8.1
+  it.skip('PATCH /tasks/:id cross-workspace retorna 404', async () => {
+    const res = await request(app.getHttpServer())
+      .patch(`/api/v1/tasks/${taskAId}`)
+      .set('Authorization', `Bearer ${wsB.token}`)
+      .send({ title: 'hijack attempt' });
+    expect(res.status).toBe(404);
+  });
+
+  // Story TS-S2-06 (DELETE cross-tenant) — PLANO-TASKS §8.1
+  it.skip('DELETE /tasks/:id cross-workspace retorna 404 e preserva dado', async () => {
+    const res = await request(app.getHttpServer())
+      .delete(`/api/v1/tasks/${taskAId}`)
+      .set('Authorization', `Bearer ${wsB.token}`);
+    expect(res.status).toBe(404);
+    // nao foi soft-deletado — verificacao via DB fica a cargo da impl.
+  });
+
+  // Story TS-S1-07 (R12: vazamento de CustomTaskType privado)
+  it.skip('CustomTaskType privado (workspaceId != null) nao vaza entre workspaces', async () => {
+    // criar tipo privado em wsA via seed admin / teste direto no Prisma
+    // assert GET /custom-task-types com token de wsB nao retorna o tipo
+    expect(processA).toBeDefined();
+    expect(processB).toBeDefined();
+  });
+
+  // Story TS-S1-08 — PLANO-TASKS §8.1
+  it.skip('CustomTaskType builtin (workspaceId = null) e visivel a todos os workspaces', async () => {
+    // assert ambos tokens (wsA, wsB) enxergam o mesmo builtin "Task"
+    expect(true).toBe(true);
+  });
+});
