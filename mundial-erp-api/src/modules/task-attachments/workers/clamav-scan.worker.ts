@@ -25,10 +25,7 @@ import { pipeline } from 'node:stream/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { randomUUID } from 'node:crypto';
-import {
-  NotificationCategory,
-  NotificationType,
-} from '@prisma/client';
+import { NotificationCategory, NotificationType } from '@prisma/client';
 import { TaskAttachmentsRepository } from '../task-attachments.repository';
 import { S3AdapterService } from '../../../common/adapters/s3-adapter.service';
 import { NotificationsService } from '../../notifications/notifications.service';
@@ -162,9 +159,7 @@ export class ClamAvScanWorker extends WorkerHost implements OnModuleInit {
     const timeoutPromise = new Promise<ScanResult>((_, reject) => {
       const t = setTimeout(
         () =>
-          reject(
-            new Error(`clamav.timeout after ${CLAMAV_SCAN_TIMEOUT_MS}ms`),
-          ),
+          reject(new Error(`clamav.timeout after ${CLAMAV_SCAN_TIMEOUT_MS}ms`)),
         CLAMAV_SCAN_TIMEOUT_MS,
       );
       t.unref?.();

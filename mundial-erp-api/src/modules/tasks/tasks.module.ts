@@ -8,6 +8,7 @@ import { CustomTaskTypesModule } from '../custom-task-types/custom-task-types.mo
 import { TaskDependenciesModule } from '../task-dependencies/task-dependencies.module';
 import { TaskLinksModule } from '../task-links/task-links.module';
 import { TaskActivitiesModule } from '../task-activities/task-activities.module';
+import { TaskTypeTemplatesModule } from '../task-type-templates/task-type-templates.module';
 import { AuthModule } from '../auth/auth.module';
 import {
   AssigneesSyncService,
@@ -54,6 +55,12 @@ import { SseJwtGuard } from '../auth/guards/sse-jwt.guard';
     TaskSseBusModule,
     // AuthModule exporta `JwtModule` (JwtService) para `SseJwtGuard`.
     AuthModule,
+    // Task Type Templates (M2 — TTT-031/TTT-032). Exporta o repository
+    // que `tasks.service.create` consome dentro da `$transaction` para
+    // resolver `defaultDescriptionBlocks`. Modulo opcional do ponto de
+    // vista do service (`@Optional()` no construtor) — fluxo legado segue
+    // funcionando em ambientes onde o modulo nao foi wireado.
+    TaskTypeTemplatesModule,
   ],
   controllers: [TasksController, TasksEventsController],
   providers: [

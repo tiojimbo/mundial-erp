@@ -223,6 +223,7 @@ export const taskAttachmentSchema = z.object({
   scanStatus: z.enum(['PENDING', 'CLEAN', 'INFECTED', 'ERROR']),
   uploadedById: z.string().uuid(),
   uploadedByName: z.string().nullable(),
+  category: z.string().nullable(),
   createdAt: z.string().datetime(),
 });
 
@@ -263,6 +264,20 @@ export const taskTemplateSchema = z.object({
   createdById: z.string().uuid(),
   createdAt: z.string().datetime(),
   updatedAt: z.string().datetime(),
+});
+
+/**
+ * `TaskTypeTemplate` (M2 — PLANO-TASK-TYPES-TEMPLATES §Decisoes-Chave D1).
+ *
+ * Template funcional 1:1 com `CustomTaskType`. O endpoint
+ * `GET /task-type-templates` retorna lista enxuta apenas com os campos
+ * necessarios para detectar quais tipos possuem template configurado
+ * (TTT-044). Campos pesados (`fields`, `attachmentCategories`) ficam
+ * acessiveis via `GET /task-type-templates/:customTaskTypeId`.
+ */
+export const taskTypeTemplateSummarySchema = z.object({
+  id: z.string(),
+  customTaskTypeId: z.string(),
 });
 
 export const taskTimeInStatusSchema = z.object({
@@ -416,6 +431,13 @@ export const attachmentUploadSchema = z.object({
   fileName: z.string().trim().min(1),
   mimeType: z.string().trim().min(1),
   sizeBytes: z.number().int().nonnegative(),
+  category: z
+    .string()
+    .trim()
+    .regex(/^[a-z0-9_-]+$/)
+    .max(64)
+    .nullable()
+    .optional(),
 });
 
 export const commentCreateSchema = z.object({

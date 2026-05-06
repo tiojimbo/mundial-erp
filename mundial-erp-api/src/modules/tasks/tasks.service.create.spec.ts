@@ -177,8 +177,13 @@ describe('TasksService.create', () => {
 
     const env = await h.service.create(WS, PROCESS, dto(), ACTOR);
 
-    expect(h.repository.findProcessInWorkspace).toHaveBeenCalledWith(WS, PROCESS);
-    expect(h.repository.findFirstStatusForProcess).toHaveBeenCalledWith(PROCESS);
+    expect(h.repository.findProcessInWorkspace).toHaveBeenCalledWith(
+      WS,
+      PROCESS,
+    );
+    expect(h.repository.findFirstStatusForProcess).toHaveBeenCalledWith(
+      PROCESS,
+    );
     expect(h.repository.createTask).toHaveBeenCalledTimes(1);
 
     const callArg = h.repository.createTask.mock.calls[0][1] as {
@@ -244,12 +249,7 @@ describe('TasksService.create', () => {
   it('com watchers: syncWatchers chamado com add=dto.watchers', async () => {
     const h = buildHarness();
 
-    await h.service.create(
-      WS,
-      PROCESS,
-      dto({ watchers: ['w-1'] }),
-      ACTOR,
-    );
+    await h.service.create(WS, PROCESS, dto({ watchers: ['w-1'] }), ACTOR);
 
     expect(h.watchers.syncWatchers).toHaveBeenCalledTimes(1);
     const arg = h.watchers.syncWatchers.mock.calls[0][1] as {

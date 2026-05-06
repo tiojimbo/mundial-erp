@@ -28,6 +28,8 @@ import { TaskAttachmentsRepository } from './task-attachments.repository';
 import { S3AdapterService } from '../../common/adapters/s3-adapter.service';
 import { FileTypeDetectorService } from '../../common/adapters/file-type-detector.service';
 import { TaskOutboxService } from '../task-outbox/task-outbox.service';
+import { TaskTypeTemplatesService } from '../task-type-templates/task-type-templates.service';
+import { assertCategoryAllowed } from './task-attachments.category-validator';
 import {
   ATTACHMENT_MAX_SIZE_BYTES,
   ATTACHMENT_MIME_WHITELIST_REGEX,
@@ -71,7 +73,15 @@ export class TaskAttachmentsService {
     private readonly outbox: TaskOutboxService,
     @InjectQueue(CLAMAV_SCAN_QUEUE)
     private readonly scanQueue: Queue<ClamAvScanJobData>,
+    /**
+     * TTT-043 — usado APENAS para validar `dto.category` contra
+     * `attachmentCategories` do template do CustomTaskType da task. Se a
+     * task nao tem template ou nao define categorias, qualquer `category`
+     * enviado e rejeitado (400).
+     */
+    private readonly taskTypeTemplates: TaskTypeTemplatesService,
   ) {}
+
 
   async createSignedUrl(
     workspaceId: string,
@@ -138,6 +148,16 @@ export class TaskAttachmentsService {
       dto.mimeType,
     );
 
+    // TTT-043 — valida slug `category` contra template (fora da $transaction
+    // para evitar manter a tx aberta enquanto consultamos Redis/banco do
+    // template; em caso de falha de validacao o usuario nunca chega ao insert).
+    await assertCategoryAllowed(
+      this.taskTypeTemplates,
+      workspaceId,
+      task.customTypeId ?? null,
+      dto.category,
+    );
+
     // Insert + outbox enqueue em $transaction unica (ADR-003). O enqueue do
     // scan na fila BullMQ fica FORA da tx — workers externos nao compartilham
     // o tx do Prisma, e o attachment precisa ja estar commitado para ser
@@ -151,6 +171,7 @@ export class TaskAttachmentsService {
           sizeBytes: dto.sizeBytes,
           storageKey: dto.storageKey,
           uploadedBy: actorUserId,
+          category: dto.category ?? null,
         },
         tx,
       );
@@ -164,6 +185,9 @@ export class TaskAttachmentsService {
           filename: dto.filename,
           mimeType: dto.mimeType,
           sizeBytes: dto.sizeBytes,
+          // TTT-043 — categoria do anexo (slug do template). Null para anexos
+          // sem categoria; consumidores devem aceitar `category` opcional.
+          category: dto.category ?? null,
           actorId: actorUserId,
         },
         workspaceId,

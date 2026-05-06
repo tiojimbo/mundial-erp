@@ -108,21 +108,20 @@ function buildHarness(params: {
   const tx: MockTx = {};
 
   const repository: MockTasksRepository = {
-    findForMerge: jest.fn(
-      async (_ws: string, ids: string[]) =>
-        ids
-          .filter((id) => rowMap.has(id))
-          .map((id) => {
-            const r = rowMap.get(id)!;
-            return {
-              id: r.id,
-              parentId: parentMap.get(r.id) ?? null,
-              mergedIntoId: r.mergedIntoId,
-              timeSpentSeconds: r.timeSpentSeconds,
-              trackedMinutes: r.trackedMinutes,
-              deletedAt: r.deletedAt,
-            };
-          }),
+    findForMerge: jest.fn(async (_ws: string, ids: string[]) =>
+      ids
+        .filter((id) => rowMap.has(id))
+        .map((id) => {
+          const r = rowMap.get(id)!;
+          return {
+            id: r.id,
+            parentId: parentMap.get(r.id) ?? null,
+            mergedIntoId: r.mergedIntoId,
+            timeSpentSeconds: r.timeSpentSeconds,
+            trackedMinutes: r.trackedMinutes,
+            deletedAt: r.deletedAt,
+          };
+        }),
     ),
     findParentsForCycleCheck: jest.fn(async (ids: string[]) =>
       ids

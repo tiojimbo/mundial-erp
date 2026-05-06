@@ -4,9 +4,11 @@ import { useEffect, useMemo, useState } from 'react';
 import { ChevronsLeft } from 'lucide-react';
 
 import { cn } from '@/lib/cn';
+import { useWorkspaceStore } from '@/stores/workspace.store';
 import { useTasksStore } from '../../stores/tasks.store';
 import { useTask } from '../../hooks/use-task';
 import { useTaskSse } from '../../hooks/use-task-sse';
+import { useTaskTypeTemplate } from '../../hooks/use-task-type-template';
 import type { TaskDetail } from '../../types/task.types';
 import { DEFAULT_ACTIVITY_FILTERS } from '../../schemas/activity-filters.schema';
 
@@ -107,6 +109,24 @@ export function TaskView({ taskId }: TaskViewProps) {
     ],
   });
 
+  // TTT-041 — busca lazy do template do CustomTaskType da task. `null` quando
+  // a task nao tem `customTypeId` ou quando o backend ainda nao tem template.
+  // O hook ja faz `enabled: false` nesse caso (vide use-task-type-template).
+  const workspaceId = useWorkspaceStore(
+    (state) => state.currentWorkspace?.id ?? '',
+  );
+  const { data: template } = useTaskTypeTemplate(
+    task?.customTypeId ?? null,
+    workspaceId,
+  );
+
+  const definitionIds = useMemo(() => {
+    if (!template) return null;
+    return [...template.fields]
+      .sort((a, b) => a.sortOrder - b.sortOrder)
+      .map((f) => f.definitionId);
+  }, [template]);
+
   if (isLoading) {
     return <TaskViewSkeleton />;
   }
@@ -158,12 +178,15 @@ export function TaskView({ taskId }: TaskViewProps) {
             aria-label='Descricao da tarefa'
           />
 
-          <CustomFieldsSection taskId={task.id} />
+          <CustomFieldsSection taskId={task.id} definitionIds={definitionIds} />
           <LinkedTasksSection task={task as TaskDetail} />
           <TimeTrackingSection task={task as TaskDetail} />
           <SubtasksSection task={task as TaskDetail} />
           <ChecklistsSection task={task as TaskDetail} />
-          <AttachmentsSection task={task as TaskDetail} />
+          <AttachmentsSection
+            task={task as TaskDetail}
+            categories={template?.attachmentCategories ?? null}
+          />
         </div>
       </section>
 

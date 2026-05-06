@@ -16,6 +16,7 @@ const ATTACHMENT_SELECT = {
   sizeBytes: true,
   storageKey: true,
   scanStatus: true,
+  category: true,
   uploadedBy: true,
   createdAt: true,
   deletedAt: true,
@@ -28,6 +29,7 @@ export interface AttachmentCreateInput {
   sizeBytes: number;
   storageKey: string;
   uploadedBy: string;
+  category?: string | null;
 }
 
 @Injectable()
@@ -41,7 +43,7 @@ export class TaskAttachmentsRepository {
         deletedAt: null,
         process: { department: { workspaceId } },
       },
-      select: { id: true },
+      select: { id: true, customTypeId: true },
     });
   }
 
@@ -89,6 +91,7 @@ export class TaskAttachmentsRepository {
         sizeBytes: input.sizeBytes,
         storageKey: input.storageKey,
         uploadedBy: input.uploadedBy,
+        category: input.category ?? null,
         scanStatus: 'PENDING',
       },
       select: ATTACHMENT_SELECT,

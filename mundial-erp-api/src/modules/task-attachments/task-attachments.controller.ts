@@ -24,8 +24,8 @@ import {
   DownloadUrlResponseDto,
   SignedUrlResponseDto,
 } from './dtos/attachment-response.dto';
-import { CurrentUser, Roles } from '../auth/decorators';
-import type { JwtPayload } from '../auth/decorators';
+import { CurrentUser, Roles } from '../../common/decorators';
+import type { JwtPayload } from '../../common/decorators';
 import { WorkspaceId } from '../workspaces/decorators/workspace-id.decorator';
 
 /**
@@ -59,7 +59,8 @@ export class TaskAttachmentsController {
   @Roles(Role.ADMIN, Role.MANAGER, Role.OPERATOR)
   @Throttle({ default: { limit: 30, ttl: 60_000 } })
   @ApiOperation({
-    summary: 'Registrar anexo pos-upload (scanStatus=PENDING ate ClamAV liberar)',
+    summary:
+      'Registrar anexo pos-upload (scanStatus=PENDING ate ClamAV liberar)',
   })
   @ApiResponse({ status: 201, type: AttachmentResponseDto })
   register(
@@ -84,7 +85,9 @@ export class TaskAttachmentsController {
   @Get('task-attachments/:id/download-url')
   @Roles(Role.ADMIN, Role.MANAGER, Role.OPERATOR, Role.VIEWER)
   @Throttle({ default: { limit: 60, ttl: 60_000 } })
-  @ApiOperation({ summary: 'Signed GET URL (TTL 300s) — exige scanStatus=CLEAN' })
+  @ApiOperation({
+    summary: 'Signed GET URL (TTL 300s) — exige scanStatus=CLEAN',
+  })
   @ApiResponse({ status: 200, type: DownloadUrlResponseDto })
   @ApiResponse({ status: 403, description: 'Scan PENDING ou INFECTED' })
   getDownloadUrl(

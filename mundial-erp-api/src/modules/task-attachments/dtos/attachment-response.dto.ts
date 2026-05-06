@@ -10,6 +10,7 @@ export interface AttachmentShape {
   sizeBytes: number;
   storageKey: string;
   scanStatus: string;
+  category: string | null;
   uploadedBy: string;
   createdAt: Date;
   deletedAt: Date | null;
@@ -41,11 +42,19 @@ export class AttachmentResponseDto {
   @ApiProperty()
   uploadedBy!: string;
 
+  @ApiPropertyOptional({
+    nullable: true,
+    description:
+      'Slug da categoria do TaskTypeTemplate (TTT-043). Null em anexos antigos ou sem categoria.',
+  })
+  category!: string | null;
+
   @ApiProperty()
   createdAt!: Date;
 
   @ApiPropertyOptional({
-    description: 'URL absoluta nao exposta; use GET /task-attachments/:id/download-url.',
+    description:
+      'URL absoluta nao exposta; use GET /task-attachments/:id/download-url.',
   })
   downloadAvailable!: boolean;
 
@@ -58,6 +67,7 @@ export class AttachmentResponseDto {
     dto.sizeBytes = entity.sizeBytes;
     dto.scanStatus = entity.scanStatus;
     dto.uploadedBy = entity.uploadedBy;
+    dto.category = entity.category ?? null;
     dto.createdAt = entity.createdAt;
     dto.downloadAvailable = entity.scanStatus === 'CLEAN';
     return dto;
