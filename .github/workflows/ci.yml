@@ -87,7 +87,9 @@ jobs:
         with:
           node-version: ${{ env.NODE_VERSION }}
           cache: 'npm'
-          cache-dependency-path: mundial-erp-api/package-lock.json
+          cache-dependency-path: |
+            mundial-erp-api/package-lock.json
+            mundial-erp-web/package-lock.json
 
       - name: Install dependencies
         working-directory: mundial-erp-api
@@ -113,6 +115,16 @@ jobs:
           JWT_REFRESH_SECRET: test-refresh-secret-ci
           NODE_ENV: test
         run: npm test -- --passWithNoTests
+
+      # Web tests (Vitest — Sprint 2 TTT-024). Roda no mesmo job para
+      # reaproveitar setup; setup-node ja cacheia ambos package-locks.
+      - name: Install Web dependencies
+        working-directory: mundial-erp-web
+        run: npm ci
+
+      - name: Run Web tests
+        working-directory: mundial-erp-web
+        run: npm test
 
   # ============================================================================
   # Build

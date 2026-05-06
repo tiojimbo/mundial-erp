@@ -1,6 +1,7 @@
 import { z } from 'zod';
 
-export const envSchema = z.object({
+export const envSchema = z
+  .object({
   // Database
   DATABASE_URL: z.string().min(1),
 
@@ -82,10 +83,67 @@ export const envSchema = z.object({
   // (ADR-006 futura). Em dev/local aceita o placeholder 'local-dev'.
   KOMMO_ENCRYPTION_KEY_ID: z.string().optional(),
 
+  // Master key do envelope encryption Kommo (ADR-006 §2.1).
+  // Formato: 32 bytes codificados em base64 (44 chars). Gerar com
+  //   `openssl rand -base64 32`
+  // Optional no schema (lazy validation) — o `KommoEncryptionService`
+  // valida no constructor: feature Kommo wireada sem a chave = boot
+  // quebra com mensagem clara. Em dev local, setar no .env; em prod,
+  // gerenciar via Coolify env (mesma classe de risco que JWT_*_SECRET).
+  KOMMO_ENCRYPTION_KEY: z
+    .string()
+    .regex(/^[A-Za-z0-9+/]{43}=$/u, {
+      message:
+        'KOMMO_ENCRYPTION_KEY must be 32 bytes base64-encoded ' +
+        '(44 chars incl. padding); generate with `openssl rand -base64 32`',
+    })
+    .optional(),
+
   // Seed opt-in para criar o dashboard "Analytics Comercial" no seed do
   // workspace (Debora — seed-workspace.ts). 'false' por default.
   SEED_KOMMO_DASHBOARD: z.enum(['true', 'false']).default('false'),
-});
+
+  // Custom Fields write (PLANO-TASK-TYPES-TEMPLATES Sprint 1 — TTT-013).
+  // Kill switch global das rotas de WRITE de definitions/values (POST,
+  // PATCH, DELETE). Default `false` ate concluir M1. Quando OFF, o
+  // CustomFieldsWriteGuard responde 404 nas rotas write — GET segue
+  // disponivel (leitura nao quebra UI). Per-workspace refinement vem
+  // depois via workspace.settings caso necessario.
+  FEATURE_CUSTOM_FIELDS_WRITE_ENABLED: z.coerce.boolean().default(false),
+
+  // Task Type Templates (PLANO-TASK-TYPES-TEMPLATES Sprint 3 — TTT-033, M2).
+  // Kill switch global do modulo de templates 1:1 com CustomTaskType.
+  // Default `false` ate concluir M2. Quando OFF, o TaskTypeTemplatesGuard
+  // responde 404 em GET /task-type-templates e GET /task-type-templates/:id;
+  // tasks.service.create ignora qualquer template e segue fluxo legado
+  // (sem instanciar CustomFieldValue automatico). Flag independente da
+  // FEATURE_CUSTOM_FIELDS_WRITE_ENABLED para permitir rollback granular
+  // por modulo (vide PLANO §Decisoes-Chave D8).
+  FEATURE_TASK_TYPE_TEMPLATES_ENABLED: z.coerce.boolean().default(false),
+
+  // Sprint 5 (TTT-050) — Prometheus `/metrics` endpoint.
+  // Bearer token exigido para raspar `/metrics`. Em production e exigido
+  // (refinement abaixo); em development/test pode ficar vazio — endpoint
+  // responde 503 ("metrics disabled") e adapters caem em Noop. Operador
+  // gera token aleatorio (>= 32 chars) e configura o scraper com
+  // `Authorization: Bearer <token>`.
+  METRICS_TOKEN: z.string().min(16).optional(),
+  })
+  .superRefine((env, ctx) => {
+    // Production exige METRICS_TOKEN para evitar deploy sem observabilidade
+    // (agent-cto §"Observabilidade — Se Nao Monitora, Nao Existe"). Sem
+    // refinement, o app sobe sem token e ninguem percebe ate o primeiro
+    // incidente — por isso falhamos boot em prod.
+    if (env.NODE_ENV === 'production' && !env.METRICS_TOKEN) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        path: ['METRICS_TOKEN'],
+        message:
+          'METRICS_TOKEN obrigatorio em production (>= 16 chars). ' +
+          'Gere com: openssl rand -hex 32',
+      });
+    }
+  });
 
 export type EnvConfig = z.infer<typeof envSchema>;
 

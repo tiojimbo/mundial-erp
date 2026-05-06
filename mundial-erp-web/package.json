@@ -7,7 +7,9 @@
     "build": "next build",
     "start": "next start",
     "lint": "next lint",
-    "format:write": "prettier --write \"**/*.{ts,tsx,mdx}\" --cache"
+    "format:write": "prettier --write \"**/*.{ts,tsx,mdx}\" --cache",
+    "test": "vitest run",
+    "test:watch": "vitest"
   },
   "dependencies": {
     "@blocknote/core": "^0.48.1",
@@ -71,18 +73,23 @@
     "@axe-core/playwright": "^4.10.0",
     "@lhci/cli": "^0.14.0",
     "@playwright/test": "^1.48.0",
+    "@testing-library/jest-dom": "^6.6.3",
+    "@testing-library/react": "^16.0.1",
     "@types/dompurify": "^3.0.5",
     "@types/node": "^20",
     "@types/papaparse": "^5.5.2",
     "@types/react": "^18",
     "@types/react-dom": "^18",
+    "@vitejs/plugin-react": "^4.3.4",
     "eslint": "^8",
     "eslint-config-next": "15.0.2",
+    "jsdom": "^25.0.1",
     "postcss": "^8",
     "prettier": "^3.3.3",
     "prettier-plugin-tailwindcss": "^0.6.8",
     "tailwindcss": "^3.4.14",
     "tailwindcss-animate": "^1.0.7",
-    "typescript": "^5"
+    "typescript": "^5",
+    "vitest": "^1.6.1"
   }
 }

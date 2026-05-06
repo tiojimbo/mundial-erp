@@ -202,12 +202,133 @@
           "legendFormat": "p95 scan (s)"
         }
       ]
+    },
+    {
+      "id": 5,
+      "title": "Custom fields — write rate por tipo (TTT-050)",
+      "description": "Taxa de writes (definition.create + value.set) no modulo custom-fields, rotulado por field_type. Sinaliza adocao das features Pedido/Requisicao.",
+      "type": "timeseries",
+      "datasource": { "type": "prometheus", "uid": "${DS_PROMETHEUS}" },
+      "gridPos": { "h": 9, "w": 12, "x": 0, "y": 18 },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "ops",
+          "custom": { "drawStyle": "line", "lineWidth": 2, "fillOpacity": 10 }
+        }
+      },
+      "options": {
+        "legend": { "displayMode": "table", "placement": "bottom", "calcs": ["sum", "lastNotNull"] },
+        "tooltip": { "mode": "multi", "sort": "desc" }
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "expr": "sum by (field_type) (rate(custom_fields_written_total[5m]))",
+          "legendFormat": "{{field_type}}"
+        }
+      ]
+    },
+    {
+      "id": 6,
+      "title": "Task type templates — instanciacao por tipo (TTT-050)",
+      "description": "Rate de tasks criadas que aplicaram um template (apos commit do tasks.service.create). Pico inesperado em tipo errado pode indicar regressao no gating.",
+      "type": "timeseries",
+      "datasource": { "type": "prometheus", "uid": "${DS_PROMETHEUS}" },
+      "gridPos": { "h": 9, "w": 12, "x": 12, "y": 18 },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "ops",
+          "custom": { "drawStyle": "line", "lineWidth": 2, "fillOpacity": 10 }
+        }
+      },
+      "options": {
+        "legend": { "displayMode": "table", "placement": "bottom", "calcs": ["sum", "lastNotNull"] },
+        "tooltip": { "mode": "multi", "sort": "desc" }
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "expr": "sum by (custom_type_id) (rate(task_type_templates_instantiated_total[5m]))",
+          "legendFormat": "{{custom_type_id}}"
+        }
+      ]
+    },
+    {
+      "id": 7,
+      "title": "Task type templates — cache hit/miss ratio (TTT-050)",
+      "description": "Hit ratio do cache de templates (memoria + Redis). Miss alto + reason=redis_error/circuit_open indica cascata Redis. SLO: hit ratio > 0.8 no regime estavel.",
+      "type": "timeseries",
+      "datasource": { "type": "prometheus", "uid": "${DS_PROMETHEUS}" },
+      "gridPos": { "h": 9, "w": 12, "x": 0, "y": 27 },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "percentunit",
+          "custom": { "drawStyle": "line", "lineWidth": 2, "fillOpacity": 10 },
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              { "color": "red", "value": null },
+              { "color": "orange", "value": 0.5 },
+              { "color": "green", "value": 0.8 }
+            ]
+          }
+        }
+      },
+      "options": {
+        "legend": { "displayMode": "table", "placement": "bottom", "calcs": ["mean", "lastNotNull"] },
+        "tooltip": { "mode": "multi" }
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "expr": "sum(rate(task_type_templates_cache_hit_total[5m])) / clamp_min(sum(rate(task_type_templates_cache_hit_total[5m])) + sum(rate(task_type_templates_cache_miss_total[5m])), 1)",
+          "legendFormat": "hit ratio"
+        },
+        {
+          "refId": "B",
+          "expr": "sum by (reason) (rate(task_type_templates_cache_miss_total[5m]))",
+          "legendFormat": "miss {{reason}}"
+        }
+      ]
+    },
+    {
+      "id": 8,
+      "title": "Task type templates — Redis errors por operacao (TTT-050 alerta)",
+      "description": "Falhas em GET/SET/DEL no Redis usado pelo cache de templates. Alerta dispara quando rate > 1/min sustentada por 5min — indica cascata. Circuit breaker tira o Redis do caminho mas a metrica continua exposta.",
+      "type": "timeseries",
+      "datasource": { "type": "prometheus", "uid": "${DS_PROMETHEUS}" },
+      "gridPos": { "h": 9, "w": 12, "x": 12, "y": 27 },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "ops",
+          "custom": { "drawStyle": "line", "lineWidth": 2, "fillOpacity": 10 },
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              { "color": "green", "value": null },
+              { "color": "orange", "value": 0.0167 },
+              { "color": "red", "value": 0.0833 }
+            ]
+          }
+        }
+      },
+      "options": {
+        "legend": { "displayMode": "table", "placement": "bottom", "calcs": ["sum", "max"] },
+        "tooltip": { "mode": "multi", "sort": "desc" }
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "expr": "sum by (operation) (rate(task_type_templates_redis_error_total[5m]))",
+          "legendFormat": "{{operation}}"
+        }
+      ]
     }
   ],
   "refresh": "30s",
   "schemaVersion": 38,
   "style": "dark",
-  "tags": ["tasks", "sprint-8", "feature-flag", "outbox"],
+  "tags": ["tasks", "sprint-8", "feature-flag", "outbox", "task-type-templates", "custom-fields"],
   "templating": {
     "list": [
       {

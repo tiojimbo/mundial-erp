@@ -8,6 +8,7 @@ import { featureFlagsConfig } from './config/feature-flags.config';
 import { DatabaseModule } from './database/database.module';
 import { RedisModule } from './common/redis/redis.module';
 import { HealthModule } from './modules/health/health.module';
+import { MetricsModule } from './common/metrics/metrics.module';
 import { QueueModule } from './modules/queue/queue.module';
 import { SearchModule } from './modules/search/search.module';
 import { AuthModule } from './modules/auth/auth.module';
@@ -45,8 +46,8 @@ import { InvoicesModule } from './modules/invoices/invoices.module';
 import { FinancialSummaryModule } from './modules/financial-summary/financial-summary.module';
 import { DashboardsModule } from './modules/dashboards/dashboards.module';
 import { ReportsModule } from './modules/reports/reports.module';
-import { JwtAuthGuard } from './modules/auth/guards';
-import { RolesGuard } from './modules/auth/guards';
+import { JwtAuthGuard } from './common/guards';
+import { RolesGuard } from './common/guards';
 import { WorkspaceGuard } from './modules/workspaces/guards/workspace.guard';
 import { ResponseInterceptor } from './common/interceptors/response.interceptor';
 import { LoggingInterceptor } from './common/interceptors/logging.interceptor';
@@ -76,12 +77,44 @@ import { TaskChecklistsModule } from './modules/task-checklists/task-checklists.
 import { TaskAttachmentsModule } from './modules/task-attachments/task-attachments.module';
 import { TaskCommentsModule } from './modules/task-comments/task-comments.module';
 import { TaskActivitiesModule } from './modules/task-activities/task-activities.module';
+// Custom Fields (M1 — Sprint 1 TTT-011/TTT-012). Modulo autonomo: nao depende
+// de TaskTypeTemplate (M2). Gating via FEATURE_CUSTOM_FIELDS_WRITE_ENABLED
+// sera aplicado por TTT-013 (Mariana) com guard transversal proprio.
+import { CustomFieldsModule } from './modules/custom-fields/custom-fields.module';
+// Task Type Templates (M2 — Sprint 3 TTT-031/TTT-032/TTT-033). Templates 1:1
+// com CustomTaskType — read-only nesta release. Gated globalmente via
+// FEATURE_TASK_TYPE_TEMPLATES_ENABLED (TaskTypeTemplatesGuard responde 404
+// quando OFF). Importado APOS TasksModule porque exporta repository
+// consumido por `tasks.service.create` (Felipe — TTT-032). Wiring por
+// `forwardRef` nao foi necessario: dependencia e linear (Templates -> Tasks).
+import { TaskTypeTemplatesModule } from './modules/task-type-templates/task-type-templates.module';
 import { FeatureFlagsModule } from './common/feature-flags/feature-flags.module';
 import { CommonModule } from './common/common.module';
 
-// Kommo integration (Sprint 1 — skeleton; webhook/worker/crons na proxima
-// rodada). Fornece `KommoApiClient` (HMAC validator + fachada OAuth stub).
+// Kommo integration (Sprint 1).
+//   - KommoApiClientModule: HMAC validator + fachada OAuth stub.
+//   - KommoAccountsModule (Larissa K1-2 + Rafael K1-6): CRUD KommoAccount,
+//     long-lived token (ADR-004), OAuth stubs, envelope encryption ADR-006.
+//   - KommoWebhooksModule (Rafael K1-5/K1-8): POST /webhooks/kommo/:workspaceId,
+//     HMAC + idempotencia + enqueue BullMQ (ADR-005).
+//   - KommoWorkersModule (Mateus K1-7): BullMQ processor + handlers MVP
+//     (incoming-chat-message). Wireado na Rodada 6 apos Mateus resolver
+//     tokens Symbol inconsistentes e Rafael integrar envelope encryption.
 import { KommoApiClientModule } from './modules/kommo-api-client/kommo-api-client.module';
+import { KommoAccountsModule } from './modules/kommo-accounts/kommo-accounts.module';
+import { KommoWebhooksModule } from './modules/kommo-webhooks/kommo-webhooks.module';
+import { KommoWorkersModule } from './modules/kommo-workers/kommo-workers.module';
+//   - KommoObservabilityModule (Rafael K2-6): @Global() — `KommoMetricsService`
+//     skeleton in-memory. Importado UMA vez aqui; qualquer kommo-* consome
+//     via injection sem precisar de import explicito. Wire para Prometheus
+//     real fica para squad-ops (ver mundial-erp-api/docs/kommo-observability.md).
+import { KommoObservabilityModule } from './modules/kommo-observability/kommo-observability.module';
+//   - KommoReconciliationModule (Mateus K2-5): cron @5min idempotente +
+//     KommoSyncCheckpoint; cobre eventos perdidos pelo webhook.
+//   - KommoBackfillModule (Mateus K3-4 parcial): backfill 90d retomavel
+//     para KommoConversation; processor BullMQ.
+import { KommoReconciliationModule } from './modules/kommo-reconciliation/kommo-reconciliation.module';
+import { KommoBackfillModule } from './modules/kommo-backfill/kommo-backfill.module';
 
 @Module({
   imports: [
@@ -123,6 +156,9 @@ import { KommoApiClientModule } from './modules/kommo-api-client/kommo-api-clien
 
     // Health checks
     HealthModule,
+
+    // Prometheus metrics — `/metrics` (Bearer auth via METRICS_TOKEN). Sprint 5 TTT-050.
+    MetricsModule,
 
     // Event Emitter (for BPM engine)
     EventEmitterModule.forRoot(),
@@ -240,14 +276,33 @@ import { KommoApiClientModule } from './modules/kommo-api-client/kommo-api-clien
     TaskCommentsModule,
     TaskActivitiesModule,
 
+    // Custom Fields (M1 — autonomo, M2 TaskTypeTemplate consome a interface).
+    CustomFieldsModule,
+
+    // Task Type Templates (M2 — TTT-031). Read-only por enquanto; consumido
+    // por `tasks.service.create` para aplicar `defaultDescriptionBlocks`
+    // quando feature flag esta ON. Importado apos `CustomFieldsModule`
+    // porque referencia `CustomFieldDefinition` via `TaskTypeTemplateField`
+    // (somente leitura — sem dependencia de provider).
+    TaskTypeTemplatesModule,
+
     // Workspaces (Multi-tenancy — Squad Workspace F1.4)
     WorkspacesModule,
 
-    // Kommo integration (Squad Kommo — Sprint 1 skeleton). Gate global
-    // via `KOMMO_SYNC_ENABLED` + `KommoFeatureFlagGuard` (ja registrado
-    // em FeatureFlagsModule). Controllers de webhook/OAuth/management
-    // entram em rodada seguinte (depende de schema Prisma + OAuth flow).
+    // Kommo integration (Squad Kommo — Sprint 1 Etapa 1). Gate global
+    // via `KOMMO_SYNC_ENABLED` + `KommoFeatureFlagGuard` (registrado em
+    // FeatureFlagsModule). O webhook publico replica a checagem do flag
+    // inline no service porque `@Public()` faz o guard global skip.
+    //
+    // Ordem: ApiClient (puro) → Accounts (Repository compartilhado) →
+    // Webhooks (HMAC + enqueue) → Workers (processor + handlers).
+    KommoObservabilityModule,
     KommoApiClientModule,
+    KommoAccountsModule,
+    KommoWebhooksModule,
+    KommoWorkersModule,
+    KommoReconciliationModule,
+    KommoBackfillModule,
   ],
   providers: [
     // Global guards (order: Throttler → JWT Auth → Workspace → Roles)
