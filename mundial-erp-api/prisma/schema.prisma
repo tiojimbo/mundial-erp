@@ -353,6 +353,58 @@ enum KommoWebhookEventStatus {
   DLQ
 }
 
+enum Visibility {
+  PUBLIC
+  PRIVATE
+}
+
+enum MemberPermission {
+  FULL_EDIT
+  EDIT
+  COMMENT
+  VIEW
+}
+
+enum StatusInheritance {
+  SPACE
+  FOLDER
+  OWN
+}
+
+enum AutomationTrigger {
+  TASK_CREATED
+  TASK_STATUS_CHANGED
+  TASK_UPDATED
+  TASK_PRIORITY_CHANGED
+  TASK_NAME_CHANGED
+  TASK_TYPE_CHANGED
+  TASK_DUE_DATE_CHANGED
+  TASK_START_DATE_CHANGED
+  TASK_ASSIGNED
+  TASK_MOVED_TO_LIST
+  ASSIGNEE_REMOVED
+  TAG_ADDED
+  TAG_REMOVED
+  COMMENT_CREATED
+  SUBTASK_CREATED
+  ALL_SUBTASKS_RESOLVED
+  CUSTOMFIELD_CHANGED
+  CRON
+}
+
+enum AutomationScopeType {
+  WORKSPACE
+  SPACE
+  FOLDER
+  LIST
+}
+
+enum LinkType {
+  RELATES_TO
+  DUPLICATES
+  IS_DUPLICATED_BY
+}
+
 // ============================================================================
 // 1.2 — Auth & Organization
 // ============================================================================
