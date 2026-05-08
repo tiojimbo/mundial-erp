@@ -425,6 +425,10 @@ model User {
 
   space Space? @relation(fields: [spaceId], references: [id])
 
+  spacesCreated  Space[]  @relation("SpaceCreator")
+  foldersCreated Folder[] @relation("FolderCreator")
+  listsCreated   List[]   @relation("ListCreator")
+
   // --- Workspace ---
   lastAccessedWorkspace Workspace?        @relation("LastAccessedWorkspace", fields: [lastAccessedWorkspaceId], references: [id])
   workspaceMembers      WorkspaceMember[]
@@ -502,29 +506,32 @@ model RolePermission {
 // ============================================================================
 
 model Space {
-  id          String    @id @default(cuid())
-  workspaceId String?   @map("workspace_id")
-  name        String
-  slug        String    @unique
-  description String?
-  icon        String?
-  color       String?
-  isPrivate   Boolean   @default(false) @map("is_private")
-  isDefault   Boolean   @default(false) @map("is_default")
-  isProtected Boolean   @default(false) @map("is_protected")
-  sortOrder   Int       @default(0) @map("sort_order")
-  createdAt   DateTime  @default(now()) @map("created_at")
-  updatedAt   DateTime  @updatedAt @map("updated_at")
-  deletedAt   DateTime? @map("deleted_at")
+  id                String     @id @default(cuid())
+  workspaceId       String?    @map("workspace_id")
+  name              String
+  slug              String     @unique
+  description       String?
+  icon              String?
+  color             String?
+  visibility        Visibility @default(PUBLIC)
+  isPrivate         Boolean    @default(false) @map("is_private")
+  isDefault         Boolean    @default(false) @map("is_default")
+  isProtected       Boolean    @default(false) @map("is_protected")
+  position          Int        @default(0)
+  creatorId         String?    @map("creator_id")
+  defaultTaskTypeId String?    @map("default_task_type_id")
+  createdAt         DateTime   @default(now()) @map("created_at")
+  updatedAt         DateTime   @updatedAt @map("updated_at")
+  deletedAt         DateTime?  @map("deleted_at")
 
-  workspace Workspace?       @relation(fields: [workspaceId], references: [id])
-  sectors   Sector[]
-  folders   Folder[]
-  users     User[]
-  statuses  WorkflowStatus[]
-  lists     List[]           @relation("ListSpace")
-
-  // Tasks feature (Sprint 3-4 Migration 3/3 tasks_advanced)
+  workspace         Workspace?         @relation(fields: [workspaceId], references: [id])
+  creator           User?              @relation("SpaceCreator", fields: [creatorId], references: [id])
+  defaultTaskType   CustomTaskType?    @relation("SpaceDefaultTaskType", fields: [defaultTaskTypeId], references: [id])
+  sectors           Sector[]
+  folders           Folder[]
+  users             User[]
+  statuses          WorkflowStatus[]
+  lists             List[]             @relation("ListSpace")
   workItemTemplates WorkItemTemplate[] @relation("TemplateSpace")
 
   @@index([workspaceId])
@@ -548,58 +555,69 @@ model Sector {
 }
 
 model Folder {
-  id               String    @id @default(cuid())
-  name             String
-  slug             String    @unique
-  description      String?
-  spaceId          String    @map("space_id")
-  isPrivate        Boolean   @default(false) @map("is_private")
-  icon             String?
-  color            String?
-  useSpaceStatuses Boolean   @default(true) @map("use_space_statuses")
-  sortOrder        Int       @default(0) @map("sort_order")
-  isDefault        Boolean   @default(false) @map("is_default")
-  createdAt        DateTime  @default(now()) @map("created_at")
-  updatedAt        DateTime  @updatedAt @map("updated_at")
-  deletedAt        DateTime? @map("deleted_at")
+  id                String            @id @default(cuid())
+  name              String
+  slug              String            @unique
+  description       String?
+  spaceId           String            @map("space_id")
+  isPrivate         Boolean           @default(false) @map("is_private")
+  icon              String?
+  color             String?
+  visibility        Visibility        @default(PUBLIC)
+  useSpaceStatuses  Boolean           @default(true) @map("use_space_statuses")
+  statusInheritance StatusInheritance @default(SPACE) @map("status_inheritance")
+  position          Int               @default(0)
+  creatorId         String?           @map("creator_id")
+  defaultTaskTypeId String?           @map("default_task_type_id")
+  isDefault         Boolean           @default(false) @map("is_default")
+  createdAt         DateTime          @default(now()) @map("created_at")
+  updatedAt         DateTime          @updatedAt @map("updated_at")
+  deletedAt         DateTime?         @map("deleted_at")
 
-  space    Space            @relation(fields: [spaceId], references: [id])
-  lists    List[]           @relation("ListFolder")
-  statuses WorkflowStatus[] @relation("FolderStatuses")
+  space           Space            @relation(fields: [spaceId], references: [id])
+  creator         User?            @relation("FolderCreator", fields: [creatorId], references: [id])
+  defaultTaskType CustomTaskType?  @relation("FolderDefaultTaskType", fields: [defaultTaskTypeId], references: [id])
+  lists           List[]           @relation("ListFolder")
+  statuses        WorkflowStatus[] @relation("FolderStatuses")
 
   @@index([spaceId], name: "idx_folders_space")
   @@map("folders")
 }
 
 model List {
-  id           String        @id @default(cuid())
-  name         String
-  slug         String        @unique
-  description  String?
-  sectorId     String?       @map("sector_id")
-  spaceId      String?       @map("space_id")
-  folderId     String?       @map("folder_id")
-  processType  ProcessType   @default(LIST) @map("process_type")
-  featureRoute String?       @map("feature_route")
-  isPrivate    Boolean       @default(false) @map("is_private")
-  isProtected  Boolean       @default(false) @map("is_protected")
-  status       ProcessStatus @default(DRAFT)
-  sortOrder    Int           @default(0) @map("sort_order")
-  createdAt    DateTime      @default(now()) @map("created_at")
-  updatedAt    DateTime      @updatedAt @map("updated_at")
-  deletedAt    DateTime?     @map("deleted_at")
+  id                String            @id @default(cuid())
+  name              String
+  slug              String            @unique
+  description       String?
+  sectorId          String?           @map("sector_id")
+  spaceId           String?           @map("space_id")
+  folderId          String?           @map("folder_id")
+  processType       ProcessType       @default(LIST) @map("process_type")
+  featureRoute      String?           @map("feature_route")
+  icon              String?
+  visibility        Visibility        @default(PUBLIC)
+  statusInheritance StatusInheritance @default(FOLDER) @map("status_inheritance")
+  isPrivate         Boolean           @default(false) @map("is_private")
+  isProtected       Boolean           @default(false) @map("is_protected")
+  status            ProcessStatus     @default(DRAFT)
+  position          Int               @default(0)
+  creatorId         String?           @map("creator_id")
+  defaultTaskTypeId String?           @map("default_task_type_id")
+  createdAt         DateTime          @default(now()) @map("created_at")
+  updatedAt         DateTime          @updatedAt @map("updated_at")
+  deletedAt         DateTime?         @map("deleted_at")
 
-  sector           Sector?           @relation("ListSector", fields: [sectorId], references: [id])
-  space            Space?            @relation("ListSpace", fields: [spaceId], references: [id])
-  folder           Folder?           @relation("ListFolder", fields: [folderId], references: [id])
-  activities       Activity[]
-  handoffsFrom     Handoff[]         @relation("HandoffFrom")
-  handoffsTo       Handoff[]         @relation("HandoffTo")
-  processInstances ProcessInstance[]
-  workItems        WorkItem[]
-  views            ProcessView[]
-
-  // Tasks feature (Sprint 3-4 Migration 3/3 tasks_advanced)
+  sector            Sector?            @relation("ListSector", fields: [sectorId], references: [id])
+  space             Space?             @relation("ListSpace", fields: [spaceId], references: [id])
+  folder            Folder?            @relation("ListFolder", fields: [folderId], references: [id])
+  creator           User?              @relation("ListCreator", fields: [creatorId], references: [id])
+  defaultTaskType   CustomTaskType?    @relation("ListDefaultTaskType", fields: [defaultTaskTypeId], references: [id])
+  activities        Activity[]
+  handoffsFrom      Handoff[]          @relation("HandoffFrom")
+  handoffsTo        Handoff[]          @relation("HandoffTo")
+  processInstances  ProcessInstance[]
+  workItems         WorkItem[]
+  views             ProcessView[]
   workItemTemplates WorkItemTemplate[] @relation("TemplateList")
 
   @@index([spaceId], name: "idx_lists_space")
@@ -914,12 +932,12 @@ model CustomTaskType {
   updatedAt   DateTime  @updatedAt @map("updated_at")
   deletedAt   DateTime? @map("deleted_at")
 
-  workspace Workspace? @relation(fields: [workspaceId], references: [id])
-  workItems WorkItem[]
-
-  // Task Types Templates — M2 (Migration task_type_templates, TTT-030).
-  // 1:1 com TaskTypeTemplate; relacao reversa, sem coluna nova nesta tabela.
-  template TaskTypeTemplate?
+  workspace        Workspace?        @relation(fields: [workspaceId], references: [id])
+  workItems        WorkItem[]
+  spacesAsDefault  Space[]           @relation("SpaceDefaultTaskType")
+  foldersAsDefault Folder[]          @relation("FolderDefaultTaskType")
+  listsAsDefault   List[]            @relation("ListDefaultTaskType")
+  template         TaskTypeTemplate?
 
   @@index([workspaceId, deletedAt], name: "idx_custom_task_types_ws_deleted")
   @@map("custom_task_types")
