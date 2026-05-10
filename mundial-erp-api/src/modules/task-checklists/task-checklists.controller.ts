@@ -8,6 +8,7 @@ import {
   Param,
   Patch,
   Post,
+  Put,
 } from '@nestjs/common';
 import {
   ApiBearerAuth,
@@ -29,11 +30,10 @@ import type { JwtPayload } from '../auth/decorators';
 import { WorkspaceId } from '../workspaces/decorators/workspace-id.decorator';
 
 /**
- * Controller de WorkItemChecklist (PLANO-TASKS.md §7.3).
- *
- * Duas familias de rota: nested em `/tasks/:taskId/checklists` para contexto
- * task-centrico, e flat em `/task-checklists/:id` para operacoes diretas
- * sobre a checklist/item.
+ * Controller de WorkItemChecklist no padrao Hoppe (paths singulares):
+ * - `/checklist/task/:taskId` — listar/criar em uma task
+ * - `/checklist/:id`          — atualizar/remover
+ * - `/checklist/item/...`     — items (HPP-081)
  */
 @ApiTags('Task Checklists')
 @ApiBearerAuth()
@@ -41,7 +41,7 @@ import { WorkspaceId } from '../workspaces/decorators/workspace-id.decorator';
 export class TaskChecklistsController {
   constructor(private readonly service: TaskChecklistsService) {}
 
-  @Get('tasks/:taskId/checklists')
+  @Get('checklist/task/:taskId')
   @Roles(Role.ADMIN, Role.MANAGER, Role.OPERATOR, Role.VIEWER)
   @ApiOperation({ summary: 'Listar checklists de uma tarefa' })
   findByTask(
@@ -51,7 +51,7 @@ export class TaskChecklistsController {
     return this.service.findByTask(workspaceId, taskId);
   }
 
-  @Post('tasks/:taskId/checklists')
+  @Post('checklist/task/:taskId')
   @Roles(Role.ADMIN, Role.MANAGER, Role.OPERATOR)
   @Throttle({ default: { limit: 30, ttl: 60_000 } })
   @ApiOperation({ summary: 'Criar checklist em uma tarefa' })
@@ -64,7 +64,7 @@ export class TaskChecklistsController {
     return this.service.createChecklist(workspaceId, taskId, dto);
   }
 
-  @Patch('task-checklists/:id')
+  @Put('checklist/:id')
   @Roles(Role.ADMIN, Role.MANAGER, Role.OPERATOR)
   @ApiOperation({ summary: 'Editar checklist' })
   @ApiResponse({ status: 200, type: ChecklistResponseDto })
@@ -76,7 +76,7 @@ export class TaskChecklistsController {
     return this.service.updateChecklist(workspaceId, id, dto);
   }
 
-  @Delete('task-checklists/:id')
+  @Delete('checklist/:id')
   @Roles(Role.ADMIN, Role.MANAGER, Role.OPERATOR)
   @HttpCode(HttpStatus.NO_CONTENT)
   @ApiOperation({ summary: 'Remover checklist (soft delete + itens)' })
