@@ -170,7 +170,7 @@ export class BpmEngineService {
         const sourceProcessInstance =
           await this.prisma.processInstance.findFirst({
             where: {
-              listId: handoff.fromProcessId,
+              listId: handoff.fromListId,
               orderId,
               deletedAt: null,
             },
@@ -179,7 +179,7 @@ export class BpmEngineService {
         if (!sourceProcessInstance) {
           this.logger.warn(
             `Source ProcessInstance not found for handoff ${handoff.id} ` +
-              `(listId=${handoff.fromProcessId}, orderId=${orderId}). Skipping.`,
+              `(listId=${handoff.fromListId}, orderId=${orderId}). Skipping.`,
           );
           continue;
         }
@@ -206,7 +206,7 @@ export class BpmEngineService {
 
         if (handoff.autoAdvance) {
           const destProcessInstance = await this.findOrCreateProcessInstance(
-            handoff.toProcessId,
+            handoff.toListId,
             orderId,
           );
           toProcessInstanceId = destProcessInstance.id;
@@ -226,7 +226,7 @@ export class BpmEngineService {
 
         this.logger.log(
           `Created HandoffInstance ${handoffInstance.id} (status=${handoffInstance.status}) ` +
-            `for handoff ${handoff.fromProcessId} -> ${handoff.toProcessId}`,
+            `for handoff ${handoff.fromListId} -> ${handoff.toListId}`,
         );
 
         this.eventEmitter.emit('bpm.handoff.created', {

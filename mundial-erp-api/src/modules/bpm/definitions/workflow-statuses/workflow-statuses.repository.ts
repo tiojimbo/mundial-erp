@@ -30,7 +30,7 @@ export class WorkflowStatusesRepository {
         deletedAt: null,
         space: { workspaceId },
       },
-      orderBy: { position: 'asc' },
+      orderBy: { sortOrder: 'asc' },
       include: {
         space: { select: { id: true, name: true } },
       },
@@ -44,7 +44,7 @@ export class WorkflowStatusesRepository {
         deletedAt: null,
         folder: { space: { workspaceId } },
       },
-      orderBy: { position: 'asc' },
+      orderBy: { sortOrder: 'asc' },
       include: {
         space: { select: { id: true, name: true } },
       },
@@ -63,7 +63,7 @@ export class WorkflowStatusesRepository {
         deletedAt: null,
         space: { workspaceId },
       },
-      orderBy: { position: 'asc' },
+      orderBy: { sortOrder: 'asc' },
     });
 
     const creates = spaceStatuses.map((s) =>
@@ -133,7 +133,7 @@ export class WorkflowStatusesRepository {
   ): Promise<number> {
     const result = await this.prisma.workflowStatus.findFirst({
       where: { spaceId, deletedAt: null, space: { workspaceId } },
-      orderBy: { position: 'desc' },
+      orderBy: { sortOrder: 'desc' },
       select: { sortOrder: true },
     });
     return result?.sortOrder ?? -1;

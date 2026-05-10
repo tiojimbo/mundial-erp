@@ -58,7 +58,7 @@ export class HandoffInstancesService {
 
     if (!toProcessInstanceId) {
       const newProcessInstance = await this.processInstancesRepository.create({
-        list: { connect: { id: instance.handoff.toProcessId } },
+        list: { connect: { id: instance.handoff.toListId } },
         order: { connect: { id: instance.orderId } },
         status: ProcessStatus.DRAFT,
       });

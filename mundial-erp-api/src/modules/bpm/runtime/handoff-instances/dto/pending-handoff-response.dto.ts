@@ -6,8 +6,8 @@ type PendingHandoffEntity = Prisma.HandoffInstanceGetPayload<{
   include: {
     handoff: {
       include: {
-        fromProcess: { include: { space: true } };
-        toProcess: { include: { space: true } };
+        fromList: { include: { space: true } };
+        toList: { include: { space: true } };
       };
     };
     order: { include: { client: true } };
@@ -51,19 +51,19 @@ export class PendingHandoffResponseDto {
   static fromEntity(entity: PendingHandoffEntity): PendingHandoffResponseDto {
     const dto = new PendingHandoffResponseDto();
     const handoff = entity.handoff;
-    const fromProcess = handoff.fromProcess;
-    const toProcess = handoff.toProcess;
+    const fromList = handoff.fromList;
+    const toList = handoff.toList;
     const order = entity.order;
     const client = order.client;
 
     dto.id = entity.id;
-    dto.handoffName = `${fromProcess.name} → ${toProcess.name}`;
-    dto.processName = fromProcess.name;
+    dto.handoffName = `${fromList.name} → ${toList.name}`;
+    dto.processName = fromList.name;
     dto.orderId = order.id;
     dto.orderCode = order.orderNumber;
     dto.clientName = client.name;
-    dto.fromDepartment = fromProcess.department?.name ?? '';
-    dto.toDepartment = toProcess.department?.name ?? '';
+    dto.fromDepartment = fromList.space?.name ?? '';
+    dto.toDepartment = toList.space?.name ?? '';
     dto.status = entity.status;
     dto.notes = entity.rejectionReason;
     dto.createdAt = entity.createdAt.toISOString();

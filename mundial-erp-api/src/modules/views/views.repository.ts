@@ -51,7 +51,7 @@ export class ViewsRepository {
         where,
         skip,
         take,
-        orderBy: { position: 'asc' },
+        orderBy: { sortOrder: 'asc' },
       }),
       this.prisma.processView.count({ where }),
     ]);

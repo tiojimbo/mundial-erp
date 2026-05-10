@@ -58,8 +58,8 @@ export class HandoffInstancesRepository {
         include: {
           handoff: {
             include: {
-              fromProcess: { include: { space: true } },
-              toProcess: { include: { space: true } },
+              fromList: { include: { space: true } },
+              toList: { include: { space: true } },
             },
           },
           order: { include: { client: true } },

@@ -72,7 +72,7 @@ export class DailyActivityResponseDto {
   static fromEntity(entity: DailyActivityEntity): DailyActivityResponseDto {
     const dto = new DailyActivityResponseDto();
     const activity = entity.activity;
-    const process = activity.process;
+    const list = activity.list;
     const order = entity.processInstance.order;
     const client = order.client;
     const tasks = entity.taskInstances;
@@ -88,7 +88,7 @@ export class DailyActivityResponseDto {
 
     dto.id = entity.id;
     dto.activityName = activity.name;
-    dto.processName = process.name;
+    dto.processName = list.name;
     dto.orderId = order.id;
     dto.orderCode = order.orderNumber;
     dto.clientName = client.name;
