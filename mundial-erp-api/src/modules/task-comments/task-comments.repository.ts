@@ -2,6 +2,12 @@ import { Injectable } from '@nestjs/common';
 import { Prisma } from '@prisma/client';
 import { PrismaService } from '../../database/prisma.service';
 
+const USER_PUBLIC_SELECT = {
+  id: true,
+  name: true,
+  email: true,
+} as const;
+
 const COMMENT_SELECT = {
   id: true,
   workItemId: true,
@@ -16,6 +22,9 @@ const COMMENT_SELECT = {
   createdAt: true,
   updatedAt: true,
   deletedAt: true,
+  author: { select: USER_PUBLIC_SELECT },
+  assignee: { select: USER_PUBLIC_SELECT },
+  assignedBy: { select: USER_PUBLIC_SELECT },
 } as const;
 
 export interface CommentCreateInput {

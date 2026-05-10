@@ -1,6 +1,12 @@
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 import { Prisma } from '@prisma/client';
 
+export interface CommentUserShape {
+  id: string;
+  name: string;
+  email: string;
+}
+
 export interface CommentShape {
   id: string;
   workItemId: string;
@@ -15,6 +21,20 @@ export interface CommentShape {
   createdAt: Date;
   updatedAt: Date;
   deletedAt: Date | null;
+  author?: CommentUserShape | null;
+  assignee?: CommentUserShape | null;
+  assignedBy?: CommentUserShape | null;
+}
+
+export class CommentUserDto {
+  @ApiProperty()
+  id!: string;
+
+  @ApiProperty()
+  name!: string;
+
+  @ApiProperty()
+  email!: string;
 }
 
 export class CommentResponseDto {
@@ -54,6 +74,15 @@ export class CommentResponseDto {
   @ApiProperty()
   updatedAt!: Date;
 
+  @ApiPropertyOptional({ type: CommentUserDto })
+  author!: CommentUserDto | null;
+
+  @ApiPropertyOptional({ type: CommentUserDto })
+  assignee!: CommentUserDto | null;
+
+  @ApiPropertyOptional({ type: CommentUserDto })
+  assignedBy!: CommentUserDto | null;
+
   static fromEntity(entity: CommentShape): CommentResponseDto {
     const dto = new CommentResponseDto();
     dto.id = entity.id;
@@ -70,6 +99,9 @@ export class CommentResponseDto {
     dto.editedAt = entity.editedAt;
     dto.createdAt = entity.createdAt;
     dto.updatedAt = entity.updatedAt;
+    dto.author = entity.author ?? null;
+    dto.assignee = entity.assignee ?? null;
+    dto.assignedBy = entity.assignedBy ?? null;
     return dto;
   }
 }
