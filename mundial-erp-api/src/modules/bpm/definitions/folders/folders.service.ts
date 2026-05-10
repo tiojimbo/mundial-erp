@@ -5,17 +5,19 @@ import {
   NotFoundException,
   forwardRef,
 } from '@nestjs/common';
+import { ProcessType } from '@prisma/client';
 import { FoldersRepository } from './folders.repository';
 import { CreateFolderDto } from './dto/create-folder.dto';
 import { UpdateFolderDto } from './dto/update-folder.dto';
 import { FolderResponseDto } from './dto/folder-response.dto';
-import { PaginationDto } from '../../../../common/dtos/pagination.dto';
+import { PrismaService } from '../../../../database/prisma.service';
 import { WorkflowStatusesService } from '../workflow-statuses/workflow-statuses.service';
 import { SpacesRepository } from '../spaces/spaces.repository';
 
 @Injectable()
 export class FoldersService {
   constructor(
+    private readonly prisma: PrismaService,
     private readonly foldersRepository: FoldersRepository,
     private readonly spacesRepository: SpacesRepository,
     @Inject(forwardRef(() => WorkflowStatusesService))
@@ -50,12 +52,13 @@ export class FoldersService {
   ) {
     const space = await this.spacesRepository.findById(workspaceId, spaceId);
     if (!space) {
-      throw new NotFoundException('Departamento não encontrado');
+      throw new NotFoundException('Space não encontrado');
     }
   }
 
   async create(
     workspaceId: string,
+    creatorId: string,
     dto: CreateFolderDto,
   ): Promise<FolderResponseDto> {
     await this.assertSpaceInWorkspace(workspaceId, dto.spaceId);
@@ -65,16 +68,35 @@ export class FoldersService {
 
     const useSpaceStatuses = dto.useSpaceStatuses ?? true;
 
-    const entity = await this.foldersRepository.create(workspaceId, {
-      name: dto.name,
-      slug,
-      description: dto.description,
-      isPrivate: dto.isPrivate ?? false,
-      icon: dto.icon,
-      color: dto.color,
-      useSpaceStatuses,
-      position: dto.sortOrder ?? 0,
-      space: { connect: { id: dto.spaceId } },
+    const entity = await this.prisma.$transaction(async (tx) => {
+      const folder = await tx.folder.create({
+        data: {
+          name: dto.name,
+          slug,
+          description: dto.description,
+          isPrivate: dto.isPrivate ?? false,
+          icon: dto.icon,
+          color: dto.color,
+          useSpaceStatuses,
+          position: dto.sortOrder ?? 0,
+          space: { connect: { id: dto.spaceId } },
+          creator: { connect: { id: creatorId } },
+        },
+      });
+
+      await tx.list.create({
+        data: {
+          name: 'Lista padrão',
+          slug: `${slug}-default-list`,
+          processType: ProcessType.LIST,
+          position: 0,
+          folder: { connect: { id: folder.id } },
+          space: { connect: { id: dto.spaceId } },
+          creator: { connect: { id: creatorId } },
+        },
+      });
+
+      return folder;
     });
 
     if (!useSpaceStatuses) {
@@ -88,21 +110,23 @@ export class FoldersService {
     return FolderResponseDto.fromEntity(entity);
   }
 
-  async findAll(workspaceId: string, pagination: PaginationDto) {
-    const { items, total } = await this.foldersRepository.findMany(workspaceId, {
-      skip: pagination.skip,
-      take: pagination.limit,
+  async findAllBySpace(workspaceId: string, spaceId: string) {
+    if (!spaceId) {
+      throw new BadRequestException('spaceId é obrigatório na query');
+    }
+    await this.assertSpaceInWorkspace(workspaceId, spaceId);
+    const items = await this.prisma.folder.findMany({
+      where: { spaceId, deletedAt: null, space: { workspaceId } },
+      orderBy: { position: 'asc' },
+      include: { space: { select: { id: true, name: true } } },
     });
-    return {
-      items: items.map(FolderResponseDto.fromEntity),
-      total,
-    };
+    return items.map(FolderResponseDto.fromEntity);
   }
 
   async findById(workspaceId: string, id: string): Promise<FolderResponseDto> {
     const entity = await this.foldersRepository.findById(workspaceId, id);
     if (!entity) {
-      throw new NotFoundException('Área não encontrada');
+      throw new NotFoundException('Folder não encontrado');
     }
     return FolderResponseDto.fromEntity(entity);
   }
@@ -114,7 +138,7 @@ export class FoldersService {
   ): Promise<FolderResponseDto> {
     const entity = await this.foldersRepository.findById(workspaceId, id);
     if (!entity) {
-      throw new NotFoundException('Área não encontrada');
+      throw new NotFoundException('Folder não encontrado');
     }
 
     const updateData: Record<string, any> = {};
@@ -178,7 +202,7 @@ export class FoldersService {
       slug,
     );
     if (!entity) {
-      throw new NotFoundException('Área não encontrada');
+      throw new NotFoundException('Folder não encontrado');
     }
 
     return {
@@ -197,14 +221,20 @@ export class FoldersService {
     };
   }
 
-  async remove(workspaceId: string, id: string): Promise<void> {
+  async remove(
+    workspaceId: string,
+    id: string,
+  ): Promise<{ message: string }> {
     const entity = await this.foldersRepository.findById(workspaceId, id);
     if (!entity) {
-      throw new NotFoundException('Área não encontrada');
+      throw new NotFoundException('Folder não encontrado');
     }
     if (entity.isDefault) {
-      throw new BadRequestException('Não é possível excluir uma área padrão');
+      throw new BadRequestException(
+        'Não é possível excluir um folder padrão',
+      );
     }
     await this.foldersRepository.softDelete(workspaceId, id);
+    return { message: 'Folder deleted successfully' };
   }
 }
