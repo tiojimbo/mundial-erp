@@ -74,12 +74,23 @@ export class TaskCommentsService {
     return response;
   }
 
+  async findOne(
+    workspaceId: string,
+    id: string,
+  ): Promise<CommentResponseDto> {
+    const found = await this.repository.findById(workspaceId, id);
+    if (!found) {
+      throw new NotFoundException('Comentario nao encontrado');
+    }
+    return CommentResponseDto.fromEntity(found as unknown as CommentShape);
+  }
+
   async create(
     workspaceId: string,
-    taskId: string,
     dto: CreateCommentDto,
     actorUserId: string,
   ): Promise<CommentResponseDto> {
+    const taskId = dto.taskId;
     const task = await this.repository.findTaskInWorkspace(workspaceId, taskId);
     if (!task) {
       throw new NotFoundException('Tarefa nao encontrada');

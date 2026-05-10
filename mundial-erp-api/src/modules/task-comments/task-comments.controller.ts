@@ -6,8 +6,8 @@ import {
   HttpCode,
   HttpStatus,
   Param,
-  Patch,
   Post,
+  Put,
   Query,
 } from '@nestjs/common';
 import {
@@ -30,15 +30,15 @@ import { CurrentUser, Roles } from '../auth/decorators';
 import type { JwtPayload } from '../auth/decorators';
 import { WorkspaceId } from '../workspaces/decorators/workspace-id.decorator';
 
-@ApiTags('Task Comments')
+@ApiTags('Comments')
 @ApiBearerAuth()
-@Controller()
+@Controller('comments')
 export class TaskCommentsController {
   constructor(private readonly service: TaskCommentsService) {}
 
-  @Get('tasks/:taskId/comments')
+  @Get('task/:taskId')
   @Roles(Role.ADMIN, Role.MANAGER, Role.OPERATOR, Role.VIEWER)
-  @ApiOperation({ summary: 'Listar comentarios (paginado)' })
+  @ApiOperation({ summary: 'Listar comentários da tarefa (paginado)' })
   @ApiResponse({ status: 200, type: CommentsListResponseDto })
   findByTask(
     @WorkspaceId() workspaceId: string,
@@ -48,23 +48,33 @@ export class TaskCommentsController {
     return this.service.findByTask(workspaceId, taskId, filters);
   }
 
-  @Post('tasks/:taskId/comments')
+  @Get(':id')
+  @Roles(Role.ADMIN, Role.MANAGER, Role.OPERATOR, Role.VIEWER)
+  @ApiOperation({ summary: 'Buscar comentário por ID' })
+  @ApiResponse({ status: 200, type: CommentResponseDto })
+  findOne(
+    @WorkspaceId() workspaceId: string,
+    @Param('id') id: string,
+  ): Promise<CommentResponseDto> {
+    return this.service.findOne(workspaceId, id);
+  }
+
+  @Post()
   @Roles(Role.ADMIN, Role.MANAGER, Role.OPERATOR)
   @Throttle({ default: { limit: 60, ttl: 60_000 } })
-  @ApiOperation({ summary: 'Criar comentario (com @mencoes)' })
+  @ApiOperation({ summary: 'Criar comentário (com @menções)' })
   @ApiResponse({ status: 201, type: CommentResponseDto })
   create(
     @WorkspaceId() workspaceId: string,
-    @Param('taskId') taskId: string,
     @Body() dto: CreateCommentDto,
     @CurrentUser() user: JwtPayload,
   ): Promise<CommentResponseDto> {
-    return this.service.create(workspaceId, taskId, dto, user.sub);
+    return this.service.create(workspaceId, dto, user.sub);
   }
 
-  @Patch('task-comments/:id')
+  @Put(':id')
   @Roles(Role.ADMIN, Role.MANAGER, Role.OPERATOR)
-  @ApiOperation({ summary: 'Editar comentario (autor ou Manager+)' })
+  @ApiOperation({ summary: 'Editar comentário (autor ou Manager+)' })
   update(
     @WorkspaceId() workspaceId: string,
     @Param('id') id: string,
@@ -77,10 +87,10 @@ export class TaskCommentsController {
     });
   }
 
-  @Delete('task-comments/:id')
+  @Delete(':id')
   @Roles(Role.ADMIN, Role.MANAGER, Role.OPERATOR)
   @HttpCode(HttpStatus.NO_CONTENT)
-  @ApiOperation({ summary: 'Remover comentario (autor ou Manager+)' })
+  @ApiOperation({ summary: 'Remover comentário (autor ou Manager+)' })
   @ApiResponse({ status: 204 })
   remove(
     @WorkspaceId() workspaceId: string,
