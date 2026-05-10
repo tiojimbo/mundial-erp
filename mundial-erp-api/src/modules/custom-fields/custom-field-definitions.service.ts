@@ -1,4 +1,5 @@
 import {
+  BadRequestException,
   ConflictException,
   ForbiddenException,
   Inject,
@@ -10,8 +11,8 @@ import { Prisma } from '@prisma/client';
 import { CustomFieldDefinitionsRepository } from './custom-field-definitions.repository';
 import { CreateCustomFieldDefinitionDto } from './dtos/create-custom-field-definition.dto';
 import { UpdateCustomFieldDefinitionDto } from './dtos/update-custom-field-definition.dto';
-import { QueryCustomFieldDefinitionsDto } from './dtos/query-custom-field-definitions.dto';
 import { CustomFieldDefinitionResponseDto } from './dtos/custom-field-definition-response.dto';
+import { GroupedCustomFieldsResponseDto } from './dtos/grouped-custom-fields-response.dto';
 import {
   CUSTOM_FIELDS_METRICS,
   type CustomFieldsMetrics,
@@ -40,29 +41,57 @@ export class CustomFieldDefinitionsService {
     private readonly metrics: CustomFieldsMetrics,
   ) {}
 
-  async list(workspaceId: string, query: QueryCustomFieldDefinitionsDto) {
-    const { items, total } = await this.repository.findMany(workspaceId, {
-      skip: query.skip,
-      take: query.limit,
-      type: query.type,
-      search: query.search,
-    });
-
-    return {
-      items: items.map((entity) =>
-        CustomFieldDefinitionResponseDto.fromEntity(entity, {
-          exposeWorkspaceId: entity.workspaceId === workspaceId,
-        }),
-      ),
-      total,
+  async list(workspaceId: string): Promise<GroupedCustomFieldsResponseDto> {
+    const items = await this.repository.findAllVisible(workspaceId);
+    const grouped: GroupedCustomFieldsResponseDto = {
+      workspace: [],
+      space: [],
+      folder: [],
+      list: [],
+      taskType: [],
     };
+    for (const entity of items) {
+      const dto = CustomFieldDefinitionResponseDto.fromEntity(entity, {
+        exposeWorkspaceId: entity.workspaceId === workspaceId,
+      });
+      if (entity.listId) grouped.list.push(dto);
+      else if (entity.folderId) grouped.folder.push(dto);
+      else if (entity.spaceId) grouped.space.push(dto);
+      else if (entity.customTaskTypeId) grouped.taskType.push(dto);
+      else grouped.workspace.push(dto);
+    }
+    return grouped;
+  }
+
+  async findOne(
+    workspaceId: string,
+    id: string,
+  ): Promise<CustomFieldDefinitionResponseDto> {
+    const entity = await this.repository.findVisibleById(workspaceId, id);
+    if (!entity) {
+      throw new NotFoundException('Custom field definition nao encontrada');
+    }
+    return CustomFieldDefinitionResponseDto.fromEntity(entity, {
+      exposeWorkspaceId: entity.workspaceId === workspaceId,
+    });
   }
 
   async create(
     workspaceId: string,
     dto: CreateCustomFieldDefinitionDto,
   ): Promise<CustomFieldDefinitionResponseDto> {
-    // Conflito de key (per-workspace) — pre-check explicito para mensagem clara.
+    const scopes = [
+      dto.spaceId,
+      dto.folderId,
+      dto.listId,
+      dto.customTaskTypeId,
+    ].filter(Boolean);
+    if (scopes.length > 1) {
+      throw new BadRequestException(
+        'Apenas um escopo pode ser informado: spaceId, folderId, listId ou customTaskTypeId',
+      );
+    }
+
     const existing = await this.repository.findByKey(workspaceId, dto.key);
     if (existing) {
       throw new ConflictException({
@@ -80,6 +109,10 @@ export class CustomFieldDefinitionsService {
         required: dto.required ?? false,
         config: (dto.config as Prisma.InputJsonValue) ?? null,
         sortOrder: dto.sortOrder ?? 0,
+        spaceId: dto.spaceId ?? null,
+        folderId: dto.folderId ?? null,
+        listId: dto.listId ?? null,
+        customTaskTypeId: dto.customTaskTypeId ?? null,
       });
 
       this.metrics.customFieldsWrittenTotal({

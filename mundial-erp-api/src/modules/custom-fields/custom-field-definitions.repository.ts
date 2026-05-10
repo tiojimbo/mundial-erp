@@ -17,13 +17,6 @@ import { PrismaService } from '../../database/prisma.service';
  * Budget: cada metodo respeita <= 2 queries por chamada.
  */
 
-export interface FindManyParams {
-  skip?: number;
-  take?: number;
-  type?: CustomFieldType;
-  search?: string;
-}
-
 export interface CreateData {
   workspaceId: string;
   key: string;
@@ -32,6 +25,10 @@ export interface CreateData {
   required: boolean;
   config: Prisma.InputJsonValue | null;
   sortOrder: number;
+  spaceId?: string | null;
+  folderId?: string | null;
+  listId?: string | null;
+  customTaskTypeId?: string | null;
 }
 
 export interface UpdateData {
@@ -44,44 +41,6 @@ export interface UpdateData {
 @Injectable()
 export class CustomFieldDefinitionsRepository {
   constructor(private readonly prisma: PrismaService) {}
-
-  /**
-   * Lista paginada com filtros. Escopo:
-   *   `(workspaceId = current OR workspaceId IS NULL) AND deletedAt IS NULL`.
-   * Ordem: builtins primeiro (`isBuiltin desc`), depois `sortOrder asc, key asc`.
-   */
-  async findMany(workspaceId: string, params: FindManyParams) {
-    const { skip = 0, take = 20, type, search } = params;
-    const where: Prisma.CustomFieldDefinitionWhereInput = {
-      AND: [
-        { OR: [{ workspaceId }, { workspaceId: null }] },
-        { deletedAt: null },
-        ...(type ? [{ type }] : []),
-        ...(search
-          ? [
-              {
-                OR: [
-                  { key: { contains: search, mode: 'insensitive' as const } },
-                  { label: { contains: search, mode: 'insensitive' as const } },
-                ],
-              },
-            ]
-          : []),
-      ],
-    };
-
-    const [items, total] = await this.prisma.$transaction([
-      this.prisma.customFieldDefinition.findMany({
-        where,
-        skip,
-        take,
-        orderBy: [{ isBuiltin: 'desc' }, { sortOrder: 'asc' }, { key: 'asc' }],
-      }),
-      this.prisma.customFieldDefinition.count({ where }),
-    ]);
-
-    return { items, total };
-  }
 
   /**
    * Busca por id com escopo de visibilidade. Retorna `null` se cross-tenant
@@ -135,7 +94,21 @@ export class CustomFieldDefinitionsRepository {
         config: data.config ?? Prisma.JsonNull,
         sortOrder: data.sortOrder,
         isBuiltin: false,
+        spaceId: data.spaceId ?? null,
+        folderId: data.folderId ?? null,
+        listId: data.listId ?? null,
+        customTaskTypeId: data.customTaskTypeId ?? null,
       },
+    });
+  }
+
+  async findAllVisible(workspaceId: string) {
+    return this.prisma.customFieldDefinition.findMany({
+      where: {
+        deletedAt: null,
+        OR: [{ workspaceId }, { workspaceId: null }],
+      },
+      orderBy: [{ isBuiltin: 'desc' }, { sortOrder: 'asc' }, { key: 'asc' }],
     });
   }
 

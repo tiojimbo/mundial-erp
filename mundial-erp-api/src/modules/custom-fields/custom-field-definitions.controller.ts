@@ -6,9 +6,8 @@ import {
   HttpCode,
   HttpStatus,
   Param,
-  Patch,
   Post,
-  Query,
+  Put,
 } from '@nestjs/common';
 import {
   ApiBearerAuth,
@@ -22,42 +21,33 @@ import { CustomFieldDefinitionsService } from './custom-field-definitions.servic
 import { CreateCustomFieldDefinitionDto } from './dtos/create-custom-field-definition.dto';
 import { UpdateCustomFieldDefinitionDto } from './dtos/update-custom-field-definition.dto';
 import { CustomFieldDefinitionResponseDto } from './dtos/custom-field-definition-response.dto';
-import { QueryCustomFieldDefinitionsDto } from './dtos/query-custom-field-definitions.dto';
+import { GroupedCustomFieldsResponseDto } from './dtos/grouped-custom-fields-response.dto';
 import { Roles } from '../auth/decorators';
 import { WorkspaceId } from '../workspaces/decorators/workspace-id.decorator';
 
-/**
- * CRUD de `CustomFieldDefinition`.
- *
- * Guards globais (JwtAuth + Workspace + Roles + Throttler) sao aplicados em
- * `app.module.ts` via APP_GUARD; este controller declara apenas `@Roles` e
- * `@Throttle` quando os defaults precisam de ajuste.
- *
- * Cross-tenant -> 404 (nunca 403). Builtins -> 403 em mutacoes com mensagem
- * estavel "Builtin custom field definitions are read-only".
- */
-@ApiTags('Custom Field Definitions')
+@ApiTags('Custom Fields')
 @ApiBearerAuth()
-@Controller('custom-field-definitions')
+@Controller('custom-fields')
 export class CustomFieldDefinitionsController {
   constructor(private readonly service: CustomFieldDefinitionsService) {}
 
   @Get()
   @Roles(Role.ADMIN, Role.MANAGER, Role.OPERATOR, Role.VIEWER)
   @ApiOperation({
-    summary:
-      'Listar custom field definitions visiveis (workspace atual + builtins globais)',
+    summary: 'Listar custom fields agrupados por escopo',
   })
-  @ApiResponse({
-    status: 200,
-    type: CustomFieldDefinitionResponseDto,
-    isArray: true,
-  })
-  list(
-    @WorkspaceId() workspaceId: string,
-    @Query() query: QueryCustomFieldDefinitionsDto,
-  ) {
-    return this.service.list(workspaceId, query);
+  @ApiResponse({ status: 200, type: GroupedCustomFieldsResponseDto })
+  list(@WorkspaceId() workspaceId: string) {
+    return this.service.list(workspaceId);
+  }
+
+  @Get(':id')
+  @Roles(Role.ADMIN, Role.MANAGER, Role.OPERATOR, Role.VIEWER)
+  @ApiOperation({ summary: 'Buscar custom field definition por ID' })
+  @ApiResponse({ status: 200, type: CustomFieldDefinitionResponseDto })
+  @ApiResponse({ status: 404, description: 'Definition nao encontrada' })
+  findOne(@WorkspaceId() workspaceId: string, @Param('id') id: string) {
+    return this.service.findOne(workspaceId, id);
   }
 
   @Post()
@@ -76,7 +66,7 @@ export class CustomFieldDefinitionsController {
     return this.service.create(workspaceId, dto);
   }
 
-  @Patch(':id')
+  @Put(':id')
   @Roles(Role.ADMIN, Role.MANAGER)
   @Throttle({ default: { limit: 60, ttl: 60_000 } })
   @ApiOperation({ summary: 'Atualizar custom field definition' })

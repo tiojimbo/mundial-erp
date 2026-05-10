@@ -68,4 +68,24 @@ export class CreateCustomFieldDefinitionDto {
   @IsInt()
   @Min(0)
   sortOrder?: number;
+
+  @ApiPropertyOptional({ description: 'Escopo: limitar a um Space' })
+  @IsOptional()
+  @IsString()
+  spaceId?: string;
+
+  @ApiPropertyOptional({ description: 'Escopo: limitar a um Folder' })
+  @IsOptional()
+  @IsString()
+  folderId?: string;
+
+  @ApiPropertyOptional({ description: 'Escopo: limitar a uma List' })
+  @IsOptional()
+  @IsString()
+  listId?: string;
+
+  @ApiPropertyOptional({ description: 'Escopo: limitar a um CustomTaskType' })
+  @IsOptional()
+  @IsString()
+  customTaskTypeId?: string;
 }
