@@ -1,0 +1,84 @@
+import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
+import { AutomationScopeType, AutomationTrigger } from '@prisma/client';
+import { Type } from 'class-transformer';
+import {
+  ArrayMinSize,
+  IsArray,
+  IsBoolean,
+  IsEnum,
+  IsOptional,
+  IsString,
+  MaxLength,
+  MinLength,
+  ValidateNested,
+} from 'class-validator';
+import { AutomationActionDto } from './automation-action.dto';
+import { AutomationConditionDto } from './automation-condition.dto';
+
+export class CreateAutomationDto {
+  @ApiProperty({ example: 'Auto-atribuir tarefas de pedidos novos' })
+  @IsString()
+  @MinLength(2)
+  @MaxLength(200)
+  name: string;
+
+  @ApiPropertyOptional({ example: 'Atribui ao gerente quando lead vira pedido' })
+  @IsOptional()
+  @IsString()
+  @MaxLength(500)
+  description?: string;
+
+  @ApiProperty({ enum: AutomationTrigger })
+  @IsEnum(AutomationTrigger)
+  trigger: AutomationTrigger;
+
+  @ApiProperty({ enum: AutomationScopeType })
+  @IsEnum(AutomationScopeType)
+  scopeType: AutomationScopeType;
+
+  @ApiPropertyOptional({
+    description:
+      'ID do recurso de escopo (space/folder/list). Omitido quando scopeType=WORKSPACE.',
+  })
+  @IsOptional()
+  @IsString()
+  scopeId?: string;
+
+  @ApiProperty({
+    type: [AutomationActionDto],
+    description: 'Ordem importa. Executadas sequencialmente.',
+  })
+  @IsArray()
+  @ArrayMinSize(1)
+  @ValidateNested({ each: true })
+  @Type(() => AutomationActionDto)
+  compiledActions: AutomationActionDto[];
+
+  @ApiPropertyOptional({
+    type: [AutomationConditionDto],
+    description: 'Avaliadas com AND. Default: [] (sem condição = sempre executa).',
+  })
+  @IsOptional()
+  @IsArray()
+  @ValidateNested({ each: true })
+  @Type(() => AutomationConditionDto)
+  conditions?: AutomationConditionDto[];
+
+  @ApiPropertyOptional({ default: true })
+  @IsOptional()
+  @IsBoolean()
+  isActive?: boolean;
+
+  @ApiPropertyOptional({
+    description: 'Cron expression (apenas quando trigger=CRON)',
+    example: '0 9 * * 1-5',
+  })
+  @IsOptional()
+  @IsString()
+  cronExpression?: string;
+
+  @ApiPropertyOptional({ description: 'IANA timezone', example: 'America/Sao_Paulo' })
+  @IsOptional()
+  @IsString()
+  timezone?: string;
+}
