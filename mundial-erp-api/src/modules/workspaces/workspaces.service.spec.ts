@@ -19,6 +19,7 @@ const baseWorkspace = {
   color: null,
   plan: 'FREE' as const,
   ownerId: 'user-1',
+  settings: {},
   createdAt: new Date('2026-01-01'),
   updatedAt: new Date('2026-01-01'),
   deletedAt: null,
@@ -85,6 +86,7 @@ describe('WorkspacesService', () => {
         logoUrl: undefined,
         color: undefined,
         ownerId: 'user-1',
+  settings: {},
       });
     });
 
