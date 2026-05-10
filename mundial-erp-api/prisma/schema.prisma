@@ -2761,7 +2761,7 @@ model Automation {
   name            String
   description     String?
   trigger         AutomationTrigger
-  scopeType       AutomationScopeType
+  scopeType       AutomationScopeType @map("scope_type")
   scopeId         String?             @map("scope_id")
   compiledActions Json                @map("compiled_actions")
   conditions      Json                @default("[]")
