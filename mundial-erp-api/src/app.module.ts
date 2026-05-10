@@ -46,8 +46,7 @@ import { InvoicesModule } from './modules/invoices/invoices.module';
 import { FinancialSummaryModule } from './modules/financial-summary/financial-summary.module';
 import { DashboardsModule } from './modules/dashboards/dashboards.module';
 import { ReportsModule } from './modules/reports/reports.module';
-import { JwtAuthGuard } from './common/guards';
-import { RolesGuard } from './common/guards';
+import { JwtAuthGuard, RolesGuard } from './modules/auth/guards';
 import { WorkspaceGuard } from './modules/workspaces/guards/workspace.guard';
 import { ResponseInterceptor } from './common/interceptors/response.interceptor';
 import { LoggingInterceptor } from './common/interceptors/logging.interceptor';
@@ -102,13 +101,7 @@ import { CommonModule } from './common/common.module';
 //     tokens Symbol inconsistentes e Rafael integrar envelope encryption.
 import { KommoApiClientModule } from './modules/kommo-api-client/kommo-api-client.module';
 import { KommoAccountsModule } from './modules/kommo-accounts/kommo-accounts.module';
-import { KommoWebhooksModule } from './modules/kommo-webhooks/kommo-webhooks.module';
 import { KommoWorkersModule } from './modules/kommo-workers/kommo-workers.module';
-//   - KommoObservabilityModule (Rafael K2-6): @Global() — `KommoMetricsService`
-//     skeleton in-memory. Importado UMA vez aqui; qualquer kommo-* consome
-//     via injection sem precisar de import explicito. Wire para Prometheus
-//     real fica para squad-ops (ver mundial-erp-api/docs/kommo-observability.md).
-import { KommoObservabilityModule } from './modules/kommo-observability/kommo-observability.module';
 //   - KommoReconciliationModule (Mateus K2-5): cron @5min idempotente +
 //     KommoSyncCheckpoint; cobre eventos perdidos pelo webhook.
 //   - KommoBackfillModule (Mateus K3-4 parcial): backfill 90d retomavel
@@ -296,10 +289,8 @@ import { KommoBackfillModule } from './modules/kommo-backfill/kommo-backfill.mod
     //
     // Ordem: ApiClient (puro) → Accounts (Repository compartilhado) →
     // Webhooks (HMAC + enqueue) → Workers (processor + handlers).
-    KommoObservabilityModule,
     KommoApiClientModule,
     KommoAccountsModule,
-    KommoWebhooksModule,
     KommoWorkersModule,
     KommoReconciliationModule,
     KommoBackfillModule,
