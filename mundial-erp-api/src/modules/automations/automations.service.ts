@@ -149,6 +149,11 @@ export class AutomationsService {
     return this.repository.softDelete(id);
   }
 
+  async toggle(workspaceId: string, id: string) {
+    const current = await this.findById(workspaceId, id);
+    return this.repository.update(id, { isActive: !current.isActive });
+  }
+
   private validateScope(
     scopeType: AutomationScopeType,
     scopeId: string | undefined | null,

@@ -113,4 +113,14 @@ export class AutomationsController {
   remove(@WorkspaceId() workspaceId: string, @Param('id') id: string) {
     return this.service.remove(workspaceId, id);
   }
+
+  @Post(':id/toggle')
+  @Roles(Role.ADMIN, Role.MANAGER)
+  @HttpCode(HttpStatus.OK)
+  @ApiOperation({ summary: 'Inverter isActive (body vazio)' })
+  @ApiResponse({ status: 200, type: AutomationResponseDto })
+  @ApiResponse({ status: 404, description: 'Automation não encontrada' })
+  toggle(@WorkspaceId() workspaceId: string, @Param('id') id: string) {
+    return this.service.toggle(workspaceId, id);
+  }
 }
