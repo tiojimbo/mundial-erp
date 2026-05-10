@@ -170,6 +170,27 @@ export class TaskCommentsRepository {
     });
   }
 
+  async findReaction(commentId: string, userId: string, emoji: string) {
+    return this.prisma.commentReaction.findUnique({
+      where: { commentId_userId_emoji: { commentId, userId, emoji } },
+      select: { commentId: true, userId: true, emoji: true },
+    });
+  }
+
+  async createReaction(commentId: string, userId: string, emoji: string) {
+    return this.prisma.commentReaction.create({
+      data: { commentId, userId, emoji },
+      select: { commentId: true, userId: true, emoji: true },
+    });
+  }
+
+  async deleteReaction(commentId: string, userId: string, emoji: string) {
+    return this.prisma.commentReaction.delete({
+      where: { commentId_userId_emoji: { commentId, userId, emoji } },
+      select: { commentId: true, userId: true, emoji: true },
+    });
+  }
+
   async resolveUsernamesInWorkspace(
     workspaceId: string,
     usernames: string[],

@@ -18,6 +18,7 @@ import {
   CommentsListResponseDto,
   type CommentShape,
 } from './dtos/comment-response.dto';
+import { ReactionResponseDto } from './dtos/reaction-response.dto';
 import { TaskOutboxService } from '../task-outbox/task-outbox.service';
 
 const OUTBOX_COMMENT_ADDED = 'COMMENT_ADDED' as const;
@@ -230,5 +231,28 @@ export class TaskCommentsService {
       );
     }
     await this.repository.softDelete(id);
+  }
+
+  async toggleReaction(
+    workspaceId: string,
+    commentId: string,
+    userId: string,
+    emoji: string,
+  ): Promise<ReactionResponseDto> {
+    const comment = await this.repository.findById(workspaceId, commentId);
+    if (!comment) {
+      throw new NotFoundException('Comentario nao encontrado');
+    }
+    const existing = await this.repository.findReaction(
+      commentId,
+      userId,
+      emoji,
+    );
+    if (existing) {
+      await this.repository.deleteReaction(commentId, userId, emoji);
+      return { action: 'removed', commentId, userId, emoji };
+    }
+    await this.repository.createReaction(commentId, userId, emoji);
+    return { action: 'added', commentId, userId, emoji };
   }
 }

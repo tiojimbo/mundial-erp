@@ -26,6 +26,8 @@ import {
   CommentResponseDto,
   CommentsListResponseDto,
 } from './dtos/comment-response.dto';
+import { ToggleReactionDto } from './dtos/toggle-reaction.dto';
+import { ReactionResponseDto } from './dtos/reaction-response.dto';
 import { CurrentUser, Roles } from '../auth/decorators';
 import type { JwtPayload } from '../auth/decorators';
 import { WorkspaceId } from '../workspaces/decorators/workspace-id.decorator';
@@ -101,5 +103,19 @@ export class TaskCommentsController {
       userId: user.sub,
       role: user.role as Role,
     });
+  }
+
+  @Post(':id/reactions')
+  @Roles(Role.ADMIN, Role.MANAGER, Role.OPERATOR, Role.VIEWER)
+  @Throttle({ default: { limit: 60, ttl: 60_000 } })
+  @ApiOperation({ summary: 'Toggle de reação no comentário' })
+  @ApiResponse({ status: 201, type: ReactionResponseDto })
+  toggleReaction(
+    @WorkspaceId() workspaceId: string,
+    @Param('id') id: string,
+    @Body() dto: ToggleReactionDto,
+    @CurrentUser() user: JwtPayload,
+  ): Promise<ReactionResponseDto> {
+    return this.service.toggleReaction(workspaceId, id, user.sub, dto.emoji);
   }
 }
