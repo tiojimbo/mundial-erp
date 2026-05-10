@@ -499,25 +499,26 @@ export class TasksService {
       new Set(dto.assignees.map((a) => a.userId)),
     ).filter((id) => id.length > 0);
     const target = requested.length === 0 ? [task.creatorId] : requested;
-
-    const current = await this.repository.findAssignees(taskId);
-    const currentIds = new Set(current.map((a) => a.userId));
     const targetSet = new Set(target);
 
-    const add = target.filter((id) => !currentIds.has(id));
-    const rem = [...currentIds].filter((id) => !targetSet.has(id));
-
-    if (add.length > 0 || rem.length > 0) {
-      await this.prisma.$transaction(async (tx) => {
-        await this.assigneesSync.syncAssignees(tx, {
-          taskId,
-          add,
-          rem,
-          actorUserId: actorId,
-          workspaceId,
-        });
+    // HPP-056 fix: read e diff DENTRO da tx para evitar race com syncs
+    // concorrentes. PostgreSQL default READ COMMITTED garante que o read
+    // veja somente commits anteriores ao inicio da tx; o syncAssignees
+    // ignora P2002/P2025 idempotentemente quando colide.
+    await this.prisma.$transaction(async (tx) => {
+      const currentIds = await this.repository.findAssigneeIds(taskId, tx);
+      const currentSet = new Set(currentIds);
+      const add = target.filter((id) => !currentSet.has(id));
+      const rem = currentIds.filter((id) => !targetSet.has(id));
+      if (add.length === 0 && rem.length === 0) return;
+      await this.assigneesSync.syncAssignees(tx, {
+        taskId,
+        add,
+        rem,
+        actorUserId: actorId,
+        workspaceId,
       });
-    }
+    });
 
     return this.findAssignees(workspaceId, taskId);
   }

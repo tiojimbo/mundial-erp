@@ -292,9 +292,9 @@ export class TasksRepository {
     });
   }
 
-  /** Carrega assignees (join) com user embedded. */
-  async findAssignees(taskId: string) {
-    return this.prisma.workItemAssignee.findMany({
+  /** Carrega assignees (join) com user embedded. Aceita `tx` opcional. */
+  async findAssignees(taskId: string, tx?: Prisma.TransactionClient) {
+    return this.client(tx).workItemAssignee.findMany({
       where: { workItemId: taskId },
       select: {
         userId: true,
@@ -304,6 +304,18 @@ export class TasksRepository {
       },
       orderBy: [{ isPrimary: 'desc' }, { assignedAt: 'asc' }],
     });
+  }
+
+  /** IDs dos assignees atuais para diff transacional (HPP-056 race fix). */
+  async findAssigneeIds(
+    taskId: string,
+    tx?: Prisma.TransactionClient,
+  ): Promise<string[]> {
+    const rows = await this.client(tx).workItemAssignee.findMany({
+      where: { workItemId: taskId },
+      select: { userId: true },
+    });
+    return rows.map((r) => r.userId);
   }
 
   /** Carrega watchers (join) com user embedded. */
