@@ -3,7 +3,6 @@ import {
   Controller,
   Delete,
   Get,
-  Headers,
   HttpCode,
   HttpStatus,
   Param,
@@ -14,21 +13,17 @@ import {
 } from '@nestjs/common';
 import {
   ApiBearerAuth,
-  ApiHeader,
   ApiOperation,
   ApiQuery,
   ApiResponse,
   ApiTags,
 } from '@nestjs/swagger';
 import { Role } from '@prisma/client';
-import { Throttle } from '@nestjs/throttler';
 import { TasksService } from './tasks.service';
 import { TaskFiltersDto } from './dtos/task-filters.dto';
 import { CreateTaskDto } from './dtos/create-task.dto';
 import { UpdateTaskDto } from './dtos/update-task.dto';
 import { AssignTaskDto } from './dtos/assign-task.dto';
-import { MergeTasksDto } from './dtos/merge-tasks.dto';
-import { TimeInStatusBulkDto } from './dtos/time-in-status-bulk.dto';
 import { TaskResponseDto } from './dtos/task-response.dto';
 import { TaskDetailResponseDto } from './dtos/task-detail-response.dto';
 import { ParseTaskIncludePipe } from './pipes/parse-task-include.pipe';
@@ -239,89 +234,6 @@ export class TasksController {
   @ApiResponse({ status: 200, description: 'Task removida' })
   remove(@WorkspaceId() workspaceId: string, @Param('taskId') taskId: string) {
     return this.tasksService.remove(workspaceId, taskId);
-  }
-
-  @Post('tasks/:taskId/archive')
-  @Roles(Role.ADMIN, Role.MANAGER, Role.OPERATOR)
-  @Throttle({ default: { limit: 30, ttl: 60_000 } })
-  @ApiOperation({ summary: 'Arquivar task (reversivel)' })
-  @ApiResponse({ status: 200, type: TaskResponseDto })
-  archive(
-    @WorkspaceId() workspaceId: string,
-    @Param('taskId') taskId: string,
-    @CurrentUser() user: JwtPayload,
-  ) {
-    return this.tasksService.archive(workspaceId, taskId, user.sub);
-  }
-
-  @Post('tasks/:taskId/unarchive')
-  @Roles(Role.ADMIN, Role.MANAGER, Role.OPERATOR)
-  @Throttle({ default: { limit: 30, ttl: 60_000 } })
-  @ApiOperation({ summary: 'Desarquivar task' })
-  @ApiResponse({ status: 200, type: TaskResponseDto })
-  unarchive(
-    @WorkspaceId() workspaceId: string,
-    @Param('taskId') taskId: string,
-    @CurrentUser() user: JwtPayload,
-  ) {
-    return this.tasksService.unarchive(workspaceId, taskId, user.sub);
-  }
-
-  @Get('tasks/:taskId/time-in-status')
-  @Roles(Role.ADMIN, Role.MANAGER, Role.OPERATOR, Role.VIEWER)
-  @ApiOperation({ summary: 'Tempo acumulado por status de uma task' })
-  timeInStatus(
-    @WorkspaceId() workspaceId: string,
-    @Param('taskId') taskId: string,
-  ) {
-    return this.tasksService.timeInStatus(workspaceId, taskId);
-  }
-
-  @Post('tasks/time-in-status:bulk')
-  @Roles(Role.ADMIN, Role.MANAGER, Role.OPERATOR, Role.VIEWER)
-  @Throttle({ default: { limit: 30, ttl: 60_000 } })
-  @HttpCode(HttpStatus.OK)
-  @ApiOperation({ summary: 'Tempo por status em lote (max 100 ids)' })
-  timeInStatusBulk(
-    @WorkspaceId() workspaceId: string,
-    @Body() body: TimeInStatusBulkDto,
-  ) {
-    return this.tasksService.timeInStatusBulk(workspaceId, body.taskIds);
-  }
-
-  @Post('tasks/:taskId/merge')
-  @Roles(Role.ADMIN, Role.MANAGER)
-  @Throttle({ default: { limit: 3, ttl: 60_000 } })
-  @ApiOperation({
-    summary:
-      'Merge de 1-50 sources no target (transacional, idempotente via header)',
-  })
-  @ApiHeader({
-    name: 'Idempotency-Key',
-    required: false,
-    description:
-      'Chave opaca para replay seguro (TTL 24h). Repeticao retorna resultado cacheado com meta.idempotent=true.',
-  })
-  @ApiResponse({ status: 200, description: 'Merge aplicado' })
-  @ApiResponse({ status: 404, description: 'Target ou source nao encontrada' })
-  @ApiResponse({
-    status: 409,
-    description: 'MergeCycle (target descendente) ou source ja mergida',
-  })
-  merge(
-    @WorkspaceId() workspaceId: string,
-    @Param('taskId') taskId: string,
-    @Body() body: MergeTasksDto,
-    @CurrentUser() user: JwtPayload,
-    @Headers('idempotency-key') idempotencyKey?: string,
-  ) {
-    return this.tasksService.merge(
-      workspaceId,
-      taskId,
-      body,
-      user.sub,
-      idempotencyKey,
-    );
   }
 
 }
