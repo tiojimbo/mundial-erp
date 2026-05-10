@@ -1,4 +1,4 @@
-import { Body, Controller, Get, Param, Patch } from '@nestjs/common';
+import { Body, Controller, Get, Param, Put } from '@nestjs/common';
 import {
   ApiBearerAuth,
   ApiOperation,
@@ -44,7 +44,7 @@ export class CustomFieldValuesController {
     return this.service.listForTask(workspaceId, taskId);
   }
 
-  @Patch(':definitionId')
+  @Put(':definitionId')
   @Roles(Role.ADMIN, Role.MANAGER, Role.OPERATOR)
   @Throttle({ default: { limit: 60, ttl: 60_000 } })
   @ApiOperation({
