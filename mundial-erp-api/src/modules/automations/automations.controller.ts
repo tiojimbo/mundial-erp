@@ -19,4 +19,12 @@ export class AutomationsController {
   listTriggers() {
     return this.service.listTriggers();
   }
+
+  @Get('actions')
+  @Roles(Role.ADMIN, Role.MANAGER, Role.OPERATOR, Role.VIEWER)
+  @ApiOperation({ summary: 'Listar actions disponíveis para Automations' })
+  @ApiResponse({ status: 200, description: 'Catálogo estático com 21 actions' })
+  listActions() {
+    return this.service.listActions();
+  }
 }

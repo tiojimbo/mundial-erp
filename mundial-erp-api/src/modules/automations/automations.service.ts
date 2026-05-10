@@ -1,7 +1,8 @@
 import { Injectable } from '@nestjs/common';
 import { AutomationsRepository } from './automations.repository';
 import { TRIGGERS_CATALOG } from './catalog/triggers.catalog';
-import { TriggerDef } from './catalog/types';
+import { ACTIONS_CATALOG } from './catalog/actions.catalog';
+import { ActionDef, TriggerDef } from './catalog/types';
 
 @Injectable()
 export class AutomationsService {
@@ -9,5 +10,9 @@ export class AutomationsService {
 
   listTriggers(): TriggerDef[] {
     return [...TRIGGERS_CATALOG];
+  }
+
+  listActions(): ActionDef[] {
+    return [...ACTIONS_CATALOG];
   }
 }
