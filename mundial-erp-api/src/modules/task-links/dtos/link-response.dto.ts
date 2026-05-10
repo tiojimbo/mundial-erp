@@ -1,14 +1,6 @@
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
+import { LinkType } from '@prisma/client';
 
-/**
- * Mesma estrategia de `task-dependency-response.dto.ts`: um summary compacto
- * sem acoplar ao `WorkItemResponseDto` completo, que ainda nao existe no
- * repositorio (Sprint 1 em andamento).
- *
- * Links sao SIMETRICOS por contrato (PLANO-TASKS.md §7.3). No banco a linha
- * e unidirecional (`from`, `to`) mas a API apresenta sempre os "outros lados"
- * da relacao em um unico array.
- */
 export interface WorkItemLinkSummaryShape {
   id: string;
   title: string;
@@ -59,11 +51,22 @@ export class WorkItemLinkSummaryDto {
   }
 }
 
+export class WorkItemLinkItemDto {
+  @ApiProperty()
+  linkId!: string;
+
+  @ApiProperty({ enum: LinkType })
+  type!: LinkType;
+
+  @ApiProperty({ type: WorkItemLinkSummaryDto })
+  task!: WorkItemLinkSummaryDto;
+}
+
 export class TaskLinksResponseDto {
   @ApiProperty({
-    type: [WorkItemLinkSummaryDto],
+    type: [WorkItemLinkItemDto],
     description:
-      'Lado "outro" da relacao. Inclui tanto arestas `from=taskId` quanto `to=taskId` (simetria).',
+      'Links da task — inclui arestas em ambas as direcoes. O `type` reflete a perspectiva da task consultada (DUPLICATES vira IS_DUPLICATED_BY quando a task e o lado `to`).',
   })
-  links!: WorkItemLinkSummaryDto[];
+  links!: WorkItemLinkItemDto[];
 }
