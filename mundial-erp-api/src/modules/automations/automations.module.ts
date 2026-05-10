@@ -4,6 +4,7 @@ import { QUEUE_AUTOMATION_EXECUTION } from '../queue/queue.constants';
 import { AutomationsController } from './automations.controller';
 import { AutomationsService } from './automations.service';
 import { AutomationsRepository } from './automations.repository';
+import { AutomationsCacheService } from './cache/automations-cache.service';
 import { TaskEventsPublisher } from './events/task-events.publisher';
 import { AutomationListener } from './events/automation.listener';
 import { AutomationEngineService } from './engine/automation-engine.service';
@@ -17,6 +18,7 @@ import { AutomationProcessor } from './engine/automation.processor';
   providers: [
     AutomationsRepository,
     AutomationsService,
+    AutomationsCacheService,
     TaskEventsPublisher,
     AutomationListener,
     AutomationEngineService,

@@ -5,6 +5,7 @@ import {
 } from '@nestjs/common';
 import { AutomationScopeType, AutomationTrigger, Prisma } from '@prisma/client';
 import { AutomationsRepository, ListFilters } from './automations.repository';
+import { AutomationsCacheService } from './cache/automations-cache.service';
 import { TRIGGERS_CATALOG } from './catalog/triggers.catalog';
 import { ACTION_IDS, ACTIONS_CATALOG } from './catalog/actions.catalog';
 import { ActionDef, TriggerDef } from './catalog/types';
@@ -15,7 +16,10 @@ const ACTION_ID_SET = new Set<string>(ACTION_IDS);
 
 @Injectable()
 export class AutomationsService {
-  constructor(private readonly repository: AutomationsRepository) {}
+  constructor(
+    private readonly repository: AutomationsRepository,
+    private readonly cache: AutomationsCacheService,
+  ) {}
 
   listTriggers(): TriggerDef[] {
     return [...TRIGGERS_CATALOG];
@@ -94,7 +98,7 @@ export class AutomationsService {
     this.validateActions(dto.compiledActions);
     this.validateCron(dto.trigger, dto.cronExpression);
 
-    return this.repository.create({
+    const created = await this.repository.create({
       workspaceId,
       createdById,
       name: dto.name,
@@ -108,6 +112,8 @@ export class AutomationsService {
       cronExpression: dto.cronExpression ?? null,
       timezone: dto.timezone ?? null,
     });
+    this.cache.invalidateWorkspace(workspaceId);
+    return created;
   }
 
   async update(workspaceId: string, id: string, dto: UpdateAutomationDto) {
@@ -124,7 +130,7 @@ export class AutomationsService {
       this.validateCron(trigger, dto.cronExpression);
     }
 
-    return this.repository.update(id, {
+    const updated = await this.repository.update(id, {
       ...(dto.name !== undefined && { name: dto.name }),
       ...(dto.description !== undefined && { description: dto.description }),
       ...(dto.trigger !== undefined && { trigger: dto.trigger }),
@@ -142,16 +148,24 @@ export class AutomationsService {
       }),
       ...(dto.timezone !== undefined && { timezone: dto.timezone }),
     });
+    this.cache.invalidateWorkspace(workspaceId);
+    return updated;
   }
 
   async remove(workspaceId: string, id: string) {
     await this.findById(workspaceId, id);
-    return this.repository.softDelete(id);
+    const deleted = await this.repository.softDelete(id);
+    this.cache.invalidateWorkspace(workspaceId);
+    return deleted;
   }
 
   async toggle(workspaceId: string, id: string) {
     const current = await this.findById(workspaceId, id);
-    return this.repository.update(id, { isActive: !current.isActive });
+    const toggled = await this.repository.update(id, {
+      isActive: !current.isActive,
+    });
+    this.cache.invalidateWorkspace(workspaceId);
+    return toggled;
   }
 
   private validateScope(

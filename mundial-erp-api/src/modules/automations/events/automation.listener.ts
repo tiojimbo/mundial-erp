@@ -2,6 +2,7 @@ import { Injectable, Logger } from '@nestjs/common';
 import { OnEvent } from '@nestjs/event-emitter';
 import { AutomationTrigger } from '@prisma/client';
 import { AutomationsRepository } from '../automations.repository';
+import { AutomationsCacheService } from '../cache/automations-cache.service';
 import { AutomationEngineService } from '../engine/automation-engine.service';
 import { AUTOMATION_EVENTS } from './task-events.constants';
 import type { TaskEventContext } from './task-events.types';
@@ -13,6 +14,7 @@ export class AutomationListener {
   constructor(
     private readonly repository: AutomationsRepository,
     private readonly engine: AutomationEngineService,
+    private readonly cache: AutomationsCacheService,
   ) {}
 
   @OnEvent(AUTOMATION_EVENTS.TASK_CREATED, { async: true })
@@ -101,9 +103,11 @@ export class AutomationListener {
   }
 
   private async handle(trigger: AutomationTrigger, payload: TaskEventContext) {
-    const automations = await this.repository.findActiveByTrigger(
+    const automations = await this.cache.getOrLoad(
       payload.workspaceId,
       trigger,
+      () =>
+        this.repository.findActiveByTrigger(payload.workspaceId, trigger),
     );
     if (automations.length === 0) return;
 
