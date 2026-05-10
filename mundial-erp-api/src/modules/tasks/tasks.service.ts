@@ -370,6 +370,178 @@ export class TasksService {
     return Array.from(groups.values());
   }
 
+  /**
+   * HPP-052 — `GET /tasks/list?viewId=&level=`. Resolve escopo, busca tasks
+   * + statuses elegiveis, agrupa por status. Response Hoppe:
+   * `[{ group: { id, name, label, type:STATUS, ... }, tasks: [...] }]`.
+   */
+  async findByListGrouped(
+    workspaceId: string,
+    params: {
+      viewId?: string;
+      level?: string;
+      listId?: string;
+      folderId?: string;
+      spaceId?: string;
+    },
+  ): Promise<
+    Array<{
+      group: {
+        id: string;
+        name: string;
+        label: string;
+        type: 'STATUS';
+        collapsed: boolean;
+        field: 'statusId';
+        position: number;
+        viewId: string | null;
+        color: string;
+      };
+      tasks: TaskResponseDto[];
+    }>
+  > {
+    const scope = await this.resolveListGroupedScope(workspaceId, params);
+
+    const [taskRows, statuses] = await Promise.all([
+      this.repository.findByScope(workspaceId, {
+        level: scope.level,
+        id: scope.id,
+      }),
+      this.repository.findStatusesForScope(workspaceId, {
+        spaceId: scope.spaceId,
+        folderId: scope.folderId,
+      }),
+    ]);
+
+    const tasksByStatus = new Map<string, TaskResponseDto[]>();
+    for (const row of taskRows) {
+      const taskRow = { ...row, processId: row.listId } as unknown as Record<
+        string,
+        unknown
+      >;
+      const dto = TaskResponseDto.fromRow(taskRow);
+      const list = tasksByStatus.get(dto.statusId);
+      if (list) {
+        list.push(dto);
+      } else {
+        tasksByStatus.set(dto.statusId, [dto]);
+      }
+    }
+
+    return statuses.map((status) => ({
+      group: {
+        id: status.id,
+        name: status.name,
+        label: status.name,
+        type: 'STATUS' as const,
+        collapsed: false,
+        field: 'statusId' as const,
+        position: status.sortOrder,
+        viewId: params.viewId ?? null,
+        color: status.color,
+      },
+      tasks: tasksByStatus.get(status.id) ?? [],
+    }));
+  }
+
+  private async resolveListGroupedScope(
+    workspaceId: string,
+    params: {
+      viewId?: string;
+      level?: string;
+      listId?: string;
+      folderId?: string;
+      spaceId?: string;
+    },
+  ): Promise<{
+    level: 'list' | 'folder' | 'space';
+    id: string;
+    spaceId: string;
+    folderId: string | null;
+  }> {
+    if (params.viewId) {
+      const view = await this.prisma.processView.findFirst({
+        where: { id: params.viewId, deletedAt: null },
+        select: {
+          id: true,
+          listId: true,
+          list: {
+            select: {
+              spaceId: true,
+              folderId: true,
+              space: { select: { id: true, workspaceId: true } },
+              folder: { select: { spaceId: true } },
+            },
+          },
+        },
+      });
+      if (!view || !view.list) {
+        throw new NotFoundException('View nao encontrada');
+      }
+      const spaceId =
+        view.list.spaceId ?? view.list.folder?.spaceId ?? null;
+      if (!spaceId || view.list.space?.workspaceId !== workspaceId) {
+        throw new NotFoundException('View nao encontrada');
+      }
+      return {
+        level: 'list',
+        id: view.listId,
+        spaceId,
+        folderId: view.list.folderId ?? null,
+      };
+    }
+
+    const level = params.level as 'list' | 'folder' | 'space' | undefined;
+    if (level === 'list' && params.listId) {
+      const list = await this.prisma.list.findFirst({
+        where: { id: params.listId, deletedAt: null },
+        select: {
+          id: true,
+          spaceId: true,
+          folderId: true,
+          space: { select: { id: true, workspaceId: true } },
+          folder: { select: { spaceId: true } },
+        },
+      });
+      const spaceId = list?.spaceId ?? list?.folder?.spaceId ?? null;
+      if (!list || !spaceId || list.space?.workspaceId !== workspaceId) {
+        throw new NotFoundException('List nao encontrada');
+      }
+      return { level: 'list', id: list.id, spaceId, folderId: list.folderId };
+    }
+
+    if (level === 'folder' && params.folderId) {
+      const folder = await this.prisma.folder.findFirst({
+        where: { id: params.folderId, deletedAt: null },
+        select: { id: true, spaceId: true, space: { select: { workspaceId: true } } },
+      });
+      if (!folder || folder.space.workspaceId !== workspaceId) {
+        throw new NotFoundException('Folder nao encontrado');
+      }
+      return {
+        level: 'folder',
+        id: folder.id,
+        spaceId: folder.spaceId,
+        folderId: folder.id,
+      };
+    }
+
+    if (level === 'space' && params.spaceId) {
+      const space = await this.prisma.space.findFirst({
+        where: { id: params.spaceId, workspaceId, deletedAt: null },
+        select: { id: true },
+      });
+      if (!space) {
+        throw new NotFoundException('Space nao encontrado');
+      }
+      return { level: 'space', id: space.id, spaceId: space.id, folderId: null };
+    }
+
+    throw new BadRequestException(
+      'Informe viewId ou level+(listId|folderId|spaceId)',
+    );
+  }
+
   async findById(
     workspaceId: string,
     taskId: string,

@@ -706,6 +706,72 @@ export class TasksRepository {
   }
 
   /**
+   * HPP-052 — Tasks por escopo `list|folder|space`. Single query com filtro
+   * Prisma traduzindo o nivel para `list.id|list.folderId|list.spaceId`.
+   * Tenant isolation via `space.workspaceId` em todos os ramos.
+   */
+  async findByScope(
+    workspaceId: string,
+    scope: { level: 'list' | 'folder' | 'space'; id: string },
+  ) {
+    const where: Prisma.WorkItemWhereInput = { deletedAt: null };
+    if (scope.level === 'list') {
+      where.listId = scope.id;
+      where.list = {
+        OR: [
+          { space: { workspaceId } },
+          { folder: { space: { workspaceId } } },
+        ],
+      };
+    } else if (scope.level === 'folder') {
+      where.list = {
+        folderId: scope.id,
+        folder: { space: { workspaceId } },
+      };
+    } else {
+      where.list = {
+        OR: [
+          { spaceId: scope.id, space: { workspaceId } },
+          { folder: { spaceId: scope.id, space: { workspaceId } } },
+        ],
+      };
+    }
+    return this.prisma.workItem.findMany({
+      where,
+      select: TASK_LIST_SELECT,
+      orderBy: [{ statusId: 'asc' }, { sortOrder: 'asc' }],
+      take: 500,
+    });
+  }
+
+  /**
+   * HPP-052 — Statuses elegiveis ao escopo. Inclui statuses do space e os
+   * do folder (se aplicavel). Tenant isolation via `space.workspaceId`.
+   */
+  async findStatusesForScope(
+    workspaceId: string,
+    scope: { spaceId: string; folderId?: string | null },
+  ) {
+    return this.prisma.workflowStatus.findMany({
+      where: {
+        deletedAt: null,
+        space: { id: scope.spaceId, workspaceId },
+        ...(scope.folderId
+          ? { OR: [{ folderId: null }, { folderId: scope.folderId }] }
+          : { folderId: null }),
+      },
+      select: {
+        id: true,
+        name: true,
+        color: true,
+        category: true,
+        sortOrder: true,
+      },
+      orderBy: { sortOrder: 'asc' },
+    });
+  }
+
+  /**
    * HPP-051 — Tasks de um space agrupadas por list. Single query com OR
    * cobrindo lista direta (`list.spaceId`) e lista em folder
    * (`list.folder.spaceId`). Tenant isolation via `space.workspaceId` em

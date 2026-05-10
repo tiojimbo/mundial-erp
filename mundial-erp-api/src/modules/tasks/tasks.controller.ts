@@ -76,6 +76,36 @@ export class TasksController {
     return this.tasksService.findBySpace(workspaceId, spaceId);
   }
 
+  @Get('tasks/list')
+  @Roles(Role.ADMIN, Role.MANAGER, Role.OPERATOR, Role.VIEWER)
+  @ApiOperation({
+    summary: 'Tasks agrupadas por status (Hoppe). Aceita viewId ou level+id',
+  })
+  @ApiQuery({ name: 'viewId', required: false })
+  @ApiQuery({ name: 'level', required: false, enum: ['list', 'folder', 'space'] })
+  @ApiQuery({ name: 'listId', required: false })
+  @ApiQuery({ name: 'folderId', required: false })
+  @ApiQuery({ name: 'spaceId', required: false })
+  @ApiResponse({ status: 200 })
+  @ApiResponse({ status: 400, description: 'Escopo invalido' })
+  @ApiResponse({ status: 404, description: 'View ou escopo nao encontrado' })
+  findByListGrouped(
+    @WorkspaceId() workspaceId: string,
+    @Query('viewId') viewId?: string,
+    @Query('level') level?: string,
+    @Query('listId') listId?: string,
+    @Query('folderId') folderId?: string,
+    @Query('spaceId') spaceId?: string,
+  ) {
+    return this.tasksService.findByListGrouped(workspaceId, {
+      viewId,
+      level,
+      listId,
+      folderId,
+      spaceId,
+    });
+  }
+
   @Post('processes/:processId/tasks')
   @Roles(Role.ADMIN, Role.MANAGER, Role.OPERATOR)
   @HttpCode(HttpStatus.CREATED)
