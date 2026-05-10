@@ -5,7 +5,12 @@ import {
   NotFoundException,
   forwardRef,
 } from '@nestjs/common';
-import { ProcessType } from '@prisma/client';
+import {
+  MemberPermission,
+  Prisma,
+  ProcessType,
+  Visibility,
+} from '@prisma/client';
 import { FoldersRepository } from './folders.repository';
 import { CreateFolderDto } from './dto/create-folder.dto';
 import { UpdateFolderDto } from './dto/update-folder.dto';
@@ -13,6 +18,7 @@ import { FolderResponseDto } from './dto/folder-response.dto';
 import { PrismaService } from '../../../../database/prisma.service';
 import { WorkflowStatusesService } from '../workflow-statuses/workflow-statuses.service';
 import { SpacesRepository } from '../spaces/spaces.repository';
+import { SPACE_RESOURCES } from '../spaces/resources-metadata';
 
 @Injectable()
 export class FoldersService {
@@ -219,6 +225,174 @@ export class FoldersService {
         isPrivate: proc.isPrivate,
       })),
     };
+  }
+
+  async getResources(workspaceId: string, folderId: string) {
+    const folder = await this.foldersRepository.findById(workspaceId, folderId);
+    if (!folder) {
+      throw new NotFoundException('Folder não encontrado');
+    }
+    return SPACE_RESOURCES;
+  }
+
+  async getVisibility(workspaceId: string, folderId: string) {
+    const folder = await this.foldersRepository.findById(workspaceId, folderId);
+    if (!folder) {
+      throw new NotFoundException('Folder não encontrado');
+    }
+    return { visibility: folder.visibility };
+  }
+
+  async updateVisibility(
+    workspaceId: string,
+    folderId: string,
+    visibility: Visibility,
+  ) {
+    const folder = await this.foldersRepository.findById(workspaceId, folderId);
+    if (!folder) {
+      throw new NotFoundException('Folder não encontrado');
+    }
+
+    await this.prisma.$transaction(async (tx) => {
+      await tx.folder.update({
+        where: { id: folderId },
+        data: { visibility },
+      });
+
+      const becamePrivate =
+        folder.visibility === Visibility.PUBLIC &&
+        visibility === Visibility.PRIVATE;
+
+      if (becamePrivate && folder.creatorId) {
+        await tx.folderMember.upsert({
+          where: {
+            folderId_userId: { folderId, userId: folder.creatorId },
+          },
+          create: {
+            folderId,
+            userId: folder.creatorId,
+            permission: MemberPermission.FULL_EDIT,
+          },
+          update: { permission: MemberPermission.FULL_EDIT },
+        });
+      }
+    });
+
+    return { visibility };
+  }
+
+  async listMembers(workspaceId: string, folderId: string) {
+    const folder = await this.foldersRepository.findById(workspaceId, folderId);
+    if (!folder) {
+      throw new NotFoundException('Folder não encontrado');
+    }
+
+    const direct = await this.prisma.folderMember.findMany({
+      where: { folderId },
+      include: { user: { select: { id: true, name: true, email: true } } },
+    });
+
+    const directRows = direct.map((m) => ({
+      folderId,
+      userId: m.userId,
+      permission: m.permission,
+      source: 'direct' as const,
+      inherited: false,
+      user: { ...m.user, avatar: null },
+    }));
+
+    if (folder.visibility !== Visibility.PUBLIC) {
+      return directRows;
+    }
+
+    const directIds = new Set(direct.map((m) => m.userId));
+    const spaceMembers = await this.prisma.spaceMember.findMany({
+      where: { spaceId: folder.spaceId },
+      include: { user: { select: { id: true, name: true, email: true } } },
+    });
+    const inheritedRows = spaceMembers
+      .filter((sm) => !directIds.has(sm.userId))
+      .map((sm) => ({
+        folderId,
+        userId: sm.userId,
+        permission: sm.permission,
+        source: 'space' as const,
+        inherited: true,
+        user: { ...sm.user, avatar: null },
+      }));
+
+    return [...directRows, ...inheritedRows];
+  }
+
+  async addMember(
+    workspaceId: string,
+    folderId: string,
+    userId: string,
+    permission: MemberPermission,
+  ) {
+    const folder = await this.foldersRepository.findById(workspaceId, folderId);
+    if (!folder) {
+      throw new NotFoundException('Folder não encontrado');
+    }
+    const isWsMember = await this.prisma.workspaceMember.findUnique({
+      where: { workspaceId_userId: { workspaceId, userId } },
+    });
+    if (!isWsMember) {
+      throw new NotFoundException('User não pertence ao workspace');
+    }
+    try {
+      await this.prisma.folderMember.create({
+        data: { folderId, userId, permission },
+      });
+    } catch (error) {
+      if (
+        error instanceof Prisma.PrismaClientKnownRequestError &&
+        error.code === 'P2002'
+      ) {
+        throw new BadRequestException('User já é membro do folder');
+      }
+      throw error;
+    }
+    return { folderId, userId, permission, source: 'direct', inherited: false };
+  }
+
+  async updateMember(
+    workspaceId: string,
+    folderId: string,
+    userId: string,
+    permission: MemberPermission,
+  ) {
+    const folder = await this.foldersRepository.findById(workspaceId, folderId);
+    if (!folder) {
+      throw new NotFoundException('Folder não encontrado');
+    }
+    const existing = await this.prisma.folderMember.findUnique({
+      where: { folderId_userId: { folderId, userId } },
+    });
+    if (!existing) {
+      throw new NotFoundException('Membro não encontrado');
+    }
+    await this.prisma.folderMember.update({
+      where: { folderId_userId: { folderId, userId } },
+      data: { permission },
+    });
+    return { folderId, userId, permission, source: 'direct', inherited: false };
+  }
+
+  async removeMember(workspaceId: string, folderId: string, userId: string) {
+    const folder = await this.foldersRepository.findById(workspaceId, folderId);
+    if (!folder) {
+      throw new NotFoundException('Folder não encontrado');
+    }
+    const existing = await this.prisma.folderMember.findUnique({
+      where: { folderId_userId: { folderId, userId } },
+    });
+    if (!existing) {
+      throw new NotFoundException('Membro não encontrado');
+    }
+    await this.prisma.folderMember.delete({
+      where: { folderId_userId: { folderId, userId } },
+    });
   }
 
   async remove(

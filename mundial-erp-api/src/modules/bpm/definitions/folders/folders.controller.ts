@@ -18,6 +18,9 @@ import { Role } from '@prisma/client';
 import { FoldersService } from './folders.service';
 import { CreateFolderDto } from './dto/create-folder.dto';
 import { UpdateFolderDto } from './dto/update-folder.dto';
+import { UpdateFolderVisibilityDto } from './dto/update-folder-visibility.dto';
+import { AddFolderMemberDto } from './dto/add-folder-member.dto';
+import { UpdateFolderMemberDto } from './dto/update-folder-member.dto';
 import { FolderResponseDto } from './dto/folder-response.dto';
 import { CurrentUser, Roles } from '../../../auth/decorators';
 import type { JwtPayload } from '../../../auth/decorators';
@@ -82,6 +85,102 @@ export class FoldersController {
       id,
       showClosed === 'true',
     );
+  }
+
+  @Get(':id/resources')
+  @SkipResponseTransform()
+  @Roles(Role.ADMIN, Role.MANAGER, Role.OPERATOR, Role.VIEWER)
+  @ApiOperation({ summary: 'Metadata de filters/sortOptions do folder' })
+  getResources(
+    @WorkspaceId() workspaceId: string,
+    @Param('id') id: string,
+  ) {
+    return this.foldersService.getResources(workspaceId, id);
+  }
+
+  @Get(':id/visibility')
+  @SkipResponseTransform()
+  @Roles(Role.ADMIN, Role.MANAGER, Role.OPERATOR, Role.VIEWER)
+  @ApiOperation({ summary: 'Visibility atual do folder' })
+  getVisibility(
+    @WorkspaceId() workspaceId: string,
+    @Param('id') id: string,
+  ) {
+    return this.foldersService.getVisibility(workspaceId, id);
+  }
+
+  @Put(':id/visibility')
+  @SkipResponseTransform()
+  @Roles(Role.ADMIN, Role.MANAGER)
+  @ApiOperation({ summary: 'Atualizar visibility do folder' })
+  updateVisibility(
+    @WorkspaceId() workspaceId: string,
+    @Param('id') id: string,
+    @Body() dto: UpdateFolderVisibilityDto,
+  ) {
+    return this.foldersService.updateVisibility(
+      workspaceId,
+      id,
+      dto.visibility,
+    );
+  }
+
+  @Get(':id/members')
+  @SkipResponseTransform()
+  @Roles(Role.ADMIN, Role.MANAGER, Role.OPERATOR, Role.VIEWER)
+  @ApiOperation({ summary: 'Listar membros do folder' })
+  listMembers(
+    @WorkspaceId() workspaceId: string,
+    @Param('id') id: string,
+  ) {
+    return this.foldersService.listMembers(workspaceId, id);
+  }
+
+  @Post(':id/members')
+  @SkipResponseTransform()
+  @Roles(Role.ADMIN, Role.MANAGER)
+  @ApiOperation({ summary: 'Adicionar membro ao folder' })
+  addMember(
+    @WorkspaceId() workspaceId: string,
+    @Param('id') id: string,
+    @Body() dto: AddFolderMemberDto,
+  ) {
+    return this.foldersService.addMember(
+      workspaceId,
+      id,
+      dto.userId,
+      dto.permission,
+    );
+  }
+
+  @Put(':id/members/:userId')
+  @SkipResponseTransform()
+  @Roles(Role.ADMIN, Role.MANAGER)
+  @ApiOperation({ summary: 'Atualizar permission de membro do folder' })
+  updateMember(
+    @WorkspaceId() workspaceId: string,
+    @Param('id') id: string,
+    @Param('userId') userId: string,
+    @Body() dto: UpdateFolderMemberDto,
+  ) {
+    return this.foldersService.updateMember(
+      workspaceId,
+      id,
+      userId,
+      dto.permission,
+    );
+  }
+
+  @Delete(':id/members/:userId')
+  @SkipResponseTransform()
+  @Roles(Role.ADMIN, Role.MANAGER)
+  @ApiOperation({ summary: 'Remover membro do folder' })
+  removeMember(
+    @WorkspaceId() workspaceId: string,
+    @Param('id') id: string,
+    @Param('userId') userId: string,
+  ) {
+    return this.foldersService.removeMember(workspaceId, id, userId);
   }
 
   @Get(':id')
