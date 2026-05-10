@@ -37,6 +37,7 @@ import { AssigneesSyncService } from './services/assignees-sync.service';
 import { WatchersSyncService } from './services/watchers-sync.service';
 import { TagsSyncService } from './services/tags-sync.service';
 import { diffWorkItem } from './helpers/diff-work-item';
+import { TaskEventsPublisher } from '../automations/events/task-events.publisher';
 
 /**
  * Envelope canonico `{data, meta}` retornado por todas as rotas deste modulo.
@@ -120,6 +121,8 @@ export class TasksService {
     @Optional()
     @Inject(TASK_TYPE_TEMPLATES_METRICS)
     private readonly templatesMetrics?: TaskTypeTemplatesMetrics,
+    @Optional()
+    private readonly automationEvents?: TaskEventsPublisher,
   ) {}
 
   /**
@@ -292,6 +295,25 @@ export class TasksService {
     this.logger.log(
       `task.created task=${row.id} process=${listId} ws=${workspaceId} actor=${actorUserId}`,
     );
+
+    this.automationEvents?.emitTaskCreated({
+      workspaceId,
+      taskId: row.id,
+      listId,
+      actorUserId,
+      parentTaskId: dto.parentId ?? null,
+      customTaskTypeId: dto.customTypeId ?? null,
+    });
+    if (dto.parentId) {
+      this.automationEvents?.emitSubtaskCreated({
+        workspaceId,
+        taskId: row.id,
+        listId,
+        actorUserId,
+        parentTaskId: dto.parentId,
+        subtaskId: row.id,
+      });
+    }
 
     // O envelope `{data, meta}` e adicionado pelo `ResponseInterceptor` global
     // — service retorna apenas o DTO para nao duplicar wrap (seria `data.data`
@@ -495,6 +517,13 @@ export class TasksService {
         workspaceId,
       });
     });
+    this.automationEvents?.emitAssigneeRemoved({
+      workspaceId,
+      taskId,
+      listId: task.listId,
+      actorUserId: actorId,
+      userId,
+    });
     return { message: 'Assignee removido' };
   }
 
@@ -531,12 +560,16 @@ export class TasksService {
     // concorrentes. PostgreSQL default READ COMMITTED garante que o read
     // veja somente commits anteriores ao inicio da tx; o syncAssignees
     // ignora P2002/P2025 idempotentemente quando colide.
+    let addedIds: string[] = [];
+    let removedIds: string[] = [];
     await this.prisma.$transaction(async (tx) => {
       const currentIds = await this.repository.findAssigneeIds(taskId, tx);
       const currentSet = new Set(currentIds);
       const add = target.filter((id) => !currentSet.has(id));
       const rem = currentIds.filter((id) => !targetSet.has(id));
       if (add.length === 0 && rem.length === 0) return;
+      addedIds = add;
+      removedIds = rem;
       await this.assigneesSync.syncAssignees(tx, {
         taskId,
         add,
@@ -545,6 +578,25 @@ export class TasksService {
         workspaceId,
       });
     });
+
+    for (const userId of addedIds) {
+      this.automationEvents?.emitTaskAssigned({
+        workspaceId,
+        taskId,
+        listId: task.listId,
+        actorUserId: actorId,
+        userId,
+      });
+    }
+    for (const userId of removedIds) {
+      this.automationEvents?.emitAssigneeRemoved({
+        workspaceId,
+        taskId,
+        listId: task.listId,
+        actorUserId: actorId,
+        userId,
+      });
+    }
 
     return this.findAssignees(workspaceId, taskId);
   }
@@ -980,12 +1032,88 @@ export class TasksService {
       return this.repository.findBySelect(taskId, tx);
     });
 
+    this.emitAutomationDiffs(workspaceId, taskId, actorId, data, updated);
+
     return {
       data: TaskResponseDto.fromRow(
         updated as unknown as Record<string, unknown>,
       ),
       meta: { taskId },
     };
+  }
+
+  private emitAutomationDiffs(
+    workspaceId: string,
+    taskId: string,
+    actorId: string,
+    data: Prisma.WorkItemUncheckedUpdateInput,
+    updated: Record<string, unknown>,
+  ): void {
+    if (!this.automationEvents) return;
+
+    const listId = String(updated.listId ?? '');
+    const ctx = { workspaceId, taskId, listId, actorUserId: actorId };
+    const changedFields: string[] = [];
+
+    if (data.statusId !== undefined) {
+      changedFields.push('statusId');
+      this.automationEvents.emitTaskStatusChanged({
+        ...ctx,
+        before: null,
+        after: (data.statusId as string) ?? null,
+      });
+    }
+    if (data.priority !== undefined) {
+      changedFields.push('priority');
+      this.automationEvents.emitTaskPriorityChanged({
+        ...ctx,
+        before: null,
+        after: (data.priority as string) ?? null,
+      });
+    }
+    if (data.title !== undefined) {
+      changedFields.push('title');
+      this.automationEvents.emitTaskNameChanged({
+        ...ctx,
+        before: null,
+        after: (data.title as string) ?? null,
+      });
+    }
+    if (data.customTypeId !== undefined) {
+      changedFields.push('customTypeId');
+      this.automationEvents.emitTaskTypeChanged({
+        ...ctx,
+        before: null,
+        after: (data.customTypeId as string) ?? null,
+      });
+    }
+    if (data.dueDate !== undefined) {
+      changedFields.push('dueDate');
+      this.automationEvents.emitTaskDueDateChanged({
+        ...ctx,
+        before: null,
+        after: (data.dueDate as Date) ?? null,
+      });
+    }
+    if (data.startDate !== undefined) {
+      changedFields.push('startDate');
+      this.automationEvents.emitTaskStartDateChanged({
+        ...ctx,
+        before: null,
+        after: (data.startDate as Date) ?? null,
+      });
+    }
+    if (data.listId !== undefined) {
+      changedFields.push('listId');
+      this.automationEvents.emitTaskMovedToList({
+        ...ctx,
+        fromListId: '',
+        toListId: data.listId as string,
+      });
+    }
+    if (changedFields.length > 0) {
+      this.automationEvents.emitTaskUpdated({ ...ctx, changedFields });
+    }
   }
 
   async remove(

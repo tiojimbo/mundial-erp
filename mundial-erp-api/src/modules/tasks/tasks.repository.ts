@@ -725,7 +725,7 @@ export class TasksRepository {
         deletedAt: null,
         list: { space: { workspaceId } },
       },
-      select: { id: true, creatorId: true },
+      select: { id: true, creatorId: true, listId: true },
     });
   }
 

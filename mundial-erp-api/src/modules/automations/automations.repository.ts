@@ -190,6 +190,13 @@ export class AutomationsRepository {
     });
   }
 
+  resolveListScope(listId: string) {
+    return this.prisma.list.findUnique({
+      where: { id: listId },
+      select: { id: true, spaceId: true, folderId: true },
+    });
+  }
+
   listWorkflowStatusesByScope(workspaceId: string) {
     return this.prisma.workflowStatus.findMany({
       where: {
