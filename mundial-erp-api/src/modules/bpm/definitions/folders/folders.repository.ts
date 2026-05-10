@@ -3,7 +3,7 @@ import { Prisma, ProcessType } from '@prisma/client';
 import { PrismaService } from '../../../../database/prisma.service';
 
 @Injectable()
-export class AreasRepository {
+export class FoldersRepository {
   constructor(private readonly prisma: PrismaService) {}
 
   /**
@@ -162,7 +162,7 @@ export class AreasRepository {
               space: { workspaceId },
               deletedAt: null,
             },
-            orderBy: { position: 'asc' },
+            orderBy: { sortOrder: 'asc' },
             select: { id: true, name: true, color: true, category: true },
           }),
         ])

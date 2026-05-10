@@ -10,7 +10,7 @@ import {
   MinLength,
 } from 'class-validator';
 
-export class CreateProcessDto {
+export class CreateListDto {
   @ApiProperty({ example: 'Venda Nacional' })
   @IsString()
   @MinLength(2)

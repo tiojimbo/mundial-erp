@@ -17,10 +17,10 @@ import {
   ApiTags,
 } from '@nestjs/swagger';
 import { Role } from '@prisma/client';
-import { AreasService } from './areas.service';
-import { CreateAreaDto } from './dto/create-area.dto';
-import { UpdateAreaDto } from './dto/update-area.dto';
-import { AreaResponseDto } from './dto/area-response.dto';
+import { FoldersService } from './folders.service';
+import { CreateFolderDto } from './dto/create-folder.dto';
+import { UpdateFolderDto } from './dto/update-folder.dto';
+import { FolderResponseDto } from './dto/folder-response.dto';
 import { PaginationDto } from '../../../../common/dtos/pagination.dto';
 import { Roles } from '../../../auth/decorators';
 import { WorkspaceId } from '../../../workspaces/decorators/workspace-id.decorator';
@@ -28,16 +28,16 @@ import { WorkspaceId } from '../../../workspaces/decorators/workspace-id.decorat
 @ApiTags('BPM - Areas')
 @ApiBearerAuth()
 @Controller('areas')
-export class AreasController {
-  constructor(private readonly areasService: AreasService) {}
+export class FoldersController {
+  constructor(private readonly foldersService: FoldersService) {}
 
   @Post()
   @Roles(Role.ADMIN, Role.MANAGER)
   @ApiOperation({ summary: 'Criar área' })
-  @ApiResponse({ status: 201, type: AreaResponseDto })
+  @ApiResponse({ status: 201, type: FolderResponseDto })
   @ApiResponse({ status: 409, description: 'Área com este nome já existe' })
-  create(@WorkspaceId() workspaceId: string, @Body() dto: CreateAreaDto) {
-    return this.areasService.create(workspaceId, dto);
+  create(@WorkspaceId() workspaceId: string, @Body() dto: CreateFolderDto) {
+    return this.foldersService.create(workspaceId, dto);
   }
 
   @Get()
@@ -47,7 +47,7 @@ export class AreasController {
     @WorkspaceId() workspaceId: string,
     @Query() pagination: PaginationDto,
   ) {
-    return this.areasService.findAll(workspaceId, pagination);
+    return this.foldersService.findAll(workspaceId, pagination);
   }
 
   @Get('by-slug/:slug')
@@ -58,7 +58,7 @@ export class AreasController {
   @ApiResponse({ status: 200 })
   @ApiResponse({ status: 404, description: 'Área não encontrada' })
   findBySlug(@WorkspaceId() workspaceId: string, @Param('slug') slug: string) {
-    return this.areasService.findBySlug(workspaceId, slug);
+    return this.foldersService.findBySlug(workspaceId, slug);
   }
 
   @Get(':id/process-summaries')
@@ -72,7 +72,7 @@ export class AreasController {
     @Param('id') id: string,
     @Query('showClosed') showClosed?: string,
   ) {
-    return this.areasService.getProcessSummaries(
+    return this.foldersService.getProcessSummaries(
       workspaceId,
       id,
       showClosed === 'true',
@@ -82,22 +82,22 @@ export class AreasController {
   @Get(':id')
   @Roles(Role.ADMIN, Role.MANAGER, Role.OPERATOR, Role.VIEWER)
   @ApiOperation({ summary: 'Buscar área por ID' })
-  @ApiResponse({ status: 200, type: AreaResponseDto })
+  @ApiResponse({ status: 200, type: FolderResponseDto })
   @ApiResponse({ status: 404, description: 'Área não encontrada' })
   findOne(@WorkspaceId() workspaceId: string, @Param('id') id: string) {
-    return this.areasService.findById(workspaceId, id);
+    return this.foldersService.findById(workspaceId, id);
   }
 
   @Patch(':id')
   @Roles(Role.ADMIN, Role.MANAGER)
   @ApiOperation({ summary: 'Atualizar área' })
-  @ApiResponse({ status: 200, type: AreaResponseDto })
+  @ApiResponse({ status: 200, type: FolderResponseDto })
   update(
     @WorkspaceId() workspaceId: string,
     @Param('id') id: string,
-    @Body() dto: UpdateAreaDto,
+    @Body() dto: UpdateFolderDto,
   ) {
-    return this.areasService.update(workspaceId, id, dto);
+    return this.foldersService.update(workspaceId, id, dto);
   }
 
   @Delete(':id')
@@ -110,6 +110,6 @@ export class AreasController {
     description: 'Não é possível excluir uma área padrão',
   })
   remove(@WorkspaceId() workspaceId: string, @Param('id') id: string) {
-    return this.areasService.remove(workspaceId, id);
+    return this.foldersService.remove(workspaceId, id);
   }
 }

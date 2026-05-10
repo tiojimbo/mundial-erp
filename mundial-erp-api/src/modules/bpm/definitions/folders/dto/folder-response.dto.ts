@@ -1,7 +1,7 @@
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
-import { Area } from '@prisma/client';
+import { Folder } from '@prisma/client';
 
-export class AreaResponseDto {
+export class FolderResponseDto {
   @ApiProperty()
   id: string;
 
@@ -45,20 +45,20 @@ export class AreaResponseDto {
   updatedAt: Date;
 
   static fromEntity(
-    entity: Area & { department?: { name: string } },
-  ): AreaResponseDto {
-    const dto = new AreaResponseDto();
+    entity: Folder & { space?: { name: string } },
+  ): FolderResponseDto {
+    const dto = new FolderResponseDto();
     dto.id = entity.id;
     dto.name = entity.name;
     dto.slug = entity.slug;
     dto.description = entity.description;
     dto.spaceId = entity.spaceId;
-    dto.departmentName = entity.department?.name;
+    dto.departmentName = entity.space?.name;
     dto.isPrivate = entity.isPrivate;
     dto.icon = entity.icon;
     dto.color = entity.color;
     dto.useSpaceStatuses = entity.useSpaceStatuses;
-    dto.sortOrder = entity.sortOrder;
+    dto.sortOrder = entity.position;
     dto.isDefault = entity.isDefault;
     dto.createdAt = entity.createdAt;
     dto.updatedAt = entity.updatedAt;

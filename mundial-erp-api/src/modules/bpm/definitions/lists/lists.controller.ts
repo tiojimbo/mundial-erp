@@ -17,10 +17,10 @@ import {
   ApiTags,
 } from '@nestjs/swagger';
 import { Role } from '@prisma/client';
-import { ProcessesService } from './processes.service';
-import { CreateProcessDto } from './dto/create-process.dto';
-import { UpdateProcessDto } from './dto/update-process.dto';
-import { ProcessResponseDto } from './dto/process-response.dto';
+import { ListsService } from './lists.service';
+import { CreateListDto } from './dto/create-list.dto';
+import { UpdateListDto } from './dto/update-list.dto';
+import { ListResponseDto } from './dto/list-response.dto';
 import { PaginationDto } from '../../../../common/dtos/pagination.dto';
 import { Roles } from '../../../auth/decorators';
 import { WorkspaceId } from '../../../workspaces/decorators/workspace-id.decorator';
@@ -28,16 +28,16 @@ import { WorkspaceId } from '../../../workspaces/decorators/workspace-id.decorat
 @ApiTags('BPM - Processes')
 @ApiBearerAuth()
 @Controller('processes')
-export class ProcessesController {
-  constructor(private readonly processesService: ProcessesService) {}
+export class ListsController {
+  constructor(private readonly listsService: ListsService) {}
 
   @Post()
   @Roles(Role.ADMIN)
   @ApiOperation({ summary: 'Criar processo (somente ADMIN)' })
-  @ApiResponse({ status: 201, type: ProcessResponseDto })
+  @ApiResponse({ status: 201, type: ListResponseDto })
   @ApiResponse({ status: 409, description: 'Processo com este nome já existe' })
-  create(@WorkspaceId() workspaceId: string, @Body() dto: CreateProcessDto) {
-    return this.processesService.create(workspaceId, dto);
+  create(@WorkspaceId() workspaceId: string, @Body() dto: CreateListDto) {
+    return this.listsService.create(workspaceId, dto);
   }
 
   @Get()
@@ -47,28 +47,28 @@ export class ProcessesController {
     @WorkspaceId() workspaceId: string,
     @Query() pagination: PaginationDto,
   ) {
-    return this.processesService.findAll(workspaceId, pagination);
+    return this.listsService.findAll(workspaceId, pagination);
   }
 
   @Get(':id')
   @Roles(Role.ADMIN, Role.MANAGER)
   @ApiOperation({ summary: 'Buscar processo por ID' })
-  @ApiResponse({ status: 200, type: ProcessResponseDto })
+  @ApiResponse({ status: 200, type: ListResponseDto })
   @ApiResponse({ status: 404, description: 'Processo não encontrado' })
   findOne(@WorkspaceId() workspaceId: string, @Param('id') id: string) {
-    return this.processesService.findById(workspaceId, id);
+    return this.listsService.findById(workspaceId, id);
   }
 
   @Patch(':id')
   @Roles(Role.ADMIN)
   @ApiOperation({ summary: 'Atualizar processo (somente ADMIN)' })
-  @ApiResponse({ status: 200, type: ProcessResponseDto })
+  @ApiResponse({ status: 200, type: ListResponseDto })
   update(
     @WorkspaceId() workspaceId: string,
     @Param('id') id: string,
-    @Body() dto: UpdateProcessDto,
+    @Body() dto: UpdateListDto,
   ) {
-    return this.processesService.update(workspaceId, id, dto);
+    return this.listsService.update(workspaceId, id, dto);
   }
 
   @Delete(':id')
@@ -77,6 +77,6 @@ export class ProcessesController {
   @ApiOperation({ summary: 'Remover processo (soft delete, somente ADMIN)' })
   @ApiResponse({ status: 204 })
   remove(@WorkspaceId() workspaceId: string, @Param('id') id: string) {
-    return this.processesService.remove(workspaceId, id);
+    return this.listsService.remove(workspaceId, id);
   }
 }

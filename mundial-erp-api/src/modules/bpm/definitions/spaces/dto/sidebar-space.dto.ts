@@ -55,7 +55,7 @@ export class SidebarAreaDto {
   processes: SidebarProcessDto[];
 }
 
-export class SidebarDepartmentDto {
+export class SidebarSpaceDto {
   @ApiProperty()
   id: string;
 

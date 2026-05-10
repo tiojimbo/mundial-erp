@@ -3,12 +3,9 @@ import { Prisma } from '@prisma/client';
 import { PrismaService } from '../../../../database/prisma.service';
 
 @Injectable()
-export class ProcessesRepository {
+export class ListsRepository {
   constructor(private readonly prisma: PrismaService) {}
 
-  /**
-   * Process NÃO possui workspaceId direto. Escopo via department (direto OU via area).
-   */
   private workspaceFilter(workspaceId: string): Prisma.ListWhereInput {
     return {
       OR: [
@@ -85,7 +82,7 @@ export class ProcessesRepository {
     });
   }
 
-  async findAreaById(workspaceId: string, folderId: string) {
+  async findFolderById(workspaceId: string, folderId: string) {
     return this.prisma.folder.findFirst({
       where: { id: folderId, deletedAt: null, space: { workspaceId } },
       select: { id: true, spaceId: true },
@@ -97,16 +94,16 @@ export class ProcessesRepository {
     data: Prisma.ListCreateInput,
   ) {
     return this.prisma.$transaction(async (tx) => {
-      const process = await tx.process.create({ data });
+      const list = await tx.list.create({ data });
       await tx.processView.create({
         data: {
           name: 'Lista',
           viewType: 'LIST',
           isPinned: true,
-          list: { connect: { id: process.id } },
+          list: { connect: { id: list.id } },
         },
       });
-      return process;
+      return list;
     });
   }
 

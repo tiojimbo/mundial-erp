@@ -88,12 +88,12 @@ export class WorkflowStatusesService {
     return grouped;
   }
 
-  async copyStatusesToArea(
+  async copyStatusesToFolder(
     workspaceId: string,
     spaceId: string,
     folderId: string,
   ) {
-    return this.workflowStatusesRepository.copyDepartmentStatusesToArea(
+    return this.workflowStatusesRepository.copySpaceStatusesToFolder(
       workspaceId,
       spaceId,
       folderId,

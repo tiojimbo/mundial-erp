@@ -57,7 +57,7 @@ import { SyncModule } from './modules/sync/sync.module';
 import { AuditLogModule } from './modules/audit-log/audit-log.module';
 import { AuditInterceptor } from './common/interceptors/audit.interceptor';
 import { ChatModule } from './modules/chat/chat.module';
-import { ProcessViewsModule } from './modules/process-views/process-views.module';
+import { ViewsModule } from './modules/views/views.module';
 import { WorkItemsModule } from './modules/work-items/work-items.module';
 import { NotificationsModule } from './modules/notifications/notifications.module';
 import { WorkspacesModule } from './modules/workspaces/workspaces.module';
@@ -248,7 +248,7 @@ import { KommoBackfillModule } from './modules/kommo-backfill/kommo-backfill.mod
     ChatModule,
 
     // Process Views (Visualizações por Processo)
-    ProcessViewsModule,
+    ViewsModule,
 
     // Work Items (Itens de Processos LIST)
     WorkItemsModule,

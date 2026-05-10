@@ -9,7 +9,7 @@ import {
   MinLength,
 } from 'class-validator';
 
-export class CreateDepartmentDto {
+export class CreateSpaceDto {
   @ApiProperty({ example: 'Comercial' })
   @IsString()
   @MinLength(2)

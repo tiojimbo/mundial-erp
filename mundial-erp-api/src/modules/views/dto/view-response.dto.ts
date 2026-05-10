@@ -1,7 +1,7 @@
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 import { ProcessView, ViewType } from '@prisma/client';
 
-export class ProcessViewResponseDto {
+export class ViewResponseDto {
   @ApiProperty()
   id: string;
 
@@ -29,8 +29,8 @@ export class ProcessViewResponseDto {
   @ApiProperty()
   updatedAt: Date;
 
-  static fromEntity(entity: ProcessView): ProcessViewResponseDto {
-    const dto = new ProcessViewResponseDto();
+  static fromEntity(entity: ProcessView): ViewResponseDto {
+    const dto = new ViewResponseDto();
     dto.id = entity.id;
     dto.listId = entity.listId;
     dto.name = entity.name;

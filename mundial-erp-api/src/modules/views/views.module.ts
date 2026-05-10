@@ -1,11 +1,11 @@
 import { Module } from '@nestjs/common';
-import { ProcessViewsController } from './process-views.controller';
-import { ProcessViewsService } from './process-views.service';
-import { ProcessViewsRepository } from './process-views.repository';
+import { ViewsController } from './views.controller';
+import { ViewsService } from './views.service';
+import { ViewsRepository } from './views.repository';
 
 @Module({
-  controllers: [ProcessViewsController],
-  providers: [ProcessViewsService, ProcessViewsRepository],
-  exports: [ProcessViewsService, ProcessViewsRepository],
+  controllers: [ViewsController],
+  providers: [ViewsService, ViewsRepository],
+  exports: [ViewsService, ViewsRepository],
 })
-export class ProcessViewsModule {}
+export class ViewsModule {}

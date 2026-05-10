@@ -8,13 +8,13 @@ import { CreateSectorDto } from './dto/create-sector.dto';
 import { UpdateSectorDto } from './dto/update-sector.dto';
 import { SectorResponseDto } from './dto/sector-response.dto';
 import { PaginationDto } from '../../../../common/dtos/pagination.dto';
-import { DepartmentsRepository } from '../departments/departments.repository';
+import { SpacesRepository } from '../spaces/spaces.repository';
 
 @Injectable()
 export class SectorsService {
   constructor(
     private readonly sectorsRepository: SectorsRepository,
-    private readonly departmentsRepository: DepartmentsRepository,
+    private readonly spacesRepository: SpacesRepository,
   ) {}
 
   private generateSlug(name: string): string {
@@ -26,15 +26,12 @@ export class SectorsService {
       .replace(/(^-|-$)/g, '');
   }
 
-  private async assertDepartmentInWorkspace(
+  private async assertSpaceInWorkspace(
     workspaceId: string,
     spaceId: string,
   ) {
-    const dept = await this.departmentsRepository.findById(
-      workspaceId,
-      spaceId,
-    );
-    if (!dept) {
+    const space = await this.spacesRepository.findById(workspaceId, spaceId);
+    if (!space) {
       throw new NotFoundException('Departamento não encontrado');
     }
   }
@@ -43,7 +40,7 @@ export class SectorsService {
     workspaceId: string,
     dto: CreateSectorDto,
   ): Promise<SectorResponseDto> {
-    await this.assertDepartmentInWorkspace(workspaceId, dto.spaceId);
+    await this.assertSpaceInWorkspace(workspaceId, dto.spaceId);
 
     const slug = this.generateSlug(dto.name);
 
@@ -106,8 +103,8 @@ export class SectorsService {
       }
     }
     if (dto.spaceId !== undefined) {
-      await this.assertDepartmentInWorkspace(workspaceId, dto.spaceId);
-      updateData.department = { connect: { id: dto.spaceId } };
+      await this.assertSpaceInWorkspace(workspaceId, dto.spaceId);
+      updateData.space = { connect: { id: dto.spaceId } };
     }
 
     const updated = await this.sectorsRepository.update(

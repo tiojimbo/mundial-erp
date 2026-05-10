@@ -5,19 +5,19 @@ import {
   NotFoundException,
   forwardRef,
 } from '@nestjs/common';
-import { AreasRepository } from './areas.repository';
-import { CreateAreaDto } from './dto/create-area.dto';
-import { UpdateAreaDto } from './dto/update-area.dto';
-import { AreaResponseDto } from './dto/area-response.dto';
+import { FoldersRepository } from './folders.repository';
+import { CreateFolderDto } from './dto/create-folder.dto';
+import { UpdateFolderDto } from './dto/update-folder.dto';
+import { FolderResponseDto } from './dto/folder-response.dto';
 import { PaginationDto } from '../../../../common/dtos/pagination.dto';
 import { WorkflowStatusesService } from '../workflow-statuses/workflow-statuses.service';
-import { DepartmentsRepository } from '../departments/departments.repository';
+import { SpacesRepository } from '../spaces/spaces.repository';
 
 @Injectable()
-export class AreasService {
+export class FoldersService {
   constructor(
-    private readonly areasRepository: AreasRepository,
-    private readonly departmentsRepository: DepartmentsRepository,
+    private readonly foldersRepository: FoldersRepository,
+    private readonly spacesRepository: SpacesRepository,
     @Inject(forwardRef(() => WorkflowStatusesService))
     private readonly workflowStatusesService: WorkflowStatusesService,
   ) {}
@@ -26,7 +26,7 @@ export class AreasService {
     return name
       .toLowerCase()
       .normalize('NFD')
-      .replace(/[\u0300-\u036f]/g, '')
+      .replace(/[̀-ͯ]/g, '')
       .replace(/[^a-z0-9]+/g, '-')
       .replace(/(^-|-$)/g, '');
   }
@@ -37,38 +37,35 @@ export class AreasService {
   ): Promise<string> {
     let slug = baseSlug;
     let suffix = 0;
-    while (await this.areasRepository.findBySlug(workspaceId, slug)) {
+    while (await this.foldersRepository.findBySlug(workspaceId, slug)) {
       suffix++;
       slug = `${baseSlug}-${suffix}`;
     }
     return slug;
   }
 
-  private async assertDepartmentInWorkspace(
+  private async assertSpaceInWorkspace(
     workspaceId: string,
     spaceId: string,
   ) {
-    const dept = await this.departmentsRepository.findById(
-      workspaceId,
-      spaceId,
-    );
-    if (!dept) {
+    const space = await this.spacesRepository.findById(workspaceId, spaceId);
+    if (!space) {
       throw new NotFoundException('Departamento não encontrado');
     }
   }
 
   async create(
     workspaceId: string,
-    dto: CreateAreaDto,
-  ): Promise<AreaResponseDto> {
-    await this.assertDepartmentInWorkspace(workspaceId, dto.spaceId);
+    dto: CreateFolderDto,
+  ): Promise<FolderResponseDto> {
+    await this.assertSpaceInWorkspace(workspaceId, dto.spaceId);
 
     const baseSlug = this.generateSlug(dto.name);
     const slug = await this.resolveUniqueSlug(workspaceId, baseSlug);
 
     const useSpaceStatuses = dto.useSpaceStatuses ?? true;
 
-    const entity = await this.areasRepository.create(workspaceId, {
+    const entity = await this.foldersRepository.create(workspaceId, {
       name: dto.name,
       slug,
       description: dto.description,
@@ -76,46 +73,46 @@ export class AreasService {
       icon: dto.icon,
       color: dto.color,
       useSpaceStatuses,
-      sortOrder: dto.sortOrder ?? 0,
+      position: dto.sortOrder ?? 0,
       space: { connect: { id: dto.spaceId } },
     });
 
     if (!useSpaceStatuses) {
-      await this.workflowStatusesService.copyStatusesToArea(
+      await this.workflowStatusesService.copyStatusesToFolder(
         workspaceId,
         dto.spaceId,
         entity.id,
       );
     }
 
-    return AreaResponseDto.fromEntity(entity);
+    return FolderResponseDto.fromEntity(entity);
   }
 
   async findAll(workspaceId: string, pagination: PaginationDto) {
-    const { items, total } = await this.areasRepository.findMany(workspaceId, {
+    const { items, total } = await this.foldersRepository.findMany(workspaceId, {
       skip: pagination.skip,
       take: pagination.limit,
     });
     return {
-      items: items.map(AreaResponseDto.fromEntity),
+      items: items.map(FolderResponseDto.fromEntity),
       total,
     };
   }
 
-  async findById(workspaceId: string, id: string): Promise<AreaResponseDto> {
-    const entity = await this.areasRepository.findById(workspaceId, id);
+  async findById(workspaceId: string, id: string): Promise<FolderResponseDto> {
+    const entity = await this.foldersRepository.findById(workspaceId, id);
     if (!entity) {
       throw new NotFoundException('Área não encontrada');
     }
-    return AreaResponseDto.fromEntity(entity);
+    return FolderResponseDto.fromEntity(entity);
   }
 
   async update(
     workspaceId: string,
     id: string,
-    dto: UpdateAreaDto,
-  ): Promise<AreaResponseDto> {
-    const entity = await this.areasRepository.findById(workspaceId, id);
+    dto: UpdateFolderDto,
+  ): Promise<FolderResponseDto> {
+    const entity = await this.foldersRepository.findById(workspaceId, id);
     if (!entity) {
       throw new NotFoundException('Área não encontrada');
     }
@@ -124,7 +121,7 @@ export class AreasService {
     if (dto.name !== undefined) {
       updateData.name = dto.name;
       const baseSlug = this.generateSlug(dto.name);
-      const existingSlug = await this.areasRepository.findBySlug(
+      const existingSlug = await this.foldersRepository.findBySlug(
         workspaceId,
         baseSlug,
       );
@@ -135,8 +132,8 @@ export class AreasService {
       }
     }
     if (dto.spaceId !== undefined) {
-      await this.assertDepartmentInWorkspace(workspaceId, dto.spaceId);
-      updateData.department = { connect: { id: dto.spaceId } };
+      await this.assertSpaceInWorkspace(workspaceId, dto.spaceId);
+      updateData.space = { connect: { id: dto.spaceId } };
     }
     if (dto.description !== undefined) updateData.description = dto.description;
     if (dto.isPrivate !== undefined) updateData.isPrivate = dto.isPrivate;
@@ -144,23 +141,23 @@ export class AreasService {
     if (dto.color !== undefined) updateData.color = dto.color;
     if (dto.useSpaceStatuses !== undefined)
       updateData.useSpaceStatuses = dto.useSpaceStatuses;
-    if (dto.sortOrder !== undefined) updateData.sortOrder = dto.sortOrder;
+    if (dto.sortOrder !== undefined) updateData.position = dto.sortOrder;
 
-    const updated = await this.areasRepository.update(
+    const updated = await this.foldersRepository.update(
       workspaceId,
       id,
       updateData,
     );
 
     if (dto.useSpaceStatuses === false && entity.useSpaceStatuses === true) {
-      await this.workflowStatusesService.copyStatusesToArea(
+      await this.workflowStatusesService.copyStatusesToFolder(
         workspaceId,
         entity.spaceId,
         id,
       );
     }
 
-    return AreaResponseDto.fromEntity(updated);
+    return FolderResponseDto.fromEntity(updated);
   }
 
   async getProcessSummaries(
@@ -168,7 +165,7 @@ export class AreasService {
     folderId: string,
     showClosed = false,
   ) {
-    return this.areasRepository.getProcessSummaries(
+    return this.foldersRepository.getProcessSummaries(
       workspaceId,
       folderId,
       showClosed,
@@ -176,7 +173,7 @@ export class AreasService {
   }
 
   async findBySlug(workspaceId: string, slug: string) {
-    const entity = await this.areasRepository.findBySlugWithDetails(
+    const entity = await this.foldersRepository.findBySlugWithDetails(
       workspaceId,
       slug,
     );
@@ -185,10 +182,10 @@ export class AreasService {
     }
 
     return {
-      ...AreaResponseDto.fromEntity(entity),
-      departmentName: entity.department.name,
-      departmentSlug: entity.department.slug,
-      processes: entity.processes.map((proc) => ({
+      ...FolderResponseDto.fromEntity(entity),
+      departmentName: entity.space.name,
+      departmentSlug: entity.space.slug,
+      processes: entity.lists.map((proc) => ({
         id: proc.id,
         name: proc.name,
         slug: proc.slug,
@@ -201,13 +198,13 @@ export class AreasService {
   }
 
   async remove(workspaceId: string, id: string): Promise<void> {
-    const entity = await this.areasRepository.findById(workspaceId, id);
+    const entity = await this.foldersRepository.findById(workspaceId, id);
     if (!entity) {
       throw new NotFoundException('Área não encontrada');
     }
     if (entity.isDefault) {
       throw new BadRequestException('Não é possível excluir uma área padrão');
     }
-    await this.areasRepository.softDelete(workspaceId, id);
+    await this.foldersRepository.softDelete(workspaceId, id);
   }
 }

@@ -5,19 +5,13 @@ import {
   NotFoundException,
 } from '@nestjs/common';
 import { Prisma, StatusCategory } from '@prisma/client';
-import { DepartmentsRepository } from './departments.repository';
-import { CreateDepartmentDto } from './dto/create-department.dto';
-import { UpdateDepartmentDto } from './dto/update-department.dto';
-import { DepartmentResponseDto } from './dto/department-response.dto';
+import { SpacesRepository } from './spaces.repository';
+import { CreateSpaceDto } from './dto/create-space.dto';
+import { UpdateSpaceDto } from './dto/update-space.dto';
+import { SpaceResponseDto } from './dto/space-response.dto';
 import { PaginationDto } from '../../../../common/dtos/pagination.dto';
 import { PrismaService } from '../../../../database/prisma.service';
 
-/**
- * Default workflow statuses que todo department novo recebe.
- * Espelha `prisma/seed-bpm.ts` §2c. Se estes nao existem, nenhuma Task
- * consegue ser criada nesse department (tasks.service.ts resolve o primeiro
- * status NOT_STARTED ao criar a task e lanca 400 se nao encontrar).
- */
 const DEFAULT_WORKFLOW_STATUSES = [
   { name: 'Para Fazer', category: StatusCategory.NOT_STARTED, color: '#94a3b8', sortOrder: 1 },
   { name: 'Em Andamento', category: StatusCategory.ACTIVE, color: '#3b82f6', sortOrder: 2 },
@@ -26,17 +20,17 @@ const DEFAULT_WORKFLOW_STATUSES = [
 ] as const;
 
 @Injectable()
-export class DepartmentsService {
+export class SpacesService {
   constructor(
     private readonly prisma: PrismaService,
-    private readonly departmentsRepository: DepartmentsRepository,
+    private readonly spacesRepository: SpacesRepository,
   ) {}
 
   private generateSlug(name: string): string {
     return name
       .toLowerCase()
       .normalize('NFD')
-      .replace(/[\u0300-\u036f]/g, '')
+      .replace(/[̀-ͯ]/g, '')
       .replace(/[^a-z0-9]+/g, '-')
       .replace(/(^-|-$)/g, '');
   }
@@ -47,7 +41,7 @@ export class DepartmentsService {
   ): Promise<string> {
     let slug = baseSlug;
     let suffix = 0;
-    while (await this.departmentsRepository.slugExists(workspaceId, slug)) {
+    while (await this.spacesRepository.slugExists(workspaceId, slug)) {
       suffix++;
       slug = `${baseSlug}-${suffix}`;
     }
@@ -56,17 +50,14 @@ export class DepartmentsService {
 
   async create(
     workspaceId: string,
-    dto: CreateDepartmentDto,
-  ): Promise<DepartmentResponseDto> {
+    dto: CreateSpaceDto,
+  ): Promise<SpaceResponseDto> {
     const baseSlug = this.generateSlug(dto.name);
     const slug = await this.resolveUniqueSlug(workspaceId, baseSlug);
 
     try {
-      // Department + workflow statuses default em uma unica tx: se statuses
-      // falham, o department nao persiste (caso contrario /tasks para esse
-      // department ficaria bloqueado com 400 ate backfill manual).
       const entity = await this.prisma.$transaction(async (tx) => {
-        const created = await tx.department.create({
+        const created = await tx.space.create({
           data: {
             name: dto.name,
             slug,
@@ -74,7 +65,7 @@ export class DepartmentsService {
             icon: dto.icon,
             color: dto.color,
             isPrivate: dto.isPrivate,
-            sortOrder: dto.sortOrder ?? 0,
+            position: dto.sortOrder ?? 0,
             workspace: { connect: { id: workspaceId } },
           },
         });
@@ -93,7 +84,7 @@ export class DepartmentsService {
         return created;
       });
 
-      return DepartmentResponseDto.fromEntity(entity);
+      return SpaceResponseDto.fromEntity(entity);
     } catch (error) {
       if (
         error instanceof Prisma.PrismaClientKnownRequestError &&
@@ -106,7 +97,7 @@ export class DepartmentsService {
   }
 
   async findAll(workspaceId: string, pagination: PaginationDto) {
-    const { items, total } = await this.departmentsRepository.findMany(
+    const { items, total } = await this.spacesRepository.findMany(
       workspaceId,
       {
         skip: pagination.skip,
@@ -114,7 +105,7 @@ export class DepartmentsService {
       },
     );
     return {
-      items: items.map(DepartmentResponseDto.fromEntity),
+      items: items.map(SpaceResponseDto.fromEntity),
       total,
     };
   }
@@ -122,20 +113,20 @@ export class DepartmentsService {
   async findById(
     workspaceId: string,
     id: string,
-  ): Promise<DepartmentResponseDto> {
-    const entity = await this.departmentsRepository.findById(workspaceId, id);
+  ): Promise<SpaceResponseDto> {
+    const entity = await this.spacesRepository.findById(workspaceId, id);
     if (!entity) {
       throw new NotFoundException('Departamento não encontrado');
     }
-    return DepartmentResponseDto.fromEntity(entity);
+    return SpaceResponseDto.fromEntity(entity);
   }
 
   async update(
     workspaceId: string,
     id: string,
-    dto: UpdateDepartmentDto,
-  ): Promise<DepartmentResponseDto> {
-    const entity = await this.departmentsRepository.findById(workspaceId, id);
+    dto: UpdateSpaceDto,
+  ): Promise<SpaceResponseDto> {
+    const entity = await this.spacesRepository.findById(workspaceId, id);
     if (!entity) {
       throw new NotFoundException('Departamento não encontrado');
     }
@@ -153,15 +144,15 @@ export class DepartmentsService {
     if (dto.icon !== undefined) updateData.icon = dto.icon;
     if (dto.color !== undefined) updateData.color = dto.color;
     if (dto.isPrivate !== undefined) updateData.isPrivate = dto.isPrivate;
-    if (dto.sortOrder !== undefined) updateData.sortOrder = dto.sortOrder;
+    if (dto.sortOrder !== undefined) updateData.position = dto.sortOrder;
 
     try {
-      const updated = await this.departmentsRepository.update(
+      const updated = await this.spacesRepository.update(
         workspaceId,
         id,
         updateData,
       );
-      return DepartmentResponseDto.fromEntity(updated);
+      return SpaceResponseDto.fromEntity(updated);
     } catch (error) {
       if (
         error instanceof Prisma.PrismaClientKnownRequestError &&
@@ -174,7 +165,7 @@ export class DepartmentsService {
   }
 
   async remove(workspaceId: string, id: string): Promise<void> {
-    const entity = await this.departmentsRepository.findById(workspaceId, id);
+    const entity = await this.spacesRepository.findById(workspaceId, id);
     if (!entity) {
       throw new NotFoundException('Departamento não encontrado');
     }
@@ -183,25 +174,25 @@ export class DepartmentsService {
         'Departamento protegido não pode ser removido',
       );
     }
-    await this.departmentsRepository.softDelete(workspaceId, id);
+    await this.spacesRepository.softDelete(workspaceId, id);
   }
 
   async getSidebarTree(workspaceId: string) {
-    const departments =
-      await this.departmentsRepository.getSidebarTree(workspaceId);
-    return departments.map((dept) => ({
-      id: dept.id,
-      name: dept.name,
-      slug: dept.slug,
-      description: dept.description,
-      icon: dept.icon,
-      color: dept.color,
-      isPrivate: dept.isPrivate,
-      isDefault: dept.isDefault,
-      isProtected: dept.isProtected,
-      sortOrder: dept.sortOrder,
-      areas: dept.areas,
-      directProcesses: dept.processes,
+    const spaces =
+      await this.spacesRepository.getSidebarTree(workspaceId);
+    return spaces.map((sp) => ({
+      id: sp.id,
+      name: sp.name,
+      slug: sp.slug,
+      description: sp.description,
+      icon: sp.icon,
+      color: sp.color,
+      isPrivate: sp.isPrivate,
+      isDefault: sp.isDefault,
+      isProtected: sp.isProtected,
+      sortOrder: sp.position,
+      areas: sp.folders,
+      directProcesses: sp.lists,
     }));
   }
 
@@ -210,14 +201,14 @@ export class DepartmentsService {
     spaceId: string,
     showClosed = false,
   ) {
-    const entity = await this.departmentsRepository.findById(
+    const entity = await this.spacesRepository.findById(
       workspaceId,
       spaceId,
     );
     if (!entity) {
       throw new NotFoundException('Departamento não encontrado');
     }
-    return this.departmentsRepository.getProcessSummaries(
+    return this.spacesRepository.getProcessSummaries(
       workspaceId,
       spaceId,
       showClosed,
@@ -225,7 +216,7 @@ export class DepartmentsService {
   }
 
   async findBySlug(workspaceId: string, slug: string) {
-    const entity = await this.departmentsRepository.findBySlugWithDetails(
+    const entity = await this.spacesRepository.findBySlugWithDetails(
       workspaceId,
       slug,
     );
@@ -234,16 +225,16 @@ export class DepartmentsService {
     }
 
     return {
-      ...DepartmentResponseDto.fromEntity(entity),
-      areas: entity.areas.map((area) => ({
-        id: area.id,
-        name: area.name,
-        slug: area.slug,
-        description: area.description,
-        isPrivate: area.isPrivate,
-        processCount: area._count.processes,
+      ...SpaceResponseDto.fromEntity(entity),
+      areas: entity.folders.map((folder) => ({
+        id: folder.id,
+        name: folder.name,
+        slug: folder.slug,
+        description: folder.description,
+        isPrivate: folder.isPrivate,
+        processCount: folder._count.lists,
       })),
-      directProcesses: entity.processes.map((proc) => ({
+      directProcesses: entity.lists.map((proc) => ({
         id: proc.id,
         name: proc.name,
         slug: proc.slug,

@@ -1,7 +1,7 @@
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
-import { Process, ProcessStatus, ProcessType } from '@prisma/client';
+import { List, ProcessStatus, ProcessType } from '@prisma/client';
 
-export class ProcessResponseDto {
+export class ListResponseDto {
   @ApiProperty()
   id: string;
 
@@ -54,12 +54,12 @@ export class ProcessResponseDto {
   updatedAt: Date;
 
   static fromEntity(
-    entity: Process & {
+    entity: List & {
       sector?: { name: string } | null;
       _count?: { activities: number };
     },
-  ): ProcessResponseDto {
-    const dto = new ProcessResponseDto();
+  ): ListResponseDto {
+    const dto = new ListResponseDto();
     dto.id = entity.id;
     dto.name = entity.name;
     dto.slug = entity.slug;
@@ -73,7 +73,7 @@ export class ProcessResponseDto {
     dto.isPrivate = entity.isPrivate;
     dto.isProtected = entity.isProtected;
     dto.status = entity.status;
-    dto.sortOrder = entity.sortOrder;
+    dto.sortOrder = entity.position;
     dto.activitiesCount = entity._count?.activities;
     dto.createdAt = entity.createdAt;
     dto.updatedAt = entity.updatedAt;

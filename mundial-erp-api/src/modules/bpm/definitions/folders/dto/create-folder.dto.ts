@@ -8,7 +8,7 @@ import {
   MinLength,
 } from 'class-validator';
 
-export class CreateAreaDto {
+export class CreateFolderDto {
   @ApiProperty({ example: 'Atendimento ao Cliente' })
   @IsString()
   @MinLength(2)

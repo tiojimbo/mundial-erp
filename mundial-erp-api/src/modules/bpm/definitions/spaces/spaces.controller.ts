@@ -17,11 +17,11 @@ import {
   ApiTags,
 } from '@nestjs/swagger';
 import { Role } from '@prisma/client';
-import { DepartmentsService } from './departments.service';
-import { CreateDepartmentDto } from './dto/create-department.dto';
-import { UpdateDepartmentDto } from './dto/update-department.dto';
-import { DepartmentResponseDto } from './dto/department-response.dto';
-import { SidebarDepartmentDto } from './dto/sidebar-department.dto';
+import { SpacesService } from './spaces.service';
+import { CreateSpaceDto } from './dto/create-space.dto';
+import { UpdateSpaceDto } from './dto/update-space.dto';
+import { SpaceResponseDto } from './dto/space-response.dto';
+import { SidebarSpaceDto } from './dto/sidebar-space.dto';
 import { PaginationDto } from '../../../../common/dtos/pagination.dto';
 import { Roles } from '../../../auth/decorators';
 import { WorkspaceId } from '../../../workspaces/decorators/workspace-id.decorator';
@@ -29,19 +29,19 @@ import { WorkspaceId } from '../../../workspaces/decorators/workspace-id.decorat
 @ApiTags('BPM - Departments')
 @ApiBearerAuth()
 @Controller('departments')
-export class DepartmentsController {
-  constructor(private readonly departmentsService: DepartmentsService) {}
+export class SpacesController {
+  constructor(private readonly spacesService: SpacesService) {}
 
   @Post()
   @Roles(Role.ADMIN)
   @ApiOperation({ summary: 'Criar departamento (somente ADMIN)' })
-  @ApiResponse({ status: 201, type: DepartmentResponseDto })
+  @ApiResponse({ status: 201, type: SpaceResponseDto })
   @ApiResponse({
     status: 409,
     description: 'Departamento com este nome já existe',
   })
-  create(@WorkspaceId() workspaceId: string, @Body() dto: CreateDepartmentDto) {
-    return this.departmentsService.create(workspaceId, dto);
+  create(@WorkspaceId() workspaceId: string, @Body() dto: CreateSpaceDto) {
+    return this.spacesService.create(workspaceId, dto);
   }
 
   @Get()
@@ -51,15 +51,15 @@ export class DepartmentsController {
     @WorkspaceId() workspaceId: string,
     @Query() pagination: PaginationDto,
   ) {
-    return this.departmentsService.findAll(workspaceId, pagination);
+    return this.spacesService.findAll(workspaceId, pagination);
   }
 
   @Get('sidebar')
   @Roles(Role.ADMIN, Role.MANAGER, Role.OPERATOR, Role.VIEWER)
   @ApiOperation({ summary: 'Árvore de departamentos para sidebar' })
-  @ApiResponse({ status: 200, type: [SidebarDepartmentDto] })
+  @ApiResponse({ status: 200, type: [SidebarSpaceDto] })
   getSidebarTree(@WorkspaceId() workspaceId: string) {
-    return this.departmentsService.getSidebarTree(workspaceId);
+    return this.spacesService.getSidebarTree(workspaceId);
   }
 
   @Get('by-slug/:slug')
@@ -70,7 +70,7 @@ export class DepartmentsController {
   @ApiResponse({ status: 200 })
   @ApiResponse({ status: 404, description: 'Departamento não encontrado' })
   findBySlug(@WorkspaceId() workspaceId: string, @Param('slug') slug: string) {
-    return this.departmentsService.findBySlug(workspaceId, slug);
+    return this.spacesService.findBySlug(workspaceId, slug);
   }
 
   @Get(':id/process-summaries')
@@ -86,7 +86,7 @@ export class DepartmentsController {
     @Param('id') id: string,
     @Query('showClosed') showClosed?: string,
   ) {
-    return this.departmentsService.getProcessSummaries(
+    return this.spacesService.getProcessSummaries(
       workspaceId,
       id,
       showClosed === 'true',
@@ -96,22 +96,22 @@ export class DepartmentsController {
   @Get(':id')
   @Roles(Role.ADMIN, Role.MANAGER)
   @ApiOperation({ summary: 'Buscar departamento por ID' })
-  @ApiResponse({ status: 200, type: DepartmentResponseDto })
+  @ApiResponse({ status: 200, type: SpaceResponseDto })
   @ApiResponse({ status: 404, description: 'Departamento não encontrado' })
   findOne(@WorkspaceId() workspaceId: string, @Param('id') id: string) {
-    return this.departmentsService.findById(workspaceId, id);
+    return this.spacesService.findById(workspaceId, id);
   }
 
   @Patch(':id')
   @Roles(Role.ADMIN)
   @ApiOperation({ summary: 'Atualizar departamento (somente ADMIN)' })
-  @ApiResponse({ status: 200, type: DepartmentResponseDto })
+  @ApiResponse({ status: 200, type: SpaceResponseDto })
   update(
     @WorkspaceId() workspaceId: string,
     @Param('id') id: string,
-    @Body() dto: UpdateDepartmentDto,
+    @Body() dto: UpdateSpaceDto,
   ) {
-    return this.departmentsService.update(workspaceId, id, dto);
+    return this.spacesService.update(workspaceId, id, dto);
   }
 
   @Delete(':id')
@@ -122,6 +122,6 @@ export class DepartmentsController {
   })
   @ApiResponse({ status: 204 })
   remove(@WorkspaceId() workspaceId: string, @Param('id') id: string) {
-    return this.departmentsService.remove(workspaceId, id);
+    return this.spacesService.remove(workspaceId, id);
   }
 }

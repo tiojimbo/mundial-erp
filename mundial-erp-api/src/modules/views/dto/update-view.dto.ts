@@ -1,7 +1,7 @@
 import { ApiPropertyOptional } from '@nestjs/swagger';
 import { IsObject, IsOptional, IsString, MinLength } from 'class-validator';
 
-export class UpdateProcessViewDto {
+export class UpdateViewDto {
   @ApiPropertyOptional({ example: 'Visão Kanban Atualizada' })
   @IsOptional()
   @IsString()

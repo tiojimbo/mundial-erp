@@ -1,4 +1,4 @@
 import { PartialType } from '@nestjs/swagger';
-import { CreateProcessDto } from './create-process.dto';
+import { CreateListDto } from './create-list.dto';
 
-export class UpdateProcessDto extends PartialType(CreateProcessDto) {}
+export class UpdateListDto extends PartialType(CreateListDto) {}

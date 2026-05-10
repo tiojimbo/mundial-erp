@@ -3,7 +3,7 @@ import { Prisma, ProcessType } from '@prisma/client';
 import { PrismaService } from '../../../../database/prisma.service';
 
 @Injectable()
-export class DepartmentsRepository {
+export class SpacesRepository {
   constructor(private readonly prisma: PrismaService) {}
 
   async create(workspaceId: string, data: Prisma.SpaceCreateInput) {
@@ -79,7 +79,7 @@ export class DepartmentsRepository {
       featureRoute: true,
       isPrivate: true,
       isProtected: true,
-      sortOrder: true,
+      position: true,
     } as const;
 
     return this.prisma.space.findMany({
@@ -95,7 +95,7 @@ export class DepartmentsRepository {
         isPrivate: true,
         isDefault: true,
         isProtected: true,
-        sortOrder: true,
+        position: true,
         folders: {
           where: { deletedAt: null },
           orderBy: { position: 'asc' },
@@ -105,7 +105,7 @@ export class DepartmentsRepository {
             slug: true,
             description: true,
             isPrivate: true,
-            sortOrder: true,
+            position: true,
             isDefault: true,
             lists: {
               where: { deletedAt: null },
@@ -220,7 +220,7 @@ export class DepartmentsRepository {
       ? await Promise.all([
           this.prisma.workItem.findMany({
             where: workItemWhere,
-            orderBy: [{ position: 'asc' }, { createdAt: 'desc' }],
+            orderBy: [{ sortOrder: 'asc' }, { createdAt: 'desc' }],
             take: 2500, // cap global para não estourar memória
             select: {
               id: true,
@@ -250,7 +250,7 @@ export class DepartmentsRepository {
               space: { workspaceId },
               deletedAt: null,
             },
-            orderBy: { position: 'asc' },
+            orderBy: { sortOrder: 'asc' },
             select: {
               id: true,
               name: true,

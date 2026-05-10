@@ -1,57 +1,57 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
-import { ProcessViewsRepository } from './process-views.repository';
-import { CreateProcessViewDto } from './dto/create-process-view.dto';
-import { UpdateProcessViewDto } from './dto/update-process-view.dto';
-import { ProcessViewResponseDto } from './dto/process-view-response.dto';
+import { ViewsRepository } from './views.repository';
+import { CreateViewDto } from './dto/create-view.dto';
+import { UpdateViewDto } from './dto/update-view.dto';
+import { ViewResponseDto } from './dto/view-response.dto';
 import { PaginationDto } from '../../common/dtos/pagination.dto';
 
 @Injectable()
-export class ProcessViewsService {
-  constructor(
-    private readonly processViewsRepository: ProcessViewsRepository,
-  ) {}
+export class ViewsService {
+  constructor(private readonly viewsRepository: ViewsRepository) {}
 
   async create(
     workspaceId: string,
-    dto: CreateProcessViewDto,
-  ): Promise<ProcessViewResponseDto> {
-    const proc = await this.processViewsRepository.findProcessById(
+    dto: CreateViewDto,
+  ): Promise<ViewResponseDto> {
+    const list = await this.viewsRepository.findListById(
       workspaceId,
       dto.listId,
     );
-    if (!proc) {
+    if (!list) {
       throw new NotFoundException('Processo não encontrado');
     }
-    const entity = await this.processViewsRepository.create(workspaceId, {
+    const entity = await this.viewsRepository.create(workspaceId, {
       listId: dto.listId,
       name: dto.name,
       viewType: dto.viewType,
       config: dto.config ?? {},
     });
 
-    return ProcessViewResponseDto.fromEntity(entity);
+    return ViewResponseDto.fromEntity(entity);
   }
 
-  async findAllByProcess(
+  async findAllByList(
     workspaceId: string,
     listId: string,
     pagination: PaginationDto,
   ) {
-    const proc = await this.processViewsRepository.findProcessById(
+    const list = await this.viewsRepository.findListById(
       workspaceId,
       listId,
     );
-    if (!proc) {
+    if (!list) {
       throw new NotFoundException('Processo não encontrado');
     }
-    const { items, total } =
-      await this.processViewsRepository.findManyByProcess(workspaceId, {
+    const { items, total } = await this.viewsRepository.findManyByList(
+      workspaceId,
+      {
         listId,
         skip: pagination.skip,
         take: pagination.limit,
-      });
+      },
+    );
     return {
-      items: items.map(ProcessViewResponseDto.fromEntity),
+      items: items.map(ViewResponseDto.fromEntity),
       total,
     };
   }
@@ -59,9 +59,9 @@ export class ProcessViewsService {
   async update(
     workspaceId: string,
     id: string,
-    dto: UpdateProcessViewDto,
-  ): Promise<ProcessViewResponseDto> {
-    const entity = await this.processViewsRepository.findById(workspaceId, id);
+    dto: UpdateViewDto,
+  ): Promise<ViewResponseDto> {
+    const entity = await this.viewsRepository.findById(workspaceId, id);
     if (!entity) {
       throw new NotFoundException('Visão não encontrada');
     }
@@ -70,35 +70,32 @@ export class ProcessViewsService {
     if (dto.name !== undefined) updateData.name = dto.name;
     if (dto.config !== undefined) updateData.config = dto.config;
 
-    const updated = await this.processViewsRepository.update(
+    const updated = await this.viewsRepository.update(
       workspaceId,
       id,
       updateData,
     );
-    return ProcessViewResponseDto.fromEntity(updated);
+    return ViewResponseDto.fromEntity(updated);
   }
 
-  async pin(workspaceId: string, id: string): Promise<ProcessViewResponseDto> {
-    const entity = await this.processViewsRepository.findById(workspaceId, id);
+  async pin(workspaceId: string, id: string): Promise<ViewResponseDto> {
+    const entity = await this.viewsRepository.findById(workspaceId, id);
     if (!entity) {
       throw new NotFoundException('Visão não encontrada');
     }
 
-    await this.processViewsRepository.unpinAllByProcess(
-      workspaceId,
-      entity.listId,
-    );
-    const updated = await this.processViewsRepository.update(workspaceId, id, {
+    await this.viewsRepository.unpinAllByList(workspaceId, entity.listId);
+    const updated = await this.viewsRepository.update(workspaceId, id, {
       isPinned: true,
     });
-    return ProcessViewResponseDto.fromEntity(updated);
+    return ViewResponseDto.fromEntity(updated);
   }
 
   async remove(workspaceId: string, id: string): Promise<void> {
-    const entity = await this.processViewsRepository.findById(workspaceId, id);
+    const entity = await this.viewsRepository.findById(workspaceId, id);
     if (!entity) {
       throw new NotFoundException('Visão não encontrada');
     }
-    await this.processViewsRepository.softDelete(workspaceId, id);
+    await this.viewsRepository.softDelete(workspaceId, id);
   }
 }

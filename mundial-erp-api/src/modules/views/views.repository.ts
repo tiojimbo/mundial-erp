@@ -3,13 +3,10 @@ import { Prisma } from '@prisma/client';
 import { PrismaService } from '../../database/prisma.service';
 
 @Injectable()
-export class ProcessViewsRepository {
+export class ViewsRepository {
   constructor(private readonly prisma: PrismaService) {}
 
-  /**
-   * ProcessView NÃO tem workspaceId direto. Escopo via process→department→workspace.
-   */
-  private workspaceProcessFilter(
+  private workspaceListFilter(
     workspaceId: string,
   ): Prisma.ProcessViewWhereInput {
     return {
@@ -34,12 +31,12 @@ export class ProcessViewsRepository {
       where: {
         id,
         deletedAt: null,
-        ...this.workspaceProcessFilter(workspaceId),
+        ...this.workspaceListFilter(workspaceId),
       },
     });
   }
 
-  async findManyByProcess(
+  async findManyByList(
     workspaceId: string,
     params: { listId: string; skip?: number; take?: number },
   ) {
@@ -47,7 +44,7 @@ export class ProcessViewsRepository {
     const where: Prisma.ProcessViewWhereInput = {
       listId,
       deletedAt: null,
-      ...this.workspaceProcessFilter(workspaceId),
+      ...this.workspaceListFilter(workspaceId),
     };
     const [items, total] = await Promise.all([
       this.prisma.processView.findMany({
@@ -69,13 +66,13 @@ export class ProcessViewsRepository {
     return this.prisma.processView.update({ where: { id }, data });
   }
 
-  async unpinAllByProcess(workspaceId: string, listId: string) {
+  async unpinAllByList(workspaceId: string, listId: string) {
     return this.prisma.processView.updateMany({
       where: {
         listId,
         deletedAt: null,
         isPinned: true,
-        ...this.workspaceProcessFilter(workspaceId),
+        ...this.workspaceListFilter(workspaceId),
       },
       data: { isPinned: false },
     });
@@ -88,7 +85,7 @@ export class ProcessViewsRepository {
     });
   }
 
-  async findProcessById(workspaceId: string, listId: string) {
+  async findListById(workspaceId: string, listId: string) {
     return this.prisma.list.findFirst({
       where: {
         id: listId,

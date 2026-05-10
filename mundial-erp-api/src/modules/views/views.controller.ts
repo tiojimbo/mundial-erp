@@ -17,29 +17,29 @@ import {
   ApiTags,
 } from '@nestjs/swagger';
 import { Role } from '@prisma/client';
-import { ProcessViewsService } from './process-views.service';
-import { CreateProcessViewDto } from './dto/create-process-view.dto';
-import { UpdateProcessViewDto } from './dto/update-process-view.dto';
-import { ProcessViewResponseDto } from './dto/process-view-response.dto';
-import { ListProcessViewsQueryDto } from './dto/list-process-views-query.dto';
+import { ViewsService } from './views.service';
+import { CreateViewDto } from './dto/create-view.dto';
+import { UpdateViewDto } from './dto/update-view.dto';
+import { ViewResponseDto } from './dto/view-response.dto';
+import { ListViewsQueryDto } from './dto/list-views-query.dto';
 import { Roles } from '../auth/decorators';
 import { WorkspaceId } from '../workspaces/decorators/workspace-id.decorator';
 
 @ApiTags('Process Views')
 @ApiBearerAuth()
 @Controller('process-views')
-export class ProcessViewsController {
-  constructor(private readonly processViewsService: ProcessViewsService) {}
+export class ViewsController {
+  constructor(private readonly viewsService: ViewsService) {}
 
   @Post()
   @Roles(Role.ADMIN, Role.MANAGER)
   @ApiOperation({ summary: 'Criar visão de processo' })
-  @ApiResponse({ status: 201, type: ProcessViewResponseDto })
+  @ApiResponse({ status: 201, type: ViewResponseDto })
   create(
     @WorkspaceId() workspaceId: string,
-    @Body() dto: CreateProcessViewDto,
+    @Body() dto: CreateViewDto,
   ) {
-    return this.processViewsService.create(workspaceId, dto);
+    return this.viewsService.create(workspaceId, dto);
   }
 
   @Get()
@@ -47,11 +47,11 @@ export class ProcessViewsController {
   @ApiOperation({ summary: 'Listar visões de um processo' })
   findAll(
     @WorkspaceId() workspaceId: string,
-    @Query() query: ListProcessViewsQueryDto,
+    @Query() query: ListViewsQueryDto,
   ) {
-    return this.processViewsService.findAllByProcess(
+    return this.viewsService.findAllByList(
       workspaceId,
-      query.processId,
+      query.listId,
       query,
     );
   }
@@ -59,14 +59,14 @@ export class ProcessViewsController {
   @Patch(':id')
   @Roles(Role.ADMIN, Role.MANAGER)
   @ApiOperation({ summary: 'Atualizar visão (nome/config)' })
-  @ApiResponse({ status: 200, type: ProcessViewResponseDto })
+  @ApiResponse({ status: 200, type: ViewResponseDto })
   @ApiResponse({ status: 404, description: 'Visão não encontrada' })
   update(
     @WorkspaceId() workspaceId: string,
     @Param('id') id: string,
-    @Body() dto: UpdateProcessViewDto,
+    @Body() dto: UpdateViewDto,
   ) {
-    return this.processViewsService.update(workspaceId, id, dto);
+    return this.viewsService.update(workspaceId, id, dto);
   }
 
   @Patch(':id/pin')
@@ -74,10 +74,10 @@ export class ProcessViewsController {
   @ApiOperation({
     summary: 'Fixar visão como padrão (desfixa as demais do processo)',
   })
-  @ApiResponse({ status: 200, type: ProcessViewResponseDto })
+  @ApiResponse({ status: 200, type: ViewResponseDto })
   @ApiResponse({ status: 404, description: 'Visão não encontrada' })
   pin(@WorkspaceId() workspaceId: string, @Param('id') id: string) {
-    return this.processViewsService.pin(workspaceId, id);
+    return this.viewsService.pin(workspaceId, id);
   }
 
   @Delete(':id')
@@ -86,6 +86,6 @@ export class ProcessViewsController {
   @ApiOperation({ summary: 'Remover visão (soft delete)' })
   @ApiResponse({ status: 204 })
   remove(@WorkspaceId() workspaceId: string, @Param('id') id: string) {
-    return this.processViewsService.remove(workspaceId, id);
+    return this.viewsService.remove(workspaceId, id);
   }
 }

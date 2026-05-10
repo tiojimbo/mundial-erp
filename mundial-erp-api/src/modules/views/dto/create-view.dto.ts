@@ -8,7 +8,7 @@ import {
   MinLength,
 } from 'class-validator';
 
-export class CreateProcessViewDto {
+export class CreateViewDto {
   @ApiProperty({ example: 'cuid-do-processo' })
   @IsString()
   listId: string;

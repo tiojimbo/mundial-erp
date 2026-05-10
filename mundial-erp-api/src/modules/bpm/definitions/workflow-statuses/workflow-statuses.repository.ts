@@ -51,12 +51,12 @@ export class WorkflowStatusesRepository {
     });
   }
 
-  async copyDepartmentStatusesToArea(
+  async copySpaceStatusesToFolder(
     workspaceId: string,
     spaceId: string,
     folderId: string,
   ) {
-    const deptStatuses = await this.prisma.workflowStatus.findMany({
+    const spaceStatuses = await this.prisma.workflowStatus.findMany({
       where: {
         spaceId,
         folderId: null,
@@ -66,7 +66,7 @@ export class WorkflowStatusesRepository {
       orderBy: { position: 'asc' },
     });
 
-    const creates = deptStatuses.map((s) =>
+    const creates = spaceStatuses.map((s) =>
       this.prisma.workflowStatus.create({
         data: {
           name: s.name,
@@ -76,7 +76,7 @@ export class WorkflowStatusesRepository {
           sortOrder: s.sortOrder,
           isDefault: s.isDefault,
           space: { connect: { id: spaceId } },
-          area: { connect: { id: folderId } },
+          folder: { connect: { id: folderId } },
         },
       }),
     );
