@@ -7,8 +7,8 @@ import {
   HttpCode,
   HttpStatus,
   Param,
-  Patch,
   Post,
+  Put,
   Query,
   UseGuards,
 } from '@nestjs/common';
@@ -35,6 +35,7 @@ import { CurrentUser, Roles } from '../auth/decorators';
 import type { JwtPayload } from '../auth/decorators';
 import { WorkspaceId } from '../workspaces/decorators/workspace-id.decorator';
 import { TasksFeatureFlagGuard } from '../../common/feature-flags/tasks-feature-flag.guard';
+import { SkipResponseTransform } from '../../common/decorators/skip-response-transform.decorator';
 
 /**
  * Controller de Tasks (PLANO-TASKS.md §7.1–7.2).
@@ -51,6 +52,7 @@ import { TasksFeatureFlagGuard } from '../../common/feature-flags/tasks-feature-
 @ApiTags('Tasks')
 @ApiBearerAuth()
 @UseGuards(TasksFeatureFlagGuard)
+@SkipResponseTransform()
 @Controller()
 export class TasksController {
   constructor(private readonly tasksService: TasksService) {}
@@ -100,9 +102,9 @@ export class TasksController {
     return this.tasksService.findById(workspaceId, taskId, includes);
   }
 
-  @Patch('tasks/:taskId')
+  @Put('tasks/:taskId')
   @Roles(Role.ADMIN, Role.MANAGER, Role.OPERATOR)
-  @ApiOperation({ summary: 'Atualizacao parcial de task' })
+  @ApiOperation({ summary: 'Atualizacao de task (PUT estilo Hoppe, partial body)' })
   @ApiResponse({ status: 200, type: TaskResponseDto })
   @ApiResponse({ status: 404, description: 'Task nao encontrada' })
   update(
@@ -116,9 +118,8 @@ export class TasksController {
 
   @Delete('tasks/:taskId')
   @Roles(Role.ADMIN, Role.MANAGER, Role.OPERATOR)
-  @HttpCode(HttpStatus.NO_CONTENT)
-  @ApiOperation({ summary: 'Soft delete (idempotente — 204)' })
-  @ApiResponse({ status: 204 })
+  @ApiOperation({ summary: 'Soft delete (idempotente, 200 estilo Hoppe)' })
+  @ApiResponse({ status: 200, description: 'Task removida' })
   remove(@WorkspaceId() workspaceId: string, @Param('taskId') taskId: string) {
     return this.tasksService.remove(workspaceId, taskId);
   }

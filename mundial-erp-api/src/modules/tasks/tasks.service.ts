@@ -474,19 +474,21 @@ export class TasksService {
     };
   }
 
-  async remove(workspaceId: string, taskId: string): Promise<void> {
+  async remove(
+    workspaceId: string,
+    taskId: string,
+  ): Promise<{ message: string }> {
     // `updateMany` idempotente: se ja estava deletada, retorna count=0 sem
-    // erro. 204 sempre que a task for do workspace (ou se nao existir).
+    // erro. 200 estilo Hoppe (HPP-050) sempre que a task for do workspace.
     const existing = await this.repository.findExistenceRow(
       workspaceId,
       taskId,
     );
     if (!existing) {
-      // Cross-tenant/inexistente -> 404 (§8.1). Ja-deletada recai no ramo
-      // de soft-delete idempotente abaixo (existing.deletedAt != null).
       throw new NotFoundException('Task nao encontrada');
     }
     await this.repository.softDelete(workspaceId, taskId);
+    return { message: 'Task removida' };
   }
 
   async archive(

@@ -245,7 +245,7 @@ describe('Task Activities SSE (e2e)', () => {
 
     // disparar mutacao
     const patchRes = await request(app.getHttpServer())
-      .patch(`/api/v1/tasks/${taskA!.taskId}`)
+      .put(`/api/v1/tasks/${taskA!.taskId}`)
       .set('Authorization', `Bearer ${wsA!.token}`)
       .send({ priority: 'HIGH' });
 

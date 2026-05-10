@@ -222,7 +222,7 @@ describe('Task Activities (e2e)', () => {
 
     const newDue = '2026-06-15T00:00:00.000Z';
     const patchRes = await request(app.getHttpServer())
-      .patch(`/api/v1/tasks/${taskA!.taskId}`)
+      .put(`/api/v1/tasks/${taskA!.taskId}`)
       .set('Authorization', `Bearer ${wsA!.token}`)
       .send({ dueDate: newDue });
 
@@ -256,7 +256,7 @@ describe('Task Activities (e2e)', () => {
     const dueIso = '2026-06-15T00:00:00.000Z';
     // garantir estado
     await request(app.getHttpServer())
-      .patch(`/api/v1/tasks/${taskA!.taskId}`)
+      .put(`/api/v1/tasks/${taskA!.taskId}`)
       .set('Authorization', `Bearer ${wsA!.token}`)
       .send({ dueDate: dueIso });
 
@@ -265,7 +265,7 @@ describe('Task Activities (e2e)', () => {
 
     // reaplica identico
     await request(app.getHttpServer())
-      .patch(`/api/v1/tasks/${taskA!.taskId}`)
+      .put(`/api/v1/tasks/${taskA!.taskId}`)
       .set('Authorization', `Bearer ${wsA!.token}`)
       .send({ dueDate: dueIso });
 
