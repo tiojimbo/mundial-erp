@@ -1,10 +1,8 @@
 import { Inject, Injectable, Logger, OnModuleInit } from '@nestjs/common';
-import { Client } from '@elastic/elasticsearch';
-import type {
-  MappingTypeMapping,
-  QueryDslQueryContainer,
-  SortCombinations,
-} from '@elastic/elasticsearch/lib/api/types';
+import { Client, estypes } from '@elastic/elasticsearch';
+type MappingTypeMapping = estypes.MappingTypeMapping;
+type QueryDslQueryContainer = estypes.QueryDslQueryContainer;
+type SortCombinations = estypes.SortCombinations;
 import {
   ELASTICSEARCH_CLIENT,
   ALL_INDICES,

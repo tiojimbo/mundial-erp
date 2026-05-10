@@ -126,15 +126,10 @@ export class TaskLinksRepository {
   }
 
   async deleteEdge(edge: LinkEdge, tx?: Prisma.TransactionClient) {
-    return this.client(tx).workItemLink.delete({
-      where: {
-        fromTaskId_toTaskId: {
-          fromTaskId: edge.fromTaskId,
-          toTaskId: edge.toTaskId,
-        },
-      },
-      select: { fromTaskId: true, toTaskId: true },
+    await this.client(tx).workItemLink.deleteMany({
+      where: { fromTaskId: edge.fromTaskId, toTaskId: edge.toTaskId },
     });
+    return { fromTaskId: edge.fromTaskId, toTaskId: edge.toTaskId };
   }
 
   /**

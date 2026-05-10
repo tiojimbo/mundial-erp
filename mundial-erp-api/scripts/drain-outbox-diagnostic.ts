@@ -99,8 +99,8 @@ async function main() {
   });
   console.log('\n[task -> workspace]');
   for (const t of tasksWs) {
-    const ws = t.process?.department?.workspaceId ?? 'NULL';
-    const dp = t.process?.department?.name ?? '?';
+    const ws = t.list?.space?.workspaceId ?? 'NULL';
+    const dp = t.list?.space?.name ?? '?';
     console.log(`  ${t.id} | ws=${ws} | dept=${dp} | ${t.title.slice(0, 40)}`);
   }
 

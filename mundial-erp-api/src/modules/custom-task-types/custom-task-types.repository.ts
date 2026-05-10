@@ -59,6 +59,7 @@ export class CustomTaskTypesRepository {
         select: {
           id: true,
           workspaceId: true,
+          spaceId: true,
           name: true,
           namePlural: true,
           description: true,
@@ -101,6 +102,7 @@ export class CustomTaskTypesRepository {
       select: {
         id: true,
         workspaceId: true,
+        spaceId: true,
         name: true,
         namePlural: true,
         description: true,
@@ -137,6 +139,7 @@ export class CustomTaskTypesRepository {
       select: {
         id: true,
         workspaceId: true,
+        spaceId: true,
         name: true,
         namePlural: true,
         description: true,
