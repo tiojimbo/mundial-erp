@@ -48,7 +48,7 @@ const DEFAULT_WORKSPACE = {
  * A ordem aqui nao importa pois sao UPDATEs independentes.
  */
 const WORKSPACE_SCOPED_TABLES = [
-  'departments',
+  'spaces',
   'status_templates',
   'clients',
   'client_classifications',

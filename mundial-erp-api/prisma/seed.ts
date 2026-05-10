@@ -1091,10 +1091,10 @@ async function main() {
   console.log('\n11. BPM Process instances ...');
 
   // Look up the process definitions seeded by seed-bpm.ts
-  const processPedidos = await prisma.process.findFirst({ where: { slug: 'processo-pedidos' } });
-  const processConc = await prisma.process.findFirst({ where: { slug: 'conciliacao-faturamento-processo' } });
-  const processProducao = await prisma.process.findFirst({ where: { slug: 'producao-pedido-processo' } });
-  const processConferencia = await prisma.process.findFirst({ where: { slug: 'conferencia-entrega-processo' } });
+  const processPedidos = await prisma.list.findFirst({ where: { slug: 'processo-pedidos' } });
+  const processConc = await prisma.list.findFirst({ where: { slug: 'conciliacao-faturamento-processo' } });
+  const processProducao = await prisma.list.findFirst({ where: { slug: 'producao-pedido-processo' } });
+  const processConferencia = await prisma.list.findFirst({ where: { slug: 'conferencia-entrega-processo' } });
 
   if (!processPedidos || !processConc || !processProducao || !processConferencia) {
     console.log('  [WARN] BPM processes not found — run seed-bpm.ts first. Skipping BPM instances.');
@@ -1117,7 +1117,7 @@ async function main() {
     // --- Order 1 (EM_ORCAMENTO): process started, activity in progress ---
     const pi1 = await prisma.processInstance.create({
       data: {
-        processId: processPedidos.id,
+        listId: processPedidos.id,
         orderId: order1.id,
         status: ProcessStatus.ACTIVE,
         startedAt: daysAgo(2),
@@ -1144,7 +1144,7 @@ async function main() {
     // --- Order 2 (FATURADO): Pedidos COMPLETED, Conciliacao COMPLETED, Producao ACTIVE ---
     const pi2Ped = await prisma.processInstance.create({
       data: {
-        processId: processPedidos.id,
+        listId: processPedidos.id,
         orderId: order2.id,
         status: ProcessStatus.COMPLETED,
         startedAt: daysAgo(10),
@@ -1182,7 +1182,7 @@ async function main() {
 
     const pi2Conc = await prisma.processInstance.create({
       data: {
-        processId: processConc.id,
+        listId: processConc.id,
         orderId: order2.id,
         status: ProcessStatus.COMPLETED,
         startedAt: daysAgo(7),
@@ -1208,7 +1208,7 @@ async function main() {
 
     const pi2Prod = await prisma.processInstance.create({
       data: {
-        processId: processProducao.id,
+        listId: processProducao.id,
         orderId: order2.id,
         status: ProcessStatus.ACTIVE,
         startedAt: daysAgo(6),
@@ -1234,7 +1234,7 @@ async function main() {
     // --- Order 3 (ENTREGUE): all processes COMPLETED ---
     const pi3Ped = await prisma.processInstance.create({
       data: {
-        processId: processPedidos.id,
+        listId: processPedidos.id,
         orderId: order3.id,
         status: ProcessStatus.COMPLETED,
         startedAt: daysAgo(35),
@@ -1268,7 +1268,7 @@ async function main() {
 
     const pi3Conc = await prisma.processInstance.create({
       data: {
-        processId: processConc.id,
+        listId: processConc.id,
         orderId: order3.id,
         status: ProcessStatus.COMPLETED,
         startedAt: daysAgo(30),
@@ -1290,7 +1290,7 @@ async function main() {
 
     const pi3Conf = await prisma.processInstance.create({
       data: {
-        processId: processConferencia.id,
+        listId: processConferencia.id,
         orderId: order3.id,
         status: ProcessStatus.COMPLETED,
         startedAt: daysAgo(12),
