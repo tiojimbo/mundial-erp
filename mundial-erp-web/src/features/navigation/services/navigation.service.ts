@@ -6,21 +6,21 @@ import type { DepartmentDetail, AreaDetail, ProcessSummary } from '../types/proc
 export const navigationService = {
   async getSidebarTree(): Promise<SidebarDepartment[]> {
     const { data } = await api.get<ApiResponse<SidebarDepartment[]>>(
-      '/departments/sidebar',
+      '/spaces/sidebar',
     );
     return data.data;
   },
 
   async getDepartmentBySlug(slug: string): Promise<DepartmentDetail> {
     const { data } = await api.get<ApiResponse<DepartmentDetail>>(
-      `/departments/by-slug/${slug}`,
+      `/spaces/by-slug/${slug}`,
     );
     return data.data;
   },
 
   async getAreaBySlug(slug: string): Promise<AreaDetail> {
     const { data } = await api.get<ApiResponse<AreaDetail>>(
-      `/areas/by-slug/${slug}`,
+      `/folders/by-slug/${slug}`,
     );
     return data.data;
   },
@@ -30,7 +30,7 @@ export const navigationService = {
     showClosed = false,
   ): Promise<ProcessSummary[]> {
     const { data } = await api.get<ApiResponse<ProcessSummary[]>>(
-      `/departments/${departmentId}/process-summaries`,
+      `/spaces/${departmentId}/process-summaries`,
       { params: { showClosed } },
     );
     return data.data;
@@ -41,7 +41,7 @@ export const navigationService = {
     showClosed = false,
   ): Promise<ProcessSummary[]> {
     const { data } = await api.get<ApiResponse<ProcessSummary[]>>(
-      `/areas/${areaId}/process-summaries`,
+      `/folders/${areaId}/process-summaries`,
       { params: { showClosed } },
     );
     return data.data;
