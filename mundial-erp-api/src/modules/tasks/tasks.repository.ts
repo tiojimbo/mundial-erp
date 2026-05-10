@@ -704,4 +704,37 @@ export class TasksRepository {
     });
     return rows.map((r) => r.id);
   }
+
+  /**
+   * HPP-051 — Tasks de um space agrupadas por list. Single query com OR
+   * cobrindo lista direta (`list.spaceId`) e lista em folder
+   * (`list.folder.spaceId`). Tenant isolation via `space.workspaceId` em
+   * ambos os ramos. Limite duro `take: 500` evita dataset ilimitado.
+   */
+  async findBySpaceGrouped(
+    workspaceId: string,
+    spaceId: string,
+  ) {
+    return this.prisma.workItem.findMany({
+      where: {
+        deletedAt: null,
+        OR: [
+          { list: { spaceId, space: { workspaceId } } },
+          { list: { folder: { spaceId, space: { workspaceId } } } },
+        ],
+      },
+      select: {
+        ...TASK_LIST_SELECT,
+        list: {
+          select: {
+            id: true,
+            name: true,
+            folder: { select: { id: true, name: true } },
+          },
+        },
+      },
+      orderBy: [{ listId: 'asc' }, { sortOrder: 'asc' }],
+      take: 500,
+    });
+  }
 }

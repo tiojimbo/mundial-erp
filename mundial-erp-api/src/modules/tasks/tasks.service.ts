@@ -309,6 +309,67 @@ export class TasksService {
     };
   }
 
+  /**
+   * HPP-051 — `GET /tasks/space/:spaceId`. Retorna grupos por list, cada
+   * um com `{ list: { id, name, folder }, tasks[] }`. 1 query agregada;
+   * agrupamento em memoria.
+   */
+  async findBySpace(
+    workspaceId: string,
+    spaceId: string,
+  ): Promise<
+    Array<{
+      list: {
+        id: string;
+        name: string;
+        folder: { id: string; name: string } | null;
+      };
+      tasks: TaskResponseDto[];
+    }>
+  > {
+    const space = await this.prisma.space.findFirst({
+      where: { id: spaceId, workspaceId, deletedAt: null },
+      select: { id: true },
+    });
+    if (!space) {
+      throw new NotFoundException('Space nao encontrado');
+    }
+
+    const rows = await this.repository.findBySpaceGrouped(workspaceId, spaceId);
+
+    const groups = new Map<
+      string,
+      {
+        list: {
+          id: string;
+          name: string;
+          folder: { id: string; name: string } | null;
+        };
+        tasks: TaskResponseDto[];
+      }
+    >();
+    for (const row of rows) {
+      const list = row.list as {
+        id: string;
+        name: string;
+        folder: { id: string; name: string } | null;
+      };
+      if (!groups.has(list.id)) {
+        groups.set(list.id, {
+          list: { id: list.id, name: list.name, folder: list.folder ?? null },
+          tasks: [],
+        });
+      }
+      const taskRow = { ...row, processId: row.listId } as unknown as Record<
+        string,
+        unknown
+      >;
+      groups.get(list.id)!.tasks.push(TaskResponseDto.fromRow(taskRow));
+    }
+
+    return Array.from(groups.values());
+  }
+
   async findById(
     workspaceId: string,
     taskId: string,

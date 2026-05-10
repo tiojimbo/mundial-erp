@@ -64,6 +64,18 @@ export class TasksController {
     return this.tasksService.list(workspaceId, filters);
   }
 
+  @Get('tasks/space/:spaceId')
+  @Roles(Role.ADMIN, Role.MANAGER, Role.OPERATOR, Role.VIEWER)
+  @ApiOperation({ summary: 'Tasks de um space agrupadas por list (Hoppe)' })
+  @ApiResponse({ status: 200 })
+  @ApiResponse({ status: 404, description: 'Space nao encontrado' })
+  findBySpace(
+    @WorkspaceId() workspaceId: string,
+    @Param('spaceId') spaceId: string,
+  ) {
+    return this.tasksService.findBySpace(workspaceId, spaceId);
+  }
+
   @Post('processes/:processId/tasks')
   @Roles(Role.ADMIN, Role.MANAGER, Role.OPERATOR)
   @HttpCode(HttpStatus.CREATED)
