@@ -22,6 +22,28 @@ export class SpacesRepository {
     });
   }
 
+  async findByIdWithDefaults(workspaceId: string, id: string) {
+    return this.prisma.space.findFirst({
+      where: { id, workspaceId, deletedAt: null },
+      include: {
+        folders: {
+          where: { deletedAt: null },
+          orderBy: { position: 'asc' },
+          include: {
+            lists: {
+              where: { deletedAt: null },
+              orderBy: { position: 'asc' },
+            },
+          },
+        },
+        statuses: {
+          where: { deletedAt: null },
+          orderBy: { sortOrder: 'asc' },
+        },
+      },
+    });
+  }
+
   async findBySlug(workspaceId: string, slug: string) {
     return this.prisma.space.findFirst({
       where: { slug, workspaceId, deletedAt: null },

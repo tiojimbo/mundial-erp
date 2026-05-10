@@ -21,7 +21,8 @@ import { UpdateSpaceDto } from './dto/update-space.dto';
 import { SpaceResponseDto } from './dto/space-response.dto';
 import { SidebarSpaceDto } from './dto/sidebar-space.dto';
 import { PaginationDto } from '../../../../common/dtos/pagination.dto';
-import { Roles } from '../../../auth/decorators';
+import { CurrentUser, Roles } from '../../../auth/decorators';
+import type { JwtPayload } from '../../../auth/decorators';
 import { WorkspaceId } from '../../../workspaces/decorators/workspace-id.decorator';
 import { SkipResponseTransform } from '../../../../common/decorators/skip-response-transform.decorator';
 
@@ -40,8 +41,12 @@ export class SpacesController {
     status: 409,
     description: 'Space com este nome já existe',
   })
-  create(@WorkspaceId() workspaceId: string, @Body() dto: CreateSpaceDto) {
-    return this.spacesService.create(workspaceId, dto);
+  create(
+    @WorkspaceId() workspaceId: string,
+    @CurrentUser() user: JwtPayload,
+    @Body() dto: CreateSpaceDto,
+  ) {
+    return this.spacesService.create(workspaceId, user.sub, dto);
   }
 
   @Get()

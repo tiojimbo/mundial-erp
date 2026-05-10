@@ -4,11 +4,17 @@ import {
   Injectable,
   NotFoundException,
 } from '@nestjs/common';
-import { Prisma, StatusCategory } from '@prisma/client';
+import {
+  MemberPermission,
+  Prisma,
+  ProcessType,
+  StatusCategory,
+} from '@prisma/client';
 import { SpacesRepository } from './spaces.repository';
 import { CreateSpaceDto } from './dto/create-space.dto';
 import { UpdateSpaceDto } from './dto/update-space.dto';
 import { SpaceResponseDto } from './dto/space-response.dto';
+import { SpaceDetailDto } from './dto/space-detail.dto';
 import { PaginationDto } from '../../../../common/dtos/pagination.dto';
 import { PrismaService } from '../../../../database/prisma.service';
 
@@ -18,6 +24,9 @@ const DEFAULT_WORKFLOW_STATUSES = [
   { name: 'Concluído', category: StatusCategory.DONE, color: '#22c55e', sortOrder: 3 },
   { name: 'Finalizado', category: StatusCategory.CLOSED, color: '#16a34a', sortOrder: 4 },
 ] as const;
+
+const DEFAULT_FOLDER_NAME = 'Lista padrão';
+const DEFAULT_LIST_NAME = 'Lista padrão';
 
 @Injectable()
 export class SpacesService {
@@ -50,13 +59,14 @@ export class SpacesService {
 
   async create(
     workspaceId: string,
+    creatorId: string,
     dto: CreateSpaceDto,
-  ): Promise<SpaceResponseDto> {
+  ): Promise<SpaceDetailDto> {
     const baseSlug = this.generateSlug(dto.name);
     const slug = await this.resolveUniqueSlug(workspaceId, baseSlug);
 
     try {
-      const entity = await this.prisma.$transaction(async (tx) => {
+      const spaceId = await this.prisma.$transaction(async (tx) => {
         const created = await tx.space.create({
           data: {
             name: dto.name,
@@ -67,8 +77,10 @@ export class SpacesService {
             isPrivate: dto.isPrivate,
             position: dto.sortOrder ?? 0,
             workspace: { connect: { id: workspaceId } },
+            creator: { connect: { id: creatorId } },
           },
         });
+
         for (const status of DEFAULT_WORKFLOW_STATUSES) {
           await tx.workflowStatus.create({
             data: {
@@ -81,10 +93,49 @@ export class SpacesService {
             },
           });
         }
-        return created;
+
+        const folder = await tx.folder.create({
+          data: {
+            name: DEFAULT_FOLDER_NAME,
+            slug: `${slug}-default-folder`,
+            isDefault: true,
+            position: 0,
+            space: { connect: { id: created.id } },
+            creator: { connect: { id: creatorId } },
+          },
+        });
+
+        await tx.list.create({
+          data: {
+            name: DEFAULT_LIST_NAME,
+            slug: `${slug}-default-list`,
+            processType: ProcessType.LIST,
+            position: 0,
+            folder: { connect: { id: folder.id } },
+            space: { connect: { id: created.id } },
+            creator: { connect: { id: creatorId } },
+          },
+        });
+
+        await tx.spaceMember.create({
+          data: {
+            spaceId: created.id,
+            userId: creatorId,
+            permission: MemberPermission.FULL_EDIT,
+          },
+        });
+
+        return created.id;
       });
 
-      return SpaceResponseDto.fromEntity(entity);
+      const entity = await this.spacesRepository.findByIdWithDefaults(
+        workspaceId,
+        spaceId,
+      );
+      if (!entity) {
+        throw new NotFoundException('Space não encontrado');
+      }
+      return SpaceDetailDto.fromEntity(entity);
     } catch (error) {
       if (
         error instanceof Prisma.PrismaClientKnownRequestError &&
