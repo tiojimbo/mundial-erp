@@ -62,7 +62,10 @@ export class TasksController {
 
   @Get('tasks/space/:spaceId')
   @Roles(Role.ADMIN, Role.MANAGER, Role.OPERATOR, Role.VIEWER)
-  @ApiOperation({ summary: 'Tasks de um space agrupadas por list (Hoppe)' })
+  @ApiOperation({
+    summary:
+      'Tasks de um space agrupadas por list (Hoppe). NOTE: list.folder pode ser null quando a list e direta no space (Mundial permite, Hoppe puro nao)',
+  })
   @ApiResponse({ status: 200 })
   @ApiResponse({ status: 404, description: 'Space nao encontrado' })
   findBySpace(
@@ -110,7 +113,10 @@ export class TasksController {
 
   @Get('tasks/:taskId/assignees')
   @Roles(Role.ADMIN, Role.MANAGER, Role.OPERATOR, Role.VIEWER)
-  @ApiOperation({ summary: 'Assignees de uma task (Hoppe)' })
+  @ApiOperation({
+    summary:
+      'Assignees de uma task (Hoppe). NOTE: campo `permission` retorna null ate o mapeamento Member* (Sprint 4-5)',
+  })
   @ApiResponse({ status: 200 })
   @ApiResponse({ status: 404, description: 'Task nao encontrada' })
   findAssignees(
