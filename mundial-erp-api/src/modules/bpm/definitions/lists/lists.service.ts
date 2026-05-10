@@ -8,12 +8,13 @@ import { ListsRepository } from './lists.repository';
 import { CreateListDto } from './dto/create-list.dto';
 import { UpdateListDto } from './dto/update-list.dto';
 import { ListResponseDto } from './dto/list-response.dto';
-import { PaginationDto } from '../../../../common/dtos/pagination.dto';
+import { PrismaService } from '../../../../database/prisma.service';
 import { SpacesRepository } from '../spaces/spaces.repository';
 
 @Injectable()
 export class ListsService {
   constructor(
+    private readonly prisma: PrismaService,
     private readonly listsRepository: ListsRepository,
     private readonly spacesRepository: SpacesRepository,
   ) {}
@@ -42,6 +43,7 @@ export class ListsService {
 
   async create(
     workspaceId: string,
+    creatorId: string,
     dto: CreateListDto,
   ): Promise<ListResponseDto> {
     if (!dto.folderId && !dto.spaceId && !dto.sectorId) {
@@ -60,7 +62,7 @@ export class ListsService {
         dto.folderId,
       );
       if (!folder) {
-        throw new NotFoundException('Área não encontrada');
+        throw new NotFoundException('Folder não encontrado');
       }
       resolvedSpaceId = folder.spaceId;
     }
@@ -71,7 +73,7 @@ export class ListsService {
         resolvedSpaceId,
       );
       if (!space) {
-        throw new NotFoundException('Departamento não encontrado');
+        throw new NotFoundException('Space não encontrado');
       }
     }
 
@@ -83,6 +85,7 @@ export class ListsService {
       processType: dto.processType ?? 'LIST',
       status: dto.status,
       position: dto.sortOrder ?? 0,
+      creator: { connect: { id: creatorId } },
       ...(dto.sectorId && { sector: { connect: { id: dto.sectorId } } }),
       ...(dto.folderId && { folder: { connect: { id: dto.folderId } } }),
       ...(resolvedSpaceId && {
@@ -98,24 +101,32 @@ export class ListsService {
     return ListResponseDto.fromEntity(entity);
   }
 
-  async findAll(workspaceId: string, pagination: PaginationDto) {
-    const { items, total } = await this.listsRepository.findMany(
-      workspaceId,
-      {
-        skip: pagination.skip,
-        take: pagination.limit,
-      },
-    );
-    return {
-      items: items.map(ListResponseDto.fromEntity),
-      total,
+  async findAllScoped(
+    workspaceId: string,
+    scope: { folderId?: string; spaceId?: string },
+  ) {
+    if (!scope.folderId && !scope.spaceId) {
+      throw new BadRequestException(
+        'folderId ou spaceId é obrigatório na query',
+      );
+    }
+    const where: Prisma.ListWhereInput = {
+      deletedAt: null,
+      space: { workspaceId },
     };
+    if (scope.folderId) where.folderId = scope.folderId;
+    if (scope.spaceId) where.spaceId = scope.spaceId;
+    const items = await this.prisma.list.findMany({
+      where,
+      orderBy: { position: 'asc' },
+    });
+    return items.map(ListResponseDto.fromEntity);
   }
 
   async findById(workspaceId: string, id: string): Promise<ListResponseDto> {
     const entity = await this.listsRepository.findById(workspaceId, id);
     if (!entity) {
-      throw new NotFoundException('Processo não encontrado');
+      throw new NotFoundException('List não encontrada');
     }
     return ListResponseDto.fromEntity(entity);
   }
@@ -127,7 +138,7 @@ export class ListsService {
   ): Promise<ListResponseDto> {
     const entity = await this.listsRepository.findById(workspaceId, id);
     if (!entity) {
-      throw new NotFoundException('Processo não encontrado');
+      throw new NotFoundException('List não encontrada');
     }
 
     const updateData: Record<string, any> = {};
@@ -160,11 +171,15 @@ export class ListsService {
     return ListResponseDto.fromEntity(updated);
   }
 
-  async remove(workspaceId: string, id: string): Promise<void> {
+  async remove(
+    workspaceId: string,
+    id: string,
+  ): Promise<{ message: string }> {
     const entity = await this.listsRepository.findById(workspaceId, id);
     if (!entity) {
-      throw new NotFoundException('Processo não encontrado');
+      throw new NotFoundException('List não encontrada');
     }
     await this.listsRepository.softDelete(workspaceId, id);
+    return { message: 'List deleted successfully' };
   }
 }
