@@ -11,7 +11,7 @@ import {
 } from './condition-evaluator';
 import type { AutomationJobData } from './automation.job.types';
 
-const MAX_AUTOMATION_DEPTH = 5;
+export const MAX_AUTOMATION_DEPTH = 5;
 
 @Processor(QUEUE_AUTOMATION_EXECUTION)
 export class AutomationProcessor extends WorkerHost {
