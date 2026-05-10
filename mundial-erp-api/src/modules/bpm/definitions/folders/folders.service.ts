@@ -15,6 +15,7 @@ import { FoldersRepository } from './folders.repository';
 import { CreateFolderDto } from './dto/create-folder.dto';
 import { UpdateFolderDto } from './dto/update-folder.dto';
 import { FolderResponseDto } from './dto/folder-response.dto';
+import { FolderDetailDto } from './dto/folder-detail.dto';
 import { PrismaService } from '../../../../database/prisma.service';
 import { WorkflowStatusesService } from '../workflow-statuses/workflow-statuses.service';
 import { SpacesRepository } from '../spaces/spaces.repository';
@@ -129,12 +130,15 @@ export class FoldersService {
     return items.map(FolderResponseDto.fromEntity);
   }
 
-  async findById(workspaceId: string, id: string): Promise<FolderResponseDto> {
-    const entity = await this.foldersRepository.findById(workspaceId, id);
+  async findById(workspaceId: string, id: string): Promise<FolderDetailDto> {
+    const entity = await this.foldersRepository.findByIdWithDetails(
+      workspaceId,
+      id,
+    );
     if (!entity) {
       throw new NotFoundException('Folder não encontrado');
     }
-    return FolderResponseDto.fromEntity(entity);
+    return FolderDetailDto.fromEntity(entity);
   }
 
   async update(
