@@ -116,8 +116,8 @@ export class TaskTemplatesService {
       skip: filters.skip ?? 0,
       take: filters.limit ?? 20,
       scope: filters.scope,
-      spaceId: filters.spaceId,
-      listId: filters.listId,
+      spaceId: filters.spaceId ?? filters.departmentId,
+      listId: filters.listId ?? filters.processId,
       search: filters.search,
     });
     return {
@@ -143,7 +143,9 @@ export class TaskTemplatesService {
     actorUserId: string,
   ): Promise<TemplateResponseDto> {
     const payload = this.asPayload(dto.payload);
-    this.assertScopeInvariants(dto.scope, dto.spaceId, dto.listId);
+    const dtoSpaceId = dto.spaceId ?? dto.departmentId;
+    const dtoListId = dto.listId ?? dto.processId;
+    this.assertScopeInvariants(dto.scope, dtoSpaceId, dtoListId);
 
     const { subtaskCount, checklistCount } = this.countDenorm(payload);
 
@@ -151,8 +153,8 @@ export class TaskTemplatesService {
       workspaceId,
       name: dto.name.trim(),
       scope: dto.scope ?? TaskTemplateScope.WORKSPACE,
-      spaceId: dto.spaceId ?? null,
-      listId: dto.listId ?? null,
+      spaceId: dtoSpaceId ?? null,
+      listId: dtoListId ?? null,
       payload: payload as unknown as Prisma.InputJsonValue,
       subtaskCount,
       checklistCount,
@@ -176,9 +178,11 @@ export class TaskTemplatesService {
       throw new NotFoundException('Template nao encontrado');
     }
 
+    const dtoSpaceId = dto.spaceId ?? dto.departmentId;
+    const dtoListId = dto.listId ?? dto.processId;
     const scope = dto.scope ?? existing.scope;
-    const spaceId = dto.spaceId ?? existing.spaceId;
-    const listId = dto.listId ?? existing.listId;
+    const spaceId = dtoSpaceId ?? existing.spaceId;
+    const listId = dtoListId ?? existing.listId;
     this.assertScopeInvariants(scope, spaceId, listId);
 
     const data: {
@@ -193,9 +197,9 @@ export class TaskTemplatesService {
 
     if (dto.name !== undefined) data.name = dto.name.trim();
     if (dto.scope !== undefined) data.scope = dto.scope;
-    if (dto.spaceId !== undefined)
-      data.spaceId = dto.spaceId ?? null;
-    if (dto.listId !== undefined) data.listId = dto.listId ?? null;
+    if (dtoSpaceId !== undefined)
+      data.spaceId = dtoSpaceId ?? null;
+    if (dtoListId !== undefined) data.listId = dtoListId ?? null;
 
     if (dto.payload !== undefined) {
       const payload = this.asPayload(dto.payload);

@@ -387,7 +387,8 @@ export class TasksService {
     if (dto.customTypeId !== undefined)
       data.customTypeId = dto.customTypeId ?? null;
     if (dto.parentId !== undefined) data.parentId = dto.parentId ?? null;
-    if (dto.listId !== undefined) data.listId = dto.listId;
+    const targetListId = dto.listId ?? dto.processId;
+    if (targetListId !== undefined) data.listId = targetListId;
     if (dto.archived !== undefined) {
       data.archived = dto.archived;
       data.archivedAt = dto.archived ? new Date() : null;

@@ -57,19 +57,22 @@ function buildWhere(
     deletedAt: null,
   };
 
-  if (filters.listIds?.length) {
-    where.listId = { in: filters.listIds };
+  const listIds = filters.listIds ?? filters.processIds;
+  const folderIds = filters.folderIds ?? filters.areaIds;
+  const spaceIds = filters.spaceIds ?? filters.departmentIds;
+  if (listIds?.length) {
+    where.listId = { in: listIds };
   }
-  if (filters.folderIds?.length) {
+  if (folderIds?.length) {
     where.list = {
       ...(where.list as Prisma.ListWhereInput),
-      folderId: { in: filters.folderIds },
+      folderId: { in: folderIds },
     };
   }
-  if (filters.spaceIds?.length) {
+  if (spaceIds?.length) {
     where.list = {
       ...(where.list as Prisma.ListWhereInput),
-      space: { workspaceId, id: { in: filters.spaceIds } },
+      space: { workspaceId, id: { in: spaceIds } },
     };
   }
   if (filters.statuses?.length) {

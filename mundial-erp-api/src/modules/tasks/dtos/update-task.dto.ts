@@ -120,6 +120,11 @@ export class UpdateTaskDto {
   @IsString()
   processId?: string;
 
+  @ApiPropertyOptional({ description: 'Alias Hoppe de processId.' })
+  @IsOptional()
+  @IsString()
+  listId?: string;
+
   @ApiPropertyOptional({ type: AddRemoveIdsDto })
   @IsOptional()
   @ValidateNested()

@@ -28,10 +28,20 @@ export class TemplateFiltersDto {
   @IsString()
   departmentId?: string;
 
+  @ApiPropertyOptional({ description: 'Alias Hoppe de departmentId.' })
+  @IsOptional()
+  @IsString()
+  spaceId?: string;
+
   @ApiPropertyOptional()
   @IsOptional()
   @IsString()
   processId?: string;
+
+  @ApiPropertyOptional({ description: 'Alias Hoppe de processId.' })
+  @IsOptional()
+  @IsString()
+  listId?: string;
 
   @ApiPropertyOptional({ maxLength: 120 })
   @IsOptional()

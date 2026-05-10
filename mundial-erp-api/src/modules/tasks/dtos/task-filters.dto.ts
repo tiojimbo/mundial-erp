@@ -88,6 +88,14 @@ export class TaskFiltersDto {
   @IsString({ each: true })
   processIds?: string[];
 
+  @ApiPropertyOptional({ type: [String], description: 'Alias Hoppe de processIds.' })
+  @IsOptional()
+  @Transform(({ value }) => toStringArray(value))
+  @IsArray()
+  @ArrayMaxSize(100)
+  @IsString({ each: true })
+  listIds?: string[];
+
   @ApiPropertyOptional({ type: [String] })
   @IsOptional()
   @Transform(({ value }) => toStringArray(value))
@@ -96,6 +104,14 @@ export class TaskFiltersDto {
   @IsString({ each: true })
   areaIds?: string[];
 
+  @ApiPropertyOptional({ type: [String], description: 'Alias Hoppe de areaIds.' })
+  @IsOptional()
+  @Transform(({ value }) => toStringArray(value))
+  @IsArray()
+  @ArrayMaxSize(100)
+  @IsString({ each: true })
+  folderIds?: string[];
+
   @ApiPropertyOptional({ type: [String] })
   @IsOptional()
   @Transform(({ value }) => toStringArray(value))
@@ -103,6 +119,14 @@ export class TaskFiltersDto {
   @ArrayMaxSize(100)
   @IsString({ each: true })
   departmentIds?: string[];
+
+  @ApiPropertyOptional({ type: [String], description: 'Alias Hoppe de departmentIds.' })
+  @IsOptional()
+  @Transform(({ value }) => toStringArray(value))
+  @IsArray()
+  @ArrayMaxSize(100)
+  @IsString({ each: true })
+  spaceIds?: string[];
 
   @ApiPropertyOptional({ type: [String], description: 'statusIds' })
   @IsOptional()
