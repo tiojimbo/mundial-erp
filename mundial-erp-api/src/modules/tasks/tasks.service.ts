@@ -163,6 +163,13 @@ export class TasksService {
       throw new NotFoundException('List nao encontrada');
     }
 
+    // Aliases Hoppe (gap 6): title <- name; parentId <- parentTaskId.
+    const title = dto.title ?? dto.name;
+    if (!title) {
+      throw new BadRequestException('title ou name e obrigatorio');
+    }
+    const parentId = dto.parentId ?? dto.parentTaskId ?? null;
+
     // 2) Resolve statusId (dto tem prioridade; fallback NOT_STARTED padrao).
     let statusId = dto.statusId;
     if (!statusId) {
@@ -201,7 +208,7 @@ export class TasksService {
 
       const created = await this.repository.createTask(tx, {
         listId,
-        title: dto.title,
+        title,
         description: dto.description ?? null,
         markdownContent: resolved.markdown,
         statusId,
@@ -211,7 +218,7 @@ export class TasksService {
         estimatedMinutes: dto.estimatedMinutes ?? null,
         points: dto.points ?? null,
         customTypeId: dto.customTypeId ?? null,
-        parentId: dto.parentId ?? null,
+        parentId,
         creatorId: actorUserId,
       });
 
@@ -257,7 +264,7 @@ export class TasksService {
           listId,
           actorId: actorUserId,
           workspaceId,
-          title: dto.title,
+          title,
           statusId,
           priority: dto.priority ?? null,
           dueDate: dto.dueDate ? new Date(dto.dueDate).toISOString() : null,
