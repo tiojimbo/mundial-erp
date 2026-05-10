@@ -791,9 +791,8 @@ export class TasksService {
       throw new NotFoundException('Task nao encontrada');
     }
 
-    // Proibicao critica ADR-001: nunca escrever `primaryAssigneeCache`
-    // diretamente. Assignees passam por `dto.assignees = { add, rem }` e
-    // a extension Prisma recalcula o cache.
+    // ADR-001: `primaryAssigneeCache` nunca e escrito direto pela aplicacao.
+    // HPP-059: assignees nao trafegam mais por aqui — use PUT /tasks/:id/assign.
     const data: Prisma.WorkItemUncheckedUpdateInput = {};
 
     if (dto.title !== undefined) data.title = dto.title;
@@ -845,15 +844,8 @@ export class TasksService {
           workspaceId,
         });
       }
-      if (dto.assignees) {
-        await this.assigneesSync.syncAssignees(tx, {
-          taskId,
-          add: dto.assignees.add ?? [],
-          rem: dto.assignees.rem ?? [],
-          actorUserId: actorId,
-          workspaceId,
-        });
-      }
+      // HPP-059: `assignees` removido do PUT /tasks/:id. Use o endpoint
+      // dedicado `PUT /tasks/:id/assign` (HPP-056) para substituir lista.
 
       // Escalar update delegado ao repository com `tx` — nunca `tx.workItem.*`
       // direto no service (Bravy regra 2 + 6: persistencia so via repository).
