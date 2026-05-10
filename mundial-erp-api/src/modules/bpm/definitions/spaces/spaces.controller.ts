@@ -23,7 +23,6 @@ import { AddSpaceMemberDto } from './dto/add-space-member.dto';
 import { UpdateSpaceMemberDto } from './dto/update-space-member.dto';
 import { SpaceResponseDto } from './dto/space-response.dto';
 import { SidebarSpaceDto } from './dto/sidebar-space.dto';
-import { PaginationDto } from '../../../../common/dtos/pagination.dto';
 import { CurrentUser, Roles } from '../../../auth/decorators';
 import type { JwtPayload } from '../../../auth/decorators';
 import { WorkspaceId } from '../../../workspaces/decorators/workspace-id.decorator';
@@ -54,13 +53,10 @@ export class SpacesController {
 
   @Get()
   @SkipResponseTransform()
-  @Roles(Role.ADMIN, Role.MANAGER)
-  @ApiOperation({ summary: 'Listar spaces' })
-  findAll(
-    @WorkspaceId() workspaceId: string,
-    @Query() pagination: PaginationDto,
-  ) {
-    return this.spacesService.findAll(workspaceId, pagination);
+  @Roles(Role.ADMIN, Role.MANAGER, Role.OPERATOR, Role.VIEWER)
+  @ApiOperation({ summary: 'Listar spaces (array com folders e statuses)' })
+  findAll(@WorkspaceId() workspaceId: string) {
+    return this.spacesService.findAll(workspaceId);
   }
 
   @Get('sidebar')

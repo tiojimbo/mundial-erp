@@ -17,7 +17,6 @@ import { UpdateSpaceDto } from './dto/update-space.dto';
 import { SpaceResponseDto } from './dto/space-response.dto';
 import { SpaceDetailDto } from './dto/space-detail.dto';
 import { SPACE_RESOURCES } from './resources-metadata';
-import { PaginationDto } from '../../../../common/dtos/pagination.dto';
 import { PrismaService } from '../../../../database/prisma.service';
 
 const DEFAULT_WORKFLOW_STATUSES = [
@@ -149,29 +148,42 @@ export class SpacesService {
     }
   }
 
-  async findAll(workspaceId: string, pagination: PaginationDto) {
-    const { items, total } = await this.spacesRepository.findMany(
-      workspaceId,
-      {
-        skip: pagination.skip,
-        take: pagination.limit,
+  async findAll(workspaceId: string): Promise<SpaceDetailDto[]> {
+    const items = await this.prisma.space.findMany({
+      where: { workspaceId, deletedAt: null },
+      orderBy: { position: 'asc' },
+      include: {
+        folders: {
+          where: { deletedAt: null },
+          orderBy: { position: 'asc' },
+          include: {
+            lists: {
+              where: { deletedAt: null },
+              orderBy: { position: 'asc' },
+            },
+          },
+        },
+        statuses: {
+          where: { deletedAt: null },
+          orderBy: { sortOrder: 'asc' },
+        },
       },
-    );
-    return {
-      items: items.map(SpaceResponseDto.fromEntity),
-      total,
-    };
+    });
+    return items.map(SpaceDetailDto.fromEntity);
   }
 
   async findById(
     workspaceId: string,
     id: string,
-  ): Promise<SpaceResponseDto> {
-    const entity = await this.spacesRepository.findById(workspaceId, id);
+  ): Promise<SpaceDetailDto> {
+    const entity = await this.spacesRepository.findByIdWithDefaults(
+      workspaceId,
+      id,
+    );
     if (!entity) {
       throw new NotFoundException('Space não encontrado');
     }
-    return SpaceResponseDto.fromEntity(entity);
+    return SpaceDetailDto.fromEntity(entity);
   }
 
   async update(
