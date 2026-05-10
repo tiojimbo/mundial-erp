@@ -26,6 +26,7 @@ import { TasksService } from './tasks.service';
 import { TaskFiltersDto } from './dtos/task-filters.dto';
 import { CreateTaskDto } from './dtos/create-task.dto';
 import { UpdateTaskDto } from './dtos/update-task.dto';
+import { AssignTaskDto } from './dtos/assign-task.dto';
 import { MergeTasksDto } from './dtos/merge-tasks.dto';
 import { TimeInStatusBulkDto } from './dtos/time-in-status-bulk.dto';
 import { TaskResponseDto } from './dtos/task-response.dto';
@@ -74,6 +75,23 @@ export class TasksController {
     @Param('spaceId') spaceId: string,
   ) {
     return this.tasksService.findBySpace(workspaceId, spaceId);
+  }
+
+  @Put('tasks/:taskId/assign')
+  @Roles(Role.ADMIN, Role.MANAGER, Role.OPERATOR)
+  @ApiOperation({
+    summary:
+      'Substitui a lista completa de assignees (Hoppe). Vazio recoloca creator',
+  })
+  @ApiResponse({ status: 200 })
+  @ApiResponse({ status: 404, description: 'Task nao encontrada' })
+  assign(
+    @WorkspaceId() workspaceId: string,
+    @Param('taskId') taskId: string,
+    @Body() body: AssignTaskDto,
+    @CurrentUser() user: JwtPayload,
+  ) {
+    return this.tasksService.assign(workspaceId, taskId, body, user.sub);
   }
 
   @Get('tasks/:taskId/assignees')

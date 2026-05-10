@@ -707,6 +707,21 @@ export class TasksRepository {
   }
 
   /**
+   * HPP-056 — Carrega `creatorId` da task (alem do existence guard) para o
+   * fallback "lista vazia recoloca creator". Tenant via `space.workspaceId`.
+   */
+  async findAssignContext(workspaceId: string, taskId: string) {
+    return this.prisma.workItem.findFirst({
+      where: {
+        id: taskId,
+        deletedAt: null,
+        list: { space: { workspaceId } },
+      },
+      select: { id: true, creatorId: true },
+    });
+  }
+
+  /**
    * HPP-054 — `GET /tasks/:id/subtasks`. Retorna tasks filhas
    * (parentId = :id) ativas. Indice `idx_work_items_parent`.
    */

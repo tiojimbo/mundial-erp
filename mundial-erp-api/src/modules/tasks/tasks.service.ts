@@ -18,6 +18,7 @@ import { TasksRepository } from './tasks.repository';
 import { TaskFiltersDto } from './dtos/task-filters.dto';
 import { CreateTaskDto } from './dtos/create-task.dto';
 import { UpdateTaskDto } from './dtos/update-task.dto';
+import { AssignTaskDto } from './dtos/assign-task.dto';
 import { MergeTasksDto } from './dtos/merge-tasks.dto';
 import { TaskResponseDto } from './dtos/task-response.dto';
 import {
@@ -442,6 +443,56 @@ export class TasksService {
       },
       tasks: tasksByStatus.get(status.id) ?? [],
     }));
+  }
+
+  /**
+   * HPP-056 — `PUT /tasks/:id/assign`. Substitui a lista completa.
+   * Body `{ assignees: [{ userId }, ...] }`. Lista vazia volta o creator.
+   * Calcula delta {add,rem} e aplica via AssigneesSyncService dentro de tx.
+   */
+  async assign(
+    workspaceId: string,
+    taskId: string,
+    dto: AssignTaskDto,
+    actorId: string,
+  ): Promise<
+    Array<{
+      id: string;
+      user: { id: string; name: string; email: string };
+      permission: string | null;
+      createdAt: Date;
+    }>
+  > {
+    const task = await this.repository.findAssignContext(workspaceId, taskId);
+    if (!task) {
+      throw new NotFoundException('Task nao encontrada');
+    }
+
+    const requested = Array.from(
+      new Set(dto.assignees.map((a) => a.userId)),
+    ).filter((id) => id.length > 0);
+    const target = requested.length === 0 ? [task.creatorId] : requested;
+
+    const current = await this.repository.findAssignees(taskId);
+    const currentIds = new Set(current.map((a) => a.userId));
+    const targetSet = new Set(target);
+
+    const add = target.filter((id) => !currentIds.has(id));
+    const rem = [...currentIds].filter((id) => !targetSet.has(id));
+
+    if (add.length > 0 || rem.length > 0) {
+      await this.prisma.$transaction(async (tx) => {
+        await this.assigneesSync.syncAssignees(tx, {
+          taskId,
+          add,
+          rem,
+          actorUserId: actorId,
+          workspaceId,
+        });
+      });
+    }
+
+    return this.findAssignees(workspaceId, taskId);
   }
 
   /**
