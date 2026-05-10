@@ -10,6 +10,7 @@ import { NotificationsListResponseDto } from './dto/notification-counts.dto';
 import { CreateNotificationDto } from './dto/create-notification.dto';
 import { SnoozeNotificationDto } from './dto/snooze-notification.dto';
 import { BulkActionDto } from './dto/bulk-action.dto';
+import { NotificationQueryDto } from './dto/notification-query.dto';
 
 @Injectable()
 export class NotificationsService {
@@ -19,16 +20,20 @@ export class NotificationsService {
 
   async findByView(
     userId: string,
-    view: string,
-  ): Promise<NotificationsListResponseDto> {
-    const [items, counts] = await Promise.all([
-      this.notificationsRepository.findByView(userId, view as any),
+    query: NotificationQueryDto,
+  ): Promise<NotificationsListResponseDto & { total: number }> {
+    const [{ items, total }, counts] = await Promise.all([
+      this.notificationsRepository.findByView(userId, query.view as any, {
+        skip: query.skip,
+        take: query.limit,
+      }),
       this.notificationsRepository.getCounts(userId),
     ]);
 
     return {
       items: items.map(NotificationResponseDto.fromEntity),
       counts,
+      total,
     };
   }
 
@@ -111,6 +116,11 @@ export class NotificationsService {
 
   async deleteAllCleared(userId: string): Promise<void> {
     await this.notificationsRepository.deleteAllCleared(userId);
+  }
+
+  async remove(userId: string, id: string): Promise<void> {
+    await this.findAndValidateOwnership(userId, id);
+    await this.notificationsRepository.softDelete(id);
   }
 
   async create(dto: CreateNotificationDto): Promise<NotificationResponseDto> {
