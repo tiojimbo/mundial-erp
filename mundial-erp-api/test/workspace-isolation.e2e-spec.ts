@@ -208,12 +208,12 @@ describe('Workspace Isolation (e2e)', () => {
     };
 
     const created = await request(app.getHttpServer())
-      .post('/api/v1/departments')
+      .post('/api/v1/spaces')
       .set('Authorization', `Bearer ${userATokens.access}`)
       .send({ name: `IsoDept ${ts}` })
       .expect(201);
 
-    departmentAId = created.body.data.id;
+    departmentAId = created.body.id;
     expect(departmentAId).toBeTruthy();
   }, 30_000);
 
@@ -235,14 +235,15 @@ describe('Workspace Isolation (e2e)', () => {
     };
 
     const res = await request(app.getHttpServer())
-      .get('/api/v1/departments')
+      .get('/api/v1/spaces')
       .set('Authorization', `Bearer ${userBTokens.access}`)
       .expect(200);
 
     // Status NUNCA pode ser 5xx aqui — qualquer 500 eh leak/bug
     expect(res.status).toBeLessThan(500);
 
-    const ids: string[] = res.body.data.items.map((d: { id: string }) => d.id);
+    const items = (res.body.data?.items ?? res.body) as Array<{ id: string }>;
+    const ids = items.map((d) => d.id);
     expect(ids).not.toContain(departmentAId);
   }, 30_000);
 
@@ -250,7 +251,7 @@ describe('Workspace Isolation (e2e)', () => {
     if (skipIfNoDb()) return;
 
     const res = await request(app.getHttpServer())
-      .get(`/api/v1/departments/${departmentAId}`)
+      .get(`/api/v1/spaces/${departmentAId}`)
       .set('Authorization', `Bearer ${userBTokens!.access}`);
 
     // Repository scope-aware -> findById(workspaceId, id) retorna null -> 404.
@@ -262,12 +263,12 @@ describe('Workspace Isolation (e2e)', () => {
     if (skipIfNoDb()) return;
 
     const created = await request(app.getHttpServer())
-      .post('/api/v1/departments')
+      .post('/api/v1/spaces')
       .set('Authorization', `Bearer ${userBTokens!.access}`)
       .send({ name: `IsoDeptB ${ts}` })
       .expect(201);
 
-    const newDeptId = created.body.data.id;
+    const newDeptId = created.body.id;
 
     // Validacao na DB: o department recem criado pertence a wsB, nao a wsA
     const dept = await prisma.space.findUnique({
@@ -282,7 +283,7 @@ describe('Workspace Isolation (e2e)', () => {
     if (skipIfNoDb()) return;
 
     const res = await request(app.getHttpServer())
-      .delete(`/api/v1/departments/${departmentAId}`)
+      .delete(`/api/v1/spaces/${departmentAId}`)
       .set('Authorization', `Bearer ${userBTokens!.access}`);
 
     // Acceptable: 404 (scoped repo nao acha) ou 403. Inaceitavel: 204 (deletou)
