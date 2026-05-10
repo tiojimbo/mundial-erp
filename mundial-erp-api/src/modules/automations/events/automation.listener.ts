@@ -2,6 +2,7 @@ import { Injectable, Logger } from '@nestjs/common';
 import { OnEvent } from '@nestjs/event-emitter';
 import { AutomationTrigger } from '@prisma/client';
 import { AutomationsRepository } from '../automations.repository';
+import { AutomationEngineService } from '../engine/automation-engine.service';
 import { AUTOMATION_EVENTS } from './task-events.constants';
 import type { TaskEventContext } from './task-events.types';
 
@@ -9,7 +10,10 @@ import type { TaskEventContext } from './task-events.types';
 export class AutomationListener {
   private readonly logger = new Logger(AutomationListener.name);
 
-  constructor(private readonly repository: AutomationsRepository) {}
+  constructor(
+    private readonly repository: AutomationsRepository,
+    private readonly engine: AutomationEngineService,
+  ) {}
 
   @OnEvent(AUTOMATION_EVENTS.TASK_CREATED, { async: true })
   handleTaskCreated(payload: TaskEventContext) {
@@ -111,7 +115,9 @@ export class AutomationListener {
     this.logger.debug(
       `[automation] ${trigger} ws=${enriched.workspaceId} task=${enriched.taskId} matched=${matching.length}`,
     );
-    // Execução real entra em HPP-107 (engine BullMQ).
+    await Promise.all(
+      matching.map((a) => this.engine.scheduleExecution(a, trigger, enriched)),
+    );
   }
 
   private async ensureScopeFields(

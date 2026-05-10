@@ -17,3 +17,5 @@ export const QUEUE_SEARCH_REINDEX = 'search-reindex';
  */
 export const QUEUE_KOMMO_WEBHOOKS = 'kommo-webhooks';
 export const QUEUE_KOMMO_BACKFILL = 'kommo-backfill';
+
+export const QUEUE_AUTOMATION_EXECUTION = 'automation-execution';
