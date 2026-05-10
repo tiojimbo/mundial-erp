@@ -1,10 +1,20 @@
-import { ApiProperty } from '@nestjs/swagger';
-import { IsString, MinLength } from 'class-validator';
+import { ApiPropertyOptional } from '@nestjs/swagger';
+import { IsOptional, IsString } from 'class-validator';
 import { PaginationDto } from '../../../common/dtos/pagination.dto';
 
 export class ListViewsQueryDto extends PaginationDto {
-  @ApiProperty({ example: 'cuid-do-processo' })
+  @ApiPropertyOptional({ example: 'cuid-da-lista' })
+  @IsOptional()
   @IsString()
-  @MinLength(1)
-  listId!: string;
+  listId?: string;
+
+  @ApiPropertyOptional({ example: 'cuid-do-folder' })
+  @IsOptional()
+  @IsString()
+  folderId?: string;
+
+  @ApiPropertyOptional({ example: 'cuid-do-space' })
+  @IsOptional()
+  @IsString()
+  spaceId?: string;
 }

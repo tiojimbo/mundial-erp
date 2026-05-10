@@ -1,9 +1,13 @@
-import { Injectable, NotFoundException } from '@nestjs/common';
+import {
+  BadRequestException,
+  Injectable,
+  NotFoundException,
+} from '@nestjs/common';
 import { ViewsRepository } from './views.repository';
 import { CreateViewDto } from './dto/create-view.dto';
 import { UpdateViewDto } from './dto/update-view.dto';
 import { ViewResponseDto } from './dto/view-response.dto';
-import { PaginationDto } from '../../common/dtos/pagination.dto';
+import { ListViewsQueryDto } from './dto/list-views-query.dto';
 
 @Injectable()
 export class ViewsService {
@@ -18,7 +22,7 @@ export class ViewsService {
       dto.listId,
     );
     if (!list) {
-      throw new NotFoundException('Processo não encontrado');
+      throw new NotFoundException('Lista não encontrada');
     }
     const entity = await this.viewsRepository.create(workspaceId, {
       listId: dto.listId,
@@ -30,30 +34,42 @@ export class ViewsService {
     return ViewResponseDto.fromEntity(entity);
   }
 
-  async findAllByList(
-    workspaceId: string,
-    listId: string,
-    pagination: PaginationDto,
-  ) {
-    const list = await this.viewsRepository.findListById(
-      workspaceId,
-      listId,
+  async findManyByScope(workspaceId: string, query: ListViewsQueryDto) {
+    const filters = [query.listId, query.folderId, query.spaceId].filter(
+      Boolean,
     );
-    if (!list) {
-      throw new NotFoundException('Processo não encontrado');
+    if (filters.length === 0) {
+      throw new BadRequestException(
+        'Informe ao menos um filtro: listId, folderId ou spaceId',
+      );
     }
-    const { items, total } = await this.viewsRepository.findManyByList(
+    if (filters.length > 1) {
+      throw new BadRequestException(
+        'Use apenas um filtro: listId, folderId ou spaceId',
+      );
+    }
+    const { items, total } = await this.viewsRepository.findManyByScope(
       workspaceId,
       {
-        listId,
-        skip: pagination.skip,
-        take: pagination.limit,
+        listId: query.listId,
+        folderId: query.folderId,
+        spaceId: query.spaceId,
+        skip: query.skip,
+        take: query.limit,
       },
     );
     return {
       items: items.map(ViewResponseDto.fromEntity),
       total,
     };
+  }
+
+  async findOne(workspaceId: string, id: string): Promise<ViewResponseDto> {
+    const entity = await this.viewsRepository.findById(workspaceId, id);
+    if (!entity) {
+      throw new NotFoundException('Visão não encontrada');
+    }
+    return ViewResponseDto.fromEntity(entity);
   }
 
   async update(

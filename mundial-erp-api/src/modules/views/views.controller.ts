@@ -8,6 +8,7 @@ import {
   Param,
   Patch,
   Post,
+  Put,
   Query,
 } from '@nestjs/common';
 import {
@@ -25,38 +26,41 @@ import { ListViewsQueryDto } from './dto/list-views-query.dto';
 import { Roles } from '../auth/decorators';
 import { WorkspaceId } from '../workspaces/decorators/workspace-id.decorator';
 
-@ApiTags('Process Views')
+@ApiTags('Views')
 @ApiBearerAuth()
-@Controller('process-views')
+@Controller('views')
 export class ViewsController {
   constructor(private readonly viewsService: ViewsService) {}
 
   @Post()
   @Roles(Role.ADMIN, Role.MANAGER)
-  @ApiOperation({ summary: 'Criar visão de processo' })
+  @ApiOperation({ summary: 'Criar visão' })
   @ApiResponse({ status: 201, type: ViewResponseDto })
-  create(
-    @WorkspaceId() workspaceId: string,
-    @Body() dto: CreateViewDto,
-  ) {
+  create(@WorkspaceId() workspaceId: string, @Body() dto: CreateViewDto) {
     return this.viewsService.create(workspaceId, dto);
   }
 
   @Get()
   @Roles(Role.ADMIN, Role.MANAGER, Role.OPERATOR)
-  @ApiOperation({ summary: 'Listar visões de um processo' })
+  @ApiOperation({
+    summary: 'Listar visões por escopo (?spaceId | ?folderId | ?listId)',
+  })
   findAll(
     @WorkspaceId() workspaceId: string,
     @Query() query: ListViewsQueryDto,
   ) {
-    return this.viewsService.findAllByList(
-      workspaceId,
-      query.listId,
-      query,
-    );
+    return this.viewsService.findManyByScope(workspaceId, query);
   }
 
-  @Patch(':id')
+  @Get(':id')
+  @Roles(Role.ADMIN, Role.MANAGER, Role.OPERATOR, Role.VIEWER)
+  @ApiOperation({ summary: 'Buscar visão por ID' })
+  @ApiResponse({ status: 200, type: ViewResponseDto })
+  findOne(@WorkspaceId() workspaceId: string, @Param('id') id: string) {
+    return this.viewsService.findOne(workspaceId, id);
+  }
+
+  @Put(':id')
   @Roles(Role.ADMIN, Role.MANAGER)
   @ApiOperation({ summary: 'Atualizar visão (nome/config)' })
   @ApiResponse({ status: 200, type: ViewResponseDto })
@@ -72,7 +76,7 @@ export class ViewsController {
   @Patch(':id/pin')
   @Roles(Role.ADMIN, Role.MANAGER)
   @ApiOperation({
-    summary: 'Fixar visão como padrão (desfixa as demais do processo)',
+    summary: 'Fixar visão como padrão (desfixa as demais da lista)',
   })
   @ApiResponse({ status: 200, type: ViewResponseDto })
   @ApiResponse({ status: 404, description: 'Visão não encontrada' })

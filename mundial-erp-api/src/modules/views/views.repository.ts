@@ -36,13 +36,33 @@ export class ViewsRepository {
     });
   }
 
-  async findManyByList(
+  async findManyByScope(
     workspaceId: string,
-    params: { listId: string; skip?: number; take?: number },
+    params: {
+      listId?: string;
+      folderId?: string;
+      spaceId?: string;
+      skip?: number;
+      take?: number;
+    },
   ) {
-    const { listId, skip = 0, take = 50 } = params;
+    const { listId, folderId, spaceId, skip = 0, take = 50 } = params;
+    const scopeFilter: Prisma.ProcessViewWhereInput = listId
+      ? { listId }
+      : folderId
+        ? { list: { folderId, space: { workspaceId } } }
+        : spaceId
+          ? {
+              list: {
+                OR: [
+                  { spaceId, space: { workspaceId } },
+                  { folder: { spaceId, space: { workspaceId } } },
+                ],
+              },
+            }
+          : {};
     const where: Prisma.ProcessViewWhereInput = {
-      listId,
+      ...scopeFilter,
       deletedAt: null,
       ...this.workspaceListFilter(workspaceId),
     };
