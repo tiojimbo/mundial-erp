@@ -299,6 +299,7 @@ export class TasksRepository {
       select: {
         userId: true,
         isPrimary: true,
+        assignedAt: true,
         user: { select: { id: true, name: true, email: true } },
       },
       orderBy: [{ isPrimary: 'desc' }, { assignedAt: 'asc' }],

@@ -445,6 +445,35 @@ export class TasksService {
   }
 
   /**
+   * HPP-055 — `GET /tasks/:id/assignees`. Response Hoppe:
+   * `[{ id: userId, user: { id, name, email }, permission, createdAt }]`.
+   * `permission` retorna null ate ter mapeamento (Member* em Sprints futuros).
+   */
+  async findAssignees(
+    workspaceId: string,
+    taskId: string,
+  ): Promise<
+    Array<{
+      id: string;
+      user: { id: string; name: string; email: string };
+      permission: string | null;
+      createdAt: Date;
+    }>
+  > {
+    const task = await this.repository.findExistenceRow(workspaceId, taskId);
+    if (!task) {
+      throw new NotFoundException('Task nao encontrada');
+    }
+    const rows = await this.repository.findAssignees(taskId);
+    return rows.map((row) => ({
+      id: row.userId,
+      user: row.user,
+      permission: null,
+      createdAt: row.assignedAt,
+    }));
+  }
+
+  /**
    * HPP-054 — `GET /tasks/:id/subtasks`. Valida parent existe + tenant.
    */
   async findSubtasks(

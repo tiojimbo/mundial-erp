@@ -76,6 +76,18 @@ export class TasksController {
     return this.tasksService.findBySpace(workspaceId, spaceId);
   }
 
+  @Get('tasks/:taskId/assignees')
+  @Roles(Role.ADMIN, Role.MANAGER, Role.OPERATOR, Role.VIEWER)
+  @ApiOperation({ summary: 'Assignees de uma task (Hoppe)' })
+  @ApiResponse({ status: 200 })
+  @ApiResponse({ status: 404, description: 'Task nao encontrada' })
+  findAssignees(
+    @WorkspaceId() workspaceId: string,
+    @Param('taskId') taskId: string,
+  ) {
+    return this.tasksService.findAssignees(workspaceId, taskId);
+  }
+
   @Get('tasks/:taskId/subtasks')
   @Roles(Role.ADMIN, Role.MANAGER, Role.OPERATOR, Role.VIEWER)
   @ApiOperation({ summary: 'Subtasks de uma task (Hoppe)' })
