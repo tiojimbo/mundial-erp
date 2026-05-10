@@ -7,47 +7,42 @@ import type {
 } from '../types/task.types';
 
 /**
- * Tags de Task — PLANO-TASKS.md §7.3.
- *
- * Rotas:
- * - GET    /task-tags                      (list)
- * - POST   /task-tags                      (create)
- * - PATCH  /task-tags/:id                  (update)
- * - DELETE /task-tags/:id                  (delete)
- * - POST   /tasks/:taskId/tags/:tagId      (attach)
- * - DELETE /tasks/:taskId/tags/:tagId      (detach)
+ * Tags (Hoppe — HPP-085/086):
+ * - GET    /tags                       (list)
+ * - POST   /tags                       (create, spaceId obrigatorio)
+ * - PUT    /tags/:id                   (update)
+ * - DELETE /tags/:id                   (delete)
+ * - POST   /tags/task/:taskId          body { tagId } (attach)
+ * - DELETE /tags/task/:taskId/:tagId   (detach)
  */
 export const taskTagsService = {
   async list(): Promise<TaskTag[]> {
-    const { data } = await api.get<PaginatedResponse<TaskTag>>('/task-tags');
+    const { data } = await api.get<PaginatedResponse<TaskTag>>('/tags');
     return data.data;
   },
 
   async create(payload: CreateTagDto): Promise<TaskTag> {
-    const { data } = await api.post<ApiResponse<TaskTag>>(
-      '/task-tags',
-      payload,
-    );
+    const { data } = await api.post<ApiResponse<TaskTag>>('/tags', payload);
     return data.data;
   },
 
   async update(tagId: string, payload: UpdateTagDto): Promise<TaskTag> {
-    const { data } = await api.patch<ApiResponse<TaskTag>>(
-      `/task-tags/${tagId}`,
+    const { data } = await api.put<ApiResponse<TaskTag>>(
+      `/tags/${tagId}`,
       payload,
     );
     return data.data;
   },
 
   async remove(tagId: string): Promise<void> {
-    await api.delete(`/task-tags/${tagId}`);
+    await api.delete(`/tags/${tagId}`);
   },
 
   async attach(taskId: string, tagId: string): Promise<void> {
-    await api.post(`/tasks/${taskId}/tags/${tagId}`);
+    await api.post(`/tags/task/${taskId}`, { tagId });
   },
 
   async detach(taskId: string, tagId: string): Promise<void> {
-    await api.delete(`/tasks/${taskId}/tags/${tagId}`);
+    await api.delete(`/tags/task/${taskId}/${tagId}`);
   },
 };

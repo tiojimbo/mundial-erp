@@ -385,8 +385,14 @@ export const mergeTasksSchema = z.object({
 });
 
 export const createTagSchema = z.object({
+  // spaceId e obrigatorio na API (HPP-085). Tipado como opcional aqui pra
+  // nao quebrar /settings/task-tags durante a transicao — caller passando
+  // sem spaceId vai receber 400 do backend. Tornar required quando a page
+  // tiver seletor de space.
+  spaceId: z.string().min(1).optional(),
   name: z.string().trim().min(1),
   color: z.string().trim().min(1),
+  bgColor: z.string().trim().optional(),
 });
 
 export const updateTagSchema = createTagSchema.partial();
