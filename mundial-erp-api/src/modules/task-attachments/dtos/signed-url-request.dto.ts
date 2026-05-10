@@ -19,6 +19,11 @@ export const ATTACHMENT_MIME_WHITELIST_REGEX =
 export const ATTACHMENT_MAX_SIZE_BYTES = 25 * 1024 * 1024;
 
 export class SignedUrlRequestDto {
+  @ApiProperty({ description: 'Id da task que vai receber o anexo' })
+  @IsString()
+  @MaxLength(64)
+  taskId!: string;
+
   @ApiProperty({ example: 'relatorio.pdf', maxLength: 255 })
   @IsString()
   @MaxLength(255)

@@ -16,6 +16,11 @@ import {
 export const ATTACHMENT_CATEGORY_REGEX = /^[a-z0-9_-]+$/;
 
 export class RegisterAttachmentDto {
+  @ApiProperty({ description: 'Id da task' })
+  @IsString()
+  @MaxLength(64)
+  taskId!: string;
+
   @ApiProperty({ example: 'relatorio.pdf' })
   @IsString()
   @MaxLength(255)
