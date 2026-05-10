@@ -15,7 +15,7 @@ export class ProcessInstancesService {
     dto: CreateProcessInstanceDto,
   ): Promise<ProcessInstanceResponseDto> {
     const instance = await this.processInstancesRepository.create({
-      process: { connect: { id: dto.processId } },
+      list: { connect: { id: dto.listId } },
       order: { connect: { id: dto.orderId } },
     });
 
@@ -26,7 +26,7 @@ export class ProcessInstancesService {
     pagination: PaginationDto,
     filters: {
       orderId?: string;
-      processId?: string;
+      listId?: string;
       status?: ProcessStatus;
     },
   ) {

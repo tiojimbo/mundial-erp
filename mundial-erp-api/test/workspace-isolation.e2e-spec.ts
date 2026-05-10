@@ -91,14 +91,14 @@ describe('Workspace Isolation (e2e)', () => {
     try {
       // Cleanup ordem: department -> members -> workspace -> user
       if (wsAId) {
-        await prisma.department.deleteMany({ where: { workspaceId: wsAId } });
+        await prisma.space.deleteMany({ where: { workspaceId: wsAId } });
         await prisma.workspaceMember.deleteMany({
           where: { workspaceId: wsAId },
         });
         await prisma.workspace.deleteMany({ where: { id: wsAId } });
       }
       if (wsBId) {
-        await prisma.department.deleteMany({ where: { workspaceId: wsBId } });
+        await prisma.space.deleteMany({ where: { workspaceId: wsBId } });
         await prisma.workspaceMember.deleteMany({
           where: { workspaceId: wsBId },
         });
@@ -270,7 +270,7 @@ describe('Workspace Isolation (e2e)', () => {
     const newDeptId = created.body.data.id;
 
     // Validacao na DB: o department recem criado pertence a wsB, nao a wsA
-    const dept = await prisma.department.findUnique({
+    const dept = await prisma.space.findUnique({
       where: { id: newDeptId },
       select: { workspaceId: true },
     });
@@ -289,7 +289,7 @@ describe('Workspace Isolation (e2e)', () => {
     expect([403, 404]).toContain(res.status);
 
     // Confirma na DB que ainda existe (e nao foi soft-deleted)
-    const stillThere = await prisma.department.findUnique({
+    const stillThere = await prisma.space.findUnique({
       where: { id: departmentAId! },
       select: { id: true, deletedAt: true },
     });

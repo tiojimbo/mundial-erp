@@ -48,7 +48,7 @@ export class TaskLinksRepository {
       where: {
         id: taskId,
         deletedAt: null,
-        process: { department: { workspaceId } },
+        list: { space: { workspaceId } },
       },
       select: { id: true },
     });
@@ -61,11 +61,11 @@ export class TaskLinksRepository {
         fromTaskId: taskId,
         fromTask: {
           deletedAt: null,
-          process: { department: { workspaceId } },
+          list: { space: { workspaceId } },
         },
         toTask: {
           deletedAt: null,
-          process: { department: { workspaceId } },
+          list: { space: { workspaceId } },
         },
       },
       select: {
@@ -81,11 +81,11 @@ export class TaskLinksRepository {
         toTaskId: taskId,
         fromTask: {
           deletedAt: null,
-          process: { department: { workspaceId } },
+          list: { space: { workspaceId } },
         },
         toTask: {
           deletedAt: null,
-          process: { department: { workspaceId } },
+          list: { space: { workspaceId } },
         },
       },
       select: {

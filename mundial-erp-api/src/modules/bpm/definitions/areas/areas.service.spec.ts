@@ -9,23 +9,26 @@ const mockArea = {
   name: 'Vendas',
   slug: 'vendas',
   description: 'Area de vendas',
-  departmentId: 'dept-1',
+  spaceId: 'dept-1',
   isPrivate: false,
   icon: null,
   color: '#3B82F6',
+  visibility: 'PUBLIC' as const,
   useSpaceStatuses: true,
-  sortOrder: 0,
+  statusInheritance: 'SPACE' as const,
+  position: 0,
+  creatorId: null,
+  defaultTaskTypeId: null,
   isDefault: false,
   createdAt: new Date(),
   updatedAt: new Date(),
   deletedAt: null,
-  department: { id: 'dept-1', name: 'Comercial', slug: 'comercial' },
 };
 
 const mockAreaWithDetails = {
   ...mockArea,
-  department: { id: 'dept-1', name: 'Comercial', slug: 'comercial' },
-  processes: [
+  space: { id: 'dept-1', name: 'Comercial', slug: 'comercial' },
+  lists: [
     {
       id: 'proc-1',
       name: 'Cotacoes',
@@ -56,7 +59,7 @@ const mockProcessSummaries = [
     featureRoute: null,
     description: null,
     isPrivate: false,
-    areaId: 'area-1',
+    folderId: 'area-1',
     areaName: 'Vendas',
     totalItems: 10,
     groups: [],
@@ -106,7 +109,7 @@ describe('AreasService', () => {
 
       const result = await service.create({
         name: 'Vendas',
-        departmentId: 'dept-1',
+        spaceId: 'dept-1',
       });
 
       expect(result.id).toBe('area-1');
@@ -115,7 +118,7 @@ describe('AreasService', () => {
         expect.objectContaining({
           slug: 'vendas',
           useSpaceStatuses: true,
-          department: { connect: { id: 'dept-1' } },
+          space: { connect: { id: 'dept-1' } },
         }),
       );
     });
@@ -131,7 +134,7 @@ describe('AreasService', () => {
 
       const result = await service.create({
         name: 'Vendas',
-        departmentId: 'dept-1',
+        spaceId: 'dept-1',
       });
 
       expect(result.slug).toBe('vendas-1');
@@ -143,7 +146,7 @@ describe('AreasService', () => {
 
       await service.create({
         name: 'Vendas',
-        departmentId: 'dept-1',
+        spaceId: 'dept-1',
         useSpaceStatuses: true,
       });
 
@@ -159,7 +162,7 @@ describe('AreasService', () => {
 
       await service.create({
         name: 'Vendas',
-        departmentId: 'dept-1',
+        spaceId: 'dept-1',
         useSpaceStatuses: false,
       });
 

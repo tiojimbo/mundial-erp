@@ -13,10 +13,10 @@ export class ProcessViewsRepository {
     workspaceId: string,
   ): Prisma.ProcessViewWhereInput {
     return {
-      process: {
+      list: {
         OR: [
-          { department: { workspaceId } },
-          { area: { department: { workspaceId } } },
+          { space: { workspaceId } },
+          { folder: { space: { workspaceId } } },
         ],
       },
     };
@@ -41,11 +41,11 @@ export class ProcessViewsRepository {
 
   async findManyByProcess(
     workspaceId: string,
-    params: { processId: string; skip?: number; take?: number },
+    params: { listId: string; skip?: number; take?: number },
   ) {
-    const { processId, skip = 0, take = 50 } = params;
+    const { listId, skip = 0, take = 50 } = params;
     const where: Prisma.ProcessViewWhereInput = {
-      processId,
+      listId,
       deletedAt: null,
       ...this.workspaceProcessFilter(workspaceId),
     };
@@ -54,7 +54,7 @@ export class ProcessViewsRepository {
         where,
         skip,
         take,
-        orderBy: { sortOrder: 'asc' },
+        orderBy: { position: 'asc' },
       }),
       this.prisma.processView.count({ where }),
     ]);
@@ -69,10 +69,10 @@ export class ProcessViewsRepository {
     return this.prisma.processView.update({ where: { id }, data });
   }
 
-  async unpinAllByProcess(workspaceId: string, processId: string) {
+  async unpinAllByProcess(workspaceId: string, listId: string) {
     return this.prisma.processView.updateMany({
       where: {
-        processId,
+        listId,
         deletedAt: null,
         isPinned: true,
         ...this.workspaceProcessFilter(workspaceId),
@@ -88,14 +88,14 @@ export class ProcessViewsRepository {
     });
   }
 
-  async findProcessById(workspaceId: string, processId: string) {
-    return this.prisma.process.findFirst({
+  async findProcessById(workspaceId: string, listId: string) {
+    return this.prisma.list.findFirst({
       where: {
-        id: processId,
+        id: listId,
         deletedAt: null,
         OR: [
-          { department: { workspaceId } },
-          { area: { department: { workspaceId } } },
+          { space: { workspaceId } },
+          { folder: { space: { workspaceId } } },
         ],
       },
       select: { id: true },

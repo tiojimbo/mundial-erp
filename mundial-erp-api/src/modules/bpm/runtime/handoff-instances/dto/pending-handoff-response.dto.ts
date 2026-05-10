@@ -6,8 +6,8 @@ type PendingHandoffEntity = Prisma.HandoffInstanceGetPayload<{
   include: {
     handoff: {
       include: {
-        fromProcess: { include: { department: true } };
-        toProcess: { include: { department: true } };
+        fromProcess: { include: { space: true } };
+        toProcess: { include: { space: true } };
       };
     };
     order: { include: { client: true } };

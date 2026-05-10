@@ -8,7 +8,7 @@ export class WorkItemFiltersDto extends PaginationDto {
   @ApiPropertyOptional({ example: 'clxxxxxxxxxxxxxxxxxxxxxxxxx' })
   @IsOptional()
   @IsString()
-  processId?: string;
+  listId?: string;
 
   @ApiPropertyOptional({ example: 'clxxxxxxxxxxxxxxxxxxxxxxxxx' })
   @IsOptional()

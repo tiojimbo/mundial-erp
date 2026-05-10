@@ -41,7 +41,7 @@ export class TaskCommentsRepository {
       where: {
         id: taskId,
         deletedAt: null,
-        process: { department: { workspaceId } },
+        list: { space: { workspaceId } },
       },
       select: { id: true },
     });
@@ -56,7 +56,7 @@ export class TaskCommentsRepository {
     const where = {
       workItemId: taskId,
       deletedAt: null,
-      workItem: { process: { department: { workspaceId } } },
+      workItem: { list: { space: { workspaceId } } },
     };
 
     const [items, total] = await Promise.all([
@@ -78,7 +78,7 @@ export class TaskCommentsRepository {
       where: {
         id,
         deletedAt: null,
-        workItem: { process: { department: { workspaceId } } },
+        workItem: { list: { space: { workspaceId } } },
       },
       select: COMMENT_SELECT,
     });

@@ -18,10 +18,10 @@ export class ProcessResponseDto {
   sectorName?: string;
 
   @ApiPropertyOptional()
-  departmentId: string | null;
+  spaceId: string | null;
 
   @ApiPropertyOptional()
-  areaId: string | null;
+  folderId: string | null;
 
   @ApiProperty({ enum: ProcessType })
   processType: ProcessType;
@@ -65,8 +65,8 @@ export class ProcessResponseDto {
     dto.slug = entity.slug;
     dto.sectorId = entity.sectorId;
     dto.sectorName = entity.sector?.name;
-    dto.departmentId = entity.departmentId;
-    dto.areaId = entity.areaId;
+    dto.spaceId = entity.spaceId;
+    dto.folderId = entity.folderId;
     dto.description = entity.description;
     dto.processType = entity.processType;
     dto.featureRoute = entity.featureRoute;

@@ -50,7 +50,7 @@ export class TaskActivitiesRepository {
       where: {
         id: taskId,
         deletedAt: null,
-        process: { department: { workspaceId } },
+        list: { space: { workspaceId } },
       },
       select: { id: true },
     });
@@ -66,7 +66,7 @@ export class TaskActivitiesRepository {
 
     const where: Prisma.WorkItemActivityWhereInput = {
       workItemId: taskId,
-      workItem: { process: { department: { workspaceId } } },
+      workItem: { list: { space: { workspaceId } } },
     };
 
     if (type === 'COMMENT') {

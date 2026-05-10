@@ -93,7 +93,7 @@ async function main() {
     select: {
       id: true,
       title: true,
-      process: { select: { department: { select: { workspaceId: true, name: true } } } },
+      list: { select: { space: { select: { workspaceId: true, name: true } } } },
     },
     orderBy: { createdAt: 'desc' },
   });
@@ -118,7 +118,7 @@ async function main() {
   const items = await prisma.workItemActivity.findMany({
     where: {
       workItemId: testTaskId,
-      workItem: { process: { department: { workspaceId: testWorkspaceId } } },
+      workItem: { list: { space: { workspaceId: testWorkspaceId } } },
     },
     orderBy: { createdAt: 'desc' },
     take: 20,

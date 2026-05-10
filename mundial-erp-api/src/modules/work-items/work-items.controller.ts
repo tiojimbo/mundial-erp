@@ -72,16 +72,16 @@ export class WorkItemsController {
   @Get('grouped')
   @Roles(Role.ADMIN, Role.MANAGER, Role.OPERATOR, Role.VIEWER)
   @ApiOperation({ summary: 'Listar work items agrupados por status' })
-  @ApiQuery({ name: 'processId', required: true })
+  @ApiQuery({ name: 'listId', required: true })
   @ApiQuery({ name: 'showClosed', required: false, type: Boolean })
   findGrouped(
     @WorkspaceId() workspaceId: string,
-    @Query('processId') processId: string,
+    @Query('listId') listId: string,
     @Query('showClosed') showClosed?: boolean,
   ) {
     return this.workItemsService.findGrouped(
       workspaceId,
-      processId,
+      listId,
       showClosed,
     );
   }

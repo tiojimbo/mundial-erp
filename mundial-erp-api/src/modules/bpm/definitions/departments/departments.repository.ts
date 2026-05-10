@@ -6,8 +6,8 @@ import { PrismaService } from '../../../../database/prisma.service';
 export class DepartmentsRepository {
   constructor(private readonly prisma: PrismaService) {}
 
-  async create(workspaceId: string, data: Prisma.DepartmentCreateInput) {
-    return this.prisma.department.create({
+  async create(workspaceId: string, data: Prisma.SpaceCreateInput) {
+    return this.prisma.space.create({
       data: {
         ...data,
         workspace: { connect: { id: workspaceId } },
@@ -16,20 +16,20 @@ export class DepartmentsRepository {
   }
 
   async findById(workspaceId: string, id: string) {
-    return this.prisma.department.findFirst({
+    return this.prisma.space.findFirst({
       where: { id, workspaceId, deletedAt: null },
       include: { sectors: { where: { deletedAt: null } } },
     });
   }
 
   async findBySlug(workspaceId: string, slug: string) {
-    return this.prisma.department.findFirst({
+    return this.prisma.space.findFirst({
       where: { slug, workspaceId, deletedAt: null },
     });
   }
 
   async slugExists(workspaceId: string, slug: string): Promise<boolean> {
-    const count = await this.prisma.department.count({
+    const count = await this.prisma.space.count({
       where: { slug, workspaceId },
     });
     return count > 0;
@@ -40,15 +40,15 @@ export class DepartmentsRepository {
     params: { skip?: number; take?: number },
   ) {
     const { skip = 0, take = 20 } = params;
-    const where: Prisma.DepartmentWhereInput = { workspaceId, deletedAt: null };
+    const where: Prisma.SpaceWhereInput = { workspaceId, deletedAt: null };
     const [items, total] = await Promise.all([
-      this.prisma.department.findMany({
+      this.prisma.space.findMany({
         where,
         skip,
         take,
-        orderBy: { sortOrder: 'asc' },
+        orderBy: { position: 'asc' },
       }),
-      this.prisma.department.count({ where }),
+      this.prisma.space.count({ where }),
     ]);
     return { items, total };
   }
@@ -56,14 +56,14 @@ export class DepartmentsRepository {
   async update(
     _workspaceId: string,
     id: string,
-    data: Prisma.DepartmentUpdateInput,
+    data: Prisma.SpaceUpdateInput,
   ) {
     // Ownership já validada via findById(workspaceId, id) pelo service.
-    return this.prisma.department.update({ where: { id }, data });
+    return this.prisma.space.update({ where: { id }, data });
   }
 
   async softDelete(_workspaceId: string, id: string) {
-    return this.prisma.department.update({
+    return this.prisma.space.update({
       where: { id },
       data: { deletedAt: new Date() },
     });
@@ -82,9 +82,9 @@ export class DepartmentsRepository {
       sortOrder: true,
     } as const;
 
-    return this.prisma.department.findMany({
+    return this.prisma.space.findMany({
       where: { workspaceId, deletedAt: null },
-      orderBy: { sortOrder: 'asc' },
+      orderBy: { position: 'asc' },
       select: {
         id: true,
         name: true,
@@ -96,9 +96,9 @@ export class DepartmentsRepository {
         isDefault: true,
         isProtected: true,
         sortOrder: true,
-        areas: {
+        folders: {
           where: { deletedAt: null },
-          orderBy: { sortOrder: 'asc' },
+          orderBy: { position: 'asc' },
           select: {
             id: true,
             name: true,
@@ -107,16 +107,16 @@ export class DepartmentsRepository {
             isPrivate: true,
             sortOrder: true,
             isDefault: true,
-            processes: {
+            lists: {
               where: { deletedAt: null },
-              orderBy: { sortOrder: 'asc' },
+              orderBy: { position: 'asc' },
               select: processSelect,
             },
           },
         },
-        processes: {
-          where: { deletedAt: null, areaId: null },
-          orderBy: { sortOrder: 'asc' },
+        lists: {
+          where: { deletedAt: null, folderId: null },
+          orderBy: { position: 'asc' },
           select: processSelect,
         },
       },
@@ -124,12 +124,12 @@ export class DepartmentsRepository {
   }
 
   async findBySlugWithDetails(workspaceId: string, slug: string) {
-    return this.prisma.department.findFirst({
+    return this.prisma.space.findFirst({
       where: { slug, workspaceId, deletedAt: null },
       include: {
-        areas: {
+        folders: {
           where: { deletedAt: null },
-          orderBy: { sortOrder: 'asc' },
+          orderBy: { position: 'asc' },
           select: {
             id: true,
             name: true,
@@ -137,13 +137,13 @@ export class DepartmentsRepository {
             description: true,
             isPrivate: true,
             _count: {
-              select: { processes: { where: { deletedAt: null } } },
+              select: { lists: { where: { deletedAt: null } } },
             },
           },
         },
-        processes: {
-          where: { deletedAt: null, areaId: null },
-          orderBy: { sortOrder: 'asc' },
+        lists: {
+          where: { deletedAt: null, folderId: null },
+          orderBy: { position: 'asc' },
           select: {
             id: true,
             name: true,
@@ -164,26 +164,26 @@ export class DepartmentsRepository {
    */
   async getProcessSummaries(
     workspaceId: string,
-    departmentId: string,
+    spaceId: string,
     showClosed = false,
   ) {
     // 1. Buscar todos os processos do departamento (diretos + via areas)
     // Department já está escopado por workspace na chamada anterior (validação no service)
-    const processes = await this.prisma.process.findMany({
+    const processes = await this.prisma.list.findMany({
       where: {
         deletedAt: null,
         OR: [
-          { departmentId, department: { workspaceId }, areaId: null },
+          { spaceId, space: { workspaceId }, folderId: null },
           {
-            area: {
-              departmentId,
+            folder: {
+              spaceId,
               deletedAt: null,
-              department: { workspaceId },
+              space: { workspaceId },
             },
           },
         ],
       },
-      orderBy: { sortOrder: 'asc' },
+      orderBy: { position: 'asc' },
       select: {
         id: true,
         name: true,
@@ -192,8 +192,8 @@ export class DepartmentsRepository {
         featureRoute: true,
         description: true,
         isPrivate: true,
-        areaId: true,
-        area: { select: { name: true } },
+        folderId: true,
+        folder: { select: { name: true } },
       },
     });
 
@@ -207,8 +207,8 @@ export class DepartmentsRepository {
 
     // 2. Batch: WorkItems agrupados por processo+status para processos LIST
     const workItemWhere: Prisma.WorkItemWhereInput = {
-      processId: { in: listProcessIds },
-      process: { department: { workspaceId } },
+      listId: { in: listProcessIds },
+      list: { space: { workspaceId } },
       deletedAt: null,
       parentId: null,
     };
@@ -220,11 +220,11 @@ export class DepartmentsRepository {
       ? await Promise.all([
           this.prisma.workItem.findMany({
             where: workItemWhere,
-            orderBy: [{ sortOrder: 'asc' }, { createdAt: 'desc' }],
+            orderBy: [{ position: 'asc' }, { createdAt: 'desc' }],
             take: 2500, // cap global para não estourar memória
             select: {
               id: true,
-              processId: true,
+              listId: true,
               title: true,
               statusId: true,
               priority: true,
@@ -246,11 +246,11 @@ export class DepartmentsRepository {
           }),
           this.prisma.workflowStatus.findMany({
             where: {
-              departmentId,
-              department: { workspaceId },
+              spaceId,
+              space: { workspaceId },
               deletedAt: null,
             },
-            orderBy: { sortOrder: 'asc' },
+            orderBy: { position: 'asc' },
             select: {
               id: true,
               name: true,
@@ -263,12 +263,12 @@ export class DepartmentsRepository {
 
     // 3. Batch: Contagens BPM para processos BPM
     let processInstances: Array<{
-      processId: string;
+      listId: string;
       order: { status: string };
     }> = [];
-    let pendingActivities: Array<{ processInstance: { processId: string } }> =
+    let pendingActivities: Array<{ processInstance: { listId: string } }> =
       [];
-    let pendingHandoffs: Array<{ fromProcessInstance: { processId: string } }> =
+    let pendingHandoffs: Array<{ fromProcessInstance: { listId: string } }> =
       [];
 
     if (bpmProcessIds.length > 0) {
@@ -276,41 +276,41 @@ export class DepartmentsRepository {
         await Promise.all([
           this.prisma.processInstance.findMany({
             where: {
-              processId: { in: bpmProcessIds },
-              process: { department: { workspaceId } },
+              listId: { in: bpmProcessIds },
+              list: { space: { workspaceId } },
               deletedAt: null,
             },
             select: {
-              processId: true,
+              listId: true,
               order: { select: { status: true } },
             },
           }),
           this.prisma.activityInstance.findMany({
             where: {
               processInstance: {
-                processId: { in: bpmProcessIds },
-                process: { department: { workspaceId } },
+                listId: { in: bpmProcessIds },
+                list: { space: { workspaceId } },
                 deletedAt: null,
               },
               status: { in: ['PENDING', 'IN_PROGRESS'] },
               deletedAt: null,
             },
             select: {
-              processInstance: { select: { processId: true } },
+              processInstance: { select: { listId: true } },
             },
           }),
           this.prisma.handoffInstance.findMany({
             where: {
               fromProcessInstance: {
-                processId: { in: bpmProcessIds },
-                process: { department: { workspaceId } },
+                listId: { in: bpmProcessIds },
+                list: { space: { workspaceId } },
                 deletedAt: null,
               },
               status: 'PENDING',
               deletedAt: null,
             },
             select: {
-              fromProcessInstance: { select: { processId: true } },
+              fromProcessInstance: { select: { listId: true } },
             },
           }),
         ]);
@@ -326,12 +326,12 @@ export class DepartmentsRepository {
         featureRoute: proc.featureRoute,
         description: proc.description,
         isPrivate: proc.isPrivate,
-        areaId: proc.areaId,
-        areaName: proc.area?.name ?? null,
+        folderId: proc.folderId,
+        areaName: proc.folder?.name ?? null,
       };
 
       if (proc.processType === ProcessType.LIST) {
-        const processItems = workItems.filter((wi) => wi.processId === proc.id);
+        const processItems = workItems.filter((wi) => wi.listId === proc.id);
 
         const groups = statuses.map((s) => {
           const items = processItems
@@ -362,7 +362,7 @@ export class DepartmentsRepository {
 
       // BPM
       const procInstances = processInstances.filter(
-        (pi) => pi.processId === proc.id,
+        (pi) => pi.listId === proc.id,
       );
       const ordersByStatus: Record<string, number> = {};
       for (const pi of procInstances) {
@@ -375,10 +375,10 @@ export class DepartmentsRepository {
         totalOrders: procInstances.length,
         ordersByStatus,
         pendingActivities: pendingActivities.filter(
-          (a) => a.processInstance.processId === proc.id,
+          (a) => a.processInstance.listId === proc.id,
         ).length,
         pendingHandoffs: pendingHandoffs.filter(
-          (h) => h.fromProcessInstance.processId === proc.id,
+          (h) => h.fromProcessInstance.listId === proc.id,
         ).length,
       };
     });

@@ -6,7 +6,7 @@ export class ProcessInstanceResponseDto {
   id: string;
 
   @ApiProperty()
-  processId: string;
+  listId: string;
 
   @ApiProperty()
   orderId: string;
@@ -29,7 +29,7 @@ export class ProcessInstanceResponseDto {
   static fromEntity(entity: ProcessInstance): ProcessInstanceResponseDto {
     const dto = new ProcessInstanceResponseDto();
     dto.id = entity.id;
-    dto.processId = entity.processId;
+    dto.listId = entity.listId;
     dto.orderId = entity.orderId;
     dto.status = entity.status;
     dto.startedAt = entity.startedAt;

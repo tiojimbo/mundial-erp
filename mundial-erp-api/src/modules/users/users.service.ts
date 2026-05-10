@@ -32,8 +32,8 @@ export class UsersService {
       name: dto.name,
       passwordHash,
       role: dto.role,
-      department: dto.departmentId
-        ? { connect: { id: dto.departmentId } }
+      department: dto.spaceId
+        ? { connect: { id: dto.spaceId } }
         : undefined,
     });
 
@@ -77,9 +77,9 @@ export class UsersService {
     if (dto.name !== undefined) updateData.name = dto.name;
     if (dto.role !== undefined) updateData.role = dto.role;
     if (dto.isActive !== undefined) updateData.isActive = dto.isActive;
-    if (dto.departmentId !== undefined) {
-      updateData.department = dto.departmentId
-        ? { connect: { id: dto.departmentId } }
+    if (dto.spaceId !== undefined) {
+      updateData.department = dto.spaceId
+        ? { connect: { id: dto.spaceId } }
         : { disconnect: true };
     }
     if (dto.password) {

@@ -9,21 +9,21 @@ export class ProcessesRepository {
   /**
    * Process NÃO possui workspaceId direto. Escopo via department (direto OU via area).
    */
-  private workspaceFilter(workspaceId: string): Prisma.ProcessWhereInput {
+  private workspaceFilter(workspaceId: string): Prisma.ListWhereInput {
     return {
       OR: [
-        { department: { workspaceId } },
-        { area: { department: { workspaceId } } },
+        { space: { workspaceId } },
+        { folder: { space: { workspaceId } } },
       ],
     };
   }
 
-  async create(_workspaceId: string, data: Prisma.ProcessCreateInput) {
-    return this.prisma.process.create({ data });
+  async create(_workspaceId: string, data: Prisma.ListCreateInput) {
+    return this.prisma.list.create({ data });
   }
 
   async findById(workspaceId: string, id: string) {
-    return this.prisma.process.findFirst({
+    return this.prisma.list.findFirst({
       where: {
         id,
         deletedAt: null,
@@ -37,7 +37,7 @@ export class ProcessesRepository {
   }
 
   async findBySlug(workspaceId: string, slug: string) {
-    return this.prisma.process.findFirst({
+    return this.prisma.list.findFirst({
       where: {
         slug,
         deletedAt: null,
@@ -51,21 +51,21 @@ export class ProcessesRepository {
     params: { skip?: number; take?: number },
   ) {
     const { skip = 0, take = 20 } = params;
-    const where: Prisma.ProcessWhereInput = {
+    const where: Prisma.ListWhereInput = {
       deletedAt: null,
       ...this.workspaceFilter(workspaceId),
     };
     const [items, total] = await Promise.all([
-      this.prisma.process.findMany({
+      this.prisma.list.findMany({
         where,
         skip,
         take,
-        orderBy: { sortOrder: 'asc' },
+        orderBy: { position: 'asc' },
         include: {
           sector: { select: { id: true, name: true } },
         },
       }),
-      this.prisma.process.count({ where }),
+      this.prisma.list.count({ where }),
     ]);
     return { items, total };
   }
@@ -73,28 +73,28 @@ export class ProcessesRepository {
   async update(
     _workspaceId: string,
     id: string,
-    data: Prisma.ProcessUpdateInput,
+    data: Prisma.ListUpdateInput,
   ) {
-    return this.prisma.process.update({ where: { id }, data });
+    return this.prisma.list.update({ where: { id }, data });
   }
 
   async softDelete(_workspaceId: string, id: string) {
-    return this.prisma.process.update({
+    return this.prisma.list.update({
       where: { id },
       data: { deletedAt: new Date() },
     });
   }
 
-  async findAreaById(workspaceId: string, areaId: string) {
-    return this.prisma.area.findFirst({
-      where: { id: areaId, deletedAt: null, department: { workspaceId } },
-      select: { id: true, departmentId: true },
+  async findAreaById(workspaceId: string, folderId: string) {
+    return this.prisma.folder.findFirst({
+      where: { id: folderId, deletedAt: null, space: { workspaceId } },
+      select: { id: true, spaceId: true },
     });
   }
 
   async createWithDefaultView(
     _workspaceId: string,
-    data: Prisma.ProcessCreateInput,
+    data: Prisma.ListCreateInput,
   ) {
     return this.prisma.$transaction(async (tx) => {
       const process = await tx.process.create({ data });
@@ -103,7 +103,7 @@ export class ProcessesRepository {
           name: 'Lista',
           viewType: 'LIST',
           isPinned: true,
-          process: { connect: { id: process.id } },
+          list: { connect: { id: process.id } },
         },
       });
       return process;
@@ -111,7 +111,7 @@ export class ProcessesRepository {
   }
 
   async findBySlugWithDetails(workspaceId: string, slug: string) {
-    return this.prisma.process.findFirst({
+    return this.prisma.list.findFirst({
       where: {
         slug,
         deletedAt: null,
@@ -119,16 +119,16 @@ export class ProcessesRepository {
       },
       include: {
         sector: { select: { id: true, name: true, slug: true } },
-        area: {
+        folder: {
           select: {
             id: true,
             name: true,
             slug: true,
-            departmentId: true,
-            department: { select: { name: true, slug: true } },
+            spaceId: true,
+            space: { select: { name: true, slug: true } },
           },
         },
-        department: { select: { id: true, name: true, slug: true } },
+        space: { select: { id: true, name: true, slug: true } },
         _count: { select: { activities: { where: { deletedAt: null } } } },
       },
     });

@@ -9,7 +9,7 @@ import { TaskFiltersDto } from './dtos/task-filters.dto';
  */
 export const TASK_LIST_SELECT = {
   id: true,
-  processId: true,
+  listId: true,
   title: true,
   description: true,
   statusId: true,
@@ -53,23 +53,23 @@ function buildWhere(
 ): Prisma.WorkItemWhereInput {
   const where: Prisma.WorkItemWhereInput = {
     // 1a linha: tenant isolation.
-    process: { department: { workspaceId } },
+    list: { space: { workspaceId } },
     deletedAt: null,
   };
 
-  if (filters.processIds?.length) {
-    where.processId = { in: filters.processIds };
+  if (filters.listIds?.length) {
+    where.listId = { in: filters.listIds };
   }
-  if (filters.areaIds?.length) {
+  if (filters.folderIds?.length) {
     where.process = {
-      ...(where.process as Prisma.ProcessWhereInput),
-      areaId: { in: filters.areaIds },
+      ...(where.process as Prisma.ListWhereInput),
+      folderId: { in: filters.folderIds },
     };
   }
-  if (filters.departmentIds?.length) {
+  if (filters.spaceIds?.length) {
     where.process = {
-      ...(where.process as Prisma.ProcessWhereInput),
-      department: { workspaceId, id: { in: filters.departmentIds } },
+      ...(where.process as Prisma.ListWhereInput),
+      space: { workspaceId, id: { in: filters.spaceIds } },
     };
   }
   if (filters.statuses?.length) {
@@ -283,7 +283,7 @@ export class TasksRepository {
       where: {
         id: taskId,
         deletedAt: null,
-        process: { department: { workspaceId } },
+        list: { space: { workspaceId } },
       },
       include,
     });
@@ -319,13 +319,13 @@ export class TasksRepository {
     return this.prisma.workItem.findFirst({
       where: {
         id: taskId,
-        process: { department: { workspaceId } },
+        list: { space: { workspaceId } },
       },
       select: {
         id: true,
         archived: true,
         deletedAt: true,
-        processId: true,
+        listId: true,
         statusId: true,
         mergedIntoId: true,
       },
@@ -387,7 +387,7 @@ export class TasksRepository {
       where: {
         id: taskId,
         deletedAt: null,
-        process: { department: { workspaceId } },
+        list: { space: { workspaceId } },
       },
       select: {
         id: true,
@@ -420,7 +420,7 @@ export class TasksRepository {
       where: {
         id: taskId,
         deletedAt: null,
-        process: { department: { workspaceId } },
+        list: { space: { workspaceId } },
       },
       data: { deletedAt: new Date() },
     });
@@ -454,7 +454,7 @@ export class TasksRepository {
     return tx.workItem.findMany({
       where: {
         id: { in: ids },
-        process: { department: { workspaceId } },
+        list: { space: { workspaceId } },
       },
       select: {
         id: true,
@@ -586,23 +586,23 @@ export class TasksRepository {
   }
 
   /**
-   * Assert-only: retorna `{ id, departmentId }` se o process pertence ao
+   * Assert-only: retorna `{ id, spaceId }` se o process pertence ao
    * workspace (via `department.workspaceId`). Usado em `create` para 404
    * cross-tenant cedo (PLANO §7.2, §8.1). Espelha o padrao ja estabelecido
    * em `TaskTemplatesRepository.findProcessInWorkspace`.
    */
   async findProcessInWorkspace(
     workspaceId: string,
-    processId: string,
+    listId: string,
     tx?: Prisma.TransactionClient,
   ) {
     return this.client(tx).process.findFirst({
       where: {
-        id: processId,
+        id: listId,
         deletedAt: null,
-        department: { workspaceId },
+        space: { workspaceId },
       },
-      select: { id: true, departmentId: true },
+      select: { id: true, spaceId: true },
     });
   }
 
@@ -612,18 +612,18 @@ export class TasksRepository {
    * Budget: 2 queries (process -> department, workflow_status).
    */
   async findFirstStatusForProcess(
-    processId: string,
+    listId: string,
     tx?: Prisma.TransactionClient,
   ) {
     const db = this.client(tx);
     const process = await db.process.findUnique({
-      where: { id: processId },
-      select: { departmentId: true },
+      where: { id: listId },
+      select: { spaceId: true },
     });
-    if (!process?.departmentId) return null;
+    if (!process?.spaceId) return null;
     return db.workflowStatus.findFirst({
       where: {
-        departmentId: process.departmentId,
+        spaceId: process.spaceId,
         category: 'NOT_STARTED',
         deletedAt: null,
       },
@@ -641,7 +641,7 @@ export class TasksRepository {
   async createTask(
     tx: Prisma.TransactionClient,
     input: {
-      processId: string;
+      listId: string;
       title: string;
       description?: string | null;
       markdownContent?: string | null;
@@ -657,7 +657,7 @@ export class TasksRepository {
     },
   ) {
     const data: Prisma.WorkItemUncheckedCreateInput = {
-      processId: input.processId,
+      listId: input.listId,
       title: input.title,
       statusId: input.statusId,
       creatorId: input.creatorId,
@@ -695,7 +695,7 @@ export class TasksRepository {
     const rows = await this.prisma.workItem.findMany({
       where: {
         id: { in: taskIds },
-        process: { department: { workspaceId } },
+        list: { space: { workspaceId } },
       },
       select: { id: true },
     });

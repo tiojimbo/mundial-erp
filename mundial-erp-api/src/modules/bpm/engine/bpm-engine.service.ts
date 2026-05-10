@@ -73,7 +73,7 @@ export class BpmEngineService {
     for (const activity of activities) {
       try {
         const processInstance = await this.findOrCreateProcessInstance(
-          activity.processId,
+          activity.listId,
           orderId,
         );
 
@@ -170,7 +170,7 @@ export class BpmEngineService {
         const sourceProcessInstance =
           await this.prisma.processInstance.findFirst({
             where: {
-              processId: handoff.fromProcessId,
+              listId: handoff.fromProcessId,
               orderId,
               deletedAt: null,
             },
@@ -179,7 +179,7 @@ export class BpmEngineService {
         if (!sourceProcessInstance) {
           this.logger.warn(
             `Source ProcessInstance not found for handoff ${handoff.id} ` +
-              `(processId=${handoff.fromProcessId}, orderId=${orderId}). Skipping.`,
+              `(listId=${handoff.fromProcessId}, orderId=${orderId}). Skipping.`,
           );
           continue;
         }
@@ -254,11 +254,11 @@ export class BpmEngineService {
    * Uses try/catch around create to handle concurrent inserts gracefully.
    */
   private async findOrCreateProcessInstance(
-    processId: string,
+    listId: string,
     orderId: string,
   ) {
     const existing = await this.prisma.processInstance.findFirst({
-      where: { processId, orderId, deletedAt: null },
+      where: { listId, orderId, deletedAt: null },
     });
 
     if (existing) {
@@ -268,7 +268,7 @@ export class BpmEngineService {
     try {
       const created = await this.prisma.processInstance.create({
         data: {
-          processId,
+          listId,
           orderId,
           status: ProcessStatus.ACTIVE,
           startedAt: new Date(),
@@ -276,7 +276,7 @@ export class BpmEngineService {
       });
 
       this.logger.log(
-        `Created ProcessInstance ${created.id} for process ${processId}, order ${orderId}`,
+        `Created ProcessInstance ${created.id} for process ${listId}, order ${orderId}`,
       );
 
       return created;
@@ -284,12 +284,12 @@ export class BpmEngineService {
       // Race condition: another concurrent call created it between our
       // findFirst and create. Try to find it again.
       const retryFind = await this.prisma.processInstance.findFirst({
-        where: { processId, orderId, deletedAt: null },
+        where: { listId, orderId, deletedAt: null },
       });
 
       if (retryFind) {
         this.logger.debug(
-          `ProcessInstance for process ${processId}, order ${orderId} ` +
+          `ProcessInstance for process ${listId}, order ${orderId} ` +
             `created by concurrent call. Using existing ${retryFind.id}.`,
         );
         return retryFind;

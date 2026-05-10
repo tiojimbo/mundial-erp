@@ -28,11 +28,11 @@ export class SectorsService {
 
   private async assertDepartmentInWorkspace(
     workspaceId: string,
-    departmentId: string,
+    spaceId: string,
   ) {
     const dept = await this.departmentsRepository.findById(
       workspaceId,
-      departmentId,
+      spaceId,
     );
     if (!dept) {
       throw new NotFoundException('Departamento não encontrado');
@@ -43,7 +43,7 @@ export class SectorsService {
     workspaceId: string,
     dto: CreateSectorDto,
   ): Promise<SectorResponseDto> {
-    await this.assertDepartmentInWorkspace(workspaceId, dto.departmentId);
+    await this.assertDepartmentInWorkspace(workspaceId, dto.spaceId);
 
     const slug = this.generateSlug(dto.name);
 
@@ -55,7 +55,7 @@ export class SectorsService {
     const entity = await this.sectorsRepository.create(workspaceId, {
       name: dto.name,
       slug,
-      department: { connect: { id: dto.departmentId } },
+      space: { connect: { id: dto.spaceId } },
     });
 
     return SectorResponseDto.fromEntity(entity);
@@ -105,9 +105,9 @@ export class SectorsService {
         throw new ConflictException('Setor com este nome já existe');
       }
     }
-    if (dto.departmentId !== undefined) {
-      await this.assertDepartmentInWorkspace(workspaceId, dto.departmentId);
-      updateData.department = { connect: { id: dto.departmentId } };
+    if (dto.spaceId !== undefined) {
+      await this.assertDepartmentInWorkspace(workspaceId, dto.spaceId);
+      updateData.department = { connect: { id: dto.spaceId } };
     }
 
     const updated = await this.sectorsRepository.update(

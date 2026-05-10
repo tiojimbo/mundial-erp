@@ -63,7 +63,7 @@ export class TaskChecklistsRepository {
       where: {
         id: workItemId,
         deletedAt: null,
-        process: { department: { workspaceId } },
+        list: { space: { workspaceId } },
       },
       select: { id: true },
     });
@@ -74,7 +74,7 @@ export class TaskChecklistsRepository {
       where: {
         workItemId,
         deletedAt: null,
-        workItem: { process: { department: { workspaceId } } },
+        workItem: { list: { space: { workspaceId } } },
       },
       orderBy: [{ position: 'asc' }, { createdAt: 'asc' }],
       select: {
@@ -93,7 +93,7 @@ export class TaskChecklistsRepository {
       where: {
         id,
         deletedAt: null,
-        workItem: { process: { department: { workspaceId } } },
+        workItem: { list: { space: { workspaceId } } },
       },
       select: {
         ...CHECKLIST_SELECT,
@@ -107,7 +107,7 @@ export class TaskChecklistsRepository {
       where: {
         id,
         deletedAt: null,
-        workItem: { process: { department: { workspaceId } } },
+        workItem: { list: { space: { workspaceId } } },
       },
       select: {
         ...CHECKLIST_SELECT,
@@ -183,7 +183,7 @@ export class TaskChecklistsRepository {
         deletedAt: null,
         checklist: {
           deletedAt: null,
-          workItem: { process: { department: { workspaceId } } },
+          workItem: { list: { space: { workspaceId } } },
         },
       },
       select: {

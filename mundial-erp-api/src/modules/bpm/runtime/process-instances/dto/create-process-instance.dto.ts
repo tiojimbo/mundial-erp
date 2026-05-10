@@ -5,7 +5,7 @@ export class CreateProcessInstanceDto {
   @ApiProperty({ description: 'ID do processo (definição)' })
   @IsString()
   @MinLength(1)
-  processId: string;
+  listId: string;
 
   @ApiProperty({ description: 'ID do pedido' })
   @IsString()

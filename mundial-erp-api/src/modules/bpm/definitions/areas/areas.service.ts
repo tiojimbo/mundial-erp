@@ -46,11 +46,11 @@ export class AreasService {
 
   private async assertDepartmentInWorkspace(
     workspaceId: string,
-    departmentId: string,
+    spaceId: string,
   ) {
     const dept = await this.departmentsRepository.findById(
       workspaceId,
-      departmentId,
+      spaceId,
     );
     if (!dept) {
       throw new NotFoundException('Departamento não encontrado');
@@ -61,7 +61,7 @@ export class AreasService {
     workspaceId: string,
     dto: CreateAreaDto,
   ): Promise<AreaResponseDto> {
-    await this.assertDepartmentInWorkspace(workspaceId, dto.departmentId);
+    await this.assertDepartmentInWorkspace(workspaceId, dto.spaceId);
 
     const baseSlug = this.generateSlug(dto.name);
     const slug = await this.resolveUniqueSlug(workspaceId, baseSlug);
@@ -77,13 +77,13 @@ export class AreasService {
       color: dto.color,
       useSpaceStatuses,
       sortOrder: dto.sortOrder ?? 0,
-      department: { connect: { id: dto.departmentId } },
+      space: { connect: { id: dto.spaceId } },
     });
 
     if (!useSpaceStatuses) {
       await this.workflowStatusesService.copyStatusesToArea(
         workspaceId,
-        dto.departmentId,
+        dto.spaceId,
         entity.id,
       );
     }
@@ -134,9 +134,9 @@ export class AreasService {
         updateData.slug = await this.resolveUniqueSlug(workspaceId, baseSlug);
       }
     }
-    if (dto.departmentId !== undefined) {
-      await this.assertDepartmentInWorkspace(workspaceId, dto.departmentId);
-      updateData.department = { connect: { id: dto.departmentId } };
+    if (dto.spaceId !== undefined) {
+      await this.assertDepartmentInWorkspace(workspaceId, dto.spaceId);
+      updateData.department = { connect: { id: dto.spaceId } };
     }
     if (dto.description !== undefined) updateData.description = dto.description;
     if (dto.isPrivate !== undefined) updateData.isPrivate = dto.isPrivate;
@@ -155,7 +155,7 @@ export class AreasService {
     if (dto.useSpaceStatuses === false && entity.useSpaceStatuses === true) {
       await this.workflowStatusesService.copyStatusesToArea(
         workspaceId,
-        entity.departmentId,
+        entity.spaceId,
         id,
       );
     }
@@ -165,12 +165,12 @@ export class AreasService {
 
   async getProcessSummaries(
     workspaceId: string,
-    areaId: string,
+    folderId: string,
     showClosed = false,
   ) {
     return this.areasRepository.getProcessSummaries(
       workspaceId,
-      areaId,
+      folderId,
       showClosed,
     );
   }

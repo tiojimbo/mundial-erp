@@ -21,7 +21,7 @@ export class WorkflowStatusResponseDto {
   sortOrder: number;
 
   @ApiProperty()
-  departmentId: string;
+  spaceId: string;
 
   @ApiPropertyOptional()
   departmentName?: string;
@@ -45,7 +45,7 @@ export class WorkflowStatusResponseDto {
     dto.color = entity.color;
     dto.icon = entity.icon;
     dto.sortOrder = entity.sortOrder;
-    dto.departmentId = entity.departmentId;
+    dto.spaceId = entity.spaceId;
     dto.departmentName = entity.department?.name;
     dto.isDefault = entity.isDefault;
     dto.createdAt = entity.createdAt;

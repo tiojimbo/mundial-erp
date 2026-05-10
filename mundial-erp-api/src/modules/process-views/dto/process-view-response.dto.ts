@@ -6,7 +6,7 @@ export class ProcessViewResponseDto {
   id: string;
 
   @ApiProperty()
-  processId: string;
+  listId: string;
 
   @ApiProperty()
   name: string;
@@ -32,7 +32,7 @@ export class ProcessViewResponseDto {
   static fromEntity(entity: ProcessView): ProcessViewResponseDto {
     const dto = new ProcessViewResponseDto();
     dto.id = entity.id;
-    dto.processId = entity.processId;
+    dto.listId = entity.listId;
     dto.name = entity.name;
     dto.viewType = entity.viewType;
     dto.isPinned = entity.isPinned;

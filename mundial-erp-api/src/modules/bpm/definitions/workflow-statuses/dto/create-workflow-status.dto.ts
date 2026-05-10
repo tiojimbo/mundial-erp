@@ -33,5 +33,5 @@ export class CreateWorkflowStatusDto {
   @ApiProperty({ description: 'ID do departamento' })
   @IsString()
   @MinLength(1)
-  departmentId: string;
+  spaceId: string;
 }

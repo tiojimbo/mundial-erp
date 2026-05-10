@@ -15,8 +15,8 @@ const mockStatus = {
   color: '#3B82F6',
   icon: null,
   sortOrder: 0,
-  departmentId: 'dept-1',
-  areaId: null,
+  spaceId: 'dept-1',
+  folderId: null,
   isDefault: false,
   createdAt: new Date(),
   updatedAt: new Date(),
@@ -60,7 +60,7 @@ const allStatuses = [
 const mockAreaStatusOwn = {
   ...mockStatus,
   id: 'ws-area-1',
-  areaId: 'area-1',
+  folderId: 'area-1',
 };
 
 describe('WorkflowStatusesService', () => {
@@ -106,7 +106,7 @@ describe('WorkflowStatusesService', () => {
         name: 'A Fazer',
         category: 'NOT_STARTED' as StatusCategory,
         color: '#3B82F6',
-        departmentId: 'dept-1',
+        spaceId: 'dept-1',
       });
 
       expect(result.name).toBe('A Fazer');
@@ -129,7 +129,7 @@ describe('WorkflowStatusesService', () => {
       expect(result.NOT_STARTED[0].name).toBe('A Fazer');
     });
 
-    it('should return department statuses when areaId is provided but area inherits', async () => {
+    it('should return department statuses when folderId is provided but area inherits', async () => {
       repository.findAreaById.mockResolvedValue({
         id: 'area-1',
         useSpaceStatuses: true,
@@ -157,7 +157,7 @@ describe('WorkflowStatusesService', () => {
       expect(result.NOT_STARTED).toHaveLength(1);
     });
 
-    it('should return department statuses when areaId is not provided', async () => {
+    it('should return department statuses when folderId is not provided', async () => {
       repository.findByDepartment.mockResolvedValue(allStatuses);
 
       await service.findByDepartment('dept-1');
@@ -253,7 +253,7 @@ describe('WorkflowStatusesService', () => {
     it('should migrate work items and delete when target provided', async () => {
       const targetStatus = {
         ...mockStatusActive,
-        departmentId: 'dept-1',
+        spaceId: 'dept-1',
       };
 
       repository.findById
@@ -283,7 +283,7 @@ describe('WorkflowStatusesService', () => {
     it('should throw BadRequestException if migration target is from different department', async () => {
       const targetStatus = {
         ...mockStatusActive,
-        departmentId: 'dept-other',
+        spaceId: 'dept-other',
       };
 
       repository.findById

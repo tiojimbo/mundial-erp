@@ -5,7 +5,7 @@
  *   - CRUD de `WorkItemTemplate` com cross-tenant 404.
  *   - `snapshot(fromTaskId)`: captura subtree (depth ≤ 3, ≤ 200 nodes) e
  *     grava como payload do template.
- *   - `instantiate(processId, templateId)`: expande o payload em WorkItems
+ *   - `instantiate(listId, templateId)`: expande o payload em WorkItems
  *     + Checklists + Items + Tags dentro de `$transaction`.
  *
  * Todos os metodos sao workspace-scoped (1a clausula `where`). Contagens
@@ -116,8 +116,8 @@ export class TaskTemplatesService {
       skip: filters.skip ?? 0,
       take: filters.limit ?? 20,
       scope: filters.scope,
-      departmentId: filters.departmentId,
-      processId: filters.processId,
+      spaceId: filters.spaceId,
+      listId: filters.listId,
       search: filters.search,
     });
     return {
@@ -143,7 +143,7 @@ export class TaskTemplatesService {
     actorUserId: string,
   ): Promise<TemplateResponseDto> {
     const payload = this.asPayload(dto.payload);
-    this.assertScopeInvariants(dto.scope, dto.departmentId, dto.processId);
+    this.assertScopeInvariants(dto.scope, dto.spaceId, dto.listId);
 
     const { subtaskCount, checklistCount } = this.countDenorm(payload);
 
@@ -151,8 +151,8 @@ export class TaskTemplatesService {
       workspaceId,
       name: dto.name.trim(),
       scope: dto.scope ?? TaskTemplateScope.WORKSPACE,
-      departmentId: dto.departmentId ?? null,
-      processId: dto.processId ?? null,
+      spaceId: dto.spaceId ?? null,
+      listId: dto.listId ?? null,
       payload: payload as unknown as Prisma.InputJsonValue,
       subtaskCount,
       checklistCount,
@@ -177,15 +177,15 @@ export class TaskTemplatesService {
     }
 
     const scope = dto.scope ?? existing.scope;
-    const departmentId = dto.departmentId ?? existing.departmentId;
-    const processId = dto.processId ?? existing.processId;
-    this.assertScopeInvariants(scope, departmentId, processId);
+    const spaceId = dto.spaceId ?? existing.spaceId;
+    const listId = dto.listId ?? existing.listId;
+    this.assertScopeInvariants(scope, spaceId, listId);
 
     const data: {
       name?: string;
       scope?: TaskTemplateScope;
-      departmentId?: string | null;
-      processId?: string | null;
+      spaceId?: string | null;
+      listId?: string | null;
       payload?: Prisma.InputJsonValue;
       subtaskCount?: number;
       checklistCount?: number;
@@ -193,9 +193,9 @@ export class TaskTemplatesService {
 
     if (dto.name !== undefined) data.name = dto.name.trim();
     if (dto.scope !== undefined) data.scope = dto.scope;
-    if (dto.departmentId !== undefined)
-      data.departmentId = dto.departmentId ?? null;
-    if (dto.processId !== undefined) data.processId = dto.processId ?? null;
+    if (dto.spaceId !== undefined)
+      data.spaceId = dto.spaceId ?? null;
+    if (dto.listId !== undefined) data.listId = dto.listId ?? null;
 
     if (dto.payload !== undefined) {
       const payload = this.asPayload(dto.payload);
@@ -325,7 +325,7 @@ export class TaskTemplatesService {
    */
   async instantiate(
     workspaceId: string,
-    processId: string,
+    listId: string,
     templateId: string,
     dto: InstantiateTemplateDto,
     actorUserId: string,
@@ -337,7 +337,7 @@ export class TaskTemplatesService {
     }
     const process = await this.repository.findProcessInWorkspace(
       workspaceId,
-      processId,
+      listId,
     );
     if (!process) {
       throw new NotFoundException('Process nao encontrado');
@@ -354,7 +354,7 @@ export class TaskTemplatesService {
 
     const statusId = dto.statusId
       ? dto.statusId
-      : (await this.repository.findDefaultStatusForProcess(processId))?.id;
+      : (await this.repository.findDefaultStatusForProcess(listId))?.id;
     if (!statusId) {
       throw new BadRequestException(
         'Nenhum WorkflowStatus NOT_STARTED disponivel para este process',
@@ -364,7 +364,7 @@ export class TaskTemplatesService {
     const result = await this.prisma.$transaction(async (tx) => {
       return this.instantiateInTx(tx, {
         workspaceId,
-        processId,
+        listId,
         actorUserId,
         payload,
         statusId,
@@ -387,7 +387,7 @@ export class TaskTemplatesService {
     tx: Prisma.TransactionClient,
     ctx: {
       workspaceId: string;
-      processId: string;
+      listId: string;
       actorUserId: string;
       payload: TemplatePayloadNode;
       statusId: string;
@@ -432,7 +432,7 @@ export class TaskTemplatesService {
 
       const created = await tx.workItem.create({
         data: {
-          processId: ctx.processId,
+          listId: ctx.listId,
           title,
           description: node.description ?? null,
           markdownContent: node.markdown ?? null,
@@ -618,8 +618,8 @@ export class TaskTemplatesService {
     workspaceId: string;
     name: string;
     scope: TaskTemplateScope;
-    departmentId: string | null;
-    processId: string | null;
+    spaceId: string | null;
+    listId: string | null;
     payload: Prisma.JsonValue;
     subtaskCount: number;
     checklistCount: number;
@@ -633,8 +633,8 @@ export class TaskTemplatesService {
       workspaceId: entity.workspaceId,
       name: entity.name,
       scope: entity.scope,
-      departmentId: entity.departmentId,
-      processId: entity.processId,
+      spaceId: entity.spaceId,
+      listId: entity.listId,
       payload: (entity.payload ?? {}) as Record<string, unknown>,
       subtaskCount: entity.subtaskCount,
       checklistCount: entity.checklistCount,
@@ -647,15 +647,15 @@ export class TaskTemplatesService {
 
   private assertScopeInvariants(
     scope: TaskTemplateScope | undefined,
-    departmentId: string | null | undefined,
-    processId: string | null | undefined,
+    spaceId: string | null | undefined,
+    listId: string | null | undefined,
   ): void {
     const s = scope ?? TaskTemplateScope.WORKSPACE;
-    if (s === TaskTemplateScope.DEPARTMENT && !departmentId) {
-      throw new BadRequestException('scope=DEPARTMENT exige departmentId');
+    if (s === TaskTemplateScope.DEPARTMENT && !spaceId) {
+      throw new BadRequestException('scope=DEPARTMENT exige spaceId');
     }
-    if (s === TaskTemplateScope.PROCESS && !processId) {
-      throw new BadRequestException('scope=PROCESS exige processId');
+    if (s === TaskTemplateScope.PROCESS && !listId) {
+      throw new BadRequestException('scope=PROCESS exige listId');
     }
   }
 

@@ -17,13 +17,13 @@ export class ProcessViewsService {
   ): Promise<ProcessViewResponseDto> {
     const proc = await this.processViewsRepository.findProcessById(
       workspaceId,
-      dto.processId,
+      dto.listId,
     );
     if (!proc) {
       throw new NotFoundException('Processo não encontrado');
     }
     const entity = await this.processViewsRepository.create(workspaceId, {
-      processId: dto.processId,
+      listId: dto.listId,
       name: dto.name,
       viewType: dto.viewType,
       config: dto.config ?? {},
@@ -34,19 +34,19 @@ export class ProcessViewsService {
 
   async findAllByProcess(
     workspaceId: string,
-    processId: string,
+    listId: string,
     pagination: PaginationDto,
   ) {
     const proc = await this.processViewsRepository.findProcessById(
       workspaceId,
-      processId,
+      listId,
     );
     if (!proc) {
       throw new NotFoundException('Processo não encontrado');
     }
     const { items, total } =
       await this.processViewsRepository.findManyByProcess(workspaceId, {
-        processId,
+        listId,
         skip: pagination.skip,
         take: pagination.limit,
       });
@@ -86,7 +86,7 @@ export class ProcessViewsService {
 
     await this.processViewsRepository.unpinAllByProcess(
       workspaceId,
-      entity.processId,
+      entity.listId,
     );
     const updated = await this.processViewsRepository.update(workspaceId, id, {
       isPinned: true,

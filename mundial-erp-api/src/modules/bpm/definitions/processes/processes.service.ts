@@ -44,25 +44,25 @@ export class ProcessesService {
     workspaceId: string,
     dto: CreateProcessDto,
   ): Promise<ProcessResponseDto> {
-    if (!dto.areaId && !dto.departmentId && !dto.sectorId) {
+    if (!dto.folderId && !dto.spaceId && !dto.sectorId) {
       throw new BadRequestException(
-        'Deve informar areaId, departmentId ou sectorId',
+        'Deve informar folderId, spaceId ou sectorId',
       );
     }
 
     const baseSlug = this.generateSlug(dto.name);
     const slug = await this.resolveUniqueSlug(workspaceId, baseSlug);
 
-    let resolvedDepartmentId = dto.departmentId;
-    if (dto.areaId) {
+    let resolvedDepartmentId = dto.spaceId;
+    if (dto.folderId) {
       const area = await this.processesRepository.findAreaById(
         workspaceId,
-        dto.areaId,
+        dto.folderId,
       );
       if (!area) {
         throw new NotFoundException('Área não encontrada');
       }
-      resolvedDepartmentId = area.departmentId;
+      resolvedDepartmentId = area.spaceId;
     }
 
     if (resolvedDepartmentId) {
@@ -75,7 +75,7 @@ export class ProcessesService {
       }
     }
 
-    const createData: Prisma.ProcessCreateInput = {
+    const createData: Prisma.ListCreateInput = {
       name: dto.name,
       slug,
       description: dto.description,
@@ -84,9 +84,9 @@ export class ProcessesService {
       status: dto.status,
       sortOrder: dto.sortOrder ?? 0,
       ...(dto.sectorId && { sector: { connect: { id: dto.sectorId } } }),
-      ...(dto.areaId && { area: { connect: { id: dto.areaId } } }),
+      ...(dto.folderId && { area: { connect: { id: dto.folderId } } }),
       ...(resolvedDepartmentId && {
-        department: { connect: { id: resolvedDepartmentId } },
+        space: { connect: { id: resolvedDepartmentId } },
       }),
     };
 

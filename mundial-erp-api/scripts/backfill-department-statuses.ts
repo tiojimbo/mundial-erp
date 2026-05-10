@@ -33,7 +33,7 @@ const DEFAULT_WORKFLOW_STATUSES = [
 async function main() {
   console.log(`[backfill-department-statuses] start ${DRY_RUN ? '(dry-run)' : ''}`);
 
-  const departments = await prisma.department.findMany({
+  const departments = await prisma.space.findMany({
     select: {
       id: true,
       name: true,
@@ -60,7 +60,7 @@ async function main() {
             color: status.color,
             sortOrder: status.sortOrder,
             isDefault: true,
-            department: { connect: { id: dept.id } },
+            space: { connect: { id: dept.id } },
           },
         });
         inserted++;

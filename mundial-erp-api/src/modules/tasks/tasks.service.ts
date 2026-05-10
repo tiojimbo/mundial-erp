@@ -134,7 +134,7 @@ export class TasksService {
    *      d. `tagsSync.syncTags(tx, ...)` se houver.
    *      e. Enqueue outbox `CREATED`.
    *      f. Recarrega pelo select padrao (cache de assignee ja refletido).
-   *   5. Envelope `{ data, meta: { processId, taskId } }`.
+   *   5. Envelope `{ data, meta: { listId, taskId } }`.
    *
    * Budget de queries (best case sem colecoes): process-in-ws(1) + status(2)
    * + create(1) + outbox(1) + findBySelect(1) = 6. Com colecoes cheias:
@@ -142,14 +142,14 @@ export class TasksService {
    */
   async create(
     workspaceId: string,
-    processId: string,
+    listId: string,
     dto: CreateTaskDto,
     actorUserId: string,
   ): Promise<TaskResponseDto> {
     // 1) Cross-tenant 404 antes de qualquer coisa (§8.1).
     const process = await this.repository.findProcessInWorkspace(
       workspaceId,
-      processId,
+      listId,
     );
     if (!process) {
       throw new NotFoundException('Process nao encontrado');
@@ -159,7 +159,7 @@ export class TasksService {
     let statusId = dto.statusId;
     if (!statusId) {
       const defaultStatus =
-        await this.repository.findFirstStatusForProcess(processId);
+        await this.repository.findFirstStatusForProcess(listId);
       if (!defaultStatus) {
         throw new BadRequestException(
           'Nenhum WorkflowStatus NOT_STARTED disponivel para este process',
@@ -192,7 +192,7 @@ export class TasksService {
       templateApplied = resolved.templateApplied;
 
       const created = await this.repository.createTask(tx, {
-        processId,
+        listId,
         title: dto.title,
         description: dto.description ?? null,
         markdownContent: resolved.markdown,
@@ -246,7 +246,7 @@ export class TasksService {
         eventType: 'CREATED',
         payload: {
           taskId,
-          processId,
+          listId,
           actorId: actorUserId,
           workspaceId,
           title: dto.title,
@@ -277,7 +277,7 @@ export class TasksService {
     }
 
     this.logger.log(
-      `task.created task=${row.id} process=${processId} ws=${workspaceId} actor=${actorUserId}`,
+      `task.created task=${row.id} process=${listId} ws=${workspaceId} actor=${actorUserId}`,
     );
 
     // O envelope `{data, meta}` e adicionado pelo `ResponseInterceptor` global
@@ -387,7 +387,7 @@ export class TasksService {
     if (dto.customTypeId !== undefined)
       data.customTypeId = dto.customTypeId ?? null;
     if (dto.parentId !== undefined) data.parentId = dto.parentId ?? null;
-    if (dto.processId !== undefined) data.processId = dto.processId;
+    if (dto.listId !== undefined) data.listId = dto.listId;
     if (dto.archived !== undefined) {
       data.archived = dto.archived;
       data.archivedAt = dto.archived ? new Date() : null;

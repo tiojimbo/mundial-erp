@@ -11,7 +11,7 @@ import {
 export class CreateProcessViewDto {
   @ApiProperty({ example: 'cuid-do-processo' })
   @IsString()
-  processId: string;
+  listId: string;
 
   @ApiProperty({ example: 'Visão Kanban' })
   @IsString()

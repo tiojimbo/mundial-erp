@@ -29,7 +29,7 @@ export class WorkItemResponseDto {
   id: string;
 
   @ApiProperty()
-  processId: string;
+  listId: string;
 
   @ApiProperty()
   title: string;
@@ -95,7 +95,7 @@ export class WorkItemResponseDto {
   ): WorkItemResponseDto {
     const dto = new WorkItemResponseDto();
     dto.id = entity.id;
-    dto.processId = entity.processId;
+    dto.listId = entity.listId;
     dto.title = entity.title;
     dto.description = entity.description;
     dto.statusId = entity.statusId;

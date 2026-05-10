@@ -21,15 +21,15 @@ export class ProcessInstancesRepository {
     skip?: number;
     take?: number;
     orderId?: string;
-    processId?: string;
+    listId?: string;
     status?: ProcessStatus;
   }) {
-    const { skip = 0, take = 20, orderId, processId, status } = params;
+    const { skip = 0, take = 20, orderId, listId, status } = params;
 
     const where: Prisma.ProcessInstanceWhereInput = {
       deletedAt: null,
       ...(orderId && { orderId }),
-      ...(processId && { processId }),
+      ...(listId && { listId }),
       ...(status && { status }),
     };
 

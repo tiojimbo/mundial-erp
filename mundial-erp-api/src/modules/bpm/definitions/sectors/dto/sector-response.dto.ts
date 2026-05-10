@@ -12,7 +12,7 @@ export class SectorResponseDto {
   slug: string;
 
   @ApiProperty()
-  departmentId: string;
+  spaceId: string;
 
   @ApiPropertyOptional()
   departmentName?: string;
@@ -30,7 +30,7 @@ export class SectorResponseDto {
     dto.id = entity.id;
     dto.name = entity.name;
     dto.slug = entity.slug;
-    dto.departmentId = entity.departmentId;
+    dto.spaceId = entity.spaceId;
     dto.departmentName = entity.department?.name;
     dto.createdAt = entity.createdAt;
     dto.updatedAt = entity.updatedAt;

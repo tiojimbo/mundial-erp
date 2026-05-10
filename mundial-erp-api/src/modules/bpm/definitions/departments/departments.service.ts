@@ -86,7 +86,7 @@ export class DepartmentsService {
               color: status.color,
               sortOrder: status.sortOrder,
               isDefault: true,
-              department: { connect: { id: created.id } },
+              space: { connect: { id: created.id } },
             },
           });
         }
@@ -207,19 +207,19 @@ export class DepartmentsService {
 
   async getProcessSummaries(
     workspaceId: string,
-    departmentId: string,
+    spaceId: string,
     showClosed = false,
   ) {
     const entity = await this.departmentsRepository.findById(
       workspaceId,
-      departmentId,
+      spaceId,
     );
     if (!entity) {
       throw new NotFoundException('Departamento não encontrado');
     }
     return this.departmentsRepository.getProcessSummaries(
       workspaceId,
-      departmentId,
+      spaceId,
       showClosed,
     );
   }

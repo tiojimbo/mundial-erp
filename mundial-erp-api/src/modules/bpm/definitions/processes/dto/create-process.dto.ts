@@ -28,14 +28,14 @@ export class CreateProcessDto {
   })
   @IsOptional()
   @IsString()
-  areaId?: string;
+  folderId?: string;
 
   @ApiPropertyOptional({
     description: 'ID do departamento (processo direto, sem área)',
   })
   @IsOptional()
   @IsString()
-  departmentId?: string;
+  spaceId?: string;
 
   @ApiPropertyOptional({ example: 'Descrição do processo' })
   @IsOptional()

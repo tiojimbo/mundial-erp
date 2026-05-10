@@ -57,7 +57,7 @@ export class TaskDependenciesRepository {
       where: {
         id: taskId,
         deletedAt: null,
-        process: { department: { workspaceId } },
+        list: { space: { workspaceId } },
       },
       select: {
         id: true,
@@ -73,11 +73,11 @@ export class TaskDependenciesRepository {
         fromTaskId: taskId,
         fromTask: {
           deletedAt: null,
-          process: { department: { workspaceId } },
+          list: { space: { workspaceId } },
         },
         toTask: {
           deletedAt: null,
-          process: { department: { workspaceId } },
+          list: { space: { workspaceId } },
         },
       },
       select: {
@@ -93,11 +93,11 @@ export class TaskDependenciesRepository {
         toTaskId: taskId,
         fromTask: {
           deletedAt: null,
-          process: { department: { workspaceId } },
+          list: { space: { workspaceId } },
         },
         toTask: {
           deletedAt: null,
-          process: { department: { workspaceId } },
+          list: { space: { workspaceId } },
         },
       },
       select: {

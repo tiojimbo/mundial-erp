@@ -15,7 +15,7 @@ export class AreaResponseDto {
   description: string | null;
 
   @ApiProperty()
-  departmentId: string;
+  spaceId: string;
 
   @ApiPropertyOptional()
   departmentName?: string;
@@ -52,7 +52,7 @@ export class AreaResponseDto {
     dto.name = entity.name;
     dto.slug = entity.slug;
     dto.description = entity.description;
-    dto.departmentId = entity.departmentId;
+    dto.spaceId = entity.spaceId;
     dto.departmentName = entity.department?.name;
     dto.isPrivate = entity.isPrivate;
     dto.icon = entity.icon;

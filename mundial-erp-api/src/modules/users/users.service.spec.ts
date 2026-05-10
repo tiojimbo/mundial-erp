@@ -15,7 +15,7 @@ const mockUser = {
   refreshToken: null,
   role: 'OPERATOR' as const,
   isActive: true,
-  departmentId: null,
+  spaceId: null,
   lastAccessedWorkspaceId: null,
   createdAt: new Date(),
   updatedAt: new Date(),

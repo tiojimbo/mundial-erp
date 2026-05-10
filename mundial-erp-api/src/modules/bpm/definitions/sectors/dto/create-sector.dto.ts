@@ -10,5 +10,5 @@ export class CreateSectorDto {
   @ApiProperty({ description: 'ID do departamento' })
   @IsString()
   @MinLength(1)
-  departmentId: string;
+  spaceId: string;
 }

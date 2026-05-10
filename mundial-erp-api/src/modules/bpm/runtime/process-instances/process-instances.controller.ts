@@ -33,17 +33,17 @@ export class ProcessInstancesController {
   @Roles(Role.ADMIN, Role.MANAGER, Role.OPERATOR)
   @ApiOperation({ summary: 'Listar instâncias de processo' })
   @ApiQuery({ name: 'orderId', required: false })
-  @ApiQuery({ name: 'processId', required: false })
+  @ApiQuery({ name: 'listId', required: false })
   @ApiQuery({ name: 'status', required: false, enum: ProcessStatus })
   findAll(
     @Query() pagination: PaginationDto,
     @Query('orderId') orderId?: string,
-    @Query('processId') processId?: string,
+    @Query('listId') listId?: string,
     @Query('status') status?: ProcessStatus,
   ) {
     return this.processInstancesService.findAll(pagination, {
       orderId,
-      processId,
+      listId,
       status,
     });
   }

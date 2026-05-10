@@ -6,8 +6,8 @@ type DailyActivityEntity = Prisma.ActivityInstanceGetPayload<{
   include: {
     activity: {
       include: {
-        process: {
-          include: { department: true };
+        list: {
+          include: { space: true };
         };
       };
     };

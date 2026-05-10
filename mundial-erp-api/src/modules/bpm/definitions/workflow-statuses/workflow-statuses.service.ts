@@ -23,7 +23,7 @@ export class WorkflowStatusesService {
   ): Promise<WorkflowStatusResponseDto> {
     const maxSortOrder = await this.workflowStatusesRepository.getMaxSortOrder(
       workspaceId,
-      dto.departmentId,
+      dto.spaceId,
     );
 
     const entity = await this.workflowStatusesRepository.create(workspaceId, {
@@ -32,7 +32,7 @@ export class WorkflowStatusesService {
       color: dto.color,
       icon: dto.icon ?? null,
       sortOrder: maxSortOrder + 1,
-      department: { connect: { id: dto.departmentId } },
+      space: { connect: { id: dto.spaceId } },
     });
 
     const full = await this.workflowStatusesRepository.findById(
@@ -44,31 +44,31 @@ export class WorkflowStatusesService {
 
   async findByDepartment(
     workspaceId: string,
-    departmentId: string,
-    areaId?: string,
+    spaceId: string,
+    folderId?: string,
   ): Promise<Record<StatusCategory, WorkflowStatusResponseDto[]>> {
     let statuses;
 
-    if (areaId) {
+    if (folderId) {
       const area = await this.workflowStatusesRepository.findAreaById(
         workspaceId,
-        areaId,
+        folderId,
       );
       if (area && !area.useSpaceStatuses) {
         statuses = await this.workflowStatusesRepository.findByArea(
           workspaceId,
-          areaId,
+          folderId,
         );
       } else {
         statuses = await this.workflowStatusesRepository.findByDepartment(
           workspaceId,
-          departmentId,
+          spaceId,
         );
       }
     } else {
       statuses = await this.workflowStatusesRepository.findByDepartment(
         workspaceId,
-        departmentId,
+        spaceId,
       );
     }
 
@@ -90,13 +90,13 @@ export class WorkflowStatusesService {
 
   async copyStatusesToArea(
     workspaceId: string,
-    departmentId: string,
-    areaId: string,
+    spaceId: string,
+    folderId: string,
   ) {
     return this.workflowStatusesRepository.copyDepartmentStatusesToArea(
       workspaceId,
-      departmentId,
-      areaId,
+      spaceId,
+      folderId,
     );
   }
 
@@ -143,7 +143,7 @@ export class WorkflowStatusesService {
       await this.workflowStatusesRepository.countByCategoryAndDepartment(
         workspaceId,
         entity.category,
-        entity.departmentId,
+        entity.spaceId,
       );
     if (categoryCount <= 1) {
       throw new ConflictException(
@@ -170,7 +170,7 @@ export class WorkflowStatusesService {
       if (!targetStatus) {
         throw new NotFoundException('Status de destino não encontrado');
       }
-      if (targetStatus.departmentId !== entity.departmentId) {
+      if (targetStatus.spaceId !== entity.spaceId) {
         throw new BadRequestException(
           'O status de destino deve pertencer ao mesmo departamento',
         );

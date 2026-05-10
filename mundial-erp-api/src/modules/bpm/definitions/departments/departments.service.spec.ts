@@ -54,7 +54,7 @@ const mockProcessSummaries = [
     featureRoute: null,
     description: null,
     isPrivate: false,
-    areaId: null,
+    folderId: null,
     areaName: null,
     totalItems: 5,
     groups: [
@@ -84,7 +84,7 @@ const mockProcessSummaries = [
     featureRoute: '/comercial/pedidos',
     description: null,
     isPrivate: false,
-    areaId: 'area-1',
+    folderId: 'area-1',
     areaName: 'Vendas',
     totalOrders: 20,
     ordersByStatus: { EM_ORCAMENTO: 12, FATURAR: 8 },

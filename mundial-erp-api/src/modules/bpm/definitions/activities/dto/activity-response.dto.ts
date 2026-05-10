@@ -12,7 +12,7 @@ export class ActivityResponseDto {
   slug: string;
 
   @ApiProperty()
-  processId: string;
+  listId: string;
 
   @ApiPropertyOptional()
   processName?: string;
@@ -54,7 +54,7 @@ export class ActivityResponseDto {
     dto.id = entity.id;
     dto.name = entity.name;
     dto.slug = entity.slug;
-    dto.processId = entity.processId;
+    dto.listId = entity.listId;
     dto.processName = entity.process?.name;
     dto.ownerRole = entity.ownerRole;
     dto.inputDescription = entity.inputDescription;

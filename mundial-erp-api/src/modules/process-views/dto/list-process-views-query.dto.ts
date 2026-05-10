@@ -6,5 +6,5 @@ export class ListProcessViewsQueryDto extends PaginationDto {
   @ApiProperty({ example: 'cuid-do-processo' })
   @IsString()
   @MinLength(1)
-  processId!: string;
+  listId!: string;
 }

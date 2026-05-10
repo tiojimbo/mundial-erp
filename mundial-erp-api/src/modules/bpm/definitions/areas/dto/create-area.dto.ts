@@ -17,7 +17,7 @@ export class CreateAreaDto {
   @ApiProperty({ description: 'ID do departamento' })
   @IsString()
   @MinLength(1)
-  departmentId: string;
+  spaceId: string;
 
   @ApiPropertyOptional({ example: 'Área responsável pelo atendimento' })
   @IsOptional()
