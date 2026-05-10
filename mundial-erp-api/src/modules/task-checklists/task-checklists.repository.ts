@@ -242,21 +242,4 @@ export class TaskChecklistsRepository {
     });
   }
 
-  /**
-   * Reorder em transacao unica (PLANO-TASKS.md §7.3).
-   * Valida cardinalidade + escopo no service; aqui executa update em lote.
-   */
-  async bulkUpdateItemPositions(
-    items: Array<{ id: string; position: number }>,
-  ): Promise<void> {
-    if (items.length === 0) return;
-    await this.prisma.$transaction(
-      items.map((it) =>
-        this.prisma.workItemChecklistItem.update({
-          where: { id: it.id },
-          data: { position: it.position },
-        }),
-      ),
-    );
-  }
 }

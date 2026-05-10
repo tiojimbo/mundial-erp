@@ -22,7 +22,6 @@ import { CreateChecklistDto } from './dtos/create-checklist.dto';
 import { UpdateChecklistDto } from './dtos/update-checklist.dto';
 import { CreateChecklistItemDto } from './dtos/create-checklist-item.dto';
 import { UpdateChecklistItemDto } from './dtos/update-checklist-item.dto';
-import { ReorderChecklistItemsDto } from './dtos/reorder-checklist-items.dto';
 import { ChecklistResponseDto } from './dtos/checklist-response.dto';
 import { CurrentUser, Roles } from '../auth/decorators';
 import type { JwtPayload } from '../auth/decorators';
@@ -129,19 +128,5 @@ export class TaskChecklistsController {
     @Param('itemId') itemId: string,
   ) {
     return this.service.removeItem(workspaceId, itemId);
-  }
-
-  @Post('task-checklists/:id/reorder')
-  @Roles(Role.ADMIN, Role.MANAGER, Role.OPERATOR)
-  @HttpCode(HttpStatus.NO_CONTENT)
-  @Throttle({ default: { limit: 30, ttl: 60_000 } })
-  @ApiOperation({ summary: 'Reordenar itens (transacao unica)' })
-  @ApiResponse({ status: 204 })
-  reorderItems(
-    @WorkspaceId() workspaceId: string,
-    @Param('id') id: string,
-    @Body() dto: ReorderChecklistItemsDto,
-  ) {
-    return this.service.reorderItems(workspaceId, id, dto);
   }
 }

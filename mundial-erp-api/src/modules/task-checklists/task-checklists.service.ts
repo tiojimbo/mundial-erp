@@ -25,7 +25,6 @@ import { CreateChecklistDto } from './dtos/create-checklist.dto';
 import { UpdateChecklistDto } from './dtos/update-checklist.dto';
 import { CreateChecklistItemDto } from './dtos/create-checklist-item.dto';
 import { UpdateChecklistItemDto } from './dtos/update-checklist-item.dto';
-import { ReorderChecklistItemsDto } from './dtos/reorder-checklist-items.dto';
 import {
   ChecklistItemResponseDto,
   ChecklistResponseDto,
@@ -284,35 +283,5 @@ export class TaskChecklistsService {
       throw new NotFoundException('Item de checklist nao encontrado');
     }
     await this.repository.softDeleteItem(itemId);
-  }
-
-  async reorderItems(
-    workspaceId: string,
-    checklistId: string,
-    dto: ReorderChecklistItemsDto,
-  ): Promise<void> {
-    const checklist = await this.repository.findChecklistById(
-      workspaceId,
-      checklistId,
-    );
-    if (!checklist) {
-      throw new NotFoundException('Checklist nao encontrada');
-    }
-
-    const ids = dto.items.map((it) => it.id);
-    if (new Set(ids).size !== ids.length) {
-      throw new BadRequestException('ids duplicados em reorder');
-    }
-
-    const found = await this.repository.findItemsByIds(checklistId, ids);
-    if (found.length !== ids.length) {
-      throw new BadRequestException(
-        'Um ou mais ids nao pertencem a esta checklist',
-      );
-    }
-
-    await this.repository.bulkUpdateItemPositions(
-      dto.items.map((it) => ({ id: it.id, position: it.position })),
-    );
   }
 }
