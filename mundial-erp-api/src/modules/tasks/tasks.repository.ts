@@ -737,7 +737,7 @@ export class TasksRepository {
    * HPP-054 — `GET /tasks/:id/subtasks`. Retorna tasks filhas
    * (parentId = :id) ativas. Indice `idx_work_items_parent`.
    */
-  async findSubtasks(workspaceId: string, parentId: string) {
+  async findSubtasks(workspaceId: string, parentId: string, take: number) {
     return this.prisma.workItem.findMany({
       where: {
         parentId,
@@ -751,7 +751,7 @@ export class TasksRepository {
       },
       select: TASK_LIST_SELECT,
       orderBy: [{ sortOrder: 'asc' }, { createdAt: 'asc' }],
-      take: 500,
+      take,
     });
   }
 
@@ -760,7 +760,7 @@ export class TasksRepository {
    * dentro do workspace, ativas (nao arquivadas / nao deletadas). O service
    * distribui em buckets temporais. Hard cap `take: 1000`.
    */
-  async findMyTasks(workspaceId: string, userId: string) {
+  async findMyTasks(workspaceId: string, userId: string, take: number) {
     return this.prisma.workItem.findMany({
       where: {
         deletedAt: null,
@@ -775,7 +775,7 @@ export class TasksRepository {
       },
       select: TASK_LIST_SELECT,
       orderBy: [{ dueDate: 'asc' }, { sortOrder: 'asc' }],
-      take: 1000,
+      take,
     });
   }
 
@@ -787,6 +787,7 @@ export class TasksRepository {
   async findByScope(
     workspaceId: string,
     scope: { level: 'list' | 'folder' | 'space'; id: string },
+    take: number,
   ) {
     const where: Prisma.WorkItemWhereInput = { deletedAt: null };
     if (scope.level === 'list') {
@@ -814,7 +815,7 @@ export class TasksRepository {
       where,
       select: TASK_LIST_SELECT,
       orderBy: [{ statusId: 'asc' }, { sortOrder: 'asc' }],
-      take: 500,
+      take,
     });
   }
 
@@ -854,6 +855,7 @@ export class TasksRepository {
   async findBySpaceGrouped(
     workspaceId: string,
     spaceId: string,
+    take: number,
   ) {
     return this.prisma.workItem.findMany({
       where: {
@@ -874,7 +876,7 @@ export class TasksRepository {
         },
       },
       orderBy: [{ listId: 'asc' }, { sortOrder: 'asc' }],
-      take: 500,
+      take,
     });
   }
 }

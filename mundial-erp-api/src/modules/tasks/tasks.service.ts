@@ -72,6 +72,12 @@ export interface MergeResult {
 /** TTL do cache de idempotencia de merge (24h — §8.4). */
 const MERGE_IDEMPOTENCY_TTL_SECONDS = 24 * 60 * 60;
 
+/** Caps duros dos endpoints Hoppe agrupados (HPP-051..054). */
+const SPACE_GROUPED_CAP = 500;
+const LIST_GROUPED_CAP = 500;
+const SUBTASKS_CAP = 500;
+const MY_TASKS_CAP = 1000;
+
 @Injectable()
 export class TasksService {
   private readonly logger = new Logger(TasksService.name);
@@ -337,7 +343,16 @@ export class TasksService {
       throw new NotFoundException('Space nao encontrado');
     }
 
-    const rows = await this.repository.findBySpaceGrouped(workspaceId, spaceId);
+    const rows = await this.repository.findBySpaceGrouped(
+      workspaceId,
+      spaceId,
+      SPACE_GROUPED_CAP,
+    );
+    if (rows.length === SPACE_GROUPED_CAP) {
+      this.logger.warn(
+        `findBySpace cap atingido space=${spaceId} cap=${SPACE_GROUPED_CAP} ws=${workspaceId}`,
+      );
+    }
 
     const groups = new Map<
       string,
@@ -405,15 +420,21 @@ export class TasksService {
     const scope = await this.resolveListGroupedScope(workspaceId, params);
 
     const [taskRows, statuses] = await Promise.all([
-      this.repository.findByScope(workspaceId, {
-        level: scope.level,
-        id: scope.id,
-      }),
+      this.repository.findByScope(
+        workspaceId,
+        { level: scope.level, id: scope.id },
+        LIST_GROUPED_CAP,
+      ),
       this.repository.findStatusesForScope(workspaceId, {
         spaceId: scope.spaceId,
         folderId: scope.folderId,
       }),
     ]);
+    if (taskRows.length === LIST_GROUPED_CAP) {
+      this.logger.warn(
+        `findByListGrouped cap atingido scope=${scope.level}:${scope.id} cap=${LIST_GROUPED_CAP} ws=${workspaceId}`,
+      );
+    }
 
     const tasksByStatus = new Map<string, TaskResponseDto[]>();
     for (const row of taskRows) {
@@ -563,7 +584,16 @@ export class TasksService {
     if (!parent) {
       throw new NotFoundException('Task nao encontrada');
     }
-    const rows = await this.repository.findSubtasks(workspaceId, taskId);
+    const rows = await this.repository.findSubtasks(
+      workspaceId,
+      taskId,
+      SUBTASKS_CAP,
+    );
+    if (rows.length === SUBTASKS_CAP) {
+      this.logger.warn(
+        `findSubtasks cap atingido parent=${taskId} cap=${SUBTASKS_CAP} ws=${workspaceId}`,
+      );
+    }
     return rows.map((row) =>
       TaskResponseDto.fromRow({
         ...row,
@@ -575,26 +605,34 @@ export class TasksService {
   /**
    * HPP-053 — `GET /tasks/my-tasks`. Tasks atribuidas ao caller distribuidas
    * em buckets temporais. Single query + bucketing in-memory.
+   *
+   * `tz` (IANA, ex: America/Sao_Paulo) define o limite de "hoje" no fuso
+   * do usuario. Default UTC. Fuso invalido cai em UTC.
    */
   async findMyTasks(
     workspaceId: string,
     userId: string,
+    tz?: string,
   ): Promise<{
     overdue: TaskResponseDto[];
     today: TaskResponseDto[];
     upcoming: TaskResponseDto[];
     noDate: TaskResponseDto[];
     completed: TaskResponseDto[];
+    meta: { hasMore: boolean; cap: number; tz: string };
   }> {
-    const rows = await this.repository.findMyTasks(workspaceId, userId);
-
-    const now = new Date();
-    const startOfToday = new Date(
-      Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate()),
+    const rows = await this.repository.findMyTasks(
+      workspaceId,
+      userId,
+      MY_TASKS_CAP,
     );
-    const startOfTomorrow = new Date(
-      startOfToday.getTime() + 24 * 60 * 60 * 1000,
-    );
+    if (rows.length === MY_TASKS_CAP) {
+      this.logger.warn(
+        `findMyTasks cap atingido user=${userId} cap=${MY_TASKS_CAP} ws=${workspaceId}`,
+      );
+    }
+    const { startOfToday, startOfTomorrow, resolvedTz } =
+      this.computeTodayBoundsInTz(tz);
 
     const buckets = {
       overdue: [] as TaskResponseDto[],
@@ -635,7 +673,59 @@ export class TasksService {
       }
     }
 
-    return buckets;
+    return {
+      ...buckets,
+      meta: {
+        hasMore: rows.length === MY_TASKS_CAP,
+        cap: MY_TASKS_CAP,
+        tz: resolvedTz,
+      },
+    };
+  }
+
+  /**
+   * Resolve "inicio de hoje" e "inicio de amanha" no fuso `tz` (IANA).
+   * Default UTC. Fuso invalido cai em UTC com warn no log.
+   */
+  private computeTodayBoundsInTz(tz?: string): {
+    startOfToday: Date;
+    startOfTomorrow: Date;
+    resolvedTz: string;
+  } {
+    const now = new Date();
+    const target = tz ?? 'UTC';
+    let parts: Intl.DateTimeFormatPart[];
+    try {
+      parts = new Intl.DateTimeFormat('en-CA', {
+        timeZone: target,
+        year: 'numeric',
+        month: '2-digit',
+        day: '2-digit',
+      }).formatToParts(now);
+    } catch {
+      this.logger.warn(`tz invalida "${target}", caindo em UTC`);
+      return this.computeTodayBoundsInTz('UTC');
+    }
+    const year = Number(parts.find((p) => p.type === 'year')?.value);
+    const month = Number(parts.find((p) => p.type === 'month')?.value);
+    const day = Number(parts.find((p) => p.type === 'day')?.value);
+    // Constroi meio-dia local no fuso e calcula o offset ate UTC para
+    // achar a virada de dia EM UTC. Meio-dia evita ambiguidade em DST.
+    const localNoonUtc = new Date(Date.UTC(year, month - 1, day, 12, 0, 0));
+    const fmt = new Intl.DateTimeFormat('en-US', {
+      timeZone: target,
+      hour: '2-digit',
+      hour12: false,
+    });
+    const localHour = Number(fmt.format(localNoonUtc));
+    const offsetHours = 12 - localHour; // ex: BRT (-3) -> 12 - 9 = 3
+    const startOfToday = new Date(
+      Date.UTC(year, month - 1, day, offsetHours, 0, 0),
+    );
+    const startOfTomorrow = new Date(
+      startOfToday.getTime() + 24 * 60 * 60 * 1000,
+    );
+    return { startOfToday, startOfTomorrow, resolvedTz: target };
   }
 
   private async resolveListGroupedScope(

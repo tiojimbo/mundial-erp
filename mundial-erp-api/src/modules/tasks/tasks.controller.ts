@@ -138,12 +138,18 @@ export class TasksController {
     summary:
       'Tasks atribuidas ao caller agrupadas por bucket temporal (Hoppe)',
   })
+  @ApiQuery({
+    name: 'tz',
+    required: false,
+    description: 'Fuso IANA (ex: America/Sao_Paulo). Default UTC',
+  })
   @ApiResponse({ status: 200 })
   myTasks(
     @WorkspaceId() workspaceId: string,
     @CurrentUser() user: JwtPayload,
+    @Query('tz') tz?: string,
   ) {
-    return this.tasksService.findMyTasks(workspaceId, user.sub);
+    return this.tasksService.findMyTasks(workspaceId, user.sub, tz);
   }
 
   @Get('tasks/list')
