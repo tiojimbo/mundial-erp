@@ -1,5 +1,4 @@
 import { api } from '@/lib/api';
-import type { ApiResponse } from '@/types/api.types';
 import type {
   ProcessConfig,
   CreateProcessPayload,
@@ -11,29 +10,27 @@ import type {
 
 export const processesService = {
   async getAll(): Promise<ProcessConfig[]> {
-    const { data } = await api.get<ProcessConfig[]>('/processes');
+    const { data } = await api.get<ProcessConfig[]>('/lists');
     return data;
   },
 
   async getById(id: string): Promise<ProcessConfig> {
-    const { data: envelope } = await api.get<ApiResponse<ProcessConfig>>(
-      `/processes/${id}`,
-    );
-    return envelope.data;
+    const { data } = await api.get<ProcessConfig>(`/lists/${id}`);
+    return data;
   },
 
   async create(payload: CreateProcessPayload): Promise<ProcessConfig> {
-    const { data } = await api.post<ProcessConfig>('/processes', payload);
+    const { data } = await api.post<ProcessConfig>('/lists', payload);
     return data;
   },
 
   async update(id: string, payload: UpdateProcessPayload): Promise<ProcessConfig> {
-    const { data } = await api.patch<ProcessConfig>(`/processes/${id}`, payload);
+    const { data } = await api.put<ProcessConfig>(`/lists/${id}`, payload);
     return data;
   },
 
   async remove(id: string): Promise<void> {
-    await api.delete(`/processes/${id}`);
+    await api.delete(`/lists/${id}`);
   },
 
   async createActivity(payload: CreateActivityPayload): Promise<ActivityConfig> {
