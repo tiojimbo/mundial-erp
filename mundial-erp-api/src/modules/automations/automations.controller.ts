@@ -3,6 +3,7 @@ import { ApiBearerAuth, ApiOperation, ApiResponse, ApiTags } from '@nestjs/swagg
 import { Role } from '@prisma/client';
 import { AutomationsService } from './automations.service';
 import { Roles } from '../auth/decorators';
+import { WorkspaceId } from '../workspaces/decorators/workspace-id.decorator';
 import { SkipResponseTransform } from '../../common/decorators/skip-response-transform.decorator';
 
 @ApiTags('Automations')
@@ -26,5 +27,13 @@ export class AutomationsController {
   @ApiResponse({ status: 200, description: 'Catálogo estático com 21 actions' })
   listActions() {
     return this.service.listActions();
+  }
+
+  @Get('statuses')
+  @Roles(Role.ADMIN, Role.MANAGER, Role.OPERATOR, Role.VIEWER)
+  @ApiOperation({ summary: 'Listar workflow statuses do workspace agrupados por escopo' })
+  @ApiResponse({ status: 200, description: '{ spaces: [...], folders: [...] }' })
+  listStatuses(@WorkspaceId() workspaceId: string) {
+    return this.service.listStatusesByScope(workspaceId);
   }
 }

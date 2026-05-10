@@ -189,4 +189,27 @@ export class AutomationsRepository {
       select: { id: true, nextRunAt: true },
     });
   }
+
+  listWorkflowStatusesByScope(workspaceId: string) {
+    return this.prisma.workflowStatus.findMany({
+      where: {
+        deletedAt: null,
+        space: { workspaceId, deletedAt: null },
+      },
+      orderBy: [{ spaceId: 'asc' }, { folderId: 'asc' }, { sortOrder: 'asc' }],
+      select: {
+        id: true,
+        name: true,
+        category: true,
+        color: true,
+        icon: true,
+        sortOrder: true,
+        isDefault: true,
+        spaceId: true,
+        folderId: true,
+        space: { select: { id: true, name: true } },
+        folder: { select: { id: true, name: true, spaceId: true } },
+      },
+    });
+  }
 }
