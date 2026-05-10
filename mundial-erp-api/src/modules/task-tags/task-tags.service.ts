@@ -63,6 +63,7 @@ export class TaskTagsService {
     try {
       const entity = await this.repository.create({
         workspaceId,
+        spaceId: dto.spaceId,
         name: dto.name.trim(),
         nameLower,
         color: dto.color,

@@ -1,16 +1,9 @@
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 
-/**
- * DTO de resposta para `WorkItemTag`.
- *
- * IMPORTANTE: o model `WorkItemTag` e criado pela Migration 2 (`tasks_collaboration`).
- * Ate a migration ser aplicada e `prisma generate` rodar, o tipo importado de
- * `@prisma/client` ainda nao existe; por isso o metodo `fromEntity` aceita
- * `unknown` e confia no shape pactuado no PLANO-TASKS.md §5.3.
- */
 export interface WorkItemTagShape {
   id: string;
   workspaceId: string;
+  spaceId: string | null;
   name: string;
   nameLower: string;
   color: string | null;
@@ -18,6 +11,7 @@ export interface WorkItemTagShape {
   createdAt: Date;
   updatedAt: Date;
   deletedAt: Date | null;
+  _count?: { links: number } | null;
 }
 
 export class TaskTagResponseDto {
@@ -26,6 +20,9 @@ export class TaskTagResponseDto {
 
   @ApiProperty()
   workspaceId!: string;
+
+  @ApiPropertyOptional()
+  spaceId!: string | null;
 
   @ApiProperty()
   name!: string;
@@ -39,6 +36,9 @@ export class TaskTagResponseDto {
   @ApiPropertyOptional()
   bgColor!: string | null;
 
+  @ApiProperty({ description: 'Quantidade de tasks com esta tag.' })
+  tasksCount!: number;
+
   @ApiProperty()
   createdAt!: Date;
 
@@ -49,10 +49,12 @@ export class TaskTagResponseDto {
     const dto = new TaskTagResponseDto();
     dto.id = entity.id;
     dto.workspaceId = entity.workspaceId;
+    dto.spaceId = entity.spaceId;
     dto.name = entity.name;
     dto.nameLower = entity.nameLower;
     dto.color = entity.color;
     dto.bgColor = entity.bgColor;
+    dto.tasksCount = entity._count?.links ?? 0;
     dto.createdAt = entity.createdAt;
     dto.updatedAt = entity.updatedAt;
     return dto;

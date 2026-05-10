@@ -18,6 +18,7 @@ export interface TaskTagFindManyParams {
 
 export interface CreateTaskTagData {
   workspaceId: string;
+  spaceId: string;
   name: string;
   nameLower: string;
   color?: string | null;
@@ -34,6 +35,7 @@ export interface UpdateTaskTagData {
 const TASK_TAG_SELECT = {
   id: true,
   workspaceId: true,
+  spaceId: true,
   name: true,
   nameLower: true,
   color: true,
@@ -41,6 +43,7 @@ const TASK_TAG_SELECT = {
   createdAt: true,
   updatedAt: true,
   deletedAt: true,
+  _count: { select: { links: true } },
 } as const;
 
 @Injectable()
@@ -91,6 +94,7 @@ export class TaskTagsRepository {
     return this.prisma.workItemTag.create({
       data: {
         workspaceId: data.workspaceId,
+        spaceId: data.spaceId,
         name: data.name,
         nameLower: data.nameLower,
         color: data.color ?? null,
