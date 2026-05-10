@@ -188,12 +188,12 @@ describe('TasksService.create', () => {
 
     const callArg = h.repository.createTask.mock.calls[0][1] as {
       statusId: string;
-      processId: string;
+      listId: string;
       creatorId: string;
       title: string;
     };
     expect(callArg.statusId).toBe(DEFAULT_STATUS);
-    expect(callArg.processId).toBe(PROCESS);
+    expect(callArg.listId).toBe(PROCESS);
     expect(callArg.creatorId).toBe(ACTOR);
     expect(callArg.title).toBe('Nova task');
     // `create` passou a retornar o DTO direto (sem envelope interno); o
@@ -298,7 +298,7 @@ describe('TasksService.create', () => {
     expect(arg.workspaceId).toBe(WS);
     expect(arg.payload).toMatchObject({
       taskId: CREATED_TASK_ID,
-      processId: PROCESS,
+      listId: PROCESS,
       actorId: ACTOR,
       title: 'Task X',
       statusId: DEFAULT_STATUS,
