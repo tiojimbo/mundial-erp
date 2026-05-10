@@ -199,11 +199,27 @@ export const taskDependenciesBundleSchema = z.object({
   waitingOn: z.array(taskDependencySchema),
 });
 
+export const taskLinkTypeSchema = z.enum([
+  'RELATES_TO',
+  'DUPLICATES',
+  'IS_DUPLICATED_BY',
+]);
+
+const taskLinkTaskSummarySchema = z.object({
+  id: z.string(),
+  title: z.string(),
+  statusId: z.string(),
+  statusCategory: z.string().nullable().optional(),
+  priority: z.string().nullable().optional(),
+  dueDate: z.string().nullable().optional(),
+  primaryAssigneeId: z.string().nullable().optional(),
+  archived: z.boolean().optional(),
+});
+
 export const taskLinkSchema = z.object({
-  id: z.string().uuid(),
-  fromTaskId: z.string().uuid(),
-  toTaskId: z.string().uuid(),
-  createdAt: z.string().datetime(),
+  linkId: z.string(),
+  type: taskLinkTypeSchema,
+  task: taskLinkTaskSummarySchema,
 });
 
 export const taskWatcherSchema = z.object({
