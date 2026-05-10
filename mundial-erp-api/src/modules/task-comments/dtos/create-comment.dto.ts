@@ -25,4 +25,19 @@ export class CreateCommentDto {
   @IsOptional()
   @IsObject()
   bodyBlocks?: Record<string, unknown>;
+
+  @ApiPropertyOptional({
+    description: 'ID do comentário pai (resposta em thread).',
+  })
+  @IsOptional()
+  @IsString()
+  parentId?: string;
+
+  @ApiPropertyOptional({
+    description:
+      'ID do usuário ao qual este comentário atribui a tarefa (Hoppe assign-via-comment).',
+  })
+  @IsOptional()
+  @IsString()
+  assigneeId?: string;
 }

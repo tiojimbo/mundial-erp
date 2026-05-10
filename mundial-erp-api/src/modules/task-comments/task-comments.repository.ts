@@ -8,6 +8,10 @@ const COMMENT_SELECT = {
   authorId: true,
   body: true,
   bodyBlocks: true,
+  parentId: true,
+  mentions: true,
+  assigneeId: true,
+  assignedById: true,
   editedAt: true,
   createdAt: true,
   updatedAt: true,
@@ -19,11 +23,16 @@ export interface CommentCreateInput {
   authorId: string;
   body: string;
   bodyBlocks?: Prisma.InputJsonValue | null;
+  parentId?: string | null;
+  mentions?: string[];
+  assigneeId?: string | null;
+  assignedById?: string | null;
 }
 
 export interface CommentUpdateInput {
   body?: string;
   bodyBlocks?: Prisma.InputJsonValue | null;
+  mentions?: string[];
   editedAt?: Date;
 }
 
@@ -42,6 +51,23 @@ export class TaskCommentsRepository {
         id: taskId,
         deletedAt: null,
         list: { space: { workspaceId } },
+      },
+      select: { id: true },
+    });
+  }
+
+  async assertParentBelongsToTask(taskId: string, parentId: string) {
+    return this.prisma.workItemComment.findFirst({
+      where: { id: parentId, workItemId: taskId, deletedAt: null },
+      select: { id: true },
+    });
+  }
+
+  async assertUserInWorkspace(workspaceId: string, userId: string) {
+    return this.prisma.user.findFirst({
+      where: {
+        id: userId,
+        workspaceMembers: { some: { workspaceId } },
       },
       select: { id: true },
     });
@@ -86,16 +112,26 @@ export class TaskCommentsRepository {
 
   async create(input: CommentCreateInput, tx?: Prisma.TransactionClient) {
     const db = tx ?? this.prisma;
+    const data: Prisma.WorkItemCommentUncheckedCreateInput = {
+      workItemId: input.workItemId,
+      authorId: input.authorId,
+      body: input.body,
+      bodyBlocks:
+        input.bodyBlocks === undefined || input.bodyBlocks === null
+          ? Prisma.JsonNull
+          : input.bodyBlocks,
+      mentions:
+        input.mentions === undefined || input.mentions.length === 0
+          ? Prisma.JsonNull
+          : (input.mentions as Prisma.InputJsonValue),
+    };
+    if (input.parentId) data.parentId = input.parentId;
+    if (input.assigneeId) {
+      data.assigneeId = input.assigneeId;
+      if (input.assignedById) data.assignedById = input.assignedById;
+    }
     return db.workItemComment.create({
-      data: {
-        workItemId: input.workItemId,
-        authorId: input.authorId,
-        body: input.body,
-        bodyBlocks:
-          input.bodyBlocks === undefined || input.bodyBlocks === null
-            ? Prisma.JsonNull
-            : input.bodyBlocks,
-      },
+      data,
       select: COMMENT_SELECT,
     });
   }
@@ -111,6 +147,12 @@ export class TaskCommentsRepository {
     if (input.bodyBlocks !== undefined) {
       data.bodyBlocks =
         input.bodyBlocks === null ? Prisma.JsonNull : input.bodyBlocks;
+    }
+    if (input.mentions !== undefined) {
+      data.mentions =
+        input.mentions.length === 0
+          ? Prisma.JsonNull
+          : (input.mentions as Prisma.InputJsonValue);
     }
     if (input.editedAt !== undefined) data.editedAt = input.editedAt;
     return db.workItemComment.update({
@@ -128,19 +170,11 @@ export class TaskCommentsRepository {
     });
   }
 
-  /**
-   * Resolve usernames -> userIds no workspace atual (via WorkspaceMember).
-   * Usado pelo servico para expandir @menciones antes de enfileirar outbox.
-   */
   async resolveUsernamesInWorkspace(
     workspaceId: string,
     usernames: string[],
   ): Promise<Array<{ id: string; username: string }>> {
     if (usernames.length === 0) return [];
-    // Prisma: User tem campo `email`; usernames aqui correspondem a parte
-    // antes do `@` do email OU ao `username` quando existir. Fazemos dois
-    // lookups para ser tolerante com schemas distintos (User.username pode
-    // nao existir em todos os tenants).
     const lowered = usernames.map((u) => u.toLowerCase());
     const users = await this.prisma.user.findMany({
       where: {

@@ -1,17 +1,5 @@
-/**
- * TaskCommentsService (TSK-407, PLANO §7.3)
- *
- * Regras:
- *   - body em texto puro canonical. bodyBlocks opcional (BlockNote JSON AST).
- *     NUNCA armazenar HTML bruto.
- *   - @Menções resolvem usernames (regex `@([\w.-]+)`) contra WorkspaceMember
- *     do workspace atual. Desconhecidos sao silenciosamente ignorados.
- *   - Enqueue outbox `COMMENT_ADDED` com `mentionedUserIds` => worker dispara
- *     Notification(type=MENTION/TASK_MENTIONED).
- *   - Author-only ou Manager+ para update/delete.
- *   - Log jamais expoe body completo — truncado em 200 chars.
- */
 import {
+  BadRequestException,
   ForbiddenException,
   Inject,
   Injectable,
@@ -97,7 +85,28 @@ export class TaskCommentsService {
       throw new NotFoundException('Tarefa nao encontrada');
     }
 
-    // Resolve mencoes antes do tx — read-only, nao precisa atomicidade.
+    if (dto.parentId) {
+      const parent = await this.repository.assertParentBelongsToTask(
+        taskId,
+        dto.parentId,
+      );
+      if (!parent) {
+        throw new BadRequestException(
+          'Comentario pai nao pertence a esta tarefa',
+        );
+      }
+    }
+
+    if (dto.assigneeId) {
+      const assignee = await this.repository.assertUserInWorkspace(
+        workspaceId,
+        dto.assigneeId,
+      );
+      if (!assignee) {
+        throw new BadRequestException('Usuario destinatario fora do workspace');
+      }
+    }
+
     const mentionedUsernames = extractMentionUsernames(dto.body);
     const resolved = mentionedUsernames.length
       ? await this.repository.resolveUsernamesInWorkspace(
@@ -109,7 +118,6 @@ export class TaskCommentsService {
       .map((u) => u.id)
       .filter((id) => id !== actorUserId);
 
-    // Insert + outbox enqueue dentro da mesma $transaction (ADR-003).
     const created = await this.prisma.$transaction(async (tx) => {
       const row = await this.repository.create(
         {
@@ -117,6 +125,10 @@ export class TaskCommentsService {
           authorId: actorUserId,
           body: dto.body,
           bodyBlocks: dto.bodyBlocks as Prisma.InputJsonValue | undefined,
+          parentId: dto.parentId,
+          mentions: mentionedUserIds,
+          assigneeId: dto.assigneeId,
+          assignedById: dto.assigneeId ? actorUserId : undefined,
         },
         tx,
       );
@@ -128,6 +140,8 @@ export class TaskCommentsService {
           commentId: row.id,
           authorId: actorUserId,
           mentionedUserIds,
+          parentId: dto.parentId ?? null,
+          assigneeId: dto.assigneeId ?? null,
           actorId: actorUserId,
         },
         workspaceId,
@@ -136,7 +150,7 @@ export class TaskCommentsService {
     });
 
     this.logger.log(
-      `task-comment.created task=${taskId} id=${created.id} author=${actorUserId} mentions=${mentionedUserIds.length} bodyPreview="${truncate(dto.body, LOG_BODY_MAX_CHARS)}"`,
+      `task-comment.created task=${taskId} id=${created.id} author=${actorUserId} mentions=${mentionedUserIds.length} parentId=${dto.parentId ?? '-'} assigneeId=${dto.assigneeId ?? '-'} bodyPreview="${truncate(dto.body, LOG_BODY_MAX_CHARS)}"`,
     );
 
     return CommentResponseDto.fromEntity(created as unknown as CommentShape);
@@ -161,14 +175,27 @@ export class TaskCommentsService {
       );
     }
 
+    const newBody = dto.body ?? existing.body;
+    const mentionedUsernames = extractMentionUsernames(newBody);
+    const resolved = mentionedUsernames.length
+      ? await this.repository.resolveUsernamesInWorkspace(
+          workspaceId,
+          mentionedUsernames,
+        )
+      : [];
+    const mentionedUserIds = resolved
+      .map((u) => u.id)
+      .filter((id) => id !== actor.userId);
+
     const updated = await this.repository.update(id, {
       body: dto.body,
       bodyBlocks: dto.bodyBlocks as Prisma.InputJsonValue | undefined,
+      mentions: mentionedUserIds,
       editedAt: new Date(),
     });
 
     this.logger.log(
-      `task-comment.updated id=${id} actor=${actor.userId} bodyPreview="${truncate(dto.body ?? '', LOG_BODY_MAX_CHARS)}"`,
+      `task-comment.updated id=${id} actor=${actor.userId} mentions=${mentionedUserIds.length} bodyPreview="${truncate(dto.body ?? '', LOG_BODY_MAX_CHARS)}"`,
     );
 
     return CommentResponseDto.fromEntity(updated as unknown as CommentShape);
