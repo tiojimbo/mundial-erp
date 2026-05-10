@@ -278,13 +278,9 @@ export class TaskChecklistsService {
     );
   }
 
-  async removeItem(
-    workspaceId: string,
-    checklistId: string,
-    itemId: string,
-  ): Promise<void> {
+  async removeItem(workspaceId: string, itemId: string): Promise<void> {
     const item = await this.repository.findItemById(workspaceId, itemId);
-    if (!item || item.checklist.id !== checklistId) {
+    if (!item) {
       throw new NotFoundException('Item de checklist nao encontrado');
     }
     await this.repository.softDeleteItem(itemId);

@@ -6,7 +6,6 @@ import {
   HttpCode,
   HttpStatus,
   Param,
-  Patch,
   Post,
   Put,
 } from '@nestjs/common';
@@ -88,43 +87,48 @@ export class TaskChecklistsController {
     return this.service.removeChecklist(workspaceId, id);
   }
 
-  @Post('task-checklists/:id/items')
+  @Post('checklist/item/:checklistId')
   @Roles(Role.ADMIN, Role.MANAGER, Role.OPERATOR)
   @Throttle({ default: { limit: 60, ttl: 60_000 } })
   @ApiOperation({ summary: 'Criar item em uma checklist' })
   createItem(
     @WorkspaceId() workspaceId: string,
-    @Param('id') id: string,
+    @Param('checklistId') checklistId: string,
     @Body() dto: CreateChecklistItemDto,
     @CurrentUser() user: JwtPayload,
   ) {
-    return this.service.createItem(workspaceId, id, dto, user.sub);
+    return this.service.createItem(workspaceId, checklistId, dto, user.sub);
   }
 
-  @Patch('task-checklists/:id/items/:itemId')
+  @Put('checklist/:checklistId/item/:itemId')
   @Roles(Role.ADMIN, Role.MANAGER, Role.OPERATOR)
   @ApiOperation({ summary: 'Editar item de checklist' })
   updateItem(
     @WorkspaceId() workspaceId: string,
-    @Param('id') id: string,
+    @Param('checklistId') checklistId: string,
     @Param('itemId') itemId: string,
     @Body() dto: UpdateChecklistItemDto,
     @CurrentUser() user: JwtPayload,
   ) {
-    return this.service.updateItem(workspaceId, id, itemId, dto, user.sub);
+    return this.service.updateItem(
+      workspaceId,
+      checklistId,
+      itemId,
+      dto,
+      user.sub,
+    );
   }
 
-  @Delete('task-checklists/:id/items/:itemId')
+  @Delete('checklist/item/:itemId')
   @Roles(Role.ADMIN, Role.MANAGER, Role.OPERATOR)
   @HttpCode(HttpStatus.NO_CONTENT)
   @ApiOperation({ summary: 'Remover item de checklist (soft delete)' })
   @ApiResponse({ status: 204 })
   removeItem(
     @WorkspaceId() workspaceId: string,
-    @Param('id') id: string,
     @Param('itemId') itemId: string,
   ) {
-    return this.service.removeItem(workspaceId, id, itemId);
+    return this.service.removeItem(workspaceId, itemId);
   }
 
   @Post('task-checklists/:id/reorder')
