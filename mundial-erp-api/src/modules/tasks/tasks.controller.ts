@@ -77,6 +77,25 @@ export class TasksController {
     return this.tasksService.findBySpace(workspaceId, spaceId);
   }
 
+  @Delete('tasks/:taskId/assignees/:userId')
+  @Roles(Role.ADMIN, Role.MANAGER, Role.OPERATOR)
+  @ApiOperation({ summary: 'Remove 1 assignee individual (Hoppe)' })
+  @ApiResponse({ status: 200, description: 'Assignee removido' })
+  @ApiResponse({ status: 404, description: 'Task nao encontrada' })
+  removeAssignee(
+    @WorkspaceId() workspaceId: string,
+    @Param('taskId') taskId: string,
+    @Param('userId') userId: string,
+    @CurrentUser() user: JwtPayload,
+  ) {
+    return this.tasksService.removeAssignee(
+      workspaceId,
+      taskId,
+      userId,
+      user.sub,
+    );
+  }
+
   @Put('tasks/:taskId/assign')
   @Roles(Role.ADMIN, Role.MANAGER, Role.OPERATOR)
   @ApiOperation({

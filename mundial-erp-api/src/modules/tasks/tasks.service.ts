@@ -446,6 +446,32 @@ export class TasksService {
   }
 
   /**
+   * HPP-057 — `DELETE /tasks/:id/assignees/:userId`. Remove individual.
+   * Idempotente: usuario nao-assignee retorna 200 sem efeito (sync ignora P2025).
+   */
+  async removeAssignee(
+    workspaceId: string,
+    taskId: string,
+    userId: string,
+    actorId: string,
+  ): Promise<{ message: string }> {
+    const task = await this.repository.findExistenceRow(workspaceId, taskId);
+    if (!task) {
+      throw new NotFoundException('Task nao encontrada');
+    }
+    await this.prisma.$transaction(async (tx) => {
+      await this.assigneesSync.syncAssignees(tx, {
+        taskId,
+        add: [],
+        rem: [userId],
+        actorUserId: actorId,
+        workspaceId,
+      });
+    });
+    return { message: 'Assignee removido' };
+  }
+
+  /**
    * HPP-056 — `PUT /tasks/:id/assign`. Substitui a lista completa.
    * Body `{ assignees: [{ userId }, ...] }`. Lista vazia volta o creator.
    * Calcula delta {add,rem} e aplica via AssigneesSyncService dentro de tx.
