@@ -18,6 +18,9 @@ import { Role } from '@prisma/client';
 import { ListsService } from './lists.service';
 import { CreateListDto } from './dto/create-list.dto';
 import { UpdateListDto } from './dto/update-list.dto';
+import { UpdateListVisibilityDto } from './dto/update-list-visibility.dto';
+import { AddListMemberDto } from './dto/add-list-member.dto';
+import { UpdateListMemberDto } from './dto/update-list-member.dto';
 import { ListResponseDto } from './dto/list-response.dto';
 import { CurrentUser, Roles } from '../../../auth/decorators';
 import type { JwtPayload } from '../../../auth/decorators';
@@ -54,6 +57,98 @@ export class ListsController {
     @Query('spaceId') spaceId?: string,
   ) {
     return this.listsService.findAllScoped(workspaceId, { folderId, spaceId });
+  }
+
+  @Get(':id/resources')
+  @SkipResponseTransform()
+  @Roles(Role.ADMIN, Role.MANAGER, Role.OPERATOR, Role.VIEWER)
+  @ApiOperation({ summary: 'Metadata de filters/sortOptions da list' })
+  getResources(
+    @WorkspaceId() workspaceId: string,
+    @Param('id') id: string,
+  ) {
+    return this.listsService.getResources(workspaceId, id);
+  }
+
+  @Get(':id/visibility')
+  @SkipResponseTransform()
+  @Roles(Role.ADMIN, Role.MANAGER, Role.OPERATOR, Role.VIEWER)
+  @ApiOperation({ summary: 'Visibility atual da list' })
+  getVisibility(
+    @WorkspaceId() workspaceId: string,
+    @Param('id') id: string,
+  ) {
+    return this.listsService.getVisibility(workspaceId, id);
+  }
+
+  @Put(':id/visibility')
+  @SkipResponseTransform()
+  @Roles(Role.ADMIN)
+  @ApiOperation({ summary: 'Atualizar visibility da list' })
+  updateVisibility(
+    @WorkspaceId() workspaceId: string,
+    @Param('id') id: string,
+    @Body() dto: UpdateListVisibilityDto,
+  ) {
+    return this.listsService.updateVisibility(workspaceId, id, dto.visibility);
+  }
+
+  @Get(':id/members')
+  @SkipResponseTransform()
+  @Roles(Role.ADMIN, Role.MANAGER, Role.OPERATOR, Role.VIEWER)
+  @ApiOperation({ summary: 'Listar membros da list' })
+  listMembers(
+    @WorkspaceId() workspaceId: string,
+    @Param('id') id: string,
+  ) {
+    return this.listsService.listMembers(workspaceId, id);
+  }
+
+  @Post(':id/members')
+  @SkipResponseTransform()
+  @Roles(Role.ADMIN)
+  @ApiOperation({ summary: 'Adicionar membro à list' })
+  addMember(
+    @WorkspaceId() workspaceId: string,
+    @Param('id') id: string,
+    @Body() dto: AddListMemberDto,
+  ) {
+    return this.listsService.addMember(
+      workspaceId,
+      id,
+      dto.userId,
+      dto.permission,
+    );
+  }
+
+  @Put(':id/members/:userId')
+  @SkipResponseTransform()
+  @Roles(Role.ADMIN)
+  @ApiOperation({ summary: 'Atualizar permission de membro da list' })
+  updateMember(
+    @WorkspaceId() workspaceId: string,
+    @Param('id') id: string,
+    @Param('userId') userId: string,
+    @Body() dto: UpdateListMemberDto,
+  ) {
+    return this.listsService.updateMember(
+      workspaceId,
+      id,
+      userId,
+      dto.permission,
+    );
+  }
+
+  @Delete(':id/members/:userId')
+  @SkipResponseTransform()
+  @Roles(Role.ADMIN)
+  @ApiOperation({ summary: 'Remover membro da list' })
+  removeMember(
+    @WorkspaceId() workspaceId: string,
+    @Param('id') id: string,
+    @Param('userId') userId: string,
+  ) {
+    return this.listsService.removeMember(workspaceId, id, userId);
   }
 
   @Get(':id')

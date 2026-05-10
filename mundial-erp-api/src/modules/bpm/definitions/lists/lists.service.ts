@@ -3,13 +3,14 @@ import {
   Injectable,
   NotFoundException,
 } from '@nestjs/common';
-import { Prisma } from '@prisma/client';
+import { MemberPermission, Prisma, Visibility } from '@prisma/client';
 import { ListsRepository } from './lists.repository';
 import { CreateListDto } from './dto/create-list.dto';
 import { UpdateListDto } from './dto/update-list.dto';
 import { ListResponseDto } from './dto/list-response.dto';
 import { PrismaService } from '../../../../database/prisma.service';
 import { SpacesRepository } from '../spaces/spaces.repository';
+import { SPACE_RESOURCES } from '../spaces/resources-metadata';
 
 @Injectable()
 export class ListsService {
@@ -169,6 +170,196 @@ export class ListsService {
       updateData,
     );
     return ListResponseDto.fromEntity(updated);
+  }
+
+  async getResources(workspaceId: string, listId: string) {
+    const list = await this.listsRepository.findById(workspaceId, listId);
+    if (!list) {
+      throw new NotFoundException('List não encontrada');
+    }
+    return SPACE_RESOURCES;
+  }
+
+  async getVisibility(workspaceId: string, listId: string) {
+    const list = await this.listsRepository.findById(workspaceId, listId);
+    if (!list) {
+      throw new NotFoundException('List não encontrada');
+    }
+    return { visibility: list.visibility };
+  }
+
+  async updateVisibility(
+    workspaceId: string,
+    listId: string,
+    visibility: Visibility,
+  ) {
+    const list = await this.listsRepository.findById(workspaceId, listId);
+    if (!list) {
+      throw new NotFoundException('List não encontrada');
+    }
+
+    await this.prisma.$transaction(async (tx) => {
+      await tx.list.update({
+        where: { id: listId },
+        data: { visibility },
+      });
+
+      const becamePrivate =
+        list.visibility === Visibility.PUBLIC &&
+        visibility === Visibility.PRIVATE;
+
+      if (becamePrivate && list.creatorId) {
+        await tx.listMember.upsert({
+          where: {
+            listId_userId: { listId, userId: list.creatorId },
+          },
+          create: {
+            listId,
+            userId: list.creatorId,
+            permission: MemberPermission.FULL_EDIT,
+          },
+          update: { permission: MemberPermission.FULL_EDIT },
+        });
+      }
+    });
+
+    return { visibility };
+  }
+
+  async listMembers(workspaceId: string, listId: string) {
+    const list = await this.listsRepository.findById(workspaceId, listId);
+    if (!list) {
+      throw new NotFoundException('List não encontrada');
+    }
+
+    const direct = await this.prisma.listMember.findMany({
+      where: { listId },
+      include: { user: { select: { id: true, name: true, email: true } } },
+    });
+
+    const directRows = direct.map((m) => ({
+      listId,
+      userId: m.userId,
+      permission: m.permission,
+      source: 'direct' as const,
+      inherited: false,
+      user: { ...m.user, avatar: null },
+    }));
+
+    if (list.visibility !== Visibility.PUBLIC) {
+      return directRows;
+    }
+
+    const directIds = new Set(direct.map((m) => m.userId));
+
+    if (list.folderId) {
+      const folderMembers = await this.prisma.folderMember.findMany({
+        where: { folderId: list.folderId },
+        include: { user: { select: { id: true, name: true, email: true } } },
+      });
+      const inheritedRows = folderMembers
+        .filter((fm) => !directIds.has(fm.userId))
+        .map((fm) => ({
+          listId,
+          userId: fm.userId,
+          permission: fm.permission,
+          source: 'folder' as const,
+          inherited: true,
+          user: { ...fm.user, avatar: null },
+        }));
+      return [...directRows, ...inheritedRows];
+    }
+
+    if (list.spaceId) {
+      const spaceMembers = await this.prisma.spaceMember.findMany({
+        where: { spaceId: list.spaceId },
+        include: { user: { select: { id: true, name: true, email: true } } },
+      });
+      const inheritedRows = spaceMembers
+        .filter((sm) => !directIds.has(sm.userId))
+        .map((sm) => ({
+          listId,
+          userId: sm.userId,
+          permission: sm.permission,
+          source: 'space' as const,
+          inherited: true,
+          user: { ...sm.user, avatar: null },
+        }));
+      return [...directRows, ...inheritedRows];
+    }
+
+    return directRows;
+  }
+
+  async addMember(
+    workspaceId: string,
+    listId: string,
+    userId: string,
+    permission: MemberPermission,
+  ) {
+    const list = await this.listsRepository.findById(workspaceId, listId);
+    if (!list) {
+      throw new NotFoundException('List não encontrada');
+    }
+    const isWsMember = await this.prisma.workspaceMember.findUnique({
+      where: { workspaceId_userId: { workspaceId, userId } },
+    });
+    if (!isWsMember) {
+      throw new NotFoundException('User não pertence ao workspace');
+    }
+    try {
+      await this.prisma.listMember.create({
+        data: { listId, userId, permission },
+      });
+    } catch (error) {
+      if (
+        error instanceof Prisma.PrismaClientKnownRequestError &&
+        error.code === 'P2002'
+      ) {
+        throw new BadRequestException('User já é membro da list');
+      }
+      throw error;
+    }
+    return { listId, userId, permission, source: 'direct', inherited: false };
+  }
+
+  async updateMember(
+    workspaceId: string,
+    listId: string,
+    userId: string,
+    permission: MemberPermission,
+  ) {
+    const list = await this.listsRepository.findById(workspaceId, listId);
+    if (!list) {
+      throw new NotFoundException('List não encontrada');
+    }
+    const existing = await this.prisma.listMember.findUnique({
+      where: { listId_userId: { listId, userId } },
+    });
+    if (!existing) {
+      throw new NotFoundException('Membro não encontrado');
+    }
+    await this.prisma.listMember.update({
+      where: { listId_userId: { listId, userId } },
+      data: { permission },
+    });
+    return { listId, userId, permission, source: 'direct', inherited: false };
+  }
+
+  async removeMember(workspaceId: string, listId: string, userId: string) {
+    const list = await this.listsRepository.findById(workspaceId, listId);
+    if (!list) {
+      throw new NotFoundException('List não encontrada');
+    }
+    const existing = await this.prisma.listMember.findUnique({
+      where: { listId_userId: { listId, userId } },
+    });
+    if (!existing) {
+      throw new NotFoundException('Membro não encontrado');
+    }
+    await this.prisma.listMember.delete({
+      where: { listId_userId: { listId, userId } },
+    });
   }
 
   async remove(
