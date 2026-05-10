@@ -6,6 +6,7 @@ import {
 import { AutomationScopeType, AutomationTrigger, Prisma } from '@prisma/client';
 import { AutomationsRepository, ListFilters } from './automations.repository';
 import { AutomationsCacheService } from './cache/automations-cache.service';
+import { CronSchedulerService } from './cron/cron-scheduler.service';
 import { TRIGGERS_CATALOG } from './catalog/triggers.catalog';
 import { ACTION_IDS, ACTIONS_CATALOG } from './catalog/actions.catalog';
 import { ActionDef, TriggerDef } from './catalog/types';
@@ -19,6 +20,7 @@ export class AutomationsService {
   constructor(
     private readonly repository: AutomationsRepository,
     private readonly cache: AutomationsCacheService,
+    private readonly cronScheduler: CronSchedulerService,
   ) {}
 
   listTriggers(): TriggerDef[] {
@@ -98,6 +100,14 @@ export class AutomationsService {
     this.validateActions(dto.compiledActions);
     this.validateCron(dto.trigger, dto.cronExpression);
 
+    const nextRunAt =
+      dto.trigger === AutomationTrigger.CRON
+        ? this.cronScheduler.computeNext(
+            dto.cronExpression ?? null,
+            dto.timezone ?? null,
+          )
+        : null;
+
     const created = await this.repository.create({
       workspaceId,
       createdById,
@@ -111,6 +121,7 @@ export class AutomationsService {
       isActive: dto.isActive ?? true,
       cronExpression: dto.cronExpression ?? null,
       timezone: dto.timezone ?? null,
+      nextRunAt,
     });
     this.cache.invalidateWorkspace(workspaceId);
     return created;
@@ -130,6 +141,26 @@ export class AutomationsService {
       this.validateCron(trigger, dto.cronExpression);
     }
 
+    const shouldRecomputeNext =
+      dto.trigger !== undefined ||
+      dto.cronExpression !== undefined ||
+      dto.timezone !== undefined;
+
+    let nextRunAtPatch: { nextRunAt: Date | null } | Record<string, never> = {};
+    if (shouldRecomputeNext) {
+      const trigger = dto.trigger ?? AutomationTrigger.TASK_CREATED;
+      if (trigger === AutomationTrigger.CRON) {
+        nextRunAtPatch = {
+          nextRunAt: this.cronScheduler.computeNext(
+            dto.cronExpression ?? null,
+            dto.timezone ?? null,
+          ),
+        };
+      } else {
+        nextRunAtPatch = { nextRunAt: null };
+      }
+    }
+
     const updated = await this.repository.update(id, {
       ...(dto.name !== undefined && { name: dto.name }),
       ...(dto.description !== undefined && { description: dto.description }),
@@ -147,6 +178,7 @@ export class AutomationsService {
         cronExpression: dto.cronExpression,
       }),
       ...(dto.timezone !== undefined && { timezone: dto.timezone }),
+      ...nextRunAtPatch,
     });
     this.cache.invalidateWorkspace(workspaceId);
     return updated;
