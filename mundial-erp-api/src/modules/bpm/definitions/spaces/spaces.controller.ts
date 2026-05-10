@@ -102,6 +102,17 @@ export class SpacesController {
     );
   }
 
+  @Get(':id/resources')
+  @SkipResponseTransform()
+  @Roles(Role.ADMIN, Role.MANAGER, Role.OPERATOR, Role.VIEWER)
+  @ApiOperation({ summary: 'Metadata de filters/sortOptions do space' })
+  getResources(
+    @WorkspaceId() workspaceId: string,
+    @Param('id') id: string,
+  ) {
+    return this.spacesService.getResources(workspaceId, id);
+  }
+
   @Get(':id/members')
   @SkipResponseTransform()
   @Roles(Role.ADMIN, Role.MANAGER, Role.OPERATOR, Role.VIEWER)

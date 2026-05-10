@@ -16,6 +16,7 @@ import { CreateSpaceDto } from './dto/create-space.dto';
 import { UpdateSpaceDto } from './dto/update-space.dto';
 import { SpaceResponseDto } from './dto/space-response.dto';
 import { SpaceDetailDto } from './dto/space-detail.dto';
+import { SPACE_RESOURCES } from './resources-metadata';
 import { PaginationDto } from '../../../../common/dtos/pagination.dto';
 import { PrismaService } from '../../../../database/prisma.service';
 
@@ -214,6 +215,14 @@ export class SpacesService {
       }
       throw error;
     }
+  }
+
+  async getResources(workspaceId: string, spaceId: string) {
+    const space = await this.spacesRepository.findById(workspaceId, spaceId);
+    if (!space) {
+      throw new NotFoundException('Space não encontrado');
+    }
+    return SPACE_RESOURCES;
   }
 
   async listMembers(workspaceId: string, spaceId: string) {
