@@ -44,7 +44,6 @@ export { useChecklists } from './use-checklists';
 export { useCreateChecklist } from './use-create-checklist';
 export { useUpdateChecklistItem } from './use-update-checklist-item';
 export { useResolveChecklistItem } from './use-resolve-checklist-item';
-export { useReorderChecklist } from './use-reorder-checklist';
 
 // Attachments.
 export { useAttachments } from './use-attachments';
