@@ -74,6 +74,7 @@ import { TaskTemplatesModule } from './modules/task-templates/task-templates.mod
 import { TaskChecklistsModule } from './modules/task-checklists/task-checklists.module';
 import { TaskAttachmentsModule } from './modules/task-attachments/task-attachments.module';
 import { TaskCommentsModule } from './modules/task-comments/task-comments.module';
+import { TimeEntriesModule } from './modules/time-entries/time-entries.module';
 import { TaskActivitiesModule } from './modules/task-activities/task-activities.module';
 // Custom Fields (M1 — Sprint 1 TTT-011/TTT-012). Modulo autonomo: nao depende
 // de TaskTypeTemplate (M2). Gating via FEATURE_CUSTOM_FIELDS_WRITE_ENABLED
@@ -266,6 +267,7 @@ import { KommoBackfillModule } from './modules/kommo-backfill/kommo-backfill.mod
     TaskAttachmentsModule,
     TaskCommentsModule,
     TaskActivitiesModule,
+    TimeEntriesModule,
 
     // Custom Fields (M1 — autonomo, M2 TaskTypeTemplate consome a interface).
     CustomFieldsModule,
