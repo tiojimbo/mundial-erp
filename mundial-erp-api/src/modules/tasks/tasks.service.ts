@@ -445,6 +445,26 @@ export class TasksService {
   }
 
   /**
+   * HPP-054 — `GET /tasks/:id/subtasks`. Valida parent existe + tenant.
+   */
+  async findSubtasks(
+    workspaceId: string,
+    taskId: string,
+  ): Promise<TaskResponseDto[]> {
+    const parent = await this.repository.findExistenceRow(workspaceId, taskId);
+    if (!parent) {
+      throw new NotFoundException('Task nao encontrada');
+    }
+    const rows = await this.repository.findSubtasks(workspaceId, taskId);
+    return rows.map((row) =>
+      TaskResponseDto.fromRow({
+        ...row,
+        processId: row.listId,
+      } as unknown as Record<string, unknown>),
+    );
+  }
+
+  /**
    * HPP-053 — `GET /tasks/my-tasks`. Tasks atribuidas ao caller distribuidas
    * em buckets temporais. Single query + bucketing in-memory.
    */

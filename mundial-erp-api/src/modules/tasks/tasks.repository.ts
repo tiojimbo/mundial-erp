@@ -706,6 +706,28 @@ export class TasksRepository {
   }
 
   /**
+   * HPP-054 — `GET /tasks/:id/subtasks`. Retorna tasks filhas
+   * (parentId = :id) ativas. Indice `idx_work_items_parent`.
+   */
+  async findSubtasks(workspaceId: string, parentId: string) {
+    return this.prisma.workItem.findMany({
+      where: {
+        parentId,
+        deletedAt: null,
+        list: {
+          OR: [
+            { space: { workspaceId } },
+            { folder: { space: { workspaceId } } },
+          ],
+        },
+      },
+      select: TASK_LIST_SELECT,
+      orderBy: [{ sortOrder: 'asc' }, { createdAt: 'asc' }],
+      take: 500,
+    });
+  }
+
+  /**
    * HPP-053 — `GET /tasks/my-tasks`. Retorna tasks atribuidas ao usuario
    * dentro do workspace, ativas (nao arquivadas / nao deletadas). O service
    * distribui em buckets temporais. Hard cap `take: 1000`.

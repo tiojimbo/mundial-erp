@@ -76,6 +76,18 @@ export class TasksController {
     return this.tasksService.findBySpace(workspaceId, spaceId);
   }
 
+  @Get('tasks/:taskId/subtasks')
+  @Roles(Role.ADMIN, Role.MANAGER, Role.OPERATOR, Role.VIEWER)
+  @ApiOperation({ summary: 'Subtasks de uma task (Hoppe)' })
+  @ApiResponse({ status: 200, type: [TaskResponseDto] })
+  @ApiResponse({ status: 404, description: 'Task nao encontrada' })
+  findSubtasks(
+    @WorkspaceId() workspaceId: string,
+    @Param('taskId') taskId: string,
+  ) {
+    return this.tasksService.findSubtasks(workspaceId, taskId);
+  }
+
   @Get('tasks/my-tasks')
   @Roles(Role.ADMIN, Role.MANAGER, Role.OPERATOR, Role.VIEWER)
   @ApiOperation({
