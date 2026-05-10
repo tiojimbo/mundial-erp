@@ -216,6 +216,124 @@ export class SpacesService {
     }
   }
 
+  async listMembers(workspaceId: string, spaceId: string) {
+    const space = await this.spacesRepository.findById(workspaceId, spaceId);
+    if (!space) {
+      throw new NotFoundException('Space não encontrado');
+    }
+
+    const direct = await this.prisma.spaceMember.findMany({
+      where: { spaceId },
+      include: {
+        user: { select: { id: true, name: true, email: true } },
+      },
+    });
+
+    const directRows = direct.map((m) => ({
+      spaceId,
+      userId: m.userId,
+      permission: m.permission,
+      source: 'direct' as const,
+      inherited: false,
+      user: { ...m.user, avatar: null },
+    }));
+
+    if (space.visibility !== Visibility.PUBLIC) {
+      return directRows;
+    }
+
+    const directIds = new Set(direct.map((m) => m.userId));
+    const wsMembers = await this.prisma.workspaceMember.findMany({
+      where: { workspaceId },
+      include: {
+        user: { select: { id: true, name: true, email: true } },
+      },
+    });
+    const inheritedRows = wsMembers
+      .filter((wm) => !directIds.has(wm.userId))
+      .map((wm) => ({
+        spaceId,
+        userId: wm.userId,
+        permission: MemberPermission.EDIT,
+        source: 'workspace' as const,
+        inherited: true,
+        user: { ...wm.user, avatar: null },
+      }));
+
+    return [...directRows, ...inheritedRows];
+  }
+
+  async addMember(
+    workspaceId: string,
+    spaceId: string,
+    userId: string,
+    permission: MemberPermission,
+  ) {
+    const space = await this.spacesRepository.findById(workspaceId, spaceId);
+    if (!space) {
+      throw new NotFoundException('Space não encontrado');
+    }
+    const isWsMember = await this.prisma.workspaceMember.findUnique({
+      where: { workspaceId_userId: { workspaceId, userId } },
+    });
+    if (!isWsMember) {
+      throw new NotFoundException('User não pertence ao workspace');
+    }
+    try {
+      await this.prisma.spaceMember.create({
+        data: { spaceId, userId, permission },
+      });
+    } catch (error) {
+      if (
+        error instanceof Prisma.PrismaClientKnownRequestError &&
+        error.code === 'P2002'
+      ) {
+        throw new ConflictException('User já é membro do space');
+      }
+      throw error;
+    }
+    return { spaceId, userId, permission, source: 'direct', inherited: false };
+  }
+
+  async updateMember(
+    workspaceId: string,
+    spaceId: string,
+    userId: string,
+    permission: MemberPermission,
+  ) {
+    const space = await this.spacesRepository.findById(workspaceId, spaceId);
+    if (!space) {
+      throw new NotFoundException('Space não encontrado');
+    }
+    const existing = await this.prisma.spaceMember.findUnique({
+      where: { spaceId_userId: { spaceId, userId } },
+    });
+    if (!existing) {
+      throw new NotFoundException('Membro não encontrado');
+    }
+    await this.prisma.spaceMember.update({
+      where: { spaceId_userId: { spaceId, userId } },
+      data: { permission },
+    });
+    return { spaceId, userId, permission, source: 'direct', inherited: false };
+  }
+
+  async removeMember(workspaceId: string, spaceId: string, userId: string) {
+    const space = await this.spacesRepository.findById(workspaceId, spaceId);
+    if (!space) {
+      throw new NotFoundException('Space não encontrado');
+    }
+    const existing = await this.prisma.spaceMember.findUnique({
+      where: { spaceId_userId: { spaceId, userId } },
+    });
+    if (!existing) {
+      throw new NotFoundException('Membro não encontrado');
+    }
+    await this.prisma.spaceMember.delete({
+      where: { spaceId_userId: { spaceId, userId } },
+    });
+  }
+
   async getVisibility(
     workspaceId: string,
     id: string,

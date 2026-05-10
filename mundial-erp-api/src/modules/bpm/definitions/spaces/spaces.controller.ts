@@ -19,6 +19,8 @@ import { SpacesService } from './spaces.service';
 import { CreateSpaceDto } from './dto/create-space.dto';
 import { UpdateSpaceDto } from './dto/update-space.dto';
 import { UpdateSpaceVisibilityDto } from './dto/update-space-visibility.dto';
+import { AddSpaceMemberDto } from './dto/add-space-member.dto';
+import { UpdateSpaceMemberDto } from './dto/update-space-member.dto';
 import { SpaceResponseDto } from './dto/space-response.dto';
 import { SidebarSpaceDto } from './dto/sidebar-space.dto';
 import { PaginationDto } from '../../../../common/dtos/pagination.dto';
@@ -98,6 +100,64 @@ export class SpacesController {
       id,
       showClosed === 'true',
     );
+  }
+
+  @Get(':id/members')
+  @SkipResponseTransform()
+  @Roles(Role.ADMIN, Role.MANAGER, Role.OPERATOR, Role.VIEWER)
+  @ApiOperation({ summary: 'Listar membros do space' })
+  listMembers(
+    @WorkspaceId() workspaceId: string,
+    @Param('id') id: string,
+  ) {
+    return this.spacesService.listMembers(workspaceId, id);
+  }
+
+  @Post(':id/members')
+  @SkipResponseTransform()
+  @Roles(Role.ADMIN)
+  @ApiOperation({ summary: 'Adicionar membro ao space' })
+  addMember(
+    @WorkspaceId() workspaceId: string,
+    @Param('id') id: string,
+    @Body() dto: AddSpaceMemberDto,
+  ) {
+    return this.spacesService.addMember(
+      workspaceId,
+      id,
+      dto.userId,
+      dto.permission,
+    );
+  }
+
+  @Put(':id/members/:userId')
+  @SkipResponseTransform()
+  @Roles(Role.ADMIN)
+  @ApiOperation({ summary: 'Atualizar permission de membro' })
+  updateMember(
+    @WorkspaceId() workspaceId: string,
+    @Param('id') id: string,
+    @Param('userId') userId: string,
+    @Body() dto: UpdateSpaceMemberDto,
+  ) {
+    return this.spacesService.updateMember(
+      workspaceId,
+      id,
+      userId,
+      dto.permission,
+    );
+  }
+
+  @Delete(':id/members/:userId')
+  @SkipResponseTransform()
+  @Roles(Role.ADMIN)
+  @ApiOperation({ summary: 'Remover membro do space' })
+  removeMember(
+    @WorkspaceId() workspaceId: string,
+    @Param('id') id: string,
+    @Param('userId') userId: string,
+  ) {
+    return this.spacesService.removeMember(workspaceId, id, userId);
   }
 
   @Get(':id/visibility')
