@@ -153,11 +153,11 @@ describe('Task Activities (e2e)', () => {
     query: Record<string, string | number> = {},
   ): Promise<ActivitiesEnvelope['data']> => {
     const res = await request(app.getHttpServer())
-      .get(`/api/v1/tasks/${taskId}/activities`)
+      .get(`/api/v1/tasks-activities/${taskId}`)
       .set('Authorization', `Bearer ${token}`)
       .query(query)
       .expect(200);
-    return res.body.data as ActivitiesEnvelope['data'];
+    return res.body as ActivitiesEnvelope['data'];
   };
 
   /**
@@ -278,7 +278,7 @@ describe('Task Activities (e2e)', () => {
     if (skipIfNoDb()) return;
 
     const res = await request(app.getHttpServer())
-      .get(`/api/v1/tasks/${taskA!.taskId}/activities`)
+      .get(`/api/v1/tasks-activities/${taskA!.taskId}`)
       .set('Authorization', `Bearer ${wsB!.token}`);
 
     // Scope-aware repo retorna null -> NotFoundException.
@@ -377,7 +377,7 @@ describe('Task Activities (e2e)', () => {
     if (skipIfNoDb()) return;
 
     const res = await request(app.getHttpServer())
-      .get(`/api/v1/tasks/${taskA!.taskId}/activities`)
+      .get(`/api/v1/tasks-activities/${taskA!.taskId}`)
       .set('Authorization', `Bearer ${wsA!.token}`)
       .query({ limit: 150 });
 
@@ -386,7 +386,7 @@ describe('Task Activities (e2e)', () => {
       expect(res.status).toBe(400);
     } else {
       expect(res.status).toBe(200);
-      expect(res.body.data.items.length).toBeLessThanOrEqual(100);
+      expect(res.body.items.length).toBeLessThanOrEqual(100);
     }
   }, 30_000);
 });
