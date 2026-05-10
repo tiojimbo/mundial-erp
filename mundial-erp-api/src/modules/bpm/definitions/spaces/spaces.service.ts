@@ -9,6 +9,7 @@ import {
   Prisma,
   ProcessType,
   StatusCategory,
+  Visibility,
 } from '@prisma/client';
 import { SpacesRepository } from './spaces.repository';
 import { CreateSpaceDto } from './dto/create-space.dto';
@@ -213,6 +214,55 @@ export class SpacesService {
       }
       throw error;
     }
+  }
+
+  async getVisibility(
+    workspaceId: string,
+    id: string,
+  ): Promise<{ visibility: Visibility }> {
+    const entity = await this.spacesRepository.findById(workspaceId, id);
+    if (!entity) {
+      throw new NotFoundException('Space não encontrado');
+    }
+    return { visibility: entity.visibility };
+  }
+
+  async updateVisibility(
+    workspaceId: string,
+    id: string,
+    visibility: Visibility,
+  ): Promise<{ visibility: Visibility }> {
+    const entity = await this.spacesRepository.findById(workspaceId, id);
+    if (!entity) {
+      throw new NotFoundException('Space não encontrado');
+    }
+
+    await this.prisma.$transaction(async (tx) => {
+      await tx.space.update({
+        where: { id },
+        data: { visibility },
+      });
+
+      const becamePrivate =
+        entity.visibility === Visibility.PUBLIC &&
+        visibility === Visibility.PRIVATE;
+
+      if (becamePrivate && entity.creatorId) {
+        await tx.spaceMember.upsert({
+          where: {
+            spaceId_userId: { spaceId: id, userId: entity.creatorId },
+          },
+          create: {
+            spaceId: id,
+            userId: entity.creatorId,
+            permission: MemberPermission.FULL_EDIT,
+          },
+          update: { permission: MemberPermission.FULL_EDIT },
+        });
+      }
+    });
+
+    return { visibility };
   }
 
   async remove(

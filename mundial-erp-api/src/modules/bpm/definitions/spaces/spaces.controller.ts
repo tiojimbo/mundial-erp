@@ -18,6 +18,7 @@ import { Role } from '@prisma/client';
 import { SpacesService } from './spaces.service';
 import { CreateSpaceDto } from './dto/create-space.dto';
 import { UpdateSpaceDto } from './dto/update-space.dto';
+import { UpdateSpaceVisibilityDto } from './dto/update-space-visibility.dto';
 import { SpaceResponseDto } from './dto/space-response.dto';
 import { SidebarSpaceDto } from './dto/sidebar-space.dto';
 import { PaginationDto } from '../../../../common/dtos/pagination.dto';
@@ -97,6 +98,29 @@ export class SpacesController {
       id,
       showClosed === 'true',
     );
+  }
+
+  @Get(':id/visibility')
+  @SkipResponseTransform()
+  @Roles(Role.ADMIN, Role.MANAGER, Role.OPERATOR, Role.VIEWER)
+  @ApiOperation({ summary: 'Visibility atual do space' })
+  getVisibility(
+    @WorkspaceId() workspaceId: string,
+    @Param('id') id: string,
+  ) {
+    return this.spacesService.getVisibility(workspaceId, id);
+  }
+
+  @Put(':id/visibility')
+  @SkipResponseTransform()
+  @Roles(Role.ADMIN)
+  @ApiOperation({ summary: 'Atualizar visibility do space' })
+  updateVisibility(
+    @WorkspaceId() workspaceId: string,
+    @Param('id') id: string,
+    @Body() dto: UpdateSpaceVisibilityDto,
+  ) {
+    return this.spacesService.updateVisibility(workspaceId, id, dto.visibility);
   }
 
   @Get(':id')
