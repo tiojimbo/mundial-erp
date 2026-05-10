@@ -69,7 +69,6 @@ import { TaskOutboxModule } from './modules/task-outbox/task-outbox.module';
 import { CustomTaskTypesModule } from './modules/custom-task-types/custom-task-types.module';
 import { TaskTagsModule } from './modules/task-tags/task-tags.module';
 import { TaskWatchersModule } from './modules/task-watchers/task-watchers.module';
-import { TaskDependenciesModule } from './modules/task-dependencies/task-dependencies.module';
 import { TaskLinksModule } from './modules/task-links/task-links.module';
 import { TaskTemplatesModule } from './modules/task-templates/task-templates.module';
 import { TaskChecklistsModule } from './modules/task-checklists/task-checklists.module';
@@ -261,7 +260,6 @@ import { KommoBackfillModule } from './modules/kommo-backfill/kommo-backfill.mod
     TasksModule,
     TaskTagsModule,
     TaskWatchersModule,
-    TaskDependenciesModule,
     TaskLinksModule,
     TaskTemplatesModule,
     TaskChecklistsModule,

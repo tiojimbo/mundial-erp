@@ -953,8 +953,6 @@ model WorkItem {
   attachments     WorkItemAttachment[]
   comments        WorkItemComment[]
   statusHistory   WorkItemStatusHistory[]
-  dependenciesOut WorkItemDependency[]    @relation("DependencyFrom")
-  dependenciesIn  WorkItemDependency[]    @relation("DependencyTo")
   linksFrom       WorkItemLink[]          @relation("LinkFrom")
   linksTo         WorkItemLink[]          @relation("LinkTo")
   activities      WorkItemActivity[]
@@ -1158,24 +1156,6 @@ model WorkItemChecklistItem {
   @@map("work_item_checklist_items")
 }
 
-/// Dependencia forte: `from` bloqueia / `to` espera (depends_on).
-/// Detector de ciclo obrigatorio no service (BFS, limite 1000 nodes / 2s).
-model WorkItemDependency {
-  id         String   @id @default(cuid())
-  fromTaskId String   @map("from_task_id")
-  toTaskId   String   @map("to_task_id")
-  createdAt  DateTime @default(now()) @map("created_at")
-  createdBy  String?  @map("created_by")
-
-  fromTask WorkItem @relation("DependencyFrom", fields: [fromTaskId], references: [id], onDelete: Cascade)
-  toTask   WorkItem @relation("DependencyTo", fields: [toTaskId], references: [id], onDelete: Cascade)
-
-  @@unique([fromTaskId, toTaskId])
-  @@index([toTaskId], name: "idx_wi_deps_to")
-  @@map("work_item_dependencies")
-}
-
-/// Link leve entre tasks (sem semantica de bloqueio).
 model WorkItemLink {
   id         String   @id @default(cuid())
   fromTaskId String   @map("from_task_id")

@@ -27,7 +27,6 @@ import {
   TaskWatcherSummaryDto,
 } from './dtos/task-detail-response.dto';
 import { TaskOutboxService } from '../task-outbox/task-outbox.service';
-import { TaskDependenciesRepository } from '../task-dependencies/task-dependencies.repository';
 import { TaskLinksRepository } from '../task-links/task-links.repository';
 import { TaskTypeTemplatesRepository } from '../task-type-templates/task-type-templates.repository';
 import {
@@ -88,7 +87,6 @@ export class TasksService {
     // Escritas/leitoras vao sempre via repositories, recebendo `tx`.
     private readonly prisma: PrismaService,
     private readonly repository: TasksRepository,
-    private readonly depsRepository: TaskDependenciesRepository,
     private readonly linksRepository: TaskLinksRepository,
     @Inject(forwardRef(() => TaskOutboxService))
     private readonly outbox: TaskOutboxService,
@@ -1163,15 +1161,6 @@ export class TasksService {
         tx,
       );
 
-      // 3.4) Arestas (deps + links) via repositories dos proprios modulos.
-      //   Encapsulamento correto: cada repo sabe como dedup seu proprio
-      //   unique `(fromTaskId, toTaskId)` sem que TasksService conheca
-      //   os delegates Prisma.
-      await this.depsRepository.moveEdgesForMerge(
-        sourceTaskIds,
-        targetTaskId,
-        tx,
-      );
       await this.linksRepository.moveEdgesForMerge(
         sourceTaskIds,
         targetTaskId,

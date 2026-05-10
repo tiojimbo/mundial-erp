@@ -5,7 +5,6 @@ import { TasksRepository } from './tasks.repository';
 import { TaskOutboxModule } from '../task-outbox/task-outbox.module';
 import { WorkItemsModule } from '../work-items/work-items.module';
 import { CustomTaskTypesModule } from '../custom-task-types/custom-task-types.module';
-import { TaskDependenciesModule } from '../task-dependencies/task-dependencies.module';
 import { TaskLinksModule } from '../task-links/task-links.module';
 import { TaskActivitiesModule } from '../task-activities/task-activities.module';
 import { TaskTypeTemplatesModule } from '../task-type-templates/task-type-templates.module';
@@ -44,9 +43,8 @@ import { SseJwtGuard } from '../auth/guards/sse-jwt.guard';
     forwardRef(() => TaskOutboxModule),
     WorkItemsModule,
     CustomTaskTypesModule,
-    // Merge (PLANO §8.4) consome repositories de deps/links para mover
-    // arestas dentro da transacao — repos exportados por estes modulos.
-    TaskDependenciesModule,
+    // Merge (PLANO §8.4) consome o repository de links para mover arestas
+    // dentro da transacao — repo exportado pelo modulo.
     TaskLinksModule,
     // TaskActivitiesModule exporta `TaskActivitiesRepository` com os metodos
     // `findTaskInWorkspace` e `findAfter` consumidos por `TasksEventsService`.

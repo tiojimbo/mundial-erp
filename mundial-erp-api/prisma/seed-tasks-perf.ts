@@ -601,7 +601,7 @@ async function run(): Promise<void> {
         const assigneeRows: Prisma.WorkItemAssigneeCreateManyInput[] = [];
         const tagRows: Prisma.WorkItemTagLinkCreateManyInput[] = [];
         const checklistRows: Prisma.WorkItemChecklistCreateManyInput[] = [];
-        const dependencyRows: Prisma.WorkItemDependencyCreateManyInput[] = [];
+        const linkRows: Prisma.WorkItemLinkCreateManyInput[] = [];
         const createdIds: string[] = [];
 
         for (const item of batch.extras) {
@@ -644,7 +644,11 @@ async function run(): Promise<void> {
               const toId =
                 createdIds[Math.floor(rand() * createdIds.length)]!;
               if (toId === fromId) continue;
-              dependencyRows.push({ fromTaskId: fromId, toTaskId: toId });
+              linkRows.push({
+                fromTaskId: fromId,
+                toTaskId: toId,
+                type: 'RELATES_TO',
+              });
             }
           }
         }
@@ -667,9 +671,9 @@ async function run(): Promise<void> {
             skipDuplicates: true,
           });
         }
-        if (dependencyRows.length > 0) {
-          await tx.workItemDependency.createMany({
-            data: dependencyRows,
+        if (linkRows.length > 0) {
+          await tx.workItemLink.createMany({
+            data: linkRows,
             skipDuplicates: true,
           });
         }

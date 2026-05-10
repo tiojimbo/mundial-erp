@@ -258,10 +258,6 @@ export class TasksRepository {
         orderBy: { position: 'asc' },
       };
     }
-    if (includes.has('dependencies')) {
-      include.dependenciesOut = true;
-      include.dependenciesIn = true;
-    }
     if (includes.has('links')) {
       include.linksFrom = true;
       include.linksTo = true;
