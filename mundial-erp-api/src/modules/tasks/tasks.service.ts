@@ -444,6 +444,72 @@ export class TasksService {
     }));
   }
 
+  /**
+   * HPP-053 — `GET /tasks/my-tasks`. Tasks atribuidas ao caller distribuidas
+   * em buckets temporais. Single query + bucketing in-memory.
+   */
+  async findMyTasks(
+    workspaceId: string,
+    userId: string,
+  ): Promise<{
+    overdue: TaskResponseDto[];
+    today: TaskResponseDto[];
+    upcoming: TaskResponseDto[];
+    noDate: TaskResponseDto[];
+    completed: TaskResponseDto[];
+  }> {
+    const rows = await this.repository.findMyTasks(workspaceId, userId);
+
+    const now = new Date();
+    const startOfToday = new Date(
+      Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate()),
+    );
+    const startOfTomorrow = new Date(
+      startOfToday.getTime() + 24 * 60 * 60 * 1000,
+    );
+
+    const buckets = {
+      overdue: [] as TaskResponseDto[],
+      today: [] as TaskResponseDto[],
+      upcoming: [] as TaskResponseDto[],
+      noDate: [] as TaskResponseDto[],
+      completed: [] as TaskResponseDto[],
+    };
+
+    for (const row of rows) {
+      const taskRow = { ...row, processId: row.listId } as unknown as Record<
+        string,
+        unknown
+      >;
+      const dto = TaskResponseDto.fromRow(taskRow);
+      const category = (row as { status?: { category?: string } }).status
+        ?.category;
+      if (
+        category === 'DONE' ||
+        category === 'CLOSED' ||
+        dto.completedAt !== null ||
+        dto.closedAt !== null
+      ) {
+        buckets.completed.push(dto);
+        continue;
+      }
+      if (!dto.dueDate) {
+        buckets.noDate.push(dto);
+        continue;
+      }
+      const due = new Date(dto.dueDate);
+      if (due < startOfToday) {
+        buckets.overdue.push(dto);
+      } else if (due < startOfTomorrow) {
+        buckets.today.push(dto);
+      } else {
+        buckets.upcoming.push(dto);
+      }
+    }
+
+    return buckets;
+  }
+
   private async resolveListGroupedScope(
     workspaceId: string,
     params: {

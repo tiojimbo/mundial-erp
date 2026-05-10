@@ -706,6 +706,30 @@ export class TasksRepository {
   }
 
   /**
+   * HPP-053 — `GET /tasks/my-tasks`. Retorna tasks atribuidas ao usuario
+   * dentro do workspace, ativas (nao arquivadas / nao deletadas). O service
+   * distribui em buckets temporais. Hard cap `take: 1000`.
+   */
+  async findMyTasks(workspaceId: string, userId: string) {
+    return this.prisma.workItem.findMany({
+      where: {
+        deletedAt: null,
+        archived: false,
+        assignees: { some: { userId } },
+        list: {
+          OR: [
+            { space: { workspaceId } },
+            { folder: { space: { workspaceId } } },
+          ],
+        },
+      },
+      select: TASK_LIST_SELECT,
+      orderBy: [{ dueDate: 'asc' }, { sortOrder: 'asc' }],
+      take: 1000,
+    });
+  }
+
+  /**
    * HPP-052 — Tasks por escopo `list|folder|space`. Single query com filtro
    * Prisma traduzindo o nivel para `list.id|list.folderId|list.spaceId`.
    * Tenant isolation via `space.workspaceId` em todos os ramos.

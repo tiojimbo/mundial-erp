@@ -76,6 +76,20 @@ export class TasksController {
     return this.tasksService.findBySpace(workspaceId, spaceId);
   }
 
+  @Get('tasks/my-tasks')
+  @Roles(Role.ADMIN, Role.MANAGER, Role.OPERATOR, Role.VIEWER)
+  @ApiOperation({
+    summary:
+      'Tasks atribuidas ao caller agrupadas por bucket temporal (Hoppe)',
+  })
+  @ApiResponse({ status: 200 })
+  myTasks(
+    @WorkspaceId() workspaceId: string,
+    @CurrentUser() user: JwtPayload,
+  ) {
+    return this.tasksService.findMyTasks(workspaceId, user.sub);
+  }
+
   @Get('tasks/list')
   @Roles(Role.ADMIN, Role.MANAGER, Role.OPERATOR, Role.VIEWER)
   @ApiOperation({
