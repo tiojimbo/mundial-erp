@@ -9,7 +9,7 @@ import { Role } from '@prisma/client';
 import { TaskTypeTemplatesService } from './task-type-templates.service';
 import { TaskTypeTemplatesGuard } from './task-type-templates.guard';
 import { TaskTypeTemplateResponseDto } from './dtos/task-type-template-response.dto';
-import { Roles } from '../../common/decorators';
+import { Roles } from '../auth/decorators';
 import { WorkspaceId } from '../workspaces/decorators/workspace-id.decorator';
 
 /**

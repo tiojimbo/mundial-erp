@@ -25,7 +25,7 @@ import type { Response } from 'express';
 import { ConfigService } from '@nestjs/config';
 import { timingSafeEqual } from 'node:crypto';
 import type { Registry } from 'prom-client';
-import { Public } from '../decorators';
+import { Public } from '../../modules/auth/decorators';
 import { PROM_REGISTRY } from './metrics.tokens';
 
 @Public()

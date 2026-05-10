@@ -10,8 +10,8 @@ import { Throttle } from '@nestjs/throttler';
 import { CustomFieldValuesService } from './custom-field-values.service';
 import { CustomFieldValueResponseDto } from './dtos/custom-field-value-response.dto';
 import { SetCustomFieldValueDto } from './dtos/set-custom-field-value.dto';
-import { CurrentUser, Roles } from '../../common/decorators';
-import type { JwtPayload } from '../../common/decorators';
+import { CurrentUser, Roles } from '../auth/decorators';
+import type { JwtPayload } from '../auth/decorators';
 import { WorkspaceId } from '../workspaces/decorators/workspace-id.decorator';
 
 /**

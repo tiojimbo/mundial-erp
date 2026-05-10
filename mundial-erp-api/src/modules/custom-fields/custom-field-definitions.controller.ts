@@ -23,7 +23,7 @@ import { CreateCustomFieldDefinitionDto } from './dtos/create-custom-field-defin
 import { UpdateCustomFieldDefinitionDto } from './dtos/update-custom-field-definition.dto';
 import { CustomFieldDefinitionResponseDto } from './dtos/custom-field-definition-response.dto';
 import { QueryCustomFieldDefinitionsDto } from './dtos/query-custom-field-definitions.dto';
-import { Roles } from '../../common/decorators';
+import { Roles } from '../auth/decorators';
 import { WorkspaceId } from '../workspaces/decorators/workspace-id.decorator';
 
 /**
