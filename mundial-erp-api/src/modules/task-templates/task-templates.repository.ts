@@ -179,7 +179,7 @@ export class TaskTemplatesRepository {
     tx?: Prisma.TransactionClient,
   ) {
     const db: Db = tx ?? this.prisma;
-    return db.process.findFirst({
+    return db.list.findFirst({
       where: {
         id: listId,
         deletedAt: null,
@@ -198,7 +198,7 @@ export class TaskTemplatesRepository {
     tx?: Prisma.TransactionClient,
   ) {
     const db: Db = tx ?? this.prisma;
-    const process = await db.process.findUnique({
+    const process = await db.list.findUnique({
       where: { id: listId },
       select: { spaceId: true },
     });

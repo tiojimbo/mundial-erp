@@ -61,14 +61,14 @@ function buildWhere(
     where.listId = { in: filters.listIds };
   }
   if (filters.folderIds?.length) {
-    where.process = {
-      ...(where.process as Prisma.ListWhereInput),
+    where.list = {
+      ...(where.list as Prisma.ListWhereInput),
       folderId: { in: filters.folderIds },
     };
   }
   if (filters.spaceIds?.length) {
-    where.process = {
-      ...(where.process as Prisma.ListWhereInput),
+    where.list = {
+      ...(where.list as Prisma.ListWhereInput),
       space: { workspaceId, id: { in: filters.spaceIds } },
     };
   }
@@ -596,7 +596,7 @@ export class TasksRepository {
     listId: string,
     tx?: Prisma.TransactionClient,
   ) {
-    return this.client(tx).process.findFirst({
+    return this.client(tx).list.findFirst({
       where: {
         id: listId,
         deletedAt: null,
@@ -616,7 +616,7 @@ export class TasksRepository {
     tx?: Prisma.TransactionClient,
   ) {
     const db = this.client(tx);
-    const process = await db.process.findUnique({
+    const process = await db.list.findUnique({
       where: { id: listId },
       select: { spaceId: true },
     });

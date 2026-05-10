@@ -49,7 +49,7 @@ export class WorkItemsRepository {
         children: {
           where: { deletedAt: null },
           include: { status: true },
-          orderBy: { position: 'asc' },
+          orderBy: { sortOrder: 'asc' },
         },
       },
     });
@@ -101,7 +101,7 @@ export class WorkItemsRepository {
         where,
         skip,
         take,
-        orderBy: [{ position: 'asc' }, { createdAt: 'desc' }],
+        orderBy: [{ sortOrder: 'asc' }, { createdAt: 'desc' }],
         include: { status: true },
       }),
       this.prisma.workItem.count({ where }),
@@ -128,7 +128,7 @@ export class WorkItemsRepository {
 
     const items = await this.prisma.workItem.findMany({
       where,
-      orderBy: [{ position: 'asc' }, { createdAt: 'desc' }],
+      orderBy: [{ sortOrder: 'asc' }, { createdAt: 'desc' }],
       include: { status: true },
     });
 
@@ -143,7 +143,7 @@ export class WorkItemsRepository {
         space: { workspaceId },
         deletedAt: null,
       },
-      orderBy: { position: 'asc' },
+      orderBy: { sortOrder: 'asc' },
     });
 
     return { items, statuses };

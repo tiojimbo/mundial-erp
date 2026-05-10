@@ -201,7 +201,7 @@ export const createTestProcess = async (
   const prisma = app.get(PrismaService);
   const suffix = uniqueId('p');
 
-  const department = await prisma.department.create({
+  const space = await prisma.space.create({
     data: {
       workspaceId,
       name: `Dept ${suffix}`,
@@ -209,11 +209,11 @@ export const createTestProcess = async (
     },
   });
 
-  const area = await prisma.area.create({
+  const folder = await prisma.folder.create({
     data: {
       name: `Area ${suffix}`,
       slug: `area-${suffix}`,
-      departmentId: department.id,
+      spaceId: space.id,
     },
   });
 
@@ -222,27 +222,27 @@ export const createTestProcess = async (
       name: 'To Do',
       category: 'NOT_STARTED',
       color: '#94a3b8',
-      departmentId: department.id,
-      areaId: area.id,
+      spaceId: space.id,
+      folderId: folder.id,
       isDefault: true,
     },
   });
 
-  const processRecord = await prisma.process.create({
+  const list = await prisma.list.create({
     data: {
       name: `Process ${suffix}`,
       slug: `process-${suffix}`,
-      departmentId: department.id,
-      areaId: area.id,
+      spaceId: space.id,
+      folderId: folder.id,
       processType: 'LIST',
       status: 'ACTIVE',
     },
   });
 
   return {
-    processId: processRecord.id,
-    departmentId: department.id,
-    areaId: area.id,
+    processId: list.id,
+    departmentId: space.id,
+    areaId: folder.id,
     defaultStatusId: defaultStatus.id,
   };
 };
@@ -262,7 +262,7 @@ export const createTestTask = async (
 
   const task = await prisma.workItem.create({
     data: {
-      processId: processContext.processId,
+      listId: processContext.processId,
       statusId: processContext.defaultStatusId,
       title: overrides.title ?? `Task ${uniqueId('t')}`,
       creatorId: creatorUserId,
@@ -294,45 +294,45 @@ export const cleanupWorkspace = async (
   const now = new Date();
 
   await prisma.$transaction(async (tx) => {
-    const departments = await tx.department.findMany({
+    const spaces = await tx.space.findMany({
       where: { workspaceId },
       select: { id: true },
     });
-    const departmentIds = departments.map((d) => d.id);
+    const spaceIds = spaces.map((s) => s.id);
 
-    if (departmentIds.length > 0) {
-      const processes = await tx.process.findMany({
-        where: { departmentId: { in: departmentIds } },
+    if (spaceIds.length > 0) {
+      const lists = await tx.list.findMany({
+        where: { spaceId: { in: spaceIds } },
         select: { id: true },
       });
-      const processIds = processes.map((p) => p.id);
+      const listIds = lists.map((p) => p.id);
 
-      if (processIds.length > 0) {
+      if (listIds.length > 0) {
         await tx.workItem.updateMany({
-          where: { processId: { in: processIds } },
+          where: { listId: { in: listIds } },
           data: { deletedAt: now },
         });
       }
 
       await tx.workflowStatus.updateMany({
-        where: { departmentId: { in: departmentIds } },
+        where: { spaceId: { in: spaceIds } },
         data: { deletedAt: now },
       });
 
-      if (processIds.length > 0) {
-        await tx.process.updateMany({
-          where: { id: { in: processIds } },
+      if (listIds.length > 0) {
+        await tx.list.updateMany({
+          where: { id: { in: listIds } },
           data: { deletedAt: now },
         });
       }
 
-      await tx.area.updateMany({
-        where: { departmentId: { in: departmentIds } },
+      await tx.folder.updateMany({
+        where: { spaceId: { in: spaceIds } },
         data: { deletedAt: now },
       });
 
-      await tx.department.updateMany({
-        where: { id: { in: departmentIds } },
+      await tx.space.updateMany({
+        where: { id: { in: spaceIds } },
         data: { deletedAt: now },
       });
     }
