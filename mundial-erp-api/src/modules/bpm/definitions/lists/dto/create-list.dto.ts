@@ -16,26 +16,11 @@ export class CreateListDto {
   @MinLength(2)
   name: string;
 
-  @ApiPropertyOptional({
-    description: 'ID do setor (legado, opcional para novos processos)',
+  @ApiProperty({
+    description: 'ID do folder pai. Lists sempre vivem dentro de um folder.',
   })
-  @IsOptional()
   @IsString()
-  sectorId?: string;
-
-  @ApiPropertyOptional({
-    description: 'ID da área (processo dentro de uma área)',
-  })
-  @IsOptional()
-  @IsString()
-  folderId?: string;
-
-  @ApiPropertyOptional({
-    description: 'ID do departamento (processo direto, sem área)',
-  })
-  @IsOptional()
-  @IsString()
-  spaceId?: string;
+  folderId: string;
 
   @ApiPropertyOptional({ example: 'Descrição do processo' })
   @IsOptional()

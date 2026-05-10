@@ -47,36 +47,16 @@ export class ListsService {
     creatorId: string,
     dto: CreateListDto,
   ): Promise<ListResponseDto> {
-    if (!dto.folderId && !dto.spaceId && !dto.sectorId) {
-      throw new BadRequestException(
-        'Deve informar folderId, spaceId ou sectorId',
-      );
+    const folder = await this.listsRepository.findFolderById(
+      workspaceId,
+      dto.folderId,
+    );
+    if (!folder) {
+      throw new NotFoundException('Folder não encontrado');
     }
 
     const baseSlug = this.generateSlug(dto.name);
     const slug = await this.resolveUniqueSlug(workspaceId, baseSlug);
-
-    let resolvedSpaceId = dto.spaceId;
-    if (dto.folderId) {
-      const folder = await this.listsRepository.findFolderById(
-        workspaceId,
-        dto.folderId,
-      );
-      if (!folder) {
-        throw new NotFoundException('Folder não encontrado');
-      }
-      resolvedSpaceId = folder.spaceId;
-    }
-
-    if (resolvedSpaceId) {
-      const space = await this.spacesRepository.findById(
-        workspaceId,
-        resolvedSpaceId,
-      );
-      if (!space) {
-        throw new NotFoundException('Space não encontrado');
-      }
-    }
 
     const createData: Prisma.ListCreateInput = {
       name: dto.name,
@@ -87,11 +67,8 @@ export class ListsService {
       status: dto.status,
       position: dto.sortOrder ?? 0,
       creator: { connect: { id: creatorId } },
-      ...(dto.sectorId && { sector: { connect: { id: dto.sectorId } } }),
-      ...(dto.folderId && { folder: { connect: { id: dto.folderId } } }),
-      ...(resolvedSpaceId && {
-        space: { connect: { id: resolvedSpaceId } },
-      }),
+      folder: { connect: { id: dto.folderId } },
+      space: { connect: { id: folder.spaceId } },
     };
 
     const entity = await this.listsRepository.createWithDefaultView(
@@ -155,9 +132,6 @@ export class ListsService {
       } else {
         updateData.slug = await this.resolveUniqueSlug(workspaceId, baseSlug);
       }
-    }
-    if (dto.sectorId !== undefined) {
-      updateData.sector = { connect: { id: dto.sectorId } };
     }
     if (dto.description !== undefined) updateData.description = dto.description;
     if (dto.isPrivate !== undefined) updateData.isPrivate = dto.isPrivate;
