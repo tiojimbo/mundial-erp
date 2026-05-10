@@ -87,6 +87,7 @@ import { CustomFieldsModule } from './modules/custom-fields/custom-fields.module
 // consumido por `tasks.service.create` (Felipe — TTT-032). Wiring por
 // `forwardRef` nao foi necessario: dependencia e linear (Templates -> Tasks).
 import { TaskTypeTemplatesModule } from './modules/task-type-templates/task-type-templates.module';
+import { AutomationsModule } from './modules/automations/automations.module';
 import { FeatureFlagsModule } from './common/feature-flags/feature-flags.module';
 import { CommonModule } from './common/common.module';
 
@@ -278,6 +279,9 @@ import { KommoBackfillModule } from './modules/kommo-backfill/kommo-backfill.mod
     // porque referencia `CustomFieldDefinition` via `TaskTypeTemplateField`
     // (somente leitura — sem dependencia de provider).
     TaskTypeTemplatesModule,
+
+    // Automations (HPP — Hoppe-style /ai/automation, substitui motor BPMN)
+    AutomationsModule,
 
     // Workspaces (Multi-tenancy — Squad Workspace F1.4)
     WorkspacesModule,
