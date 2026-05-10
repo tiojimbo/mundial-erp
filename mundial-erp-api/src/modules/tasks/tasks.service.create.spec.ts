@@ -168,14 +168,14 @@ function buildHarness(opts?: {
 }
 
 function dto(overrides: Partial<CreateTaskDto> = {}): CreateTaskDto {
-  return { title: 'Nova task', ...overrides } as CreateTaskDto;
+  return { title: 'Nova task', listId: PROCESS, ...overrides } as CreateTaskDto;
 }
 
 describe('TasksService.create', () => {
   it('cria task com defaults; statusId resolvido via findFirstStatusForProcess', async () => {
     const h = buildHarness();
 
-    const env = await h.service.create(WS, PROCESS, dto(), ACTOR);
+    const env = await h.service.create(WS, dto(), ACTOR);
 
     expect(h.repository.findProcessInWorkspace).toHaveBeenCalledWith(
       WS,
@@ -202,13 +202,12 @@ describe('TasksService.create', () => {
     expect(env.id).toBe(CREATED_TASK_ID);
   });
 
-  it('com assignees: syncAssignees chamado com add=dto.assignees, rem=[]', async () => {
+  it('com assigneeIds: syncAssignees chamado com add=dto.assigneeIds, rem=[]', async () => {
     const h = buildHarness();
 
     await h.service.create(
       WS,
-      PROCESS,
-      dto({ assignees: ['u-1', 'u-2'] }),
+      dto({ assigneeIds: ['u-1', 'u-2'] }),
       ACTOR,
     );
 
@@ -232,7 +231,6 @@ describe('TasksService.create', () => {
 
     await h.service.create(
       WS,
-      PROCESS,
       dto({ tagIds: ['tag-1', 'tag-2'] }),
       ACTOR,
     );
@@ -249,7 +247,7 @@ describe('TasksService.create', () => {
   it('com watchers: syncWatchers chamado com add=dto.watchers', async () => {
     const h = buildHarness();
 
-    await h.service.create(WS, PROCESS, dto({ watchers: ['w-1'] }), ACTOR);
+    await h.service.create(WS, dto({ watchers: ['w-1'] }), ACTOR);
 
     expect(h.watchers.syncWatchers).toHaveBeenCalledTimes(1);
     const arg = h.watchers.syncWatchers.mock.calls[0][1] as {
@@ -260,11 +258,11 @@ describe('TasksService.create', () => {
     expect(arg.rem).toEqual([]);
   });
 
-  it('processId nao pertence ao workspace -> NotFoundException 404', async () => {
+  it('listId nao pertence ao workspace -> NotFoundException 404', async () => {
     const h = buildHarness({ processInWorkspace: null });
 
     await expect(
-      h.service.create(WS, 'process-other-ws', dto(), ACTOR),
+      h.service.create(WS, dto({ listId: 'process-other-ws' }), ACTOR),
     ).rejects.toBeInstanceOf(NotFoundException);
 
     // Garantia: nenhuma escrita deve ter ocorrido quando 404.
@@ -276,7 +274,7 @@ describe('TasksService.create', () => {
   it('sem assignees/watchers/tags: zero calls aos sync services', async () => {
     const h = buildHarness();
 
-    await h.service.create(WS, PROCESS, dto(), ACTOR);
+    await h.service.create(WS, dto(), ACTOR);
 
     expect(h.assignees.syncAssignees).not.toHaveBeenCalled();
     expect(h.watchers.syncWatchers).not.toHaveBeenCalled();
@@ -286,7 +284,7 @@ describe('TasksService.create', () => {
   it('outbox.enqueue chamado 1x com eventType CREATED', async () => {
     const h = buildHarness();
 
-    await h.service.create(WS, PROCESS, dto({ title: 'Task X' }), ACTOR);
+    await h.service.create(WS, dto({ title: 'Task X' }), ACTOR);
 
     expect(h.outbox.enqueue).toHaveBeenCalledTimes(1);
     const arg = h.outbox.enqueue.mock.calls[0][1] as {
@@ -314,8 +312,7 @@ describe('TasksService.create', () => {
     await expect(
       h.service.create(
         WS,
-        PROCESS,
-        dto({ assignees: ['u-1'], tagIds: ['t-1'], watchers: ['w-1'] }),
+        dto({ assigneeIds: ['u-1'], tagIds: ['t-1'], watchers: ['w-1'] }),
         ACTOR,
       ),
     ).rejects.toBe(boom);
@@ -334,7 +331,6 @@ describe('TasksService.create', () => {
 
     await h.service.create(
       WS,
-      PROCESS,
       dto({ statusId: 'status-explicit' }),
       ACTOR,
     );
@@ -352,7 +348,6 @@ describe('TasksService.create', () => {
     await expect(
       h.service.create(
         WS,
-        PROCESS,
         dto({
           startDate: '2026-05-10T00:00:00.000Z',
           dueDate: '2026-05-01T00:00:00.000Z',

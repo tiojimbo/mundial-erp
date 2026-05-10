@@ -184,13 +184,13 @@ describe('Task Activities (e2e)', () => {
     return row;
   };
 
-  it('POST /processes/:pid/tasks -> activities include CREATED (poll)', async () => {
+  it('POST /tasks -> activities include CREATED (poll)', async () => {
     if (skipIfNoDb()) return;
 
     const resCreate = await request(app.getHttpServer())
-      .post(`/api/v1/processes/${processA!.processId}/tasks`)
+      .post('/api/v1/tasks')
       .set('Authorization', `Bearer ${wsA!.token}`)
-      .send({ title: 'Task criada via POST' });
+      .send({ title: 'Task criada via POST', listId: processA!.processId });
 
     // feature-flag pode estar off em CI; toleramos 403/501 com pendIng
     if (resCreate.status !== 201) {
@@ -199,7 +199,7 @@ describe('Task Activities (e2e)', () => {
       );
       return;
     }
-    const createdId = resCreate.body.data.id as string;
+    const createdId = resCreate.body.id as string;
 
     const result = await pollUntil(async () => {
       const data = await fetchActivities(wsA!.token, createdId);

@@ -17,14 +17,12 @@ import {
 import { TaskPriority } from '@prisma/client';
 
 /**
- * `POST /processes/:processId/tasks` (PLANO-TASKS.md §7.2).
+ * `POST /tasks` (HPP-061, estilo Hoppe).
  *
- * DTO dedicado da fachada Tasks — NAO reusa `CreateWorkItemDto` (99-referencia
- * regra 3: DTOs dedicados por modulo). Campos escalares seguem `UpdateTaskDto`
- * em nomenclatura e validacoes; colecoes vem como arrays simples (create
- * inicial, sem delta `{add,rem}`).
+ * Body minimo: `{ title, listId }`. `assigneeIds` e aceito SOMENTE no POST
+ * (PUT rejeita — HPP-059). `parentId` para criar subtask.
  *
- * ADR-001: `primaryAssigneeCache` NUNCA e setado pela aplicacao. `assignees`
+ * ADR-001: `primaryAssigneeCache` NUNCA e setado pela aplicacao. `assigneeIds`
  * e aplicado via `AssigneesSyncService` apos o create e a Prisma extension
  * recalcula o cache a partir de `work_item_assignees`.
  */
@@ -34,6 +32,10 @@ export class CreateTaskDto {
   @MinLength(3)
   @MaxLength(255)
   title!: string;
+
+  @ApiProperty({ description: 'List que recebe a task (obrigatorio)' })
+  @IsString()
+  listId!: string;
 
   @ApiPropertyOptional({ maxLength: 5_000 })
   @IsOptional()
@@ -98,13 +100,13 @@ export class CreateTaskDto {
   @ApiPropertyOptional({
     type: [String],
     description:
-      'IDs iniciais de usuarios como assignees (primary = primeiro apos recalculo pela extension)',
+      'IDs iniciais de usuarios como assignees (primary = primeiro apos recalculo pela extension). Aceito SOMENTE no POST.',
   })
   @IsOptional()
   @IsArray()
   @ArrayMaxSize(50)
   @IsString({ each: true })
-  assignees?: string[];
+  assigneeIds?: string[];
 
   @ApiPropertyOptional({ type: [String] })
   @IsOptional()

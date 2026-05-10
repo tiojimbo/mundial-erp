@@ -143,17 +143,18 @@ export class TasksService {
    */
   async create(
     workspaceId: string,
-    listId: string,
     dto: CreateTaskDto,
     actorUserId: string,
   ): Promise<TaskResponseDto> {
-    // 1) Cross-tenant 404 antes de qualquer coisa (§8.1).
+    // HPP-061: listId vem do body (obrigatorio via DTO). Cross-tenant 404
+    // antes de qualquer coisa.
+    const listId = dto.listId;
     const process = await this.repository.findProcessInWorkspace(
       workspaceId,
       listId,
     );
     if (!process) {
-      throw new NotFoundException('Process nao encontrado');
+      throw new NotFoundException('List nao encontrada');
     }
 
     // 2) Resolve statusId (dto tem prioridade; fallback NOT_STARTED padrao).
@@ -210,10 +211,10 @@ export class TasksService {
 
       const taskId = created.id;
 
-      if (dto.assignees?.length) {
+      if (dto.assigneeIds?.length) {
         await this.assigneesSync.syncAssignees(tx, {
           taskId,
-          add: dto.assignees,
+          add: dto.assigneeIds,
           rem: [],
           actorUserId,
           workspaceId,

@@ -176,23 +176,22 @@ export class TasksController {
     });
   }
 
-  @Post('processes/:processId/tasks')
+  @Post('tasks')
   @Roles(Role.ADMIN, Role.MANAGER, Role.OPERATOR)
   @HttpCode(HttpStatus.CREATED)
-  @ApiOperation({ summary: 'Criar task em um processo' })
+  @ApiOperation({ summary: 'Criar task (estilo Hoppe, listId no body)' })
   @ApiResponse({ status: 201, type: TaskResponseDto })
   @ApiResponse({ status: 400, description: 'Payload invalido' })
   @ApiResponse({
     status: 404,
-    description: 'Process nao encontrado (ou cross-tenant)',
+    description: 'List nao encontrada (ou cross-tenant)',
   })
   create(
     @WorkspaceId() workspaceId: string,
-    @Param('processId') processId: string,
     @Body() body: CreateTaskDto,
     @CurrentUser() user: JwtPayload,
   ) {
-    return this.tasksService.create(workspaceId, processId, body, user.sub);
+    return this.tasksService.create(workspaceId, body, user.sub);
   }
 
   @Get('tasks/:taskId')
