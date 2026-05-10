@@ -90,7 +90,7 @@ export class SpacesService {
         error instanceof Prisma.PrismaClientKnownRequestError &&
         error.code === 'P2002'
       ) {
-        throw new ConflictException('Departamento com este nome já existe');
+        throw new ConflictException('Space com este nome já existe');
       }
       throw error;
     }
@@ -116,7 +116,7 @@ export class SpacesService {
   ): Promise<SpaceResponseDto> {
     const entity = await this.spacesRepository.findById(workspaceId, id);
     if (!entity) {
-      throw new NotFoundException('Departamento não encontrado');
+      throw new NotFoundException('Space não encontrado');
     }
     return SpaceResponseDto.fromEntity(entity);
   }
@@ -128,7 +128,7 @@ export class SpacesService {
   ): Promise<SpaceResponseDto> {
     const entity = await this.spacesRepository.findById(workspaceId, id);
     if (!entity) {
-      throw new NotFoundException('Departamento não encontrado');
+      throw new NotFoundException('Space não encontrado');
     }
 
     const updateData: Record<string, any> = {};
@@ -158,23 +158,27 @@ export class SpacesService {
         error instanceof Prisma.PrismaClientKnownRequestError &&
         error.code === 'P2002'
       ) {
-        throw new ConflictException('Departamento com este nome já existe');
+        throw new ConflictException('Space com este nome já existe');
       }
       throw error;
     }
   }
 
-  async remove(workspaceId: string, id: string): Promise<void> {
+  async remove(
+    workspaceId: string,
+    id: string,
+  ): Promise<{ message: string }> {
     const entity = await this.spacesRepository.findById(workspaceId, id);
     if (!entity) {
-      throw new NotFoundException('Departamento não encontrado');
+      throw new NotFoundException('Space não encontrado');
     }
     if (entity.isProtected) {
       throw new ForbiddenException(
-        'Departamento protegido não pode ser removido',
+        'Space protegido não pode ser removido',
       );
     }
     await this.spacesRepository.softDelete(workspaceId, id);
+    return { message: 'Space deleted successfully' };
   }
 
   async getSidebarTree(workspaceId: string) {
@@ -206,7 +210,7 @@ export class SpacesService {
       spaceId,
     );
     if (!entity) {
-      throw new NotFoundException('Departamento não encontrado');
+      throw new NotFoundException('Space não encontrado');
     }
     return this.spacesRepository.getProcessSummaries(
       workspaceId,
@@ -221,7 +225,7 @@ export class SpacesService {
       slug,
     );
     if (!entity) {
-      throw new NotFoundException('Departamento não encontrado');
+      throw new NotFoundException('Space não encontrado');
     }
 
     return {

@@ -3,11 +3,9 @@ import {
   Controller,
   Delete,
   Get,
-  HttpCode,
-  HttpStatus,
   Param,
-  Patch,
   Post,
+  Put,
   Query,
 } from '@nestjs/common';
 import {
@@ -25,28 +23,31 @@ import { SidebarSpaceDto } from './dto/sidebar-space.dto';
 import { PaginationDto } from '../../../../common/dtos/pagination.dto';
 import { Roles } from '../../../auth/decorators';
 import { WorkspaceId } from '../../../workspaces/decorators/workspace-id.decorator';
+import { SkipResponseTransform } from '../../../../common/decorators/skip-response-transform.decorator';
 
-@ApiTags('BPM - Departments')
+@ApiTags('Spaces')
 @ApiBearerAuth()
-@Controller('departments')
+@Controller('spaces')
 export class SpacesController {
   constructor(private readonly spacesService: SpacesService) {}
 
   @Post()
+  @SkipResponseTransform()
   @Roles(Role.ADMIN)
-  @ApiOperation({ summary: 'Criar departamento (somente ADMIN)' })
+  @ApiOperation({ summary: 'Criar space (somente ADMIN)' })
   @ApiResponse({ status: 201, type: SpaceResponseDto })
   @ApiResponse({
     status: 409,
-    description: 'Departamento com este nome já existe',
+    description: 'Space com este nome já existe',
   })
   create(@WorkspaceId() workspaceId: string, @Body() dto: CreateSpaceDto) {
     return this.spacesService.create(workspaceId, dto);
   }
 
   @Get()
+  @SkipResponseTransform()
   @Roles(Role.ADMIN, Role.MANAGER)
-  @ApiOperation({ summary: 'Listar departamentos' })
+  @ApiOperation({ summary: 'Listar spaces' })
   findAll(
     @WorkspaceId() workspaceId: string,
     @Query() pagination: PaginationDto,
@@ -65,10 +66,10 @@ export class SpacesController {
   @Get('by-slug/:slug')
   @Roles(Role.ADMIN, Role.MANAGER, Role.OPERATOR, Role.VIEWER)
   @ApiOperation({
-    summary: 'Buscar departamento por slug (com áreas e processos diretos)',
+    summary: 'Buscar space por slug (com folders e lists diretas)',
   })
   @ApiResponse({ status: 200 })
-  @ApiResponse({ status: 404, description: 'Departamento não encontrado' })
+  @ApiResponse({ status: 404, description: 'Space não encontrado' })
   findBySlug(@WorkspaceId() workspaceId: string, @Param('slug') slug: string) {
     return this.spacesService.findBySlug(workspaceId, slug);
   }
@@ -77,10 +78,10 @@ export class SpacesController {
   @Roles(Role.ADMIN, Role.MANAGER, Role.OPERATOR, Role.VIEWER)
   @ApiOperation({
     summary:
-      'Resumo consolidado de todos os processos do departamento (LIST + BPM)',
+      'Resumo consolidado de todas as lists do space (LIST + BPM)',
   })
   @ApiResponse({ status: 200 })
-  @ApiResponse({ status: 404, description: 'Departamento não encontrado' })
+  @ApiResponse({ status: 404, description: 'Space não encontrado' })
   getProcessSummaries(
     @WorkspaceId() workspaceId: string,
     @Param('id') id: string,
@@ -94,17 +95,19 @@ export class SpacesController {
   }
 
   @Get(':id')
+  @SkipResponseTransform()
   @Roles(Role.ADMIN, Role.MANAGER)
-  @ApiOperation({ summary: 'Buscar departamento por ID' })
+  @ApiOperation({ summary: 'Buscar space por ID' })
   @ApiResponse({ status: 200, type: SpaceResponseDto })
-  @ApiResponse({ status: 404, description: 'Departamento não encontrado' })
+  @ApiResponse({ status: 404, description: 'Space não encontrado' })
   findOne(@WorkspaceId() workspaceId: string, @Param('id') id: string) {
     return this.spacesService.findById(workspaceId, id);
   }
 
-  @Patch(':id')
+  @Put(':id')
+  @SkipResponseTransform()
   @Roles(Role.ADMIN)
-  @ApiOperation({ summary: 'Atualizar departamento (somente ADMIN)' })
+  @ApiOperation({ summary: 'Atualizar space (somente ADMIN)' })
   @ApiResponse({ status: 200, type: SpaceResponseDto })
   update(
     @WorkspaceId() workspaceId: string,
@@ -115,12 +118,12 @@ export class SpacesController {
   }
 
   @Delete(':id')
+  @SkipResponseTransform()
   @Roles(Role.ADMIN)
-  @HttpCode(HttpStatus.NO_CONTENT)
   @ApiOperation({
-    summary: 'Remover departamento (soft delete, somente ADMIN)',
+    summary: 'Remover space (soft delete, somente ADMIN)',
   })
-  @ApiResponse({ status: 204 })
+  @ApiResponse({ status: 200 })
   remove(@WorkspaceId() workspaceId: string, @Param('id') id: string) {
     return this.spacesService.remove(workspaceId, id);
   }
