@@ -13,7 +13,7 @@ import { PrismaService } from '../../../database/prisma.service';
  *
  * - Estorna AR (marca como CANCELLED)
  * - Cancela ProductionOrders pendentes
- * - Encerra ProcessInstances
+ * - Soft-delete SeparationOrders pendentes
  */
 @Injectable()
 export class OrderCanceladoListener {
@@ -59,12 +59,6 @@ export class OrderCanceladoListener {
         deletedAt: null,
       },
       data: { deletedAt: new Date() },
-    });
-
-    // Encerrar ProcessInstances
-    await this.prisma.processInstance.updateMany({
-      where: { orderId: event.orderId, status: 'ACTIVE' },
-      data: { status: 'COMPLETED', completedAt: new Date() },
     });
 
     this.logger.log(
