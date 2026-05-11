@@ -283,61 +283,6 @@ export class SpacesRepository {
         ])
       : [[], []];
 
-    // 3. Batch: Contagens BPM para processos BPM
-    let processInstances: Array<{
-      listId: string;
-      order: { status: string };
-    }> = [];
-    let pendingActivities: Array<{ processInstance: { listId: string } }> =
-      [];
-    let pendingHandoffs: Array<{ fromProcessInstance: { listId: string } }> =
-      [];
-
-    if (bpmProcessIds.length > 0) {
-      [processInstances, pendingActivities, pendingHandoffs] =
-        await Promise.all([
-          this.prisma.processInstance.findMany({
-            where: {
-              listId: { in: bpmProcessIds },
-              list: { space: { workspaceId } },
-              deletedAt: null,
-            },
-            select: {
-              listId: true,
-              order: { select: { status: true } },
-            },
-          }),
-          this.prisma.activityInstance.findMany({
-            where: {
-              processInstance: {
-                listId: { in: bpmProcessIds },
-                list: { space: { workspaceId } },
-                deletedAt: null,
-              },
-              status: { in: ['PENDING', 'IN_PROGRESS'] },
-              deletedAt: null,
-            },
-            select: {
-              processInstance: { select: { listId: true } },
-            },
-          }),
-          this.prisma.handoffInstance.findMany({
-            where: {
-              fromProcessInstance: {
-                listId: { in: bpmProcessIds },
-                list: { space: { workspaceId } },
-                deletedAt: null,
-              },
-              status: 'PENDING',
-              deletedAt: null,
-            },
-            select: {
-              fromProcessInstance: { select: { listId: true } },
-            },
-          }),
-        ]);
-    }
-
     // 4. Montar resumo por processo
     return processes.map((proc) => {
       const base = {
@@ -382,26 +327,12 @@ export class SpacesRepository {
         };
       }
 
-      // BPM
-      const procInstances = processInstances.filter(
-        (pi) => pi.listId === proc.id,
-      );
-      const ordersByStatus: Record<string, number> = {};
-      for (const pi of procInstances) {
-        const st = pi.order.status;
-        ordersByStatus[st] = (ordersByStatus[st] ?? 0) + 1;
-      }
-
       return {
         ...base,
-        totalOrders: procInstances.length,
-        ordersByStatus,
-        pendingActivities: pendingActivities.filter(
-          (a) => a.processInstance.listId === proc.id,
-        ).length,
-        pendingHandoffs: pendingHandoffs.filter(
-          (h) => h.fromProcessInstance.listId === proc.id,
-        ).length,
+        totalOrders: 0,
+        ordersByStatus: {},
+        pendingActivities: 0,
+        pendingHandoffs: 0,
       };
     });
   }

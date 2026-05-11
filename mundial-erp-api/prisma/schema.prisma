@@ -25,26 +25,6 @@ enum ProcessStatus {
   CANCELLED
 }
 
-enum ActivityStatus {
-  PENDING
-  IN_PROGRESS
-  BLOCKED
-  COMPLETED
-  SKIPPED
-}
-
-enum TaskStatus {
-  PENDING
-  DONE
-}
-
-enum HandoffStatus {
-  PENDING
-  ACCEPTED
-  REJECTED
-  TIMED_OUT
-}
-
 enum OrderStatus {
   EM_ORCAMENTO
   FATURAR
@@ -448,8 +428,6 @@ model User {
   ownedWorkspaces       Workspace[]       @relation("WorkspaceOwner")
   workspaceInvites      WorkspaceInvite[] @relation("InvitedBy")
 
-  activityInstances          ActivityInstance[]
-  taskInstances              TaskInstance[]
   createdOrders              Order[]            @relation("OrderCreatedBy")
   assignedOrders             Order[]            @relation("OrderAssignedTo")
   dashboards                 Dashboard[]
@@ -634,7 +612,6 @@ model List {
   activities        Activity[]
   handoffsFrom      Handoff[]               @relation("HandoffFrom")
   handoffsTo        Handoff[]               @relation("HandoffTo")
-  processInstances  ProcessInstance[]
   workItems         WorkItem[]
   views             ProcessView[]
   members           ListMember[]
@@ -711,9 +688,8 @@ model Activity {
   updatedAt         DateTime     @updatedAt @map("updated_at")
   deletedAt         DateTime?    @map("deleted_at")
 
-  list              List               @relation(fields: [listId], references: [id])
-  tasks             Task[]
-  activityInstances ActivityInstance[]
+  list  List   @relation(fields: [listId], references: [id])
+  tasks Task[]
 
   @@map("activities")
 }
@@ -728,8 +704,7 @@ model Task {
   updatedAt   DateTime  @updatedAt @map("updated_at")
   deletedAt   DateTime? @map("deleted_at")
 
-  activity      Activity       @relation(fields: [activityId], references: [id])
-  taskInstances TaskInstance[]
+  activity Activity @relation(fields: [activityId], references: [id])
 
   @@map("tasks")
 }
@@ -745,97 +720,12 @@ model Handoff {
   updatedAt       DateTime     @updatedAt @map("updated_at")
   deletedAt       DateTime?    @map("deleted_at")
 
-  fromList         List              @relation("HandoffFrom", fields: [fromListId], references: [id])
-  toList           List              @relation("HandoffTo", fields: [toListId], references: [id])
-  handoffInstances HandoffInstance[]
+  fromList List @relation("HandoffFrom", fields: [fromListId], references: [id])
+  toList   List @relation("HandoffTo", fields: [toListId], references: [id])
 
   @@map("handoffs")
 }
 
-// ============================================================================
-// 1.4 — BPM Runtime Layer (per order)
-// ============================================================================
-
-model ProcessInstance {
-  id          String        @id @default(cuid())
-  listId      String        @map("list_id")
-  orderId     String        @map("order_id")
-  status      ProcessStatus @default(DRAFT)
-  startedAt   DateTime?     @map("started_at")
-  completedAt DateTime?     @map("completed_at")
-  createdAt   DateTime      @default(now()) @map("created_at")
-  updatedAt   DateTime      @updatedAt @map("updated_at")
-  deletedAt   DateTime?     @map("deleted_at")
-
-  list                 List               @relation(fields: [listId], references: [id])
-  order                Order              @relation(fields: [orderId], references: [id])
-  activityInstances    ActivityInstance[]
-  handoffInstancesFrom HandoffInstance[]  @relation("HandoffInstanceFrom")
-  handoffInstancesTo   HandoffInstance[]  @relation("HandoffInstanceTo")
-
-  @@map("process_instances")
-}
-
-model ActivityInstance {
-  id                String         @id @default(cuid())
-  activityId        String         @map("activity_id")
-  processInstanceId String         @map("process_instance_id")
-  assignedUserId    String?        @map("assigned_user_id")
-  status            ActivityStatus @default(PENDING)
-  startedAt         DateTime?      @map("started_at")
-  completedAt       DateTime?      @map("completed_at")
-  dueAt             DateTime?      @map("due_at")
-  notes             String?
-  createdAt         DateTime       @default(now()) @map("created_at")
-  updatedAt         DateTime       @updatedAt @map("updated_at")
-  deletedAt         DateTime?      @map("deleted_at")
-
-  activity        Activity        @relation(fields: [activityId], references: [id])
-  processInstance ProcessInstance @relation(fields: [processInstanceId], references: [id])
-  assignedUser    User?           @relation(fields: [assignedUserId], references: [id])
-  taskInstances   TaskInstance[]
-
-  @@index([assignedUserId, status], name: "idx_ai_user_status")
-  @@index([processInstanceId], name: "idx_ai_process_instance")
-  @@map("activity_instances")
-}
-
-model TaskInstance {
-  id                 String     @id @default(cuid())
-  taskId             String     @map("task_id")
-  activityInstanceId String     @map("activity_instance_id")
-  status             TaskStatus @default(PENDING)
-  completedByUserId  String?    @map("completed_by_user_id")
-  createdAt          DateTime   @default(now()) @map("created_at")
-  updatedAt          DateTime   @updatedAt @map("updated_at")
-  deletedAt          DateTime?  @map("deleted_at")
-
-  task             Task             @relation(fields: [taskId], references: [id])
-  activityInstance ActivityInstance @relation(fields: [activityInstanceId], references: [id])
-  completedBy      User?            @relation(fields: [completedByUserId], references: [id])
-
-  @@map("task_instances")
-}
-
-model HandoffInstance {
-  id                    String        @id @default(cuid())
-  handoffId             String        @map("handoff_id")
-  orderId               String        @map("order_id")
-  fromProcessInstanceId String        @map("from_process_instance_id")
-  toProcessInstanceId   String?       @map("to_process_instance_id")
-  status                HandoffStatus @default(PENDING)
-  rejectionReason       String?       @map("rejection_reason")
-  createdAt             DateTime      @default(now()) @map("created_at")
-  updatedAt             DateTime      @updatedAt @map("updated_at")
-  deletedAt             DateTime?     @map("deleted_at")
-
-  handoff             Handoff          @relation(fields: [handoffId], references: [id])
-  order               Order            @relation(fields: [orderId], references: [id])
-  fromProcessInstance ProcessInstance  @relation("HandoffInstanceFrom", fields: [fromProcessInstanceId], references: [id])
-  toProcessInstance   ProcessInstance? @relation("HandoffInstanceTo", fields: [toProcessInstanceId], references: [id])
-
-  @@map("handoff_instances")
-}
 
 // ============================================================================
 // 1.4b — Workflow Status System (per Space)
@@ -1916,8 +1806,6 @@ model Order {
   orderModel         OrderModel?          @relation(fields: [orderModelId], references: [id])
   items              OrderItem[]
   statusHistory      OrderStatusHistory[]
-  processInstances   ProcessInstance[]
-  handoffInstances   HandoffInstance[]
   invoices           Invoice[]
   productionOrders   ProductionOrder[]
   separationOrders   SeparationOrder[]
