@@ -59,7 +59,9 @@ import { ChatModule } from './modules/chat/chat.module';
 import { ViewsModule } from './modules/views/views.module';
 import { WorkItemsModule } from './modules/work-items/work-items.module';
 import { NotificationsModule } from './modules/notifications/notifications.module';
+import { RealtimeModule } from './modules/realtime/realtime.module';
 import { WorkspacesModule } from './modules/workspaces/workspaces.module';
+import { FavoritesModule } from './modules/favorites/favorites.module';
 
 // Tasks feature (Sprints 1-7) — facade semantica sobre WorkItem.
 // Registrar APOS WorkItemsModule para honrar dependencia de providers
@@ -102,7 +104,6 @@ import { CommonModule } from './common/common.module';
 //     tokens Symbol inconsistentes e Rafael integrar envelope encryption.
 import { KommoApiClientModule } from './modules/kommo-api-client/kommo-api-client.module';
 import { KommoAccountsModule } from './modules/kommo-accounts/kommo-accounts.module';
-import { KommoWorkersModule } from './modules/kommo-workers/kommo-workers.module';
 //   - KommoReconciliationModule (Mateus K2-5): cron @5min idempotente +
 //     KommoSyncCheckpoint; cobre eventos perdidos pelo webhook.
 //   - KommoBackfillModule (Mateus K3-4 parcial): backfill 90d retomavel
@@ -250,6 +251,9 @@ import { KommoBackfillModule } from './modules/kommo-backfill/kommo-backfill.mod
     // Notifications (Notificacoes Inbox)
     NotificationsModule,
 
+    // Realtime (gateway Socket.IO /notifications — HPP-135)
+    RealtimeModule,
+
     // Tasks feature (paridade ClickUp — Sprints 1-7). Ordem logica:
     //   1. TaskOutboxModule primeiro (produtor transacional de eventos).
     //   2. CustomTaskTypesModule (dependencia de TasksModule via include).
@@ -286,6 +290,9 @@ import { KommoBackfillModule } from './modules/kommo-backfill/kommo-backfill.mod
     // Workspaces (Multi-tenancy — Squad Workspace F1.4)
     WorkspacesModule,
 
+    // Favorites (Hoppe-style /favorites — por usuario e workspace)
+    FavoritesModule,
+
     // Kommo integration (Squad Kommo — Sprint 1 Etapa 1). Gate global
     // via `KOMMO_SYNC_ENABLED` + `KommoFeatureFlagGuard` (registrado em
     // FeatureFlagsModule). O webhook publico replica a checagem do flag
@@ -295,7 +302,6 @@ import { KommoBackfillModule } from './modules/kommo-backfill/kommo-backfill.mod
     // Webhooks (HMAC + enqueue) → Workers (processor + handlers).
     KommoApiClientModule,
     KommoAccountsModule,
-    KommoWorkersModule,
     KommoReconciliationModule,
     KommoBackfillModule,
   ],

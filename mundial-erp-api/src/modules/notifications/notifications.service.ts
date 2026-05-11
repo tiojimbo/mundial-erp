@@ -3,6 +3,7 @@ import {
   NotFoundException,
   BadRequestException,
 } from '@nestjs/common';
+import { EventEmitter2 } from '@nestjs/event-emitter';
 import { NotificationStatus } from '@prisma/client';
 import { NotificationsRepository } from './notifications.repository';
 import { NotificationResponseDto } from './dto/notification-response.dto';
@@ -16,6 +17,7 @@ import { NotificationQueryDto } from './dto/notification-query.dto';
 export class NotificationsService {
   constructor(
     private readonly notificationsRepository: NotificationsRepository,
+    private readonly eventEmitter: EventEmitter2,
   ) {}
 
   async findByView(
@@ -133,6 +135,11 @@ export class NotificationsService {
       entityId: dto.entityId,
       entityUrl: dto.entityUrl,
     });
-    return NotificationResponseDto.fromEntity(notification);
+    const response = NotificationResponseDto.fromEntity(notification);
+    this.eventEmitter.emit('notification.created', {
+      userId: dto.userId,
+      notification: response,
+    });
+    return response;
   }
 }
