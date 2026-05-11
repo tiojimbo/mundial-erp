@@ -10,6 +10,7 @@ import {
   RiUserLine,
   RiNotification3Line,
   RiLogoutBoxRLine,
+  RiFlashlightLine,
 } from '@remixicon/react';
 import { cn } from '@/lib/cn';
 import { useAuth } from '@/providers/auth-provider';
@@ -24,6 +25,7 @@ type NavItem = {
 const hubItems: NavItem[] = [
   { label: 'Configurações', href: '/configuracoes/empresa', icon: RiSettings4Line },
   { label: 'Pessoas', href: '/configuracoes/pessoas', icon: RiTeamLine },
+  { label: 'Automações', href: '/configuracoes/automacoes', icon: RiFlashlightLine },
   { label: 'API', href: '/configuracoes/api', icon: RiKey2Line },
 ];
 
