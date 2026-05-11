@@ -17,3 +17,8 @@ Thumbs.db
 dist
 .next
 out
+
+# Test/scratch artifacts
+.playwright-mcp/
+playwright-report/
+test-results/

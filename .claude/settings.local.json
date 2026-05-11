@@ -6,7 +6,20 @@
       "Bash(claude mcp:*)",
       "Bash(grep -E \"\\\\.\\(ts|tsx|js|jsx\\)$\")",
       "Bash(grep -E \"\\\\.\\(ts|tsx|js|jsx|css\\)$\")",
-      "Bash(grep -E \"\\\\.\\(tsx|ts\\)$\")"
+      "Bash(grep -E \"\\\\.\\(tsx|ts\\)$\")",
+      "mcp__playwright__browser_navigate",
+      "mcp__playwright__browser_snapshot",
+      "mcp__playwright__browser_type",
+      "mcp__playwright__browser_click",
+      "mcp__playwright__browser_wait_for",
+      "mcp__playwright__browser_network_requests",
+      "mcp__playwright__browser_evaluate",
+      "Bash(python3 -c \"import json,sys; d=json.load\\(sys.stdin\\); [print\\(k, '->', v.get\\('s'\\)\\) for k,v in d.items\\(\\)]\")",
+      "Bash(awk 'NR>=400')",
+      "Bash(awk 'NR>=600')",
+      "Bash(awk 'NR>=500 && NR<700')",
+      "Bash(python3 -c ' *)",
+      "mcp__playwright__browser_close"
     ]
   }
 }
