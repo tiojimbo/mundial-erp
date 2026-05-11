@@ -5,16 +5,6 @@ import type {
   CustomFieldValue,
 } from '../types/custom-field.types';
 
-/**
- * Service HTTP para `/api/v1/tasks/:taskId/custom-fields[/:definitionId]`.
- *
- * Backend retorna `CustomFieldValueResponseDto[]` (lista) ou
- * `CustomFieldValueResponseDto` (PATCH) — sem `{items,total}`. O
- * `ResponseInterceptor` envelopa em `{ data, meta: { timestamp } }`.
- *
- * O DTO do backend ja embute a `definition` completa em cada valor; o
- * frontend nao precisa de hidratacao adicional.
- */
 export const customFieldValuesService = {
   async listForTask(taskId: string): Promise<CustomFieldValue[]> {
     const { data } = await api.get<ApiResponse<CustomFieldValue[]>>(
@@ -28,7 +18,7 @@ export const customFieldValuesService = {
     definitionId: string,
     value: CustomFieldRawValue,
   ): Promise<CustomFieldValue> {
-    const { data } = await api.patch<ApiResponse<CustomFieldValue>>(
+    const { data } = await api.put<ApiResponse<CustomFieldValue>>(
       `/tasks/${taskId}/custom-fields/${definitionId}`,
       { value },
     );
