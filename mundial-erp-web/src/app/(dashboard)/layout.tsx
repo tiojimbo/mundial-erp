@@ -7,12 +7,15 @@ import { ErrorBoundary } from '@/components/error-boundary';
 import { GlobalScannerListener } from '@/components/global-scanner-listener';
 import { GlobalShortcuts } from '@/features/tasks/components/global-shortcuts';
 import { BulkActionsBar } from '@/features/tasks/components/bulk-actions-bar';
+import { useNotificationsSocket } from '@/features/inbox/hooks/use-notifications-socket';
 
 export default function DashboardLayout({
   children,
 }: {
   children: React.ReactNode;
 }) {
+  useNotificationsSocket();
+
   return (
     <div className='flex h-screen bg-sidebar'>
       <GlobalScannerListener />
