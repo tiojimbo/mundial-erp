@@ -97,6 +97,13 @@ export class CustomTaskTypesService {
     return items.map((i) => CustomTaskTypeResponseDto.fromEntity(i));
   }
 
+  async listFlatForWorkspace(
+    workspaceId: string,
+  ): Promise<CustomTaskTypeResponseDto[]> {
+    const items = await this.repository.findAllForWorkspaceFlat(workspaceId);
+    return items.map((i) => CustomTaskTypeResponseDto.fromEntity(i));
+  }
+
   async findById(
     id: string,
     workspaceId: string,

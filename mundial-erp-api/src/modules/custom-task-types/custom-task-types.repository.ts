@@ -85,6 +85,14 @@ export class CustomTaskTypesRepository {
     });
   }
 
+  async findAllForWorkspaceFlat(workspaceId: string) {
+    return this.prisma.customTaskType.findMany({
+      where: this.buildVisibilityWhere(workspaceId),
+      orderBy: [{ isBuiltin: 'desc' }, { sortOrder: 'asc' }, { name: 'asc' }],
+      select: BASE_SELECT,
+    });
+  }
+
   async create(
     workspaceId: string,
     data: {
