@@ -6,15 +6,27 @@ import {
   NotFoundException,
 } from '@nestjs/common';
 import { Prisma, WorkspaceMemberRole } from '@prisma/client';
+import {
+  MyPermissionResponseDto,
+  resolveWorkspacePermissionFlags,
+} from './dto/my-permission-response.dto';
+import { WorkspaceUsersResponseDto } from './dto/workspace-users-response.dto';
 import { CreateWorkspaceDto } from './dto/create-workspace.dto';
 import { UpdateWorkspaceDto } from './dto/update-workspace.dto';
 import {
   WorkspaceResponseDto,
   WorkspaceSeatsResponseDto,
 } from './dto/workspace-response.dto';
+import {
+  SidebarOrderDto,
+  SidebarOrderResponseDto,
+} from './dto/sidebar-order.dto';
 import { PaginationDto } from '../../common/dtos/pagination.dto';
 import { WorkspacesRepository } from './workspaces.repository';
-import { MembersRepository } from './members/members.repository';
+import {
+  MembersRepository,
+  SidebarOrderJson,
+} from './members/members.repository';
 
 const SEATS_TOTAL_MEMBERS = 100;
 const SEATS_TOTAL_GUESTS = 50;
@@ -171,6 +183,46 @@ export class WorkspacesService {
    * (ex: endpoints com @SkipWorkspaceGuard) mas precisamos de checagem
    * pontual de membership.
    */
+  async listUsers(
+    workspaceId: string,
+    userId: string,
+    pagination: PaginationDto,
+    role?: WorkspaceMemberRole,
+  ): Promise<WorkspaceUsersResponseDto> {
+    await this.assertMembership(workspaceId, userId);
+    const { items, total } = await this.membersRepository.findMany({
+      workspaceId,
+      skip: pagination.skip,
+      take: pagination.limit,
+      role,
+    });
+    return {
+      users: items.map((member) => ({
+        id: member.userId,
+        name: member.user?.name ?? null,
+        email: member.user?.email ?? null,
+        permission: member.role,
+        ...resolveWorkspacePermissionFlags(member.role),
+        joinedAt: member.joinedAt,
+      })),
+      total,
+    };
+  }
+
+  async getMyPermission(
+    workspaceId: string,
+    userId: string,
+  ): Promise<MyPermissionResponseDto> {
+    const member = await this.membersRepository.findById(workspaceId, userId);
+    if (!member) {
+      throw new ForbiddenException('Usuario nao e membro deste workspace');
+    }
+    return {
+      permission: member.role,
+      ...resolveWorkspacePermissionFlags(member.role),
+    };
+  }
+
   async assertMembership(workspaceId: string, userId: string): Promise<void> {
     const member = await this.membersRepository.findById(workspaceId, userId);
     if (!member) {
@@ -199,5 +251,44 @@ export class WorkspacesService {
     if (ws.ownerId !== userId) {
       throw new ForbiddenException('Acao restrita ao owner do workspace');
     }
+  }
+
+  async getSidebarOrder(
+    workspaceId: string,
+    userId: string,
+  ): Promise<SidebarOrderResponseDto> {
+    const row = await this.membersRepository.findSidebarOrder(
+      workspaceId,
+      userId,
+    );
+    if (!row) {
+      throw new NotFoundException('Usuario nao e membro deste workspace');
+    }
+    return (row.sidebarOrder as SidebarOrderResponseDto) ?? {};
+  }
+
+  async updateSidebarOrder(
+    workspaceId: string,
+    userId: string,
+    dto: SidebarOrderDto,
+  ): Promise<SidebarOrderResponseDto> {
+    const patch: SidebarOrderJson = {};
+    if (dto.spaces !== undefined) patch.spaces = dto.spaces;
+    if (dto.channels !== undefined) patch.channels = dto.channels;
+    if (dto.favorites !== undefined) patch.favorites = dto.favorites;
+
+    const updated = await this.membersRepository.patchSidebarOrder(
+      workspaceId,
+      userId,
+      patch,
+    );
+    if (!updated) {
+      throw new NotFoundException('Usuario nao e membro deste workspace');
+    }
+
+    this.logger.log(
+      `workspace.sidebar_order.updated ws=${workspaceId} user=${userId} buckets=${Object.keys(patch).join(',') || 'none'}`,
+    );
+    return updated as SidebarOrderResponseDto;
   }
 }

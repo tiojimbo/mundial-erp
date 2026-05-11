@@ -57,6 +57,8 @@ describe('WorkspacesService', () => {
             remove: jest.fn(),
             countByRole: jest.fn(),
             userExists: jest.fn(),
+            findSidebarOrder: jest.fn(),
+            patchSidebarOrder: jest.fn(),
           },
         },
       ],
@@ -86,7 +88,6 @@ describe('WorkspacesService', () => {
         logoUrl: undefined,
         color: undefined,
         ownerId: 'user-1',
-  settings: {},
       });
     });
 
@@ -218,6 +219,66 @@ describe('WorkspacesService', () => {
 
       expect(result.total).toBe(1);
       expect(result.items[0].id).toBe('ws-1');
+    });
+  });
+
+  describe('getSidebarOrder', () => {
+    it('should return stored sidebar order for a member', async () => {
+      membersRepository.findSidebarOrder.mockResolvedValue({
+        sidebarOrder: { spaces: ['s1', 's2'], channels: ['c1'] },
+      } as never);
+
+      const result = await service.getSidebarOrder('ws-1', 'user-1');
+
+      expect(result).toEqual({ spaces: ['s1', 's2'], channels: ['c1'] });
+    });
+
+    it('should throw NotFoundException when user is not a member', async () => {
+      membersRepository.findSidebarOrder.mockResolvedValue(null);
+
+      await expect(
+        service.getSidebarOrder('ws-1', 'outsider'),
+      ).rejects.toThrow(NotFoundException);
+    });
+  });
+
+  describe('updateSidebarOrder', () => {
+    it('should patch only provided buckets (merge atomic in repo)', async () => {
+      membersRepository.patchSidebarOrder.mockResolvedValue({
+        spaces: ['s1', 's2', 's3'],
+        channels: ['c1'],
+      } as never);
+
+      const result = await service.updateSidebarOrder('ws-1', 'user-1', {
+        spaces: ['s1', 's2', 's3'],
+      });
+
+      expect(membersRepository.patchSidebarOrder).toHaveBeenCalledWith(
+        'ws-1',
+        'user-1',
+        { spaces: ['s1', 's2', 's3'] },
+      );
+      expect(result).toEqual({ spaces: ['s1', 's2', 's3'], channels: ['c1'] });
+    });
+
+    it('should throw NotFoundException when membership is missing', async () => {
+      membersRepository.patchSidebarOrder.mockResolvedValue(null);
+
+      await expect(
+        service.updateSidebarOrder('ws-1', 'outsider', { spaces: ['s1'] }),
+      ).rejects.toThrow(NotFoundException);
+    });
+
+    it('should send empty patch when no buckets are provided', async () => {
+      membersRepository.patchSidebarOrder.mockResolvedValue({} as never);
+
+      await service.updateSidebarOrder('ws-1', 'user-1', {});
+
+      expect(membersRepository.patchSidebarOrder).toHaveBeenCalledWith(
+        'ws-1',
+        'user-1',
+        {},
+      );
     });
   });
 });

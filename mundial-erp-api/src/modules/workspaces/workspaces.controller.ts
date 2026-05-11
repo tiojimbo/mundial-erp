@@ -8,6 +8,7 @@ import {
   Param,
   Patch,
   Post,
+  Put,
   Query,
 } from '@nestjs/common';
 import {
@@ -23,6 +24,13 @@ import {
   WorkspaceResponseDto,
   WorkspaceSeatsResponseDto,
 } from './dto/workspace-response.dto';
+import {
+  SidebarOrderDto,
+  SidebarOrderResponseDto,
+} from './dto/sidebar-order.dto';
+import { MyPermissionResponseDto } from './dto/my-permission-response.dto';
+import { WorkspaceUsersResponseDto } from './dto/workspace-users-response.dto';
+import { WorkspaceMemberRole } from '@prisma/client';
 import { PaginationDto } from '../../common/dtos/pagination.dto';
 import { CurrentUser } from '../auth/decorators';
 import type { JwtPayload } from '../auth/decorators';
@@ -71,6 +79,7 @@ export class WorkspacesController {
     return this.workspacesService.findById(id, userId);
   }
 
+  @Put(':id')
   @Patch(':id')
   @ApiOperation({ summary: 'Atualizar workspace (owner ou admin)' })
   @ApiResponse({ status: 200, type: WorkspaceResponseDto })
@@ -109,6 +118,35 @@ export class WorkspacesController {
     return this.authService.selectWorkspace(user.sub, workspaceId);
   }
 
+  @Get(':id/users')
+  @SkipWorkspaceGuard()
+  @ApiOperation({
+    summary: 'Listar usuarios do workspace com permission + flags (Hoppe-style)',
+  })
+  @ApiResponse({ status: 200, type: WorkspaceUsersResponseDto })
+  listUsers(
+    @Param('id') id: string,
+    @CurrentUser('sub') userId: string,
+    @Query() pagination: PaginationDto,
+    @Query('role') role?: WorkspaceMemberRole,
+  ) {
+    return this.workspacesService.listUsers(id, userId, pagination, role);
+  }
+
+  @Get(':id/my-permission')
+  @SkipWorkspaceGuard()
+  @ApiOperation({
+    summary: 'Permissao do usuario logado neste workspace + flags derivadas',
+  })
+  @ApiResponse({ status: 200, type: MyPermissionResponseDto })
+  @ApiResponse({ status: 403, description: 'Usuario nao e membro' })
+  getMyPermission(
+    @Param('id') id: string,
+    @CurrentUser('sub') userId: string,
+  ) {
+    return this.workspacesService.getMyPermission(id, userId);
+  }
+
   @Get(':id/seats')
   @ApiOperation({
     summary: 'Resumo de seats do workspace (billing — mock por enquanto)',
@@ -116,5 +154,30 @@ export class WorkspacesController {
   @ApiResponse({ status: 200, type: WorkspaceSeatsResponseDto })
   getSeats(@Param('id') id: string, @CurrentUser('sub') userId: string) {
     return this.workspacesService.getSeats(id, userId);
+  }
+
+  @Get(':id/sidebar-order')
+  @ApiOperation({ summary: 'Ordem do sidebar do membro logado neste workspace' })
+  @ApiResponse({ status: 200, type: SidebarOrderResponseDto })
+  @ApiResponse({ status: 404, description: 'Usuario nao e membro' })
+  getSidebarOrder(
+    @Param('id') id: string,
+    @CurrentUser('sub') userId: string,
+  ) {
+    return this.workspacesService.getSidebarOrder(id, userId);
+  }
+
+  @Put(':id/sidebar-order')
+  @ApiOperation({
+    summary: 'Atualiza ordem do sidebar (merge parcial por bucket)',
+  })
+  @ApiResponse({ status: 200, type: SidebarOrderResponseDto })
+  @ApiResponse({ status: 404, description: 'Usuario nao e membro' })
+  updateSidebarOrder(
+    @Param('id') id: string,
+    @CurrentUser('sub') userId: string,
+    @Body() dto: SidebarOrderDto,
+  ) {
+    return this.workspacesService.updateSidebarOrder(id, userId, dto);
   }
 }
