@@ -24,6 +24,7 @@
     "seed:demo": "ts-node prisma/seed.ts",
     "seed:workspace": "tsx prisma/seed-workspace.ts",
     "seed:bpm-decommission": "ts-node prisma/seed-bpm-decommission.ts",
+    "seed:automations": "ts-node prisma/seed-automations.ts",
     "seed:all": "ts-node prisma/seed-bpm.ts && ts-node prisma/seed-reference-data.ts && ts-node prisma/seed.ts",
     "perf:seed": "ts-node prisma/seed-tasks-perf.ts",
     "backfill:tasks-feature": "ts-node -r tsconfig-paths/register scripts/backfill-tasks-feature.ts",

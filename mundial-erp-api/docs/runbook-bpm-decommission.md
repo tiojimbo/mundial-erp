@@ -155,3 +155,7 @@ Script versionado em `mundial-erp-api/scripts/backup-bpm-tables.sql` (HPP-124).
 - **Sincronização Order↔WorkItem em escrita concorrente**: se 2 requests alterarem o mesmo Order ao mesmo tempo, o espelho pode divergir. Mitigação: usar `$transaction` no OrdersService cobrindo Order + WorkItem.
 - **Lists do "Comercial" antigo vs. Lists novas no seed**: hoje há Lists com `processInstances` ativas. O seed novo cria Lists separadas no workspace `Teste` — não conflita, mas em prod a migração final precisa decidir se reaproveita ou cria novas.
 - **WorkflowStatus 1:1 com OrderStatus**: hoje OrderStatus tem 8 valores; WorkflowStatuses Hoppe são 3 (`open`/`in_progress`/`closed`). Refletir granularidade via CustomField `order_status` no WorkItem espelho.
+- **Snapshot do automation engine não inclui CustomFieldValues**: `automation.processor.ts:loadTaskSnapshot` carrega apenas campos básicos do WorkItem. Por isso o seed da HPP-121.b cria apenas **1 Automation** (`Mover Pedido para Faturamento`), suficiente pro smoke da HPP-127. Replicar o motor BPMN completo (cenários por OrderStatus granular como FATURADO/PRODUZIR/EM_PRODUCAO) exigirá um dos caminhos abaixo, fora do escopo do sprint 7:
+  - estender o snapshot com `customFieldValues` + criar CustomFieldDefinition `order_status` no espelho;
+  - adicionar trigger `ORDER_STATUS_CHANGED` específico pra Orders;
+  - mapear cada OrderStatus pra um WorkflowStatus distinto no space `teste-comercial` (perde a abstração genérica).
