@@ -474,6 +474,8 @@ model User {
 
   channelOrganizations UserChannelOrganization[]
 
+  notificationPreferences NotificationPreference[]
+
   @@map("users")
 }
 
@@ -3164,4 +3166,41 @@ model UserChannelOrganization {
 
   @@unique([userId, workspaceId])
   @@map("user_channel_organizations")
+}
+
+enum NotificationPreferenceType {
+  TASK_ASSIGNED
+  TASK_DUE_SOON
+  TASK_OVERDUE
+  TASK_COMMENT
+  TASK_STATUS_CHANGE
+  MENTION
+  TASK_NAME_CHANGE
+  TASK_DESCRIPTION_CHANGE
+  TASK_PRIORITY_CHANGE
+  TASK_DUE_DATE_CHANGE
+  TASK_START_DATE_CHANGE
+  TASK_CUSTOM_FIELD_CHANGE
+  ACCESS_REQUESTED
+}
+
+enum NotificationChannel {
+  IN_APP
+  EMAIL
+  PUSH
+}
+
+model NotificationPreference {
+  id        String                     @id @default(cuid())
+  userId    String                     @map("user_id")
+  type      NotificationPreferenceType
+  channels  NotificationChannel[]      @default([])
+  enabled   Boolean                    @default(true)
+  createdAt DateTime                   @default(now()) @map("created_at")
+  updatedAt DateTime                   @updatedAt @map("updated_at")
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, type])
+  @@map("notification_preferences")
 }
