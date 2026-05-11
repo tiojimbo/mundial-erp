@@ -8,7 +8,6 @@ import { EventEmitter2 } from '@nestjs/event-emitter';
 import { OrderItemSupplyStatus, OrderStatus, Prisma } from '@prisma/client';
 import { PrismaService } from '../../database/prisma.service';
 import { OrdersRepository } from './orders.repository';
-import { OrderMirrorService } from './order-mirror.service';
 import {
   OrderStatusMachine,
   TransitionContext,
@@ -33,7 +32,6 @@ export class OrdersService {
     private readonly statusMachine: OrderStatusMachine,
     private readonly eventEmitter: EventEmitter2,
     private readonly prisma: PrismaService,
-    private readonly orderMirror: OrderMirrorService,
   ) {}
 
   // ---------------------------------------------------------------------------
@@ -183,8 +181,6 @@ export class OrdersService {
     };
 
     const entity = await this.ordersRepository.create(workspaceId, createData);
-
-    await this.orderMirror.createMirror(entity.id);
 
     this.eventEmitter.emit('order.created', {
       orderId: entity.id,
@@ -392,7 +388,6 @@ export class OrdersService {
     }
 
     await this.ordersRepository.softDelete(workspaceId, id);
-    await this.orderMirror.softDeleteMirror(id);
     this.eventEmitter.emit('order.deleted', { orderId: id });
   }
 
@@ -465,8 +460,6 @@ export class OrdersService {
         deliveryChecked: dto.deliveryChecked,
       },
     });
-
-    await this.orderMirror.updateStatusMirror(id, dto.status);
 
     this.eventEmitter.emit('order.status.changed', {
       orderId: id,
