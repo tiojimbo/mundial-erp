@@ -23,19 +23,31 @@ export class NotificationsService {
   async findByView(
     userId: string,
     query: NotificationQueryDto,
-  ): Promise<NotificationsListResponseDto & { total: number }> {
+  ): Promise<NotificationsListResponseDto> {
+    const skip = query.skip ?? 0;
+    const limit = query.limit ?? 20;
     const [{ items, total }, counts] = await Promise.all([
       this.notificationsRepository.findByView(userId, query.view as any, {
-        skip: query.skip,
-        take: query.limit,
+        skip,
+        take: limit,
       }),
       this.notificationsRepository.getCounts(userId),
     ]);
 
+    const page = Math.floor(skip / limit) + 1;
+    const totalPages = Math.max(1, Math.ceil(total / limit));
+
     return {
-      items: items.map(NotificationResponseDto.fromEntity),
+      notifications: items.map(NotificationResponseDto.fromEntity),
+      meta: {
+        total,
+        page,
+        limit,
+        totalPages,
+        hasNextPage: page < totalPages,
+        hasPreviousPage: page > 1,
+      },
       counts,
-      total,
     };
   }
 
