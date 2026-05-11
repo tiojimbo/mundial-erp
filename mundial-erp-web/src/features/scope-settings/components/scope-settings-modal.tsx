@@ -2,19 +2,22 @@
 
 import { useMemo, useState } from 'react';
 import {
-  RiArrowDownSLine,
-  RiCloseLine,
-  RiGlobalLine,
-  RiInformation2Line,
-  RiLayoutGridLine,
-  RiLinkM,
-  RiLockLine,
-  RiLockUnlockLine,
-  RiPencilLine,
-  RiShieldLine,
-  RiUserUnfollowLine,
-} from '@remixicon/react';
+  Eye,
+  Globe,
+  Info,
+  LayoutGrid,
+  Link2,
+  Lock,
+  LockOpen,
+  MessageSquare,
+  PencilLine,
+  Shield,
+  UserMinus,
+  X,
+} from 'lucide-react';
+import { toast } from 'sonner';
 import * as Modal from '@/components/ui/modal';
+import * as Select from '@/components/ui/select';
 import * as Tooltip from '@/components/ui/tooltip';
 import { cn } from '@/lib/cn';
 import { useUsers } from '@/features/settings/hooks/use-users';
@@ -35,33 +38,36 @@ import {
   type ScopeMember,
 } from '../types/scope.types';
 
-const PERMISSION_LABELS: Record<
-  Permission,
-  { title: string; description: string; Icon: typeof RiPencilLine }
-> = {
-  FULL_EDIT: {
-    title: 'Edição completa',
-    description: 'Editar, excluir e gerenciar membros',
-    Icon: RiShieldLine,
-  },
-  EDIT: {
-    title: 'Pode editar',
-    description: 'Criar e editar conteúdo',
-    Icon: RiPencilLine,
+type PermissionDef = {
+  title: string;
+  description: string;
+  Icon: typeof PencilLine;
+};
+
+const PERMISSION_DEFS: Record<Permission, PermissionDef> = {
+  VIEW: {
+    title: 'Pode visualizar',
+    description: 'Apenas leitura',
+    Icon: Eye,
   },
   COMMENT: {
     title: 'Pode comentar',
     description: 'Ver e comentar',
-    Icon: RiPencilLine,
+    Icon: MessageSquare,
   },
-  VIEW: {
-    title: 'Pode ver',
-    description: 'Somente leitura',
-    Icon: RiPencilLine,
+  EDIT: {
+    title: 'Pode editar',
+    description: 'Criar e editar conteúdo',
+    Icon: PencilLine,
+  },
+  FULL_EDIT: {
+    title: 'Edição completa',
+    description: 'Editar, excluir e gerenciar membros',
+    Icon: Shield,
   },
 };
 
-const PERMISSIONS: Permission[] = ['FULL_EDIT', 'EDIT', 'COMMENT', 'VIEW'];
+const PERMISSIONS: Permission[] = ['VIEW', 'COMMENT', 'EDIT', 'FULL_EDIT'];
 
 const COLOR_PALETTE = [
   '#7C3AED',
@@ -117,6 +123,8 @@ export function ScopeSettingsModal({
   const allUsers = usersQuery.data?.data ?? [];
 
   const [search, setSearch] = useState('');
+  const [defaultPermission, setDefaultPermission] =
+    useState<Permission>('EDIT');
 
   const memberIdSet = useMemo(
     () => new Set((members.data ?? []).map((m) => m.userId)),
@@ -141,7 +149,7 @@ export function ScopeSettingsModal({
 
   const handleAdd = (userId: string) => {
     addMember.mutate(
-      { userId, permission: 'EDIT' },
+      { userId, permission: defaultPermission },
       { onSuccess: () => setSearch('') },
     );
   };
@@ -150,23 +158,32 @@ export function ScopeSettingsModal({
     setVisibility.mutate(isPrivate ? 'PUBLIC' : 'PRIVATE');
   };
 
+  const handleCopyLink = async () => {
+    if (typeof window === 'undefined') return;
+    try {
+      await navigator.clipboard.writeText(window.location.href);
+      toast.success('Link copiado');
+    } catch {
+      toast.error('Não foi possível copiar o link');
+    }
+  };
+
   return (
     <Modal.Root open={open} onOpenChange={onOpenChange}>
-      <Modal.Content
-        className='max-w-md gap-0 !p-0'
-        showClose={false}
-      >
-        <div className='flex flex-col gap-2 px-5 pt-5 pb-0'>
+      <Modal.Content className='gap-0 !p-0 sm:max-w-md' showClose={false}>
+        {/* HEADER */}
+        <div className='flex flex-col gap-0 px-5 pb-0 pt-5'>
           <h2 className='text-base font-semibold'>
             Compartilhar este {label}
           </h2>
           <div className='mt-1.5 flex items-center gap-1.5 text-xs text-muted-foreground'>
             <span>Compartilhando {label} com todas as views</span>
-            <RiLayoutGridLine className='size-3.5' aria-hidden />
+            <LayoutGrid className='size-3.5' aria-hidden />
             <span className='font-medium text-foreground'>{name}</span>
           </div>
         </div>
 
+        {/* BUSCA */}
         <div className='relative px-5 pt-4'>
           <input
             type='text'
@@ -183,7 +200,7 @@ export function ScopeSettingsModal({
                     type='button'
                     onClick={() => handleAdd(u.id)}
                     disabled={addMember.isPending}
-                    className='flex w-full items-center gap-2 px-3 py-2 text-left text-sm hover:bg-accent'
+                    className='flex w-full items-center gap-2 px-3 py-2 text-left text-sm hover:bg-accent disabled:opacity-50'
                   >
                     <Initials
                       seed={u.id}
@@ -202,53 +219,43 @@ export function ScopeSettingsModal({
           )}
         </div>
 
-        <div className='mt-4 h-px shrink-0 bg-border' />
+        <Separator className='mt-4' />
 
+        {/* LINK + PERMISSAO PADRAO */}
         <div className='px-5 py-3'>
-          <DisabledRow
-            Icon={RiLinkM}
-            title='Link privado'
-            tooltip='Compartilhamento por link ainda não disponível.'
-            right={
-              <button
-                type='button'
-                disabled
-                className='inline-flex h-7 items-center gap-1.5 rounded-md border border-border bg-background px-3 text-xs font-medium opacity-50'
-              >
-                Copiar link
-              </button>
-            }
-          />
+          <div className='flex items-center justify-between'>
+            <div className='flex items-center gap-2 text-sm'>
+              <Link2 className='size-4 text-muted-foreground' aria-hidden />
+              <span className='font-medium'>Link privado</span>
+              <InfoTooltip>Apenas membros convidados acessam.</InfoTooltip>
+            </div>
+            <button
+              type='button'
+              onClick={handleCopyLink}
+              className='inline-flex h-7 items-center rounded-md border border-border bg-background px-3 text-xs font-medium hover:bg-accent'
+            >
+              Copiar link
+            </button>
+          </div>
 
-          <div className='mt-3'>
-            <DisabledRow
-              Icon={RiGlobalLine}
-              title='Permissão padrão'
-              tooltip='Permissão padrão para novos membros ainda não configurável.'
-              right={
-                <div className='flex h-7 cursor-not-allowed items-center gap-1 rounded-md px-2 text-xs opacity-60'>
-                  <RiPencilLine
-                    className='size-3.5 text-muted-foreground'
-                    aria-hidden
-                  />
-                  <div>
-                    <p className='font-medium'>Pode editar</p>
-                    <p className='text-[10px] text-muted-foreground'>
-                      Criar e editar conteúdo
-                    </p>
-                  </div>
-                  <RiArrowDownSLine
-                    className='size-4 opacity-50'
-                    aria-hidden
-                  />
-                </div>
-              }
+          <div className='mt-3 flex items-center justify-between'>
+            <div className='flex items-center gap-2 text-sm'>
+              <Globe className='size-4 text-muted-foreground' aria-hidden />
+              <span className='font-medium'>Permissão padrão</span>
+              <InfoTooltip>
+                Permissão usada ao adicionar novos membros.
+              </InfoTooltip>
+            </div>
+            <PermissionSelect
+              value={defaultPermission}
+              onChange={setDefaultPermission}
             />
           </div>
         </div>
 
-        <div className='h-px shrink-0 bg-border' />
+        <Separator />
 
+        {/* CONTADOR */}
         <div className='px-5 py-3'>
           <p className='mb-2 text-xs font-medium text-muted-foreground'>
             Compartilhado com
@@ -260,6 +267,7 @@ export function ScopeSettingsModal({
           </div>
         </div>
 
+        {/* LISTA */}
         <div className='max-h-56 overflow-y-auto px-5 pb-2'>
           {members.isLoading && (
             <p className='py-2 text-sm text-muted-foreground'>Carregando...</p>
@@ -275,7 +283,7 @@ export function ScopeSettingsModal({
             <MemberRow
               key={m.userId}
               member={m}
-              onUpdate={(permission) =>
+              onChange={(permission) =>
                 updateMember.mutate({ userId: m.userId, permission })
               }
               onRemove={() => removeMember.mutate(m.userId)}
@@ -284,8 +292,9 @@ export function ScopeSettingsModal({
           ))}
         </div>
 
-        <div className='h-px shrink-0 bg-border' />
+        <Separator />
 
+        {/* TORNAR PRIVADO/PUBLICO */}
         <div className='px-5 py-3'>
           <button
             type='button'
@@ -295,12 +304,12 @@ export function ScopeSettingsModal({
           >
             {isPrivate ? (
               <>
-                <RiLockUnlockLine className='size-4' aria-hidden />
+                <LockOpen className='size-4' aria-hidden />
                 Tornar Público
               </>
             ) : (
               <>
-                <RiLockLine className='size-4' aria-hidden />
+                <Lock className='size-4' aria-hidden />
                 Tornar Privado
               </>
             )}
@@ -313,7 +322,7 @@ export function ScopeSettingsModal({
           aria-label='Fechar'
           className='absolute right-4 top-4 rounded opacity-70 transition-opacity hover:opacity-100'
         >
-          <RiCloseLine className='size-4' aria-hidden />
+          <X className='size-4' aria-hidden />
         </button>
       </Modal.Content>
     </Modal.Root>
@@ -322,17 +331,15 @@ export function ScopeSettingsModal({
 
 function MemberRow({
   member,
-  onUpdate,
+  onChange,
   onRemove,
   isPending,
 }: {
   member: ScopeMember;
-  onUpdate: (permission: Permission) => void;
+  onChange: (permission: Permission) => void;
   onRemove: () => void;
   isPending: boolean;
 }) {
-  const labelInfo = PERMISSION_LABELS[member.permission];
-  const Icon = labelInfo.Icon;
   return (
     <div className='group flex items-center gap-3 rounded-md px-1 py-2 hover:bg-muted/50'>
       <Initials
@@ -341,7 +348,7 @@ function MemberRow({
       />
       <div className='min-w-0 flex-1'>
         <div className='flex items-center gap-1.5'>
-          <span className='truncate text-sm font-medium'>
+          <span className='block truncate text-sm font-medium'>
             {member.user.name ?? member.user.email}
           </span>
           {member.inherited && (
@@ -355,77 +362,108 @@ function MemberRow({
         </p>
       </div>
       <div className='flex items-center gap-1'>
-        <div className='relative'>
-          <select
-            value={member.permission}
-            onChange={(e) => onUpdate(e.target.value as Permission)}
-            disabled={member.inherited || isPending}
-            className='h-7 cursor-pointer appearance-none rounded-md border-0 bg-transparent pl-7 pr-6 text-xs disabled:cursor-not-allowed disabled:opacity-50 hover:bg-accent'
-            aria-label='Permissão'
-          >
-            {PERMISSIONS.map((p) => (
-              <option key={p} value={p}>
-                {PERMISSION_LABELS[p].title}
-              </option>
-            ))}
-          </select>
-          <Icon
-            className='pointer-events-none absolute left-1 top-1/2 size-3.5 -translate-y-1/2 text-muted-foreground'
-            aria-hidden
-          />
-          <RiArrowDownSLine
-            className='pointer-events-none absolute right-1 top-1/2 size-4 -translate-y-1/2 opacity-50'
-            aria-hidden
-          />
-        </div>
+        <PermissionSelect
+          value={member.permission}
+          onChange={onChange}
+          disabled={member.inherited || isPending}
+        />
         {!member.inherited && (
-          <button
-            type='button'
-            onClick={onRemove}
-            disabled={isPending}
-            className='hidden rounded p-1 text-muted-foreground transition-colors hover:bg-destructive/10 hover:text-destructive disabled:opacity-50 group-hover:block'
-            aria-label='Remover membro'
-          >
-            <RiUserUnfollowLine className='size-3.5' aria-hidden />
-          </button>
+          <Tooltip.Root>
+            <Tooltip.Trigger asChild>
+              <button
+                type='button'
+                onClick={onRemove}
+                disabled={isPending}
+                className='hidden rounded p-1 text-muted-foreground transition-colors hover:bg-destructive/10 hover:text-destructive disabled:opacity-50 group-hover:block'
+                aria-label='Remover membro'
+              >
+                <UserMinus className='size-3.5' aria-hidden />
+              </button>
+            </Tooltip.Trigger>
+            <Tooltip.Content side='top'>Remover membro</Tooltip.Content>
+          </Tooltip.Root>
         )}
       </div>
     </div>
   );
 }
 
-function DisabledRow({
-  Icon,
-  title,
-  tooltip,
-  right,
+function PermissionSelect({
+  value,
+  onChange,
+  disabled,
 }: {
-  Icon: typeof RiLinkM;
-  title: string;
-  tooltip: string;
-  right: React.ReactNode;
+  value: Permission;
+  onChange: (next: Permission) => void;
+  disabled?: boolean;
 }) {
+  const current = PERMISSION_DEFS[value];
+  const CurrentIcon = current.Icon;
   return (
-    <div className='flex items-center justify-between'>
-      <div className='flex items-center gap-2 text-sm'>
-        <Icon className='size-4 text-muted-foreground' aria-hidden />
-        <span className='font-medium'>{title}</span>
-        <Tooltip.Root>
-          <Tooltip.Trigger asChild>
-            <button
-              type='button'
-              tabIndex={-1}
-              className='cursor-help text-muted-foreground'
-              aria-label={tooltip}
-            >
-              <RiInformation2Line className='size-3.5' aria-hidden />
-            </button>
-          </Tooltip.Trigger>
-          <Tooltip.Content side='top'>{tooltip}</Tooltip.Content>
-        </Tooltip.Root>
-      </div>
-      {right}
-    </div>
+    <Select.Root
+      value={value}
+      onValueChange={(v) => onChange(v as Permission)}
+      disabled={disabled}
+    >
+      <Select.Trigger
+        className={cn(
+          'h-7 w-auto gap-1 border-0 bg-transparent px-2 text-xs shadow-none ring-0',
+          'hover:bg-transparent hover:ring-0 focus:shadow-none focus:ring-0',
+        )}
+      >
+        <Select.Value>
+          <span className='flex items-center gap-2'>
+            <CurrentIcon
+              className='size-3.5 text-muted-foreground'
+              aria-hidden
+            />
+            <span className='flex flex-col items-start leading-tight'>
+              <span className='text-xs font-medium'>{current.title}</span>
+              <span className='text-[10px] text-muted-foreground'>
+                {current.description}
+              </span>
+            </span>
+          </span>
+        </Select.Value>
+      </Select.Trigger>
+      <Select.Content align='end'>
+        {PERMISSIONS.map((p) => {
+          const def = PERMISSION_DEFS[p];
+          const Icon = def.Icon;
+          return (
+            <Select.Item key={p} value={p}>
+              <span className='flex items-center gap-2'>
+                <Icon className='size-3.5 text-muted-foreground' aria-hidden />
+                <span className='flex flex-col items-start leading-tight'>
+                  <span className='text-xs font-medium'>{def.title}</span>
+                  <span className='text-[10px] text-muted-foreground'>
+                    {def.description}
+                  </span>
+                </span>
+              </span>
+            </Select.Item>
+          );
+        })}
+      </Select.Content>
+    </Select.Root>
+  );
+}
+
+function InfoTooltip({ children }: { children: React.ReactNode }) {
+  return (
+    <Tooltip.Root>
+      <Tooltip.Trigger asChild>
+        <button
+          type='button'
+          tabIndex={-1}
+          aria-label='Informação'
+          className='cursor-help text-muted-foreground'
+        >
+          <Info className='size-3.5' aria-hidden />
+        </button>
+      </Tooltip.Trigger>
+      <Tooltip.Content side='top'>{children}</Tooltip.Content>
+    </Tooltip.Root>
   );
 }
 
@@ -437,5 +475,14 @@ function Initials({ seed, label }: { seed: string; label: string }) {
     >
       {label}
     </span>
+  );
+}
+
+function Separator({ className }: { className?: string }) {
+  return (
+    <div
+      role='none'
+      className={cn('h-px w-full shrink-0 bg-border', className)}
+    />
   );
 }
