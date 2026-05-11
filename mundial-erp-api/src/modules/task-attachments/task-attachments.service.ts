@@ -34,6 +34,7 @@ import {
   ATTACHMENT_MAX_SIZE_BYTES,
   ATTACHMENT_MIME_WHITELIST_REGEX,
   SignedUrlRequestDto,
+  normalizeSignedUrlInput,
 } from './dtos/signed-url-request.dto';
 import { RegisterAttachmentDto } from './dtos/register-attachment.dto';
 import {
@@ -82,7 +83,6 @@ export class TaskAttachmentsService {
     private readonly taskTypeTemplates: TaskTypeTemplatesService,
   ) {}
 
-
   async createSignedUrl(
     workspaceId: string,
     taskId: string,
@@ -92,34 +92,35 @@ export class TaskAttachmentsService {
     if (!task) {
       throw new NotFoundException('Tarefa nao encontrada');
     }
-    // Validacao defensiva alem do DTO — nunca confie so no decorator.
-    // Validacao de input => 400, nao 403 (agent-cto: 403 e para permissao negada).
-    if (!ATTACHMENT_MIME_WHITELIST_REGEX.test(dto.mimeType)) {
+    const input = normalizeSignedUrlInput(dto);
+    if (!ATTACHMENT_MIME_WHITELIST_REGEX.test(input.mimeType)) {
       throw new BadRequestException('mimeType fora da whitelist');
     }
-    if (dto.sizeBytes <= 0 || dto.sizeBytes > ATTACHMENT_MAX_SIZE_BYTES) {
+    if (input.sizeBytes <= 0 || input.sizeBytes > ATTACHMENT_MAX_SIZE_BYTES) {
       throw new BadRequestException('sizeBytes fora do limite (25MB)');
     }
 
-    const sanitized = sanitizeFilename(dto.filename);
+    const sanitized = sanitizeFilename(input.filename);
     const storageKey = `${workspaceId}/${taskId}/${randomUUID()}-${sanitized}`;
 
     const signed = await this.s3.getSignedPutUrl({
       key: storageKey,
-      contentType: dto.mimeType,
-      contentLength: dto.sizeBytes,
+      contentType: input.mimeType,
+      contentLength: input.sizeBytes,
       expiresInSeconds: SIGNED_URL_TTL_SECONDS,
     });
 
     this.logger.log(
-      // Nao logar URL completa — expira em 300s mas ainda e credencial.
       `attachments.signed-url workspace=${workspaceId} task=${taskId} key=${storageKey} ttl=${SIGNED_URL_TTL_SECONDS}s`,
     );
 
     const response = new SignedUrlResponseDto();
     response.url = signed.url;
+    response.uploadUrl = signed.url;
     response.storageKey = storageKey;
+    response.fileKey = storageKey;
     response.expiresAt = signed.expiresAt;
+    response.expiresIn = SIGNED_URL_TTL_SECONDS;
     return response;
   }
 

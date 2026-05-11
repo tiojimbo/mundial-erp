@@ -78,11 +78,22 @@ export class SignedUrlResponseDto {
   @ApiProperty({ description: 'PUT signed URL (TTL 300s)' })
   url!: string;
 
+  @ApiProperty({ description: 'Alias Hoppe-compat de `url`' })
+  uploadUrl!: string;
+
   @ApiProperty()
   storageKey!: string;
 
+  @ApiProperty({ description: 'Alias Hoppe-compat de `storageKey`' })
+  fileKey!: string;
+
   @ApiProperty()
   expiresAt!: Date;
+
+  @ApiProperty({
+    description: 'Alias Hoppe-compat: TTL em segundos (300)',
+  })
+  expiresIn!: number;
 }
 
 export class DownloadUrlResponseDto {

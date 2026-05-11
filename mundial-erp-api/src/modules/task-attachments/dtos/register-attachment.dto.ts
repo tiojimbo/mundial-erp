@@ -16,11 +16,6 @@ import {
 export const ATTACHMENT_CATEGORY_REGEX = /^[a-z0-9_-]+$/;
 
 export class RegisterAttachmentDto {
-  @ApiProperty({ description: 'Id da task' })
-  @IsString()
-  @MaxLength(64)
-  taskId!: string;
-
   @ApiProperty({ example: 'relatorio.pdf' })
   @IsString()
   @MaxLength(255)
@@ -40,7 +35,7 @@ export class RegisterAttachmentDto {
   @ApiProperty({
     example: 'ws_123/wi_456/abc-relatorio.pdf',
     description:
-      'StorageKey retornado pela signed URL request — deve bater com o request prévio.',
+      'StorageKey retornado pela signed URL request — deve bater com o request previo.',
   })
   @IsString()
   @MaxLength(512)
@@ -59,4 +54,11 @@ export class RegisterAttachmentDto {
     message: 'category deve ser slug em kebab-case ou snake_case',
   })
   category?: string;
+}
+
+export class RegisterAttachmentLegacyDto extends RegisterAttachmentDto {
+  @ApiProperty({ description: 'Id da task (obrigatorio na rota legacy)' })
+  @IsString()
+  @MaxLength(64)
+  taskId!: string;
 }
