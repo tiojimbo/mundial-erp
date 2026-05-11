@@ -54,6 +54,7 @@ import { CreateAreaDialog } from '@/features/work-items/components/create-area-d
 import { CreateProcessDialog } from '@/features/work-items/components/create-process-dialog';
 import { StatusEditorDialog } from '@/features/settings/components/status-editor/status-editor-dialog';
 import { CustomTaskTypesDialog } from '@/features/tasks/components/custom-task-types-dialog';
+import { ScopeSettingsModal } from '@/features/scope-settings/components/scope-settings-modal';
 import {
   useUpdateDepartment,
   useDeleteDepartment,
@@ -1087,12 +1088,14 @@ function ItemOptionsMenu({
   onEditStatus,
   onOpenCustomTaskTypes,
   onDelete,
+  onOpenSettings,
   deleteDisabled,
 }: {
   onRename: () => void;
   onEditStatus: () => void;
   onOpenCustomTaskTypes: () => void;
   onDelete: () => void;
+  onOpenSettings?: () => void;
   deleteDisabled?: boolean;
 }) {
   return (
@@ -1152,7 +1155,9 @@ function ItemOptionsMenu({
       <div className='flex h-12 w-full items-center px-1'>
         <button
           type='button'
-          className='inline-flex h-9 w-full cursor-pointer items-center justify-start gap-2 whitespace-nowrap rounded-lg px-3 py-2 text-[14px] font-medium leading-5 text-white shadow-xs transition-all hover:opacity-90'
+          onClick={onOpenSettings}
+          disabled={!onOpenSettings}
+          className='inline-flex h-9 w-full cursor-pointer items-center justify-start gap-2 whitespace-nowrap rounded-lg px-3 py-2 text-[14px] font-medium leading-5 text-white shadow-xs transition-all hover:opacity-90 disabled:opacity-50'
           style={{ backgroundColor: '#000' }}
         >
           <RiTeamLine className='size-4 shrink-0 text-white' />
@@ -1182,6 +1187,7 @@ function ProcessItem({
   paddingLeftClass: string;
   onOpenCustomTaskTypes: () => void;
 }) {
+  const [settingsOpen, setSettingsOpen] = useState(false);
   return (
     <div
       className={cn(
@@ -1221,9 +1227,17 @@ function ProcessItem({
             onEditStatus={() => {}}
             onOpenCustomTaskTypes={onOpenCustomTaskTypes}
             onDelete={() => {}}
+            onOpenSettings={() => setSettingsOpen(true)}
           />
         </Dropdown.Root>
       </div>
+      <ScopeSettingsModal
+        open={settingsOpen}
+        onOpenChange={setSettingsOpen}
+        scope='lists'
+        id={process.id}
+        name={process.name}
+      />
     </div>
   );
 }
@@ -1273,6 +1287,7 @@ function AreaItem({
 }) {
   const areaActive = isAreaActive(area, deptSlug, pathname);
   const areaExact = pathname === `/d/${deptSlug}/a/${area.slug}`;
+  const [settingsOpen, setSettingsOpen] = useState(false);
 
   return (
     <div>
@@ -1342,6 +1357,7 @@ function AreaItem({
                 onOpenCustomTaskTypes={onOpenCustomTaskTypes}
                 onDelete={onDelete}
                 deleteDisabled={area.isDefault}
+                onOpenSettings={() => setSettingsOpen(true)}
               />
             </Dropdown.Root>
             <button
@@ -1395,6 +1411,13 @@ function AreaItem({
           )}
         </ul>
       </div>
+      <ScopeSettingsModal
+        open={settingsOpen}
+        onOpenChange={setSettingsOpen}
+        scope='folders'
+        id={area.id}
+        name={area.name}
+      />
     </div>
   );
 }
@@ -1472,6 +1495,7 @@ function DeptItem({
   const abbr = getAbbr(dept.name);
   const isRenamingThis = renamingDeptId === dept.id;
   const deptExact = pathname === `/d/${dept.slug}`;
+  const [settingsOpen, setSettingsOpen] = useState(false);
 
   if (!isExpanded) {
     return (
@@ -1599,6 +1623,7 @@ function DeptItem({
                 <div className='flex h-12 w-full items-center px-1'>
                   <button
                     type='button'
+                    onClick={() => setSettingsOpen(true)}
                     className='inline-flex h-9 w-full cursor-pointer items-center justify-start gap-2 whitespace-nowrap rounded-lg px-3 py-2 text-[14px] font-medium leading-5 text-white shadow-xs transition-all hover:opacity-90'
                     style={{ backgroundColor: '#000' }}
                   >
@@ -1695,6 +1720,13 @@ function DeptItem({
           )}
         </ul>
       </div>
+      <ScopeSettingsModal
+        open={settingsOpen}
+        onOpenChange={setSettingsOpen}
+        scope='spaces'
+        id={dept.id}
+        name={dept.name}
+      />
     </div>
   );
 }
