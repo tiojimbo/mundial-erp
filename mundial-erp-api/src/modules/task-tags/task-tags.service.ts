@@ -47,6 +47,7 @@ export class TaskTagsService {
       skip: filters.skip,
       take: filters.limit,
       search: filters.search,
+      spaceId: filters.spaceId,
     });
     return {
       items: items.map((entity) => TaskTagResponseDto.fromEntity(entity)),

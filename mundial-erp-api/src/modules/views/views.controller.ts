@@ -73,6 +73,7 @@ export class ViewsController {
     return this.viewsService.update(workspaceId, id, dto);
   }
 
+  @Put(':id/pin')
   @Patch(':id/pin')
   @Roles(Role.ADMIN, Role.MANAGER)
   @ApiOperation({

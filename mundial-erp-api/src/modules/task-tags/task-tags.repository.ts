@@ -14,6 +14,7 @@ export interface TaskTagFindManyParams {
   skip?: number;
   take?: number;
   search?: string;
+  spaceId?: string;
 }
 
 export interface CreateTaskTagData {
@@ -51,12 +52,16 @@ export class TaskTagsRepository {
   constructor(private readonly prisma: PrismaService) {}
 
   async findMany(workspaceId: string, params: TaskTagFindManyParams) {
-    const { skip = 0, take = 20, search } = params;
+    const { skip = 0, take = 20, search, spaceId } = params;
 
     const where: Prisma.WorkItemTagWhereInput = {
       workspaceId,
       deletedAt: null,
     };
+
+    if (spaceId) {
+      where.spaceId = spaceId;
+    }
 
     if (search) {
       where.nameLower = { contains: search.toLowerCase() };
