@@ -21,6 +21,10 @@ import {
   SidebarOrderDto,
   SidebarOrderResponseDto,
 } from './dto/sidebar-order.dto';
+import {
+  ChannelOrganizationResponseDto,
+  UpdateChannelOrganizationDto,
+} from './dto/channel-organization.dto';
 import { PaginationDto } from '../../common/dtos/pagination.dto';
 import { WorkspacesRepository } from './workspaces.repository';
 import {
@@ -290,5 +294,38 @@ export class WorkspacesService {
       `workspace.sidebar_order.updated ws=${workspaceId} user=${userId} buckets=${Object.keys(patch).join(',') || 'none'}`,
     );
     return updated as SidebarOrderResponseDto;
+  }
+
+  async getChannelOrganization(
+    workspaceId: string,
+    userId: string,
+  ): Promise<unknown> {
+    await this.assertMembership(workspaceId, userId);
+    const row = await this.workspacesRepository.findChannelOrganization(
+      workspaceId,
+      userId,
+    );
+    return row?.organizationData ?? null;
+  }
+
+  async updateChannelOrganization(
+    workspaceId: string,
+    userId: string,
+    dto: UpdateChannelOrganizationDto,
+  ): Promise<ChannelOrganizationResponseDto> {
+    await this.assertMembership(workspaceId, userId);
+    const row = await this.workspacesRepository.upsertChannelOrganization(
+      workspaceId,
+      userId,
+      dto.organizationData as Prisma.InputJsonValue,
+    );
+    return {
+      id: row.id,
+      userId: row.userId,
+      workspaceId: row.workspaceId,
+      organizationData: row.organizationData,
+      createdAt: row.createdAt,
+      updatedAt: row.updatedAt,
+    };
   }
 }

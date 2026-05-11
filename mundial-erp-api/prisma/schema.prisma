@@ -472,6 +472,8 @@ model User {
 
   customTaskTypesCreated CustomTaskType[] @relation("CustomTaskTypeCreator")
 
+  channelOrganizations UserChannelOrganization[]
+
   @@map("users")
 }
 
@@ -2624,6 +2626,7 @@ model Workspace {
   automations            Automation[]
   kommoAccount           KommoAccount?
   favorites              Favorite[]
+  channelOrganizations   UserChannelOrganization[]
 
   @@index([deletedAt], name: "idx_workspaces_deleted")
   @@map("workspaces")
@@ -3146,4 +3149,19 @@ model Favorite {
   @@unique([userId, workspaceId, entityType, entityId], name: "uniq_user_workspace_entity")
   @@index([userId, workspaceId])
   @@map("favorites")
+}
+
+model UserChannelOrganization {
+  id               String   @id @default(cuid())
+  userId           String   @map("user_id")
+  workspaceId      String   @map("workspace_id")
+  organizationData Json     @map("organization_data")
+  createdAt        DateTime @default(now()) @map("created_at")
+  updatedAt        DateTime @updatedAt @map("updated_at")
+
+  user      User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  workspace Workspace @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, workspaceId])
+  @@map("user_channel_organizations")
 }

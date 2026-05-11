@@ -30,6 +30,10 @@ import {
 } from './dto/sidebar-order.dto';
 import { MyPermissionResponseDto } from './dto/my-permission-response.dto';
 import { WorkspaceUsersResponseDto } from './dto/workspace-users-response.dto';
+import {
+  ChannelOrganizationResponseDto,
+  UpdateChannelOrganizationDto,
+} from './dto/channel-organization.dto';
 import { WorkspaceMemberRole } from '@prisma/client';
 import { PaginationDto } from '../../common/dtos/pagination.dto';
 import { CurrentUser } from '../auth/decorators';
@@ -179,5 +183,34 @@ export class WorkspacesController {
     @Body() dto: SidebarOrderDto,
   ) {
     return this.workspacesService.updateSidebarOrder(id, userId, dto);
+  }
+
+  @Get(':id/channel-organization')
+  @SkipWorkspaceGuard()
+  @ApiOperation({
+    summary:
+      'Organizacao de canais do usuario neste workspace (retorna o JSON puro ou null)',
+  })
+  @ApiResponse({ status: 200 })
+  getChannelOrganization(
+    @Param('id') id: string,
+    @CurrentUser('sub') userId: string,
+  ) {
+    return this.workspacesService.getChannelOrganization(id, userId);
+  }
+
+  @Put(':id/channel-organization')
+  @SkipWorkspaceGuard()
+  @ApiOperation({
+    summary:
+      'Substitui (upsert) a organizacao de canais do usuario neste workspace',
+  })
+  @ApiResponse({ status: 200, type: ChannelOrganizationResponseDto })
+  updateChannelOrganization(
+    @Param('id') id: string,
+    @CurrentUser('sub') userId: string,
+    @Body() dto: UpdateChannelOrganizationDto,
+  ) {
+    return this.workspacesService.updateChannelOrganization(id, userId, dto);
   }
 }
