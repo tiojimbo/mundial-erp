@@ -8,6 +8,7 @@ import {
   Param,
   Patch,
   Post,
+  Put,
   Query,
 } from '@nestjs/common';
 import { ParseCuidPipe } from '../../../common/pipes/parse-cuid.pipe';
@@ -97,6 +98,7 @@ export class ChannelsController {
     return this.channelsService.findById(channelId, userId);
   }
 
+  @Put(':channelId')
   @Patch(':channelId')
   @ApiOperation({ summary: 'Atualizar canal (ClickUp #5)' })
   @ApiResponse({ status: 200, type: ChannelResponseDto })
@@ -166,6 +168,7 @@ export class ChannelsController {
     return this.channelsService.removeMember(channelId, targetUserId, userId);
   }
 
+  @Put(':channelId/members/:targetUserId/role')
   @Patch(':channelId/members/:targetUserId/role')
   @ApiOperation({ summary: 'Alterar role de membro (somente OWNER)' })
   @ApiResponse({ status: 200 })
