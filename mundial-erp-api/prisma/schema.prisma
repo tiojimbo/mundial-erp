@@ -468,6 +468,10 @@ model User {
   // --- Kommo (Sprint 2 migration kommo_foundations_2) ---
   kommoAgents KommoAgent[] @relation("KommoAgentMappedUser")
 
+  favorites Favorite[]
+
+  customTaskTypesCreated CustomTaskType[] @relation("CustomTaskTypeCreator")
+
   @@map("users")
 }
 
@@ -726,7 +730,6 @@ model Handoff {
   @@map("handoffs")
 }
 
-
 // ============================================================================
 // 1.4b — Workflow Status System (per Space)
 // ============================================================================
@@ -836,17 +839,17 @@ model WorkItem {
   mergedInto      WorkItem?       @relation("MergeTarget", fields: [mergedIntoId], references: [id])
   merges          WorkItem[]      @relation("MergeTarget")
 
-  assignees       WorkItemAssignee[]
-  watchers        WorkItemWatcher[]
-  tags            WorkItemTagLink[]
-  checklists      WorkItemChecklist[]
-  attachments     WorkItemAttachment[]
-  comments        WorkItemComment[]
-  statusHistory   WorkItemStatusHistory[]
-  linksFrom       WorkItemLink[]          @relation("LinkFrom")
-  linksTo         WorkItemLink[]          @relation("LinkTo")
-  activities      WorkItemActivity[]
-  timeEntries     WorkItemTimeEntry[]
+  assignees     WorkItemAssignee[]
+  watchers      WorkItemWatcher[]
+  tags          WorkItemTagLink[]
+  checklists    WorkItemChecklist[]
+  attachments   WorkItemAttachment[]
+  comments      WorkItemComment[]
+  statusHistory WorkItemStatusHistory[]
+  linksFrom     WorkItemLink[]          @relation("LinkFrom")
+  linksTo       WorkItemLink[]          @relation("LinkTo")
+  activities    WorkItemActivity[]
+  timeEntries   WorkItemTimeEntry[]
 
   // Task Types Templates — M1 Custom Fields (Migration custom_fields, TTT-010).
   // Modulo autonomo: valores de campos personalizados associados a esta task.
@@ -876,6 +879,7 @@ model CustomTaskType {
   id          String    @id @default(cuid())
   workspaceId String?   @map("workspace_id")
   spaceId     String?   @map("space_id")
+  creatorId   String?   @map("creator_id")
   name        String
   namePlural  String?   @map("name_plural")
   description String?
@@ -890,6 +894,7 @@ model CustomTaskType {
 
   workspace        Workspace?              @relation(fields: [workspaceId], references: [id])
   space            Space?                  @relation("SpaceTaskTypes", fields: [spaceId], references: [id])
+  creator          User?                   @relation("CustomTaskTypeCreator", fields: [creatorId], references: [id])
   workItems        WorkItem[]
   spacesAsDefault  Space[]                 @relation("SpaceDefaultTaskType")
   foldersAsDefault Folder[]                @relation("FolderDefaultTaskType")
@@ -899,6 +904,7 @@ model CustomTaskType {
 
   @@index([workspaceId, deletedAt], name: "idx_custom_task_types_ws_deleted")
   @@index([spaceId], name: "idx_custom_task_types_space")
+  @@index([creatorId], name: "idx_custom_task_types_creator")
   @@map("custom_task_types")
 }
 
@@ -2617,6 +2623,7 @@ model Workspace {
   customFieldDefinitions CustomFieldDefinition[]
   automations            Automation[]
   kommoAccount           KommoAccount?
+  favorites              Favorite[]
 
   @@index([deletedAt], name: "idx_workspaces_deleted")
   @@map("workspaces")
@@ -2653,13 +2660,14 @@ model Automation {
 }
 
 model WorkspaceMember {
-  id          String              @id @default(cuid())
-  workspaceId String              @map("workspace_id")
-  userId      String              @map("user_id")
-  role        WorkspaceMemberRole @default(MEMBER)
-  joinedAt    DateTime            @default(now()) @map("joined_at")
-  createdAt   DateTime            @default(now()) @map("created_at")
-  updatedAt   DateTime            @updatedAt @map("updated_at")
+  id           String              @id @default(cuid())
+  workspaceId  String              @map("workspace_id")
+  userId       String              @map("user_id")
+  role         WorkspaceMemberRole @default(MEMBER)
+  sidebarOrder Json                @default("{}") @map("sidebar_order")
+  joinedAt     DateTime            @default(now()) @map("joined_at")
+  createdAt    DateTime            @default(now()) @map("created_at")
+  updatedAt    DateTime            @updatedAt @map("updated_at")
 
   workspace Workspace @relation(fields: [workspaceId], references: [id])
   user      User      @relation(fields: [userId], references: [id])
@@ -3113,4 +3121,29 @@ model TaskTypeTemplateField {
   @@id([templateId, definitionId])
   @@index([templateId, sortOrder])
   @@map("task_type_template_fields")
+}
+
+enum FavoriteEntity {
+  SPACE
+  FOLDER
+  LIST
+  TASK
+  CHAT_CHANNEL
+}
+
+model Favorite {
+  id          String         @id @default(cuid())
+  userId      String         @map("user_id")
+  workspaceId String         @map("workspace_id")
+  entityType  FavoriteEntity @map("entity_type")
+  entityId    String         @map("entity_id")
+  position    Int            @default(0)
+  createdAt   DateTime       @default(now()) @map("created_at")
+
+  user      User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  workspace Workspace @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, workspaceId, entityType, entityId], name: "uniq_user_workspace_entity")
+  @@index([userId, workspaceId])
+  @@map("favorites")
 }
