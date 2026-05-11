@@ -21,16 +21,6 @@ export { useDeleteTag } from './use-delete-tag';
 export { useAttachTag } from './use-attach-tag';
 export { useDetachTag } from './use-detach-tag';
 
-// Watchers.
-export { useWatchers } from './use-watchers';
-export { useAddWatcher } from './use-add-watcher';
-export { useRemoveWatcher } from './use-remove-watcher';
-
-// Dependencies.
-export { useDependencies } from './use-dependencies';
-export { useAddDependency } from './use-add-dependency';
-export { useRemoveDependency } from './use-remove-dependency';
-
 // Links.
 export { useLinks } from './use-links';
 export { useAddLink } from './use-add-link';
