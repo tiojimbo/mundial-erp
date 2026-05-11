@@ -8,6 +8,7 @@ import {
   Param,
   Patch,
   Post,
+  Put,
   Query,
 } from '@nestjs/common';
 import {
@@ -47,15 +48,13 @@ export class UsersController {
     return this.usersService.findAll(pagination);
   }
 
+  @Put('me')
   @Patch('me')
   @ApiOperation({ summary: 'Atualizar dados do próprio usuário autenticado' })
   @ApiResponse({ status: 200, type: UserResponseDto })
   @ApiResponse({ status: 401, description: 'Senha atual incorreta' })
   @ApiResponse({ status: 409, description: 'Email já cadastrado' })
-  updateMe(
-    @CurrentUser() user: { sub: string },
-    @Body() dto: UpdateMeDto,
-  ) {
+  updateMe(@CurrentUser() user: { sub: string }, @Body() dto: UpdateMeDto) {
     return this.usersService.updateMe(user.sub, dto);
   }
 
@@ -67,6 +66,7 @@ export class UsersController {
     return this.usersService.findById(id);
   }
 
+  @Put(':id')
   @Patch(':id')
   @Roles(Role.ADMIN)
   @ApiOperation({ summary: 'Atualizar usuário (somente ADMIN)' })

@@ -8,6 +8,7 @@ import {
   Param,
   Patch,
   Post,
+  Put,
   Query,
 } from '@nestjs/common';
 import {
@@ -79,11 +80,7 @@ export class WorkItemsController {
     @Query('listId') listId: string,
     @Query('showClosed') showClosed?: boolean,
   ) {
-    return this.workItemsService.findGrouped(
-      workspaceId,
-      listId,
-      showClosed,
-    );
+    return this.workItemsService.findGrouped(workspaceId, listId, showClosed);
   }
 
   @Get(':id')
@@ -95,6 +92,7 @@ export class WorkItemsController {
     return this.workItemsService.findById(workspaceId, id);
   }
 
+  @Put(':id')
   @Patch(':id')
   @Roles(Role.ADMIN, Role.MANAGER, Role.OPERATOR)
   @ApiOperation({ summary: 'Atualizar work item' })
@@ -107,6 +105,7 @@ export class WorkItemsController {
     return this.workItemsService.update(workspaceId, id, dto);
   }
 
+  @Put(':id/status')
   @Patch(':id/status')
   @Roles(Role.ADMIN, Role.MANAGER, Role.OPERATOR)
   @ApiOperation({ summary: 'Alterar status do work item' })
