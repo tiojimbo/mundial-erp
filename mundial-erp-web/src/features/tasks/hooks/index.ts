@@ -12,9 +12,6 @@ export { useCreateTask } from './use-create-task';
 export { useUpdateTask } from './use-update-task';
 export { useUpdateTaskStatus } from './use-update-task-status';
 export { useDeleteTask } from './use-delete-task';
-export { useArchiveTask } from './use-archive-task';
-export { useUnarchiveTask } from './use-unarchive-task';
-export { useMergeTasks } from './use-merge-tasks';
 
 // Tags.
 export { useTags } from './use-tags';
