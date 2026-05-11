@@ -13,6 +13,7 @@ import { CreateCustomFieldDefinitionDto } from './dtos/create-custom-field-defin
 import { UpdateCustomFieldDefinitionDto } from './dtos/update-custom-field-definition.dto';
 import { CustomFieldDefinitionResponseDto } from './dtos/custom-field-definition-response.dto';
 import { GroupedCustomFieldsResponseDto } from './dtos/grouped-custom-fields-response.dto';
+import { ListCustomFieldsQueryDto } from './dtos/list-custom-fields-query.dto';
 import {
   CUSTOM_FIELDS_METRICS,
   type CustomFieldsMetrics,
@@ -41,16 +42,25 @@ export class CustomFieldDefinitionsService {
     private readonly metrics: CustomFieldsMetrics,
   ) {}
 
-  async list(workspaceId: string): Promise<GroupedCustomFieldsResponseDto> {
+  async list(
+    workspaceId: string,
+    filters: ListCustomFieldsQueryDto = {},
+  ): Promise<GroupedCustomFieldsResponseDto> {
     const items = await this.repository.findAllVisible(workspaceId);
     const grouped: GroupedCustomFieldsResponseDto = {
-      workspace: [],
       space: [],
       folder: [],
       list: [],
       taskType: [],
     };
+    const hasFilter = Boolean(
+      filters.spaceId ||
+        filters.folderId ||
+        filters.listId ||
+        filters.taskTypeId,
+    );
     for (const entity of items) {
+      if (hasFilter && !this.matchesScopeFilter(entity, filters)) continue;
       const dto = CustomFieldDefinitionResponseDto.fromEntity(entity, {
         exposeWorkspaceId: entity.workspaceId === workspaceId,
       });
@@ -58,9 +68,29 @@ export class CustomFieldDefinitionsService {
       else if (entity.folderId) grouped.folder.push(dto);
       else if (entity.spaceId) grouped.space.push(dto);
       else if (entity.customTaskTypeId) grouped.taskType.push(dto);
-      else grouped.workspace.push(dto);
     }
     return grouped;
+  }
+
+  private matchesScopeFilter(
+    entity: {
+      spaceId: string | null;
+      folderId: string | null;
+      listId: string | null;
+      customTaskTypeId: string | null;
+    },
+    filters: ListCustomFieldsQueryDto,
+  ): boolean {
+    if (filters.listId && entity.listId === filters.listId) return true;
+    if (filters.folderId && entity.folderId === filters.folderId) return true;
+    if (filters.spaceId && entity.spaceId === filters.spaceId) return true;
+    if (
+      filters.taskTypeId &&
+      entity.customTaskTypeId === filters.taskTypeId
+    ) {
+      return true;
+    }
+    return false;
   }
 
   async findOne(

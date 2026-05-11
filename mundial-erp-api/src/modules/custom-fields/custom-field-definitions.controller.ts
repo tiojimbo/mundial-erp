@@ -8,6 +8,7 @@ import {
   Param,
   Post,
   Put,
+  Query,
 } from '@nestjs/common';
 import {
   ApiBearerAuth,
@@ -22,6 +23,7 @@ import { CreateCustomFieldDefinitionDto } from './dtos/create-custom-field-defin
 import { UpdateCustomFieldDefinitionDto } from './dtos/update-custom-field-definition.dto';
 import { CustomFieldDefinitionResponseDto } from './dtos/custom-field-definition-response.dto';
 import { GroupedCustomFieldsResponseDto } from './dtos/grouped-custom-fields-response.dto';
+import { ListCustomFieldsQueryDto } from './dtos/list-custom-fields-query.dto';
 import { Roles } from '../auth/decorators';
 import { WorkspaceId } from '../workspaces/decorators/workspace-id.decorator';
 
@@ -34,11 +36,14 @@ export class CustomFieldDefinitionsController {
   @Get()
   @Roles(Role.ADMIN, Role.MANAGER, Role.OPERATOR, Role.VIEWER)
   @ApiOperation({
-    summary: 'Listar custom fields agrupados por escopo',
+    summary: 'Listar custom fields agrupados por escopo (filtros opcionais)',
   })
   @ApiResponse({ status: 200, type: GroupedCustomFieldsResponseDto })
-  list(@WorkspaceId() workspaceId: string) {
-    return this.service.list(workspaceId);
+  list(
+    @WorkspaceId() workspaceId: string,
+    @Query() query: ListCustomFieldsQueryDto,
+  ) {
+    return this.service.list(workspaceId, query);
   }
 
   @Get(':id')
