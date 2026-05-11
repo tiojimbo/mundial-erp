@@ -172,6 +172,38 @@ export class SpacesService {
     return items.map(SpaceDetailDto.fromEntity);
   }
 
+  async findSharedWithMe(
+    workspaceId: string,
+    userId: string,
+  ): Promise<SpaceDetailDto[]> {
+    const items = await this.prisma.space.findMany({
+      where: {
+        workspaceId,
+        deletedAt: null,
+        creatorId: { not: userId },
+        members: { some: { userId } },
+      },
+      orderBy: { position: 'asc' },
+      include: {
+        folders: {
+          where: { deletedAt: null },
+          orderBy: { position: 'asc' },
+          include: {
+            lists: {
+              where: { deletedAt: null },
+              orderBy: { position: 'asc' },
+            },
+          },
+        },
+        statuses: {
+          where: { deletedAt: null },
+          orderBy: { sortOrder: 'asc' },
+        },
+      },
+    });
+    return items.map(SpaceDetailDto.fromEntity);
+  }
+
   async findById(
     workspaceId: string,
     id: string,
@@ -424,6 +456,17 @@ export class SpacesService {
   async getSidebarTree(workspaceId: string) {
     const spaces =
       await this.spacesRepository.getSidebarTree(workspaceId);
+    const mapProcess = (l: (typeof spaces)[number]['lists'][number]) => ({
+      id: l.id,
+      name: l.name,
+      slug: l.slug,
+      processType: l.processType,
+      description: l.description,
+      featureRoute: l.featureRoute,
+      isPrivate: l.isPrivate,
+      isProtected: l.isProtected,
+      sortOrder: l.position,
+    });
     return spaces.map((sp) => ({
       id: sp.id,
       name: sp.name,
@@ -435,8 +478,17 @@ export class SpacesService {
       isDefault: sp.isDefault,
       isProtected: sp.isProtected,
       sortOrder: sp.position,
-      areas: sp.folders,
-      directProcesses: sp.lists,
+      areas: sp.folders.map((f) => ({
+        id: f.id,
+        name: f.name,
+        slug: f.slug,
+        description: f.description,
+        isPrivate: f.isPrivate,
+        sortOrder: f.position,
+        isDefault: f.isDefault,
+        processes: f.lists.map(mapProcess),
+      })),
+      directProcesses: sp.lists.map(mapProcess),
     }));
   }
 

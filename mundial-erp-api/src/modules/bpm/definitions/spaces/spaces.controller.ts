@@ -59,6 +59,20 @@ export class SpacesController {
     return this.spacesService.findAll(workspaceId);
   }
 
+  @Get('shared-with-me')
+  @SkipResponseTransform()
+  @Roles(Role.ADMIN, Role.MANAGER, Role.OPERATOR, Role.VIEWER)
+  @ApiOperation({
+    summary: 'Spaces dos quais o usuário é membro mas não criador',
+  })
+  @ApiResponse({ status: 200, type: [SpaceResponseDto] })
+  sharedWithMe(
+    @WorkspaceId() workspaceId: string,
+    @CurrentUser() user: JwtPayload,
+  ) {
+    return this.spacesService.findSharedWithMe(workspaceId, user.sub);
+  }
+
   @Get('sidebar')
   @Roles(Role.ADMIN, Role.MANAGER, Role.OPERATOR, Role.VIEWER)
   @ApiOperation({ summary: 'Árvore de departamentos para sidebar' })
