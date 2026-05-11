@@ -962,6 +962,8 @@ model WorkItem {
   // Modulo autonomo: valores de campos personalizados associados a esta task.
   customFieldValues CustomFieldValue[]
 
+  mirrorOf          Order[]            @relation("OrderMirror")
+
   @@index([listId, statusId], name: "idx_work_items_list_status")
   @@index([primaryAssigneeCache, statusId], name: "idx_work_items_assignee_status")
   @@index([dueDate], name: "idx_work_items_due_date")
@@ -1899,6 +1901,7 @@ model Order {
   orderTypeId            String?     @map("order_type_id")
   orderFlowId            String?     @map("order_flow_id")
   orderModelId           String?     @map("order_model_id")
+  workItemId             String?     @map("work_item_id")
   createdAt              DateTime    @default(now()) @map("created_at")
   updatedAt              DateTime    @updatedAt @map("updated_at")
   deletedAt              DateTime?   @map("deleted_at")
@@ -1914,6 +1917,7 @@ model Order {
   orderType          OrderType?           @relation(fields: [orderTypeId], references: [id])
   orderFlow          OrderFlow?           @relation(fields: [orderFlowId], references: [id])
   orderModel         OrderModel?          @relation(fields: [orderModelId], references: [id])
+  workItem           WorkItem?            @relation("OrderMirror", fields: [workItemId], references: [id])
   items              OrderItem[]
   statusHistory      OrderStatusHistory[]
   processInstances   ProcessInstance[]
@@ -1930,6 +1934,7 @@ model Order {
   @@index([status, createdAt], name: "idx_orders_status_created")
   @@index([createdByUserId], name: "idx_orders_created_by")
   @@index([proFinancasId], name: "idx_orders_pf_id")
+  @@index([workItemId], name: "idx_orders_work_item_id")
   @@map("orders")
 }
 

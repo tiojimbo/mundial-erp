@@ -5,6 +5,7 @@ import { BpmModule } from '../bpm/bpm.module';
 import { OrdersController } from './orders.controller';
 import { OrdersService } from './orders.service';
 import { OrdersRepository } from './orders.repository';
+import { OrderMirrorService } from './order-mirror.service';
 
 // Listeners (side-effects desacoplados via EventEmitter2)
 import { OrderFaturarListener } from './listeners/order-faturar.listener';
@@ -27,6 +28,7 @@ import { ProductionOrderPdfService } from './pdf/production-order-pdf.service';
     // Core
     OrdersRepository,
     OrdersService,
+    OrderMirrorService,
     // Listeners (1 por transicao — PLANO 3.4)
     OrderFaturarListener,
     OrderFaturadoListener,
