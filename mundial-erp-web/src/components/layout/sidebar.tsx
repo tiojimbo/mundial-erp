@@ -24,6 +24,7 @@ import {
   RiEqualizerLine,
   RiTeamLine,
 } from '@remixicon/react';
+import { List } from 'lucide-react';
 import * as ScrollArea from '@radix-ui/react-scroll-area';
 import { useQueryClient } from '@tanstack/react-query';
 import { cn } from '@/lib/cn';
@@ -1205,7 +1206,11 @@ function ProcessItem({
           active ? 'font-medium text-sidebar-foreground' : 'text-sidebar-foreground',
         )}
       >
-        <RiListCheck3 className='size-3.5 shrink-0 text-muted-foreground' />
+        <List
+          className='lucide lucide-list size-3.5 shrink-0 text-muted-foreground'
+          strokeWidth={2}
+          aria-hidden
+        />
         {process.isPrivate && (
           <RiLockLine className='size-3 shrink-0 text-muted-foreground' />
         )}

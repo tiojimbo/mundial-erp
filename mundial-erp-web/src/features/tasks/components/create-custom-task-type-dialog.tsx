@@ -20,7 +20,7 @@ const DEFAULT_ICON = 'CircleDot';
 export function CreateCustomTaskTypeDialog({ open, onOpenChange }: Props) {
   const [icon, setIcon] = useState<string>(DEFAULT_ICON);
   const [name, setName] = useState('');
-  const [namePlural, setNamePlural] = useState('');
+  const [pluralName, setPluralName] = useState('');
   const [description, setDescription] = useState('');
 
   const createType = useCreateCustomTaskType();
@@ -29,7 +29,7 @@ export function CreateCustomTaskTypeDialog({ open, onOpenChange }: Props) {
     if (open) {
       setIcon(DEFAULT_ICON);
       setName('');
-      setNamePlural('');
+      setPluralName('');
       setDescription('');
     }
   }, [open]);
@@ -40,8 +40,8 @@ export function CreateCustomTaskTypeDialog({ open, onOpenChange }: Props) {
     if (!canSubmit) return;
     try {
       await createType.mutateAsync({
-        name: name.trim(),
-        namePlural: namePlural.trim() || undefined,
+        value: name.trim(),
+        pluralName: pluralName.trim() || undefined,
         description: description.trim() || undefined,
         icon,
       });
@@ -99,16 +99,16 @@ export function CreateCustomTaskTypeDialog({ open, onOpenChange }: Props) {
                 <label className='text-xs font-medium'>Nome plural</label>
                 <div className='relative w-full'>
                   <input
-                    value={namePlural}
+                    value={pluralName}
                     onChange={(e) =>
-                      setNamePlural(e.target.value.slice(0, NAME_MAX))
+                      setPluralName(e.target.value.slice(0, NAME_MAX))
                     }
                     placeholder='Tarefas'
                     maxLength={NAME_MAX}
                     className='h-9 w-full min-w-0 rounded-md border border-input bg-transparent px-3 py-1 pr-12 text-sm shadow-xs outline-none transition-[color,box-shadow] focus-visible:border-ring focus-visible:ring-[3px] focus-visible:ring-ring/50'
                   />
                   <span className='pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-[11px] text-muted-foreground'>
-                    {namePlural.length}/{NAME_MAX}
+                    {pluralName.length}/{NAME_MAX}
                   </span>
                 </div>
               </div>

@@ -4,7 +4,7 @@ import { useEffect, useRef } from 'react';
 import { useMessages } from '../../hooks/use-messages';
 import { MessageItem } from './message-item';
 import type { Message } from '../../types/chat.types';
-import { formatDate } from '@/lib/formatters';
+import { formatLongDatePtBR } from '@/lib/formatters';
 
 type MessageListProps = {
   channelId: string;
@@ -96,12 +96,10 @@ export function MessageList({ channelId }: MessageListProps) {
       {groupedMessages.map(({ date, messages: dayMessages }) => (
         <div key={date}>
           {/* Date separator */}
-          <div className='flex items-center gap-4 px-4 py-4'>
-            <div className='h-px flex-1 bg-stroke-soft-200' />
+          <div className='px-4 py-4 text-center'>
             <span className='whitespace-nowrap text-label-xs font-medium text-text-soft-400'>
               {date}
             </span>
-            <div className='h-px flex-1 bg-stroke-soft-200' />
           </div>
 
           {dayMessages.map((message) => (
@@ -118,7 +116,7 @@ function groupByDate(messages: Message[]) {
   let currentDate = '';
 
   for (const message of messages) {
-    const date = formatDate(message.createdAt);
+    const date = formatLongDatePtBR(message.createdAt);
     if (date !== currentDate) {
       currentDate = date;
       groups.push({ date, messages: [message] });

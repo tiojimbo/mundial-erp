@@ -6,8 +6,8 @@ type ListEnvelope = { data: CustomTaskType[]; meta: unknown };
 type DetailEnvelope = { data: CustomTaskType; meta: unknown };
 
 export interface CreateCustomTaskTypePayload {
-  name: string;
-  namePlural?: string;
+  value: string;
+  pluralName?: string;
   description?: string;
   icon?: string;
   color?: string;

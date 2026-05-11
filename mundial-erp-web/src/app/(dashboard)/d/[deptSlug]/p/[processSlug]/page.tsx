@@ -2,20 +2,18 @@
 
 import { useMemo, useState } from 'react';
 import { useParams, useRouter } from 'next/navigation';
-import Link from 'next/link';
 import {
   RiAddLine,
   RiListCheck2,
   RiLayoutColumnLine,
   RiChat1Line,
   RiPushpinLine,
-  RiFolderOpenLine,
-  RiArrowDownSLine,
-  RiStarLine,
   RiCalendar2Line,
   RiBarChart2Line,
   type RemixiconComponentType,
 } from '@remixicon/react';
+import { Folder, LayoutList } from 'lucide-react';
+import { BreadcrumbTrail } from '@/components/layout/breadcrumb-trail';
 import { useSidebarTree } from '@/features/navigation/hooks/use-sidebar-tree';
 import { useAuth } from '@/providers/auth-provider';
 import { useDeleteProcessView } from '@/features/process-views/hooks/use-delete-process-view';
@@ -329,44 +327,18 @@ export default function GenericProcessPage() {
     <div className="relative -m-4 flex min-h-0 flex-1 flex-col overflow-hidden lg:-m-6">
       {/* Page Header — FIXO (não rola) */}
       <div className="shrink-0 border-b-[0.8px] border-stroke-soft-200">
-        {/* Breadcrumb */}
-        <header className="flex items-center gap-[6px] px-10 py-4">
-          <Link
-            href={`/d/${dept.slug}`}
-            className="max-w-[200px] truncate text-[13px] font-normal tracking-[-0.143px] text-text-sub-600 transition-colors hover:text-text-strong-950"
-          >
-            {dept.name}
-          </Link>
-          <span className="text-[12px] tracking-[-0.143px] text-text-sub-600/40">
-            /
-          </span>
-          <RiFolderOpenLine className="size-4 text-text-sub-600" />
-          <span className="max-w-[200px] truncate text-[13px] font-semibold tracking-[-0.143px] text-text-strong-950">
-            {area ? area.name : process.name}
-          </span>
-          {area && (
-            <>
-              <span className="text-[12px] tracking-[-0.143px] text-text-sub-600/40">
-                /
-              </span>
-              <span className="max-w-[200px] truncate text-[13px] font-semibold tracking-[-0.143px] text-text-strong-950">
-                {process.name}
-              </span>
-            </>
-          )}
-          <button
-            type="button"
-            className="flex items-center text-text-sub-600 transition-colors hover:text-text-strong-950"
-          >
-            <RiArrowDownSLine className="size-3.5" />
-          </button>
-          <button
-            type="button"
-            className="ml-1 text-text-sub-600 transition-colors hover:text-text-strong-950"
-          >
-            <RiStarLine className="size-3.5" />
-          </button>
-        </header>
+        <BreadcrumbTrail
+          items={[
+            { label: dept.name, href: `/d/${dept.slug}` },
+            ...(area
+              ? [
+                  { label: area.name, icon: Folder, href: `/d/${dept.slug}/a/${area.slug}` },
+                  { label: process.name, icon: LayoutList },
+                ]
+              : [{ label: process.name, icon: Folder }]),
+          ]}
+          favorite={{ active: false }}
+        />
 
         {/* Tabs */}
         <nav className="flex items-center overflow-x-auto border-b-[0.25px] border-stroke-soft-200 px-10">

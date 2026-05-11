@@ -2,7 +2,7 @@
 
 import { useState } from 'react';
 import Link from 'next/link';
-import { RiArrowDownSLine, RiMoreLine } from '@remixicon/react';
+import { RiMoreLine } from '@remixicon/react';
 import { cn } from '@/lib/cn';
 import * as Dropdown from '@/components/ui/dropdown';
 import type { ProcessSummary } from '@/features/navigation/types/process-summary.types';
@@ -37,15 +37,32 @@ export function ProcessCard({
         {/* Collapse button */}
         <button
           type="button"
-          onClick={() => setCollapsed(!collapsed)}
-          className="flex size-6 shrink-0 cursor-pointer items-center justify-center rounded-md bg-primary-base/10 text-primary-base transition-colors hover:bg-primary-base/20"
+          onClick={() => setCollapsed((v) => !v)}
+          aria-expanded={!collapsed}
+          aria-label={collapsed ? 'Expandir lista' : 'Recolher lista'}
+          className={cn(
+            'flex h-6 w-6 shrink-0 cursor-pointer items-center justify-center rounded-md transition-colors',
+            'bg-[#E8E8E8] text-text-strong-950 hover:bg-[#dedede]',
+          )}
         >
-          <RiArrowDownSLine
+          <svg
+            xmlns="http://www.w3.org/2000/svg"
+            width="24"
+            height="24"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            strokeWidth="2"
+            strokeLinecap="round"
+            strokeLinejoin="round"
             className={cn(
-              'size-4 transition-transform duration-200',
-              collapsed && '-rotate-90',
+              'lucide lucide-chevron-right h-3.5 w-3.5 transition-transform duration-200',
+              !collapsed && 'rotate-90',
             )}
-          />
+            aria-hidden="true"
+          >
+            <path d="m9 18 6-6-6-6" />
+          </svg>
         </button>
 
         {/* Title */}

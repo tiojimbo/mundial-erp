@@ -50,7 +50,7 @@ export default function CustomTaskTypesSettingsPage(): JSX.Element {
                 {type.icon?.slice(0, 2).toUpperCase() ?? 'T'}
               </div>
               <div className="flex-1">
-                <p className="text-label-sm text-text-strong-950">{type.name}</p>
+                <p className="text-label-sm text-text-strong-950">{type.value}</p>
                 <p className="text-paragraph-xs text-text-sub-600">
                   {type.workspaceId
                     ? 'Especifico do workspace'

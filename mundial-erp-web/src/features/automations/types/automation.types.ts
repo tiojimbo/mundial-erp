@@ -59,6 +59,34 @@ export type AutomationActionDef = {
   params?: string[];
 };
 
+export type AutomationStatusRow = {
+  id: string;
+  name: string;
+  category: string;
+  color: string | null;
+  icon: string | null;
+  sortOrder: number;
+  isDefault: boolean;
+  spaceId: string;
+  folderId: string | null;
+  space: { id: string; name: string };
+  folder: { id: string; name: string; spaceId: string } | null;
+};
+
+export type AutomationStatusesByScope = {
+  spaces: Array<{
+    id: string;
+    name: string;
+    statuses: AutomationStatusRow[];
+  }>;
+  folders: Array<{
+    id: string;
+    name: string;
+    spaceId: string;
+    statuses: AutomationStatusRow[];
+  }>;
+};
+
 export type CreateAutomationPayload = {
   name: string;
   description?: string;

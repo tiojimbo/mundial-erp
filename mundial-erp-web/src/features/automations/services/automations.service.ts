@@ -2,6 +2,7 @@ import { api } from '@/lib/api';
 import type {
   Automation,
   AutomationActionDef,
+  AutomationStatusesByScope,
   AutomationTriggerDef,
   CreateAutomationPayload,
   UpdateAutomationPayload,
@@ -54,6 +55,13 @@ export const automationsService = {
   async listActions(): Promise<AutomationActionDef[]> {
     const { data } = await api.get<AutomationActionDef[]>(
       '/ai/automation/actions',
+    );
+    return data;
+  },
+
+  async listStatuses(): Promise<AutomationStatusesByScope> {
+    const { data } = await api.get<AutomationStatusesByScope>(
+      '/ai/automation/statuses',
     );
     return data;
   },

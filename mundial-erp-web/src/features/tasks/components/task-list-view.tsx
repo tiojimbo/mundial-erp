@@ -502,7 +502,7 @@ function CustomTypeFilter({
   value,
   onChange,
 }: {
-  options: Array<{ id: string; name: string }>;
+  options: Array<{ id: string; value: string }>;
   value: string[];
   onChange: (next: string[]) => void;
 }): JSX.Element {
@@ -534,7 +534,7 @@ function CustomTypeFilter({
               )}
               aria-pressed={selected}
             >
-              {option.name}
+              {option.value}
             </button>
           );
         })}

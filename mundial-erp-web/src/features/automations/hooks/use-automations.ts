@@ -41,6 +41,14 @@ export function useAutomationActions() {
   });
 }
 
+export function useAutomationStatuses() {
+  return useQuery({
+    queryKey: [...AUTOMATIONS_KEY, 'statuses'] as const,
+    queryFn: () => automationsService.listStatuses(),
+    staleTime: 5 * 60_000,
+  });
+}
+
 export function useCreateAutomation() {
   const qc = useQueryClient();
   return useMutation({

@@ -27,6 +27,15 @@ export function formatDate(dateStr: string): string {
   return new Intl.DateTimeFormat('pt-BR').format(new Date(dateStr));
 }
 
+/** Ex.: 11 de maio de 2026 — para cabeçalhos de dia em timeline/chat */
+export function formatLongDatePtBR(dateStr: string): string {
+  return new Intl.DateTimeFormat('pt-BR', {
+    day: 'numeric',
+    month: 'long',
+    year: 'numeric',
+  }).format(new Date(dateStr));
+}
+
 export function formatShortDate(dateStr: string): string {
   return new Intl.DateTimeFormat('pt-BR', {
     day: 'numeric',

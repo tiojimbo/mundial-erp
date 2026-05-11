@@ -74,7 +74,7 @@ export function CustomTaskTypesList(): JSX.Element {
               <Icon className="size-4" aria-hidden />
             </div>
             <div className="flex-1">
-              <p className="text-label-sm text-text-strong-950">{type.name}</p>
+              <p className="text-label-sm text-text-strong-950">{type.value}</p>
               <p className="text-paragraph-xs text-text-sub-600">
                 {type.workspaceId
                   ? 'Especifico do workspace'
@@ -89,7 +89,7 @@ export function CustomTaskTypesList(): JSX.Element {
             {hasTemplate && (
               <span
                 className="inline-flex h-6 items-center gap-1 rounded-md bg-feature-lighter px-2 text-subheading-2xs text-feature-base"
-                aria-label={`${type.name} possui template configurado`}
+                aria-label={`${type.value} possui template configurado`}
               >
                 Template
               </span>

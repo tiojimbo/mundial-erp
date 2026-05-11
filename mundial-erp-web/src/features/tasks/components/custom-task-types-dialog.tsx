@@ -29,7 +29,7 @@ export function CustomTaskTypesDialog({ open, onOpenChange }: Props) {
       if (a.id === 'builtin-task') return -1;
       if (b.id === 'builtin-task') return 1;
       if (a.isBuiltin !== b.isBuiltin) return a.isBuiltin ? -1 : 1;
-      return a.name.localeCompare(b.name);
+      return a.value.localeCompare(b.value);
     });
   }, [data]);
 
@@ -99,7 +99,7 @@ export function CustomTaskTypesDialog({ open, onOpenChange }: Props) {
                             aria-hidden
                           />
                           <span className='text-sm font-medium'>
-                            {type.name}
+                            {type.value}
                             {isDefault && (
                               <span className='ml-2 text-xs text-muted-foreground'>
                                 (default)
@@ -128,7 +128,7 @@ export function CustomTaskTypesDialog({ open, onOpenChange }: Props) {
                               type='button'
                               disabled={!canMutate}
                               onClick={notImplemented}
-                              aria-label={`Editar ${type.name}`}
+                              aria-label={`Editar ${type.value}`}
                               className='inline-flex size-7 cursor-pointer items-center justify-center rounded-md transition-all hover:bg-accent hover:text-accent-foreground disabled:pointer-events-none disabled:opacity-50'
                             >
                               <Pencil className='size-3.5' />
@@ -137,7 +137,7 @@ export function CustomTaskTypesDialog({ open, onOpenChange }: Props) {
                               type='button'
                               disabled={!canMutate}
                               onClick={notImplemented}
-                              aria-label={`Excluir ${type.name}`}
+                              aria-label={`Excluir ${type.value}`}
                               className='inline-flex size-7 cursor-pointer items-center justify-center rounded-md text-destructive transition-all hover:bg-accent hover:text-destructive disabled:pointer-events-none disabled:opacity-50'
                             >
                               <Trash2 className='size-3.5' />

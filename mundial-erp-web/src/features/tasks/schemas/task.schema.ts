@@ -104,7 +104,8 @@ export const taskTagSchema = z.object({
  */
 export const customTaskTypeSchema = z.object({
   id: z.string().uuid(),
-  name: z.string(),
+  value: z.string(),
+  pluralName: z.string().nullable().optional(),
   icon: z.string().nullable(),
   color: z.string().nullable(),
   workspaceId: z.string().uuid().nullable(),

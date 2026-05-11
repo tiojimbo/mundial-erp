@@ -465,7 +465,7 @@ export function CreateTaskDialog({
                     <option value="">Padrao (Tarefa)</option>
                     {(customTypesQuery.data ?? []).map((t) => (
                       <option key={t.id} value={t.id}>
-                        {t.name}
+                        {t.value}
                       </option>
                     ))}
                   </select>
@@ -476,7 +476,7 @@ export function CreateTaskDialog({
                 </div>
 
                 <CustomTypeTemplatePreview
-                  selectedTypeName={selectedCustomType?.name ?? null}
+                  selectedTypeName={selectedCustomType?.value ?? null}
                   template={typeTemplate ?? null}
                   isFetching={isFetchingTemplate}
                 />

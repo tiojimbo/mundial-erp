@@ -14,7 +14,7 @@ export type TaskTypeRowProps = {
 };
 
 export function TaskTypeRow({ task }: TaskTypeRowProps) {
-  const label = task.customType?.name ?? (task.itemType === 'MILESTONE' ? 'Marco' : 'Task');
+  const label = task.customType?.value ?? (task.itemType === 'MILESTONE' ? 'Marco' : 'Task');
   return (
     <header className="flex items-center gap-2">
       <button
