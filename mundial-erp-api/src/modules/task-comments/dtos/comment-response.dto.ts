@@ -7,6 +7,12 @@ export interface CommentUserShape {
   email: string;
 }
 
+export interface CommentReactionShape {
+  emoji: string;
+  userId: string;
+  createdAt: Date;
+}
+
 export interface CommentShape {
   id: string;
   workItemId: string;
@@ -24,6 +30,7 @@ export interface CommentShape {
   author?: CommentUserShape | null;
   assignee?: CommentUserShape | null;
   assignedBy?: CommentUserShape | null;
+  reactions?: CommentReactionShape[];
 }
 
 export class CommentUserDto {
@@ -35,6 +42,17 @@ export class CommentUserDto {
 
   @ApiProperty()
   email!: string;
+}
+
+export class CommentReactionDto {
+  @ApiProperty()
+  emoji!: string;
+
+  @ApiProperty()
+  userId!: string;
+
+  @ApiProperty()
+  createdAt!: Date;
 }
 
 export class CommentResponseDto {
@@ -83,6 +101,9 @@ export class CommentResponseDto {
   @ApiPropertyOptional({ type: CommentUserDto })
   assignedBy!: CommentUserDto | null;
 
+  @ApiProperty({ type: [CommentReactionDto] })
+  reactions!: CommentReactionDto[];
+
   static fromEntity(entity: CommentShape): CommentResponseDto {
     const dto = new CommentResponseDto();
     dto.id = entity.id;
@@ -102,6 +123,7 @@ export class CommentResponseDto {
     dto.author = entity.author ?? null;
     dto.assignee = entity.assignee ?? null;
     dto.assignedBy = entity.assignedBy ?? null;
+    dto.reactions = entity.reactions ?? [];
     return dto;
   }
 }

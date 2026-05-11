@@ -22,6 +22,7 @@ import type {
   taskLinkSchema,
   taskWatcherSchema,
   taskAttachmentSchema,
+  commentReactionSchema,
   taskCommentSchema,
   taskActivitySchema,
   taskTemplateSchema,
@@ -73,6 +74,7 @@ export type TaskDependenciesBundle = z.infer<
 export type TaskLink = z.infer<typeof taskLinkSchema>;
 export type TaskWatcher = z.infer<typeof taskWatcherSchema>;
 export type TaskAttachment = z.infer<typeof taskAttachmentSchema>;
+export type CommentReaction = z.infer<typeof commentReactionSchema>;
 export type TaskComment = z.infer<typeof taskCommentSchema>;
 export type TaskActivity = z.infer<typeof taskActivitySchema>;
 export type TaskTemplate = z.infer<typeof taskTemplateSchema>;

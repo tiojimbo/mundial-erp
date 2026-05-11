@@ -57,4 +57,17 @@ export const taskCommentsService = {
   async remove(commentId: string): Promise<void> {
     await api.delete(`/comments/${commentId}`);
   },
+
+  async toggleReaction(
+    commentId: string,
+    emoji: string,
+  ): Promise<{ action: 'added' | 'removed'; emoji: string }> {
+    const { data } = await api.post<{
+      action: 'added' | 'removed';
+      emoji: string;
+      commentId: string;
+      userId: string;
+    }>(`/comments/${commentId}/reactions`, { emoji });
+    return { action: data.action, emoji: data.emoji };
+  },
 };

@@ -243,6 +243,12 @@ export const taskAttachmentSchema = z.object({
   createdAt: z.string().datetime(),
 });
 
+export const commentReactionSchema = z.object({
+  emoji: z.string(),
+  userId: z.string().uuid(),
+  createdAt: z.string().datetime(),
+});
+
 export const taskCommentSchema = z.object({
   id: z.string().uuid(),
   taskId: z.string().uuid(),
@@ -252,6 +258,7 @@ export const taskCommentSchema = z.object({
   bodyBlocks: z.unknown().nullable(),
   editedAt: z.string().datetime().nullable(),
   createdAt: z.string().datetime(),
+  reactions: z.array(commentReactionSchema).default([]),
 });
 
 export const taskActivitySchema = z.object({

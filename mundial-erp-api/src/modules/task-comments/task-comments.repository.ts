@@ -25,6 +25,10 @@ const COMMENT_SELECT = {
   author: { select: USER_PUBLIC_SELECT },
   assignee: { select: USER_PUBLIC_SELECT },
   assignedBy: { select: USER_PUBLIC_SELECT },
+  reactions: {
+    select: { emoji: true, userId: true, createdAt: true },
+    orderBy: { createdAt: 'asc' as const },
+  },
 } as const;
 
 export interface CommentCreateInput {
