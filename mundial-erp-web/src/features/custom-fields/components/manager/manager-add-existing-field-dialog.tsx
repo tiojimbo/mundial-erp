@@ -88,7 +88,7 @@ export function ManagerAddExistingFieldDialog({
 
   return (
     <Modal.Root open={open} onOpenChange={(next) => !next && onClose()}>
-      <Modal.Content>
+      <Modal.Content overlayClassName="bg-black/60 backdrop-blur-none">
         <Modal.Header>
           <Modal.Title>Adicionar campo existente</Modal.Title>
         </Modal.Header>

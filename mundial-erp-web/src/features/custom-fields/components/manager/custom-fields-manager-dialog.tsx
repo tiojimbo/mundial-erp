@@ -53,6 +53,7 @@ export function CustomFieldsManagerDialog({
       <Modal.Root open={open} onOpenChange={(next) => !next && onClose()}>
         <Modal.Content
           showClose={false}
+          overlayClassName="bg-black/60 backdrop-blur-none"
           className="!w-[95vw] !max-w-[95vw] flex h-[90vh] max-h-[90vh] flex-col overflow-hidden !rounded-lg border p-0"
         >
           <Modal.Title className="sr-only">
