@@ -9,12 +9,12 @@ import {
   forwardRef,
 } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
-import { Prisma } from '@prisma/client';
+import { Prisma, TaskPriority } from '@prisma/client';
 import type Redis from 'ioredis';
 import { PrismaService } from '../../database/prisma.service';
 import { REDIS_CLIENT } from '../../common/redis/redis.constants';
 import { MergeCycleException } from '../../common/exceptions/merge-cycle.exception';
-import { TasksRepository } from './tasks.repository';
+import { TasksRepository, TASK_LIST_SELECT } from './tasks.repository';
 import { TaskFiltersDto } from './dtos/task-filters.dto';
 import { CreateTaskDto } from './dtos/create-task.dto';
 import { UpdateTaskDto } from './dtos/update-task.dto';
@@ -131,7 +131,7 @@ export class TasksService {
    * Fluxo:
    *   1. Valida cross-tenant: process pertence ao workspace (404 se nao — §8.1).
    *   2. Resolve statusId: usa `dto.statusId` se fornecido, senao primeiro
-   *      `WorkflowStatus NOT_STARTED` do departamento do process.
+   *      `Status NOT_STARTED` do departamento do process.
    *   3. Valida datas: `dueDate >= startDate` (400 se invalido).
    *   4. Em `$transaction`:
    *      a. `repository.createTask(tx, ...)` — cria WorkItem via repository.
@@ -178,11 +178,13 @@ export class TasksService {
         await this.repository.findFirstStatusForProcess(listId);
       if (!defaultStatus) {
         throw new BadRequestException(
-          'Nenhum WorkflowStatus NOT_STARTED disponivel para este process',
+          'Nenhum Status NOT_STARTED disponivel para este process',
         );
       }
       statusId = defaultStatus.id;
     }
+
+    const customTypeId = dto.customTypeId ?? null;
 
     // 3) Datas: dueDate >= startDate (espelhando regra do update).
     if (dto.dueDate && dto.startDate && dto.dueDate < dto.startDate) {
@@ -202,7 +204,7 @@ export class TasksService {
       const resolved = await this.resolveMarkdownContentWithTemplate(
         tx,
         dto.markdownContent,
-        dto.customTypeId,
+        customTypeId ?? undefined,
         workspaceId,
       );
       templateApplied = resolved.templateApplied;
@@ -218,7 +220,7 @@ export class TasksService {
         startDate: dto.startDate ? new Date(dto.startDate) : null,
         estimatedMinutes: dto.estimatedMinutes ?? null,
         points: dto.points ?? null,
-        customTypeId: dto.customTypeId ?? null,
+        customTypeId,
         parentId,
         creatorId: actorUserId,
       });
@@ -273,7 +275,7 @@ export class TasksService {
             ? new Date(dto.startDate).toISOString()
             : null,
           points: dto.points ?? null,
-          customTypeId: dto.customTypeId ?? null,
+          customTypeId,
         },
         workspaceId,
       });
@@ -285,9 +287,9 @@ export class TasksService {
 
     // Sprint 5 (TTT-050) — incrementa contador apos commit. Adapter Noop
     // ou Prometheus dependendo de METRICS_TOKEN. Nunca quebra create.
-    if (templateApplied && dto.customTypeId && this.templatesMetrics) {
+    if (templateApplied && customTypeId && this.templatesMetrics) {
       this.templatesMetrics.templatesInstantiatedTotal({
-        customTypeId: dto.customTypeId,
+        customTypeId,
         workspaceId,
       });
     }
@@ -302,7 +304,7 @@ export class TasksService {
       listId,
       actorUserId,
       parentTaskId: dto.parentId ?? null,
-      customTaskTypeId: dto.customTypeId ?? null,
+      customTaskTypeId: customTypeId,
     });
     if (dto.parentId) {
       this.automationEvents?.emitSubtaskCreated({
@@ -452,10 +454,7 @@ export class TasksService {
         { level: scope.level, id: scope.id },
         LIST_GROUPED_CAP,
       ),
-      this.repository.findStatusesForScope(workspaceId, {
-        spaceId: scope.spaceId,
-        folderId: scope.folderId,
-      }),
+      this.repository.findStatusesForScope(workspaceId, scope),
     ]);
     if (taskRows.length === LIST_GROUPED_CAP) {
       this.logger.warn(
@@ -482,11 +481,11 @@ export class TasksService {
       group: {
         id: status.id,
         name: status.name,
-        label: status.name,
+        label: status.type,
         type: 'STATUS' as const,
         collapsed: false,
         field: 'statusId' as const,
-        position: status.sortOrder,
+        position: status.position,
         viewId: params.viewId ?? null,
         color: status.color,
       },
@@ -705,11 +704,11 @@ export class TasksService {
         unknown
       >;
       const dto = TaskResponseDto.fromRow(taskRow);
-      const category = (row as { status?: { category?: string } }).status
-        ?.category;
+      const statusType = (row as { status?: { type?: string } }).status
+        ?.type;
       if (
-        category === 'DONE' ||
-        category === 'CLOSED' ||
+        statusType === 'DONE' ||
+        statusType === 'CLOSED' ||
         dto.completedAt !== null ||
         dto.closedAt !== null
       ) {
@@ -1131,6 +1130,66 @@ export class TasksService {
     }
     await this.repository.softDelete(workspaceId, taskId);
     return { message: 'Task removida' };
+  }
+
+  async bulkUpdate(
+    workspaceId: string,
+    tasks: Array<{
+      id: string;
+      statusId?: string;
+      priority?: TaskPriority;
+      primaryAssigneeId?: string | null;
+      dueDate?: string | null;
+      startDate?: string | null;
+      listId?: string;
+      archived?: boolean;
+    }>,
+    _actorId: string,
+  ): Promise<TaskResponseDto[]> {
+    if (tasks.length === 0) return [];
+    const updated = await this.prisma.$transaction(
+      tasks.map((t) => {
+        const data: Prisma.WorkItemUncheckedUpdateInput = {};
+        if (t.statusId !== undefined) data.statusId = t.statusId;
+        if (t.priority !== undefined) data.priority = t.priority;
+        if (t.primaryAssigneeId !== undefined)
+          data.primaryAssigneeCache = t.primaryAssigneeId;
+        if (t.dueDate !== undefined)
+          data.dueDate = t.dueDate ? new Date(t.dueDate) : null;
+        if (t.startDate !== undefined)
+          data.startDate = t.startDate ? new Date(t.startDate) : null;
+        if (t.listId !== undefined) data.listId = t.listId;
+        if (t.archived !== undefined) data.archived = t.archived;
+        return this.prisma.workItem.update({
+          where: { id: t.id, list: { space: { workspaceId } } },
+          data,
+          select: TASK_LIST_SELECT,
+        });
+      }),
+    );
+    return updated.map((row) =>
+      TaskResponseDto.fromRow({
+        ...row,
+        processId: (row as { listId: string }).listId,
+      } as unknown as Record<string, unknown>),
+    );
+  }
+
+  async bulkDelete(
+    workspaceId: string,
+    taskIds: string[],
+    _actorId: string,
+  ): Promise<{ message: string; count: number }> {
+    if (taskIds.length === 0) return { message: 'Nenhuma task', count: 0 };
+    const result = await this.prisma.workItem.updateMany({
+      where: {
+        id: { in: taskIds },
+        list: { space: { workspaceId } },
+        deletedAt: null,
+      },
+      data: { deletedAt: new Date() },
+    });
+    return { message: 'Tasks removidas', count: result.count };
   }
 
   async archive(

@@ -4,20 +4,10 @@
 
 import type { Meta, StoryObj } from '@storybook/react';
 import type { CustomFieldDefinition } from '../../types/custom-field.types';
+import { makeCustomFieldDefinition } from "../../types/custom-field.fixtures";
 import { UrlField } from './url-field';
 
-const baseDef: CustomFieldDefinition = {
-  id: 'def-url-1',
-  workspaceId: null,
-  key: 'link_proposta',
-  label: 'Link da proposta',
-  type: 'URL',
-  required: false,
-  isBuiltin: true,
-  sortOrder: 80,
-  createdAt: '2026-04-25T00:00:00Z',
-  updatedAt: '2026-04-25T00:00:00Z',
-};
+const baseDef: CustomFieldDefinition = makeCustomFieldDefinition({ id: 'def-url-1', workspaceId: null, name: 'Link da proposta', type: 'URL', fixed: true, position: 80 });
 
 const meta: Meta<typeof UrlField> = {
   title: 'CustomFields/UrlField',

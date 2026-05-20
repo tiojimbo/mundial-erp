@@ -10,7 +10,4 @@ export class GroupedFavoritesResponseDto {
 
   @ApiProperty({ type: [FavoriteResponseDto] })
   BOTTOM!: FavoriteResponseDto[];
-
-  @ApiProperty()
-  total!: number;
 }

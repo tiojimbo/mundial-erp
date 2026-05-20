@@ -4,7 +4,7 @@ import { useState } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import { Folder } from 'lucide-react';
 import { BreadcrumbTrail } from '@/components/layout/breadcrumb-trail';
-import { ProcessListView } from '@/features/work-items/components/process-list-view';
+import { ProcessListView } from '@/features/processes/components/process-list-view';
 import { useAreaDetail } from '@/features/navigation/hooks/use-area-detail';
 import { useAreaSummaries } from '@/features/navigation/hooks/use-area-summaries';
 import { CreateTaskDialog } from '@/features/tasks/components/create-task-dialog';
@@ -47,7 +47,7 @@ export default function AreaPage() {
               { label: area.departmentName, href: `/d/${area.departmentSlug}` },
               { label: area.name, icon: Folder },
             ]}
-            favorite={{ active: false }}
+            favoriteTarget={{ entityType: 'FOLDER', entityId: area.id }}
           />
         }
         summaries={summaries}
@@ -57,6 +57,7 @@ export default function AreaPage() {
         departmentId={area.departmentId}
         emptyMessage="Nenhum processo nesta área."
         onCreateTask={() => setIsCreateOpen(true)}
+        customFieldsScope={{ kind: 'folder', folderId: area.id }}
       />
       <CreateTaskDialog
         open={isCreateOpen}

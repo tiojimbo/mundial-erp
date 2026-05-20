@@ -72,7 +72,7 @@ export function FieldShell({
             error && 'text-destructive',
           )}
         >
-          {definition.label}
+          {definition.name}
           {definition.required ? (
             <span aria-hidden="true" className="ml-0.5 text-destructive">
               *

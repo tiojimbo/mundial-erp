@@ -34,7 +34,7 @@ import type {
  */
 export type TaskTypeTemplateFieldDefinition = Pick<
   CustomFieldDefinition,
-  'id' | 'key' | 'label' | 'required' | 'config' | 'sortOrder' | 'isBuiltin'
+  'id' | 'name' | 'label' | 'required' | 'config' | 'position' | 'fixed'
 > & {
   type: CustomFieldType;
 };

@@ -1,15 +1,7 @@
 'use client';
 
 import { useEffect, useRef } from 'react';
-import {
-  Hash,
-  Pin,
-  Search,
-  Settings,
-  Star,
-  Users,
-  Video,
-} from 'lucide-react';
+import { Cog, Hash, Pin, Search, Star, Users, Video } from 'lucide-react';
 import * as Tooltip from '@/components/ui/tooltip';
 import { useChannel, useMarkAsRead } from '../../hooks/use-channels';
 import { useChatStore } from '@/stores/chat.store';
@@ -35,31 +27,35 @@ export function MessageArea({ channelId }: MessageAreaProps) {
     clearUnread(channelId);
   }, [channelId]); // eslint-disable-line react-hooks/exhaustive-deps
 
-  const iconBtn =
-    'inline-flex size-8 shrink-0 items-center justify-center rounded-md text-muted-foreground transition-colors outline-none hover:bg-accent hover:text-accent-foreground focus-visible:ring-[3px] focus-visible:ring-ring/50';
+  const btnBase =
+    "inline-flex shrink-0 items-center justify-center whitespace-nowrap rounded-md text-sm font-medium outline-none transition-all cursor-pointer disabled:pointer-events-none disabled:opacity-50 [&_svg]:pointer-events-none [&_svg]:shrink-0 [&_svg:not([class*='size-'])]:size-4 hover:bg-accent hover:text-accent-foreground dark:hover:bg-accent/50 focus-visible:border-ring focus-visible:ring-ring/50 focus-visible:ring-[3px] aria-invalid:ring-destructive/20 dark:aria-invalid:ring-destructive/40 aria-invalid:border-destructive";
+  const btnSm = `${btnBase} h-8 gap-1.5 px-3 has-[>svg]:px-2.5`;
+  const iconBtn = `${btnBase} size-8 text-muted-foreground`;
+  const iconBtnSm = `${btnBase} size-7 text-muted-foreground`;
 
   return (
     <div className='flex h-full flex-col'>
       {/* Header */}
-      <div className='flex h-14 shrink-0 items-center justify-between gap-3 rounded-xl border border-border bg-background px-4'>
-        <div className='flex min-w-0 flex-1 items-center gap-2'>
+      <div className='flex h-14 shrink-0 items-center justify-between rounded-xl border border-border bg-background px-4'>
+        <div className='flex min-w-0 items-center gap-2'>
           <Hash
             className='size-4 shrink-0 text-muted-foreground'
             aria-hidden
           />
-          <h2 className='truncate text-sm font-semibold text-foreground'>
+          <h2 className='truncate text-sm font-semibold'>
             {channel?.name ?? 'Canal'}
           </h2>
         </div>
-        <div className='flex shrink-0 items-center gap-1'>
+        <div className='flex items-center gap-1'>
           <Tooltip.Root>
             <Tooltip.Trigger asChild>
               <button
                 type='button'
-                className='inline-flex h-8 items-center justify-center gap-1.5 rounded-md px-3 text-sm font-medium text-foreground transition-colors outline-none hover:bg-accent hover:text-accent-foreground focus-visible:ring-[3px] focus-visible:ring-ring/50'
+                data-slot='button'
+                className={btnSm}
                 aria-label='Iniciar chamada'
               >
-                <Video className='size-4 shrink-0' aria-hidden />
+                <Video className='size-4' aria-hidden />
                 <span className='ml-1 hidden md:inline'>Iniciar chamada</span>
               </button>
             </Tooltip.Trigger>
@@ -69,19 +65,25 @@ export function MessageArea({ channelId }: MessageAreaProps) {
           <MembersPopover channelId={channelId}>
             <button
               type='button'
-              className='inline-flex h-8 items-center justify-center gap-1.5 rounded-md px-3 text-sm font-medium text-muted-foreground transition-colors outline-none hover:bg-accent hover:text-accent-foreground focus-visible:ring-[3px] focus-visible:ring-ring/50'
+              data-slot='popover-trigger'
+              className={`${btnSm} text-muted-foreground`}
               aria-haspopup='dialog'
             >
-              <Users className='size-4 shrink-0' aria-hidden />
+              <Users className='size-4' aria-hidden />
               {channel?.memberCount !== undefined ? (
-                <span className='text-xs tabular-nums'>{channel.memberCount}</span>
+                <span className='text-xs'>{channel.memberCount}</span>
               ) : null}
             </button>
           </MembersPopover>
 
           <Tooltip.Root>
             <Tooltip.Trigger asChild>
-              <button type='button' className={iconBtn} aria-label='Buscar'>
+              <button
+                type='button'
+                data-slot='tooltip-trigger'
+                className={iconBtn}
+                aria-label='Buscar'
+              >
                 <Search className='size-4' aria-hidden />
               </button>
             </Tooltip.Trigger>
@@ -90,7 +92,12 @@ export function MessageArea({ channelId }: MessageAreaProps) {
 
           <Tooltip.Root>
             <Tooltip.Trigger asChild>
-              <button type='button' className={iconBtn} aria-label='Fixar'>
+              <button
+                type='button'
+                data-slot='tooltip-trigger'
+                className={iconBtn}
+                aria-label='Fixar'
+              >
                 <Pin className='size-4' aria-hidden />
               </button>
             </Tooltip.Trigger>
@@ -101,8 +108,10 @@ export function MessageArea({ channelId }: MessageAreaProps) {
             <Tooltip.Trigger asChild>
               <button
                 type='button'
-                className='inline-flex size-7 shrink-0 items-center justify-center rounded-md text-muted-foreground transition-colors outline-none hover:bg-accent hover:text-accent-foreground focus-visible:ring-[3px] focus-visible:ring-ring/50'
+                data-slot='tooltip-trigger'
+                className={iconBtnSm}
                 aria-label='Favoritar canal'
+                aria-haspopup='dialog'
               >
                 <Star className='size-3.5' aria-hidden />
               </button>
@@ -114,10 +123,11 @@ export function MessageArea({ channelId }: MessageAreaProps) {
             <Tooltip.Trigger asChild>
               <button
                 type='button'
+                data-slot='tooltip-trigger'
                 className={iconBtn}
                 aria-label='Configurações do canal'
               >
-                <Settings className='size-4' aria-hidden />
+                <Cog className='size-4' aria-hidden />
               </button>
             </Tooltip.Trigger>
             <Tooltip.Content>Em breve</Tooltip.Content>

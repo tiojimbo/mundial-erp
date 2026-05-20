@@ -25,6 +25,13 @@ export const envSchema = z
   PRO_FINANCAS_EMAIL: z.string().optional(),
   PRO_FINANCAS_PASSWORD: z.string().optional(),
 
+  // CNPJ Lookup (autopreencher custom-field tipo CNPJ).
+  // BrasilAPI primario (sem key) + ReceitaWS fallback. Cache Redis 7d.
+  BRASIL_API_TIMEOUT_MS: z.coerce.number().default(4000),
+  RECEITA_WS_TIMEOUT_MS: z.coerce.number().default(6000),
+  RECEITA_WS_API_KEY: z.string().optional(),
+  CNPJ_LOOKUP_CACHE_TTL_SECONDS: z.coerce.number().default(604800),
+
   // App
   PORT: z.coerce.number().default(3001),
   NODE_ENV: z

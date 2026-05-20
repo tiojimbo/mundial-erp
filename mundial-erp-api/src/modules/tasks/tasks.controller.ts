@@ -25,6 +25,11 @@ import { CreateTaskDto } from './dtos/create-task.dto';
 import { UpdateTaskDto } from './dtos/update-task.dto';
 import { AssignTaskDto } from './dtos/assign-task.dto';
 import { TaskResponseDto } from './dtos/task-response.dto';
+import {
+  BulkDeleteTasksDto,
+  BulkUpdateTasksDto,
+  BulkUpdateTaskItemDto,
+} from './dtos/bulk-update-tasks.dto';
 import { TaskDetailResponseDto } from './dtos/task-detail-response.dto';
 import { ParseTaskIncludePipe } from './pipes/parse-task-include.pipe';
 import { CurrentUser, Roles } from '../auth/decorators';
@@ -64,7 +69,7 @@ export class TasksController {
   @Roles(Role.ADMIN, Role.MANAGER, Role.OPERATOR, Role.VIEWER)
   @ApiOperation({
     summary:
-      'Tasks de um space agrupadas por list (Hoppe). NOTE: list.folder pode ser null quando a list e direta no space (Mundial permite, Hoppe puro nao)',
+      'Tasks de um space agrupadas por list (divergencia Mundial). Hoppe agrupa apenas por status via GET /tasks/list?level=space&spaceId. Esse endpoint existe pra UI Mundial que precisa do shape [{list:{id,name,folder?}, tasks[]}]; list.folder pode ser null quando a list e direta no space.',
   })
   @ApiResponse({ status: 200 })
   @ApiResponse({ status: 404, description: 'Space nao encontrado' })
@@ -206,6 +211,34 @@ export class TasksController {
     return this.tasksService.create(workspaceId, body, user.sub);
   }
 
+  // IMPORTANTE: rotas com path fixo (`tasks/bulk`) precisam vir ANTES das
+  // rotas com `:taskId`. O matcher do NestJS resolve na ordem de declaracao;
+  // se `:taskId` vier primeiro, `DELETE/PUT /tasks/bulk` cai no handler
+  // single com taskId="bulk" e o bulk nunca executa.
+  @Put('tasks/bulk')
+  @Roles(Role.ADMIN, Role.MANAGER, Role.OPERATOR)
+  @ApiOperation({ summary: 'Bulk update de tasks (Hoppe-style)' })
+  @ApiResponse({ status: 200, type: [TaskResponseDto] })
+  bulkUpdate(
+    @WorkspaceId() workspaceId: string,
+    @Body() dto: BulkUpdateTasksDto,
+    @CurrentUser() user: JwtPayload,
+  ) {
+    return this.tasksService.bulkUpdate(workspaceId, dto.tasks, user.sub);
+  }
+
+  @Delete('tasks/bulk')
+  @Roles(Role.ADMIN, Role.MANAGER, Role.OPERATOR)
+  @ApiOperation({ summary: 'Bulk delete de tasks (Hoppe-style)' })
+  @ApiResponse({ status: 200 })
+  bulkDelete(
+    @WorkspaceId() workspaceId: string,
+    @Body() dto: BulkDeleteTasksDto,
+    @CurrentUser() user: JwtPayload,
+  ) {
+    return this.tasksService.bulkDelete(workspaceId, dto.taskIds, user.sub);
+  }
+
   @Get('tasks/:taskId')
   @Roles(Role.ADMIN, Role.MANAGER, Role.OPERATOR, Role.VIEWER)
   @ApiOperation({ summary: 'Detalhe de uma task (include whitelist)' })
@@ -246,5 +279,4 @@ export class TasksController {
   remove(@WorkspaceId() workspaceId: string, @Param('taskId') taskId: string) {
     return this.tasksService.remove(workspaceId, taskId);
   }
-
 }

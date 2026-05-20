@@ -33,6 +33,13 @@ export const processesService = {
     await api.delete(`/lists/${id}`);
   },
 
+  async updateStatusInherit(
+    id: string,
+    payload: { statusInheritance: 'SPACE' | 'FOLDER' | 'CUSTOM' },
+  ): Promise<void> {
+    await api.put(`/lists/${id}/status`, payload);
+  },
+
   async createActivity(payload: CreateActivityPayload): Promise<ActivityConfig> {
     const { data } = await api.post<ActivityConfig>('/activities', payload);
     return data;

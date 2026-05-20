@@ -383,6 +383,8 @@ function toTaskRow(task: Task): TaskTableRowData {
     href: `/tasks/${task.id}`,
     title: task.title,
     statusColor: task.status.color,
+    typeIcon: task.customType?.icon ?? null,
+    typeLabel: task.customType?.value ?? null,
     startDate: task.startDate,
     dueDate: task.dueDate,
     assignees: task.assignees.map((a) => ({

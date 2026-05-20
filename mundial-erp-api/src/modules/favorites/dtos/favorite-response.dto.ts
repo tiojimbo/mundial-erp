@@ -1,5 +1,15 @@
-import { ApiProperty } from '@nestjs/swagger';
-import { FavoriteEntity } from '@prisma/client';
+import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
+import { FavoriteEntity, FavoritePosition } from '@prisma/client';
+
+export interface FavoriteEntitySummary {
+  id: string;
+  name: string;
+  icon?: string | null;
+  folderId?: string | null;
+  spaceId?: string | null;
+  listId?: string | null;
+  [key: string]: unknown;
+}
 
 export interface FavoriteShape {
   id: string;
@@ -7,8 +17,10 @@ export interface FavoriteShape {
   workspaceId: string;
   entityType: FavoriteEntity;
   entityId: string;
-  position: number;
+  position: FavoritePosition;
+  order: number;
   createdAt: Date;
+  updatedAt: Date;
 }
 
 export class FavoriteResponseDto {
@@ -27,13 +39,27 @@ export class FavoriteResponseDto {
   @ApiProperty()
   entityId!: string;
 
+  @ApiProperty({ enum: FavoritePosition })
+  position!: FavoritePosition;
+
   @ApiProperty()
-  position!: number;
+  order!: number;
 
   @ApiProperty()
   createdAt!: Date;
 
-  static fromEntity(entity: FavoriteShape): FavoriteResponseDto {
+  @ApiProperty()
+  updatedAt!: Date;
+
+  @ApiPropertyOptional({
+    description: 'Resumo da entidade favoritada (resolvido pelo backend)',
+  })
+  entity?: FavoriteEntitySummary | null;
+
+  static fromEntity(
+    entity: FavoriteShape,
+    entitySummary?: FavoriteEntitySummary | null,
+  ): FavoriteResponseDto {
     const dto = new FavoriteResponseDto();
     dto.id = entity.id;
     dto.userId = entity.userId;
@@ -41,7 +67,10 @@ export class FavoriteResponseDto {
     dto.entityType = entity.entityType;
     dto.entityId = entity.entityId;
     dto.position = entity.position;
+    dto.order = entity.order;
     dto.createdAt = entity.createdAt;
+    dto.updatedAt = entity.updatedAt;
+    dto.entity = entitySummary ?? null;
     return dto;
   }
 }

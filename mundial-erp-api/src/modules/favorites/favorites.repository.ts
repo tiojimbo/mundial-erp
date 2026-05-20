@@ -1,6 +1,7 @@
 import { Injectable } from '@nestjs/common';
-import { FavoriteEntity, Prisma } from '@prisma/client';
+import { FavoriteEntity, FavoritePosition, Prisma } from '@prisma/client';
 import { PrismaService } from '../../database/prisma.service';
+import { FavoriteEntitySummary } from './dtos/favorite-response.dto';
 
 const FAVORITE_SELECT = {
   id: true,
@@ -9,7 +10,9 @@ const FAVORITE_SELECT = {
   entityType: true,
   entityId: true,
   position: true,
+  order: true,
   createdAt: true,
+  updatedAt: true,
 } as const;
 
 @Injectable()
@@ -21,13 +24,13 @@ export class FavoritesRepository {
     workspaceId: string,
     options: { entityType?: FavoriteEntity; skip?: number; take?: number } = {},
   ) {
-    const { entityType, skip = 0, take = 100 } = options;
+    const { entityType, skip = 0, take = 200 } = options;
     const where: Prisma.FavoriteWhereInput = { userId, workspaceId };
     if (entityType) where.entityType = entityType;
     const [items, total] = await Promise.all([
       this.prisma.favorite.findMany({
         where,
-        orderBy: [{ position: 'asc' }, { createdAt: 'asc' }],
+        orderBy: [{ position: 'asc' }, { order: 'asc' }, { createdAt: 'asc' }],
         select: FAVORITE_SELECT,
         skip,
         take,
@@ -68,7 +71,8 @@ export class FavoritesRepository {
     workspaceId: string;
     entityType: FavoriteEntity;
     entityId: string;
-    position: number;
+    position: FavoritePosition;
+    order: number;
   }) {
     return this.prisma.favorite.create({ data, select: FAVORITE_SELECT });
   }
@@ -137,5 +141,118 @@ export class FavoritesRepository {
           })
           .then(Boolean);
     }
+  }
+
+  async hydrateEntities(
+    workspaceId: string,
+    items: ReadonlyArray<{ entityType: FavoriteEntity; entityId: string }>,
+  ): Promise<Map<string, FavoriteEntitySummary>> {
+    const result = new Map<string, FavoriteEntitySummary>();
+    if (items.length === 0) return result;
+
+    const idsByType: Record<FavoriteEntity, string[]> = {
+      SPACE: [],
+      FOLDER: [],
+      LIST: [],
+      TASK: [],
+      CHAT_CHANNEL: [],
+    };
+    for (const item of items) idsByType[item.entityType].push(item.entityId);
+
+    const key = (type: FavoriteEntity, id: string) => `${type}:${id}`;
+
+    if (idsByType.SPACE.length) {
+      const spaces = await this.prisma.space.findMany({
+        where: { id: { in: idsByType.SPACE }, workspaceId, deletedAt: null },
+        select: { id: true, name: true, icon: true },
+      });
+      for (const s of spaces) {
+        result.set(key(FavoriteEntity.SPACE, s.id), {
+          id: s.id,
+          name: s.name,
+          icon: s.icon ?? null,
+        });
+      }
+    }
+    if (idsByType.FOLDER.length) {
+      const folders = await this.prisma.folder.findMany({
+        where: {
+          id: { in: idsByType.FOLDER },
+          deletedAt: null,
+          space: { workspaceId },
+        },
+        select: { id: true, name: true, icon: true, spaceId: true },
+      });
+      for (const f of folders) {
+        result.set(key(FavoriteEntity.FOLDER, f.id), {
+          id: f.id,
+          name: f.name,
+          icon: f.icon ?? null,
+          spaceId: f.spaceId,
+        });
+      }
+    }
+    if (idsByType.LIST.length) {
+      const lists = await this.prisma.list.findMany({
+        where: {
+          id: { in: idsByType.LIST },
+          deletedAt: null,
+          OR: [
+            { space: { workspaceId } },
+            { folder: { space: { workspaceId } } },
+          ],
+        },
+        select: {
+          id: true,
+          name: true,
+          icon: true,
+          folderId: true,
+          spaceId: true,
+        },
+      });
+      for (const l of lists) {
+        result.set(key(FavoriteEntity.LIST, l.id), {
+          id: l.id,
+          name: l.name,
+          icon: l.icon ?? null,
+          folderId: l.folderId,
+          spaceId: l.spaceId,
+        });
+      }
+    }
+    if (idsByType.TASK.length) {
+      const tasks = await this.prisma.workItem.findMany({
+        where: {
+          id: { in: idsByType.TASK },
+          deletedAt: null,
+          list: { space: { workspaceId } },
+        },
+        select: { id: true, title: true, listId: true },
+      });
+      for (const t of tasks) {
+        result.set(key(FavoriteEntity.TASK, t.id), {
+          id: t.id,
+          name: t.title,
+          listId: t.listId,
+        });
+      }
+    }
+    if (idsByType.CHAT_CHANNEL.length) {
+      const channels = await this.prisma.chatChannel.findMany({
+        where: {
+          id: { in: idsByType.CHAT_CHANNEL },
+          workspaceId,
+          deletedAt: null,
+        },
+        select: { id: true, name: true },
+      });
+      for (const c of channels) {
+        result.set(key(FavoriteEntity.CHAT_CHANNEL, c.id), {
+          id: c.id,
+          name: c.name ?? '',
+        });
+      }
+    }
+    return result;
   }
 }

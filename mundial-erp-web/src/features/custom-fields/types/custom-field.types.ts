@@ -1,10 +1,3 @@
-/**
- * Tipos espelhando os DTOs do backend `mundial-erp-api/src/modules/custom-fields/dtos`.
- *
- * Contrato M1 do PLANO-TASK-TYPES-TEMPLATES (sec. "Interface contratual M1↔M2"),
- * tratado como CONGELADO. Ajustes aqui exigem RFC.
- */
-
 export type CustomFieldType =
   | 'TEXT'
   | 'NUMBER'
@@ -15,7 +8,18 @@ export type CustomFieldType =
   | 'CNPJ'
   | 'URL'
   | 'EMAIL'
-  | 'PHONE';
+  | 'PHONE'
+  | 'SELECT'
+  | 'CHECKBOX'
+  | 'PERCENTAGE'
+  | 'DURATION'
+  | 'RATING'
+  | 'USER'
+  | 'TEAM'
+  | 'PEOPLE'
+  | 'RELATIONSHIP'
+  | 'ROLLUP'
+  | 'LABEL';
 
 export interface CustomFieldDropdownOption {
   value: string;
@@ -27,84 +31,229 @@ export interface CustomFieldRequiredWhen {
   equals: string;
 }
 
+export type CnpjAutofillSource =
+  | 'razaoSocial'
+  | 'nomeFantasia'
+  | 'situacaoCadastral'
+  | 'dataAbertura'
+  | 'cnaePrincipal.codigo'
+  | 'cnaePrincipal.descricao'
+  | 'naturezaJuridica'
+  | 'porte'
+  | 'capitalSocial'
+  | 'endereco.logradouro'
+  | 'endereco.numero'
+  | 'endereco.complemento'
+  | 'endereco.bairro'
+  | 'endereco.cep'
+  | 'endereco.municipio'
+  | 'endereco.codigoMunicipio'
+  | 'endereco.uf'
+  | 'contato.telefone'
+  | 'contato.email';
+
 export interface CustomFieldConfig {
   options?: CustomFieldDropdownOption[];
   min?: number;
   max?: number;
+  maxStars?: number;
+  taskTypeId?: string;
   readOnly?: boolean;
   hint?: string;
   requiredWhen?: CustomFieldRequiredWhen;
   default?: string | number;
+  currency?: string;
+  includeTime?: boolean;
+  multiple?: boolean;
+  cnpjAutofill?: boolean;
 }
 
-export interface CustomFieldDefinition {
+export interface CnpjLookupResult {
+  cnpj: string;
+  razaoSocial: string;
+  nomeFantasia: string | null;
+  situacaoCadastral: string | null;
+  dataAbertura: string | null;
+  cnaePrincipal: { codigo: string; descricao: string } | null;
+  cnaesSecundarios: { codigo: string; descricao: string }[];
+  naturezaJuridica: string | null;
+  porte: string | null;
+  capitalSocial: number | null;
+  endereco: {
+    logradouro: string | null;
+    numero: string | null;
+    complemento: string | null;
+    bairro: string | null;
+    cep: string | null;
+    municipio: string | null;
+    codigoMunicipio: string | null;
+    uf: string | null;
+  };
+  contato: { telefone: string | null; email: string | null };
+  fonte: string;
+  consultadoEm: string;
+}
+
+export interface CustomFieldCreator {
   id: string;
-  /** `null` quando builtin (definicao global). */
-  workspaceId: string | null;
-  key: string;
-  label: string;
-  type: CustomFieldType;
-  required: boolean;
-  config?: CustomFieldConfig | null;
-  isBuiltin: boolean;
-  sortOrder: number;
+  name: string;
+  email: string;
+}
+
+export interface CustomFieldGroupEmbed {
+  id: string;
+  name: string;
+  position: number;
+  color: string | null;
+}
+
+export type CustomFieldLocationType = 'list' | 'folder' | 'space';
+
+export interface CustomFieldLocationLink {
+  id: string;
+  customFieldId: string;
+  listId?: string;
+  folderId?: string;
+  spaceId?: string;
+  groupId: string | null;
   createdAt: string;
   updatedAt: string;
 }
 
-/**
- * Valor escalar despachado pelo `type` da definition.
- *
- * Espelha `CustomFieldValueResponseDto.value` do backend (`string | number |
- * Date | null`). No frontend, recebemos `Date` ja serializado como ISO string.
- */
-export type CustomFieldScalarValue = string | number | null;
+export interface AddCustomFieldLocationPayload {
+  customFieldId: string;
+  targetId: string;
+  locationType: CustomFieldLocationType;
+  action: 'ADD' | 'MOVE';
+}
+
+export interface CustomFieldDefinition {
+  id: string;
+  workspaceId: string | null;
+  name: string;
+  label: string;
+  description: string | null;
+  type: CustomFieldType;
+  required: boolean;
+  options: unknown[];
+  config: CustomFieldConfig | null;
+  defaultValue: unknown;
+  validation: Record<string, unknown> | null;
+  pinned: boolean;
+  visibleToGuests: boolean;
+  fillMethod: string;
+  fixed: boolean;
+  position: number;
+  spaceId: string | null;
+  folderId: string | null;
+  listId: string | null;
+  taskTypeId: string | null;
+  createdById: string | null;
+  creator: CustomFieldCreator | null;
+  groupId: string | null;
+  groupName: string | null;
+  groupPosition: number | null;
+  groupColor: string | null;
+  group: CustomFieldGroupEmbed | null;
+  createdAt: string;
+  updatedAt: string;
+  lists?: CustomFieldLocationLink[];
+  folders?: CustomFieldLocationLink[];
+  spaces?: CustomFieldLocationLink[];
+}
+
+export type CustomFieldScalarValue =
+  | string
+  | number
+  | boolean
+  | string[]
+  | null;
 
 export interface CustomFieldValue {
   id: string;
-  workItemId: string;
-  definitionId: string;
-  /**
-   * Definition embutida no response (backend serializa o join em
-   * `CustomFieldValueResponseDto.fromEntity`).
-   */
-  definition: CustomFieldDefinition;
+  taskId: string;
+  customFieldId: string;
+  customField: CustomFieldDefinition;
   value: CustomFieldScalarValue;
   createdAt: string;
   updatedAt: string;
 }
 
-export interface CustomFieldsListPagination {
-  page: number;
-  limit: number;
-  total: number;
-  totalPages: number;
+export interface CustomFieldsGroupedResponse {
+  workspace: CustomFieldDefinition[];
+  list: CustomFieldDefinition[];
+  folder: CustomFieldDefinition[];
+  space: CustomFieldDefinition[];
+  taskType: CustomFieldDefinition[];
 }
 
-export interface CustomFieldsListResponse {
-  data: CustomFieldDefinition[];
-  meta: { pagination: CustomFieldsListPagination };
+export interface CustomFieldDefinitionsScope {
+  spaceId?: string;
+  folderId?: string;
+  listId?: string;
+  taskTypeId?: string;
 }
 
-export interface CustomFieldDefinitionsListParams {
-  page?: number;
-  limit?: number;
-  type?: CustomFieldType;
-  search?: string;
+export type ManagerScope =
+  | 'all'
+  | 'workspace'
+  | 'taskType'
+  | 'list'
+  | 'folder'
+  | 'space';
+
+export interface ManagerCustomFieldLocation {
+  type: 'list' | 'folder' | 'space';
+  id: string;
+}
+
+export interface ManagerCustomFieldTaskType {
+  id: string;
+  name: string;
+}
+
+export type ManagerCustomFieldGroup = CustomFieldGroupEmbed;
+
+export interface ManagerCustomFieldItem extends CustomFieldDefinition {
+  locations: ManagerCustomFieldLocation[];
+  taskTypes: ManagerCustomFieldTaskType[];
+  usageCount: number;
 }
 
 export interface CreateCustomFieldDefinitionPayload {
-  key: string;
-  label: string;
+  name: string;
+  key?: string;
+  label?: string;
+  description?: string;
   type: CustomFieldType;
   required?: boolean;
+  options?: unknown[];
   config?: CustomFieldConfig;
-  sortOrder?: number;
+  defaultValue?: unknown;
+  validation?: Record<string, unknown>;
+  pinned?: boolean;
+  visibleToGuests?: boolean;
+  fillMethod?: string;
+  position?: number;
+  spaceId?: string;
+  folderId?: string;
+  listId?: string;
+  taskTypeId?: string;
+  groupId?: string;
+  groupName?: string;
+  groupPosition?: number;
+  groupColor?: string;
 }
 
 export type UpdateCustomFieldDefinitionPayload = Partial<
-  Pick<CreateCustomFieldDefinitionPayload, 'label' | 'required' | 'config' | 'sortOrder'>
+  Omit<CreateCustomFieldDefinitionPayload, 'key' | 'type'>
 >;
 
-/** Valor cru aceito pelo PATCH `/tasks/:taskId/custom-fields/:definitionId`. */
-export type CustomFieldRawValue = string | number | boolean | Date | null;
+export type CustomFieldRawValue =
+  | string
+  | number
+  | boolean
+  | Date
+  | string[]
+  | Record<string, unknown>
+  | null;

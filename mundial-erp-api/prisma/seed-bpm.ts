@@ -9,7 +9,7 @@
  */
 
 import 'dotenv/config';
-import { PrismaClient, Role, OrderStatus, ProcessStatus, ProcessType, StatusCategory } from '@prisma/client';
+import { PrismaClient, Role, OrderStatus, ProcessStatus, ProcessType, StatusType } from '@prisma/client';
 import { PrismaPg } from '@prisma/adapter-pg';
 
 const adapter = new PrismaPg({ connectionString: process.env.DATABASE_URL! });
@@ -151,25 +151,24 @@ async function main() {
   // 2c. WORKFLOW STATUSES (per department — 4 default statuses each)
   // =========================================================================
   const defaultStatuses = [
-    { name: 'Para Fazer', category: StatusCategory.NOT_STARTED, color: '#94a3b8', sortOrder: 1 },
-    { name: 'Em Andamento', category: StatusCategory.ACTIVE, color: '#3b82f6', sortOrder: 1 },
-    { name: 'Concluído', category: StatusCategory.DONE, color: '#22c55e', sortOrder: 1 },
-    { name: 'Finalizado', category: StatusCategory.CLOSED, color: '#16a34a', sortOrder: 1 },
+    { name: 'Para Fazer', type: StatusType.NOT_STARTED, color: '#94a3b8', position: 1 },
+    { name: 'Em Andamento', type: StatusType.ACTIVE, color: '#3b82f6', position: 1 },
+    { name: 'Concluído', type: StatusType.DONE, color: '#22c55e', position: 1 },
+    { name: 'Finalizado', type: StatusType.CLOSED, color: '#16a34a', position: 1 },
   ];
 
   for (const deptSlug of Object.keys(departments)) {
     const deptId = departments[deptSlug];
-    const existingStatuses = await prisma.workflowStatus.count({ where: { spaceId: deptId } });
+    const existingStatuses = await prisma.status.count({ where: { spaceId: deptId } });
     if (existingStatuses === 0) {
       for (const status of defaultStatuses) {
-        await prisma.workflowStatus.create({
+        await prisma.status.create({
           data: {
             name: status.name,
-            category: status.category,
+            type: status.type,
             color: status.color,
-            sortOrder: status.sortOrder,
+            position: status.position,
             spaceId: deptId,
-            isDefault: true,
           },
         });
       }

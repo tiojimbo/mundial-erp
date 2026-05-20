@@ -57,7 +57,7 @@ const BlockNoteEditor = dynamic<{
 
 export type CommentComposerProps = {
   taskId: string;
-  onSubmit?: (body: string) => Promise<void> | void;
+  onSubmit?: (content: string) => Promise<void> | void;
 };
 
 function IconBtn({

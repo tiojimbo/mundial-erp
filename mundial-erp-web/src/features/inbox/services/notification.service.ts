@@ -2,69 +2,61 @@ import { api } from '@/lib/api';
 import type { ApiResponse } from '@/types/api.types';
 import type {
   InboxView,
-  Notification,
   NotificationsResponse,
   SnoozePayload,
   BulkActionPayload,
 } from '../types/notification.types';
 
+export type GetNotificationsParams = {
+  view?: InboxView;
+  page?: number;
+  limit?: number;
+};
+
 export const notificationService = {
-  async getNotifications(view: InboxView): Promise<NotificationsResponse> {
+  async getNotifications({
+    view = 'all',
+    page = 1,
+    limit = 20,
+  }: GetNotificationsParams = {}): Promise<NotificationsResponse> {
+    const skip = Math.max(0, (page - 1) * limit);
     const { data } = await api.get<ApiResponse<NotificationsResponse>>(
       '/notifications',
-      { params: { view } },
+      { params: { view, skip, limit } },
     );
     return data.data;
   },
 
-  async markAsRead(id: string): Promise<Notification> {
-    const { data } = await api.patch<ApiResponse<Notification>>(
-      `/notifications/${id}/read`,
-    );
-    return data.data;
+  async markAsRead(id: string): Promise<void> {
+    await api.post(`/notifications/${id}/read`);
   },
 
-  async markAsUnread(id: string): Promise<Notification> {
-    const { data } = await api.patch<ApiResponse<Notification>>(
-      `/notifications/${id}/unread`,
-    );
-    return data.data;
+  async markAsUnread(id: string): Promise<void> {
+    await api.post(`/notifications/${id}/unread`);
   },
 
-  async clearNotification(id: string): Promise<Notification> {
-    const { data } = await api.patch<ApiResponse<Notification>>(
-      `/notifications/${id}/clear`,
-    );
-    return data.data;
+  async clearNotification(id: string): Promise<void> {
+    await api.post(`/notifications/${id}/clear`);
   },
 
-  async unclearNotification(id: string): Promise<Notification> {
-    const { data } = await api.patch<ApiResponse<Notification>>(
-      `/notifications/${id}/unclear`,
-    );
-    return data.data;
+  async unclearNotification(id: string): Promise<void> {
+    await api.post(`/notifications/${id}/unclear`);
   },
 
-  async snoozeNotification(
-    id: string,
-    payload: SnoozePayload,
-  ): Promise<Notification> {
-    const { data } = await api.patch<ApiResponse<Notification>>(
-      `/notifications/${id}/snooze`,
-      payload,
-    );
-    return data.data;
+  async snoozeNotification(id: string, payload: SnoozePayload): Promise<void> {
+    await api.post(`/notifications/${id}/snooze`, payload);
   },
 
-  async unsnoozeNotification(id: string): Promise<Notification> {
-    const { data } = await api.patch<ApiResponse<Notification>>(
-      `/notifications/${id}/unsnooze`,
-    );
-    return data.data;
+  async unsnoozeNotification(id: string): Promise<void> {
+    await api.post(`/notifications/${id}/unsnooze`);
+  },
+
+  async deleteNotification(id: string): Promise<void> {
+    await api.delete(`/notifications/${id}`);
   },
 
   async markAllRead(payload: BulkActionPayload): Promise<void> {
-    await api.post('/notifications/mark-all-read', payload);
+    await api.post('/notifications/read-all', payload);
   },
 
   async clearAll(payload: BulkActionPayload): Promise<void> {
@@ -72,6 +64,6 @@ export const notificationService = {
   },
 
   async deleteAllCleared(): Promise<void> {
-    await api.delete('/notifications/cleared');
+    await api.post('/notifications/delete-all-cleared');
   },
 };

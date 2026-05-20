@@ -10,7 +10,7 @@ import type {
 export const taskAttachmentsService = {
   async list(taskId: string): Promise<TaskAttachment[]> {
     const { data } = await api.get<ApiResponse<TaskAttachment[]>>(
-      `/attachments/task/${taskId}`,
+      `/tasks/${taskId}/documents`,
     );
     return data.data;
   },
@@ -20,7 +20,7 @@ export const taskAttachmentsService = {
     payload: AttachmentSignedUrlRequest,
   ): Promise<AttachmentSignedUrlResponse> {
     const { data } = await api.post<ApiResponse<AttachmentSignedUrlResponse>>(
-      '/attachments/signed-url',
+      '/attachments/presigned-url',
       { taskId, ...payload },
     );
     return data.data;
@@ -31,8 +31,8 @@ export const taskAttachmentsService = {
     payload: AttachmentUploadDto,
   ): Promise<TaskAttachment> {
     const { data } = await api.post<ApiResponse<TaskAttachment>>(
-      '/attachments',
-      { taskId, ...payload },
+      `/attachments/tasks/${taskId}`,
+      payload,
     );
     return data.data;
   },

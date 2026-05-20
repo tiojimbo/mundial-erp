@@ -7,6 +7,7 @@ import { RiCalendarLine } from '@remixicon/react';
 import * as Checkbox from '@/components/ui/checkbox';
 import * as Avatar from '@/components/ui/avatar';
 import * as AvatarGroup from '@/components/ui/avatar-group';
+import { getIconByName } from '@/features/tasks/components/icon-picker';
 import { cn } from '@/lib/cn';
 
 export type TaskTableRowData = {
@@ -14,9 +15,11 @@ export type TaskTableRowData = {
   href: string;
   title: string;
   statusColor: string;
+  typeIcon: string | null;
+  typeLabel: string | null;
   startDate: string | null;
   dueDate: string | null;
-  assignees: Array<{ id: string; name: string }>;
+  assignees: Array<{ id: string; name: string | null }>;
 };
 
 export type TaskTableGroup = {
@@ -148,6 +151,15 @@ function Row({
             className="inline-block size-2 shrink-0 rounded-full"
             style={{ backgroundColor: task.statusColor }}
           />
+          {(() => {
+            const TypeIcon = getIconByName(task.typeIcon);
+            return (
+              <TypeIcon
+                aria-hidden
+                className="size-3.5 shrink-0 text-text-sub-600"
+              />
+            );
+          })()}
           <Link
             href={task.href}
             className="line-clamp-1 text-label-sm text-text-strong-950 hover:underline"

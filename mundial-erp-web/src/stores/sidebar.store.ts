@@ -43,7 +43,7 @@ export const useSidebarStore = create<SidebarState>((set) => ({
     set((state) => ({
       expandedGroups: {
         ...state.expandedGroups,
-        [label]: !state.expandedGroups[label],
+        [label]: state.expandedGroups[label] === false,
       },
     })),
   setGroupExpanded: (label, expanded) =>
@@ -57,7 +57,7 @@ export const useSidebarStore = create<SidebarState>((set) => ({
     set((state) => ({
       expandedAreas: {
         ...state.expandedAreas,
-        [areaId]: !state.expandedAreas[areaId],
+        [areaId]: state.expandedAreas[areaId] === false,
       },
     })),
   setAreaExpanded: (areaId, expanded) =>

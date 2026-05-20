@@ -110,39 +110,38 @@ describe('Sprint 7 — Automations coverage (18 triggers x 21 actions)', () => {
       });
       folderId = folder.id;
 
-      const opened = await prisma.workflowStatus.create({
+      const opened = await prisma.status.create({
         data: {
           name: 'Aberto',
-          category: 'NOT_STARTED',
+          type: 'NOT_STARTED',
           color: '#94a3b8',
           spaceId,
           folderId,
-          sortOrder: 1,
-          isDefault: true,
+          position: 1,
         },
       });
       defaultStatusId = opened.id;
 
-      const active = await prisma.workflowStatus.create({
+      const active = await prisma.status.create({
         data: {
           name: 'Em andamento',
-          category: 'ACTIVE',
+          type: 'ACTIVE',
           color: '#3b82f6',
           spaceId,
           folderId,
-          sortOrder: 2,
+          position: 2,
         },
       });
       activeStatusId = active.id;
 
-      const done = await prisma.workflowStatus.create({
+      const done = await prisma.status.create({
         data: {
           name: 'Concluído',
-          category: 'DONE',
+          type: 'DONE',
           color: '#22c55e',
           spaceId,
           folderId,
-          sortOrder: 3,
+          position: 3,
         },
       });
       doneStatusId = done.id;
@@ -187,6 +186,7 @@ describe('Sprint 7 — Automations coverage (18 triggers x 21 actions)', () => {
           workspaceId,
           spaceId,
           key: `cf_${Date.now()}`,
+          name: 'Campo Teste',
           label: 'Campo Teste',
           type: 'TEXT',
         },
@@ -235,7 +235,7 @@ describe('Sprint 7 — Automations coverage (18 triggers x 21 actions)', () => {
       await prisma.list.deleteMany({ where: { spaceId } });
       await prisma.customFieldDefinition.deleteMany({ where: { workspaceId } });
       await prisma.workItemTag.deleteMany({ where: { workspaceId } });
-      await prisma.workflowStatus.deleteMany({ where: { spaceId } });
+      await prisma.status.deleteMany({ where: { spaceId } });
       await prisma.folder.deleteMany({ where: { spaceId } });
       await prisma.space.deleteMany({ where: { workspaceId } });
       await prisma.workspaceMember.deleteMany({ where: { workspaceId } });
@@ -352,7 +352,7 @@ describe('Sprint 7 — Automations coverage (18 triggers x 21 actions)', () => {
         name: 'T1',
         trigger: 'TASK_CREATED',
         compiledActions: [
-          { type: 'change_status', params: { workflowStatusId: activeStatusId } },
+          { type: 'change_status', params: { statusId: activeStatusId } },
         ],
       });
       const taskId = await createTask();
@@ -816,7 +816,7 @@ describe('Sprint 7 — Automations coverage (18 triggers x 21 actions)', () => {
           { field: 'customTypeId', operator: 'EQ', value: builtinTaskTypeId },
         ],
         compiledActions: [
-          { type: 'change_status', params: { workflowStatusId: doneStatusId } },
+          { type: 'change_status', params: { statusId: doneStatusId } },
         ],
       });
       const taskId = await createTask({
@@ -844,7 +844,7 @@ describe('Sprint 7 — Automations coverage (18 triggers x 21 actions)', () => {
           { field: 'priority', operator: 'EQ', value: 'URGENT' },
         ],
         compiledActions: [
-          { type: 'change_status', params: { workflowStatusId: doneStatusId } },
+          { type: 'change_status', params: { statusId: doneStatusId } },
         ],
       });
       await disableOthersExcept(id);
@@ -865,7 +865,7 @@ describe('Sprint 7 — Automations coverage (18 triggers x 21 actions)', () => {
         name: 'B24',
         trigger: 'TASK_CREATED',
         compiledActions: [
-          { type: 'change_status', params: { workflowStatusId: doneStatusId } },
+          { type: 'change_status', params: { statusId: doneStatusId } },
         ],
       });
       await disableOthersExcept(id);
@@ -891,7 +891,7 @@ describe('Sprint 7 — Automations coverage (18 triggers x 21 actions)', () => {
         name: 'B25',
         trigger: 'TASK_CREATED',
         compiledActions: [
-          { type: 'change_status', params: { workflowStatusId: doneStatusId } },
+          { type: 'change_status', params: { statusId: doneStatusId } },
         ],
       });
       await disableOthersExcept(id);

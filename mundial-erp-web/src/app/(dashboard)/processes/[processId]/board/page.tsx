@@ -3,7 +3,7 @@
 import { useMemo } from 'react';
 import { useSearchParams } from 'next/navigation';
 import { useProcess } from '@/features/settings/hooks/use-processes';
-import { useWorkflowStatuses } from '@/features/settings/hooks/use-workflow-statuses';
+import { useStatusesByList } from '@/features/settings/hooks/use-statuses';
 import { useInfiniteTasks } from '@/features/tasks/hooks/use-infinite-tasks';
 import { TaskBoard } from '@/features/tasks/components/task-board';
 import { deserializeTaskFilters } from '@/features/tasks/utils/task-filters-url';
@@ -29,7 +29,7 @@ export default function ProcessBoardPage({ params }: PageProps): JSX.Element {
   );
 
   const process = useProcess(processId);
-  const statusesQuery = useWorkflowStatuses(process.data?.departmentId ?? '');
+  const statusesQuery = useStatusesByList(processId);
 
   const tasksQuery = useInfiniteTasks({
     ...urlFilters,
@@ -47,9 +47,8 @@ export default function ProcessBoardPage({ params }: PageProps): JSX.Element {
     return list.map((s) => ({
       id: s.id,
       name: s.name,
-      category: s.category,
+      type: s.type,
       color: s.color,
-      icon: s.icon,
     }));
   }, [statusesQuery.data]);
 

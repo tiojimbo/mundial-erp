@@ -3,7 +3,7 @@
 import { useState } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import { BreadcrumbTrail } from '@/components/layout/breadcrumb-trail';
-import { ProcessListView } from '@/features/work-items/components/process-list-view';
+import { ProcessListView } from '@/features/processes/components/process-list-view';
 import { useDepartmentDetail } from '@/features/navigation/hooks/use-department-detail';
 import { useDepartmentSummaries } from '@/features/navigation/hooks/use-department-summaries';
 import type { ProcessSummary } from '@/features/navigation/types/process-summary.types';
@@ -44,7 +44,7 @@ export default function DepartmentPage() {
         header={
           <BreadcrumbTrail
             items={[{ label: department.name }]}
-            favorite={{ active: false }}
+            favoriteTarget={{ entityType: 'SPACE', entityId: department.id }}
           />
         }
         summaries={summaries}
@@ -58,6 +58,7 @@ export default function DepartmentPage() {
         departmentId={department.id}
         emptyMessage="Nenhum processo neste departamento."
         onCreateTask={() => setIsCreateOpen(true)}
+        customFieldsScope={{ kind: 'space', spaceId: department.id }}
       />
       <CreateTaskDialog
         open={isCreateOpen}

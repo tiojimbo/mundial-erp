@@ -161,17 +161,17 @@ async function main() {
   const builtinCustomTaskTypes = [
     {
       id: 'builtin-task',
-      name: 'Task',
-      namePlural: 'Tasks',
-      icon: 'CircleDot',
+      name: 'Tarefa',
+      namePlural: 'Tarefas',
+      icon: 'CircleDotIcon',
       color: '#6b7280',
       sortOrder: 0,
     },
     {
       id: 'builtin-milestone',
-      name: 'Milestone',
-      namePlural: 'Milestones',
-      icon: 'Flag',
+      name: 'Marco',
+      namePlural: 'Marcos',
+      icon: 'DiamondIcon',
       color: '#f59e0b',
       sortOrder: 1,
     },
@@ -619,7 +619,9 @@ async function main() {
   let totalTemplateFields = 0;
 
   for (const seed of templateSeeds) {
-    // 1) CustomTaskType (visual) — mesma estrategia de builtin-task/milestone.
+    // CustomTaskType de template (Pedido, Requisicao). isBuiltin=false: sao
+    // pre-criados pelo seed mas podem ser editados/removidos pelo workspace.
+    // Apenas builtin-task/builtin-milestone (Tarefa/Marco) permanecem builtin.
     await prisma.customTaskType.upsert({
       where: { id: seed.customTaskType.id },
       update: {
@@ -629,7 +631,7 @@ async function main() {
         icon: seed.customTaskType.icon,
         color: seed.customTaskType.color,
         sortOrder: seed.customTaskType.sortOrder,
-        isBuiltin: true,
+        isBuiltin: false,
         workspaceId: null,
       },
       create: {
@@ -640,7 +642,7 @@ async function main() {
         icon: seed.customTaskType.icon,
         color: seed.customTaskType.color,
         sortOrder: seed.customTaskType.sortOrder,
-        isBuiltin: true,
+        isBuiltin: false,
         workspaceId: null,
       },
     });
@@ -669,6 +671,7 @@ async function main() {
           id: f.id,
           workspaceId: null,
           key: f.key,
+          name: f.label,
           label: f.label,
           type: f.type,
           required: f.required,

@@ -32,7 +32,7 @@ export class AutomationsService {
   }
 
   async listStatusesByScope(workspaceId: string) {
-    const rows = await this.repository.listWorkflowStatusesByScope(workspaceId);
+    const rows = await this.repository.listStatusesByScope(workspaceId);
 
     const spaceMap = new Map<
       string,
@@ -62,6 +62,7 @@ export class AutomationsService {
         folderMap.get(key)!.statuses.push(row);
       } else {
         const key = row.spaceId;
+        if (!key || !row.space) continue;
         if (!spaceMap.has(key)) {
           spaceMap.set(key, {
             id: row.space.id,

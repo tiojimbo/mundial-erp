@@ -105,10 +105,25 @@ export class TaskAttachmentsController {
     return this.service.register(workspaceId, dto.taskId, dto, user.sub);
   }
 
-  @Get('attachments/tasks/:taskId')
+  @Get('tasks/:taskId/documents')
   @Roles(Role.ADMIN, Role.MANAGER, Role.OPERATOR, Role.VIEWER)
-  @ApiOperation({ summary: 'Listar anexos da tarefa' })
+  @ApiOperation({ summary: 'Listar anexos da tarefa (paridade Hoppe)' })
   findByTask(
+    @WorkspaceId() workspaceId: string,
+    @Param('taskId') taskId: string,
+  ): Promise<AttachmentResponseDto[]> {
+    return this.service.findByTask(workspaceId, taskId);
+  }
+
+  @Get('attachments/tasks/:taskId')
+  @Header('Deprecation', 'true')
+  @Header('Link', '</tasks/{taskId}/documents>; rel="successor-version"')
+  @Roles(Role.ADMIN, Role.MANAGER, Role.OPERATOR, Role.VIEWER)
+  @ApiOperation({
+    summary: 'DEPRECATED. Use GET /tasks/:taskId/documents (paridade Hoppe).',
+    deprecated: true,
+  })
+  findByTaskAttachmentsPath(
     @WorkspaceId() workspaceId: string,
     @Param('taskId') taskId: string,
   ): Promise<AttachmentResponseDto[]> {
@@ -117,10 +132,10 @@ export class TaskAttachmentsController {
 
   @Get('attachments/task/:taskId')
   @Header('Deprecation', 'true')
-  @Header('Link', '</attachments/tasks/{taskId}>; rel="successor-version"')
+  @Header('Link', '</tasks/{taskId}/documents>; rel="successor-version"')
   @Roles(Role.ADMIN, Role.MANAGER, Role.OPERATOR, Role.VIEWER)
   @ApiOperation({
-    summary: 'DEPRECATED. Use GET /attachments/tasks/:taskId (plural).',
+    summary: 'DEPRECATED. Use GET /tasks/:taskId/documents (paridade Hoppe).',
     deprecated: true,
   })
   findByTaskLegacy(

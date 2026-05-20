@@ -106,12 +106,12 @@ export class ActionRunnerService {
   }
 
   private async changeStatus(taskId: string, params: Record<string, unknown>) {
-    const workflowStatusId = String(params.workflowStatusId ?? '');
-    if (!workflowStatusId)
-      return this.skip('change_status', 'workflowStatusId vazio');
+    const statusId = String(params.statusId ?? '');
+    if (!statusId)
+      return this.skip('change_status', 'statusId vazio');
     await this.prisma.workItem.update({
       where: { id: taskId },
-      data: { statusId: workflowStatusId },
+      data: { statusId },
     });
     return this.ok('change_status');
   }
@@ -307,7 +307,7 @@ export class ActionRunnerService {
       data: {
         workItemId: taskId,
         authorId: actorUserId ?? 'system',
-        body: content,
+        content,
         mentions: (params.mentions ?? []) as Prisma.InputJsonValue,
       },
     });

@@ -22,7 +22,7 @@ import { ReactionResponseDto } from './dtos/reaction-response.dto';
 import { TaskOutboxService } from '../task-outbox/task-outbox.service';
 
 const OUTBOX_COMMENT_ADDED = 'COMMENT_ADDED' as const;
-const LOG_BODY_MAX_CHARS = 200;
+const LOG_CONTENT_MAX_CHARS = 200;
 const MENTION_REGEX = /@([\w.-]+)/g;
 const ROLES_MAY_MODERATE: ReadonlySet<Role> = new Set<Role>([
   Role.ADMIN,
@@ -34,9 +34,9 @@ function truncate(value: string, max: number): string {
   return `${value.slice(0, max)}...[+${value.length - max}]`;
 }
 
-function extractMentionUsernames(body: string): string[] {
+function extractMentionUsernames(content: string): string[] {
   const usernames = new Set<string>();
-  for (const match of body.matchAll(MENTION_REGEX)) {
+  for (const match of content.matchAll(MENTION_REGEX)) {
     usernames.add(match[1].toLowerCase());
   }
   return [...usernames];
@@ -119,7 +119,7 @@ export class TaskCommentsService {
       }
     }
 
-    const mentionedUsernames = extractMentionUsernames(dto.body);
+    const mentionedUsernames = extractMentionUsernames(dto.content);
     const resolved = mentionedUsernames.length
       ? await this.repository.resolveUsernamesInWorkspace(
           workspaceId,
@@ -135,8 +135,8 @@ export class TaskCommentsService {
         {
           workItemId: taskId,
           authorId: actorUserId,
-          body: dto.body,
-          bodyBlocks: dto.bodyBlocks as Prisma.InputJsonValue | undefined,
+          content: dto.content,
+          contentBlocks: dto.contentBlocks as Prisma.InputJsonValue | undefined,
           parentId: dto.parentId,
           mentions: mentionedUserIds,
           assigneeId: dto.assigneeId,
@@ -162,7 +162,7 @@ export class TaskCommentsService {
     });
 
     this.logger.log(
-      `task-comment.created task=${taskId} id=${created.id} author=${actorUserId} mentions=${mentionedUserIds.length} parentId=${dto.parentId ?? '-'} assigneeId=${dto.assigneeId ?? '-'} bodyPreview="${truncate(dto.body, LOG_BODY_MAX_CHARS)}"`,
+      `task-comment.created task=${taskId} id=${created.id} author=${actorUserId} mentions=${mentionedUserIds.length} parentId=${dto.parentId ?? '-'} assigneeId=${dto.assigneeId ?? '-'} contentPreview="${truncate(dto.content, LOG_CONTENT_MAX_CHARS)}"`,
     );
 
     return CommentResponseDto.fromEntity(created as unknown as CommentShape);
@@ -187,8 +187,8 @@ export class TaskCommentsService {
       );
     }
 
-    const newBody = dto.body ?? existing.body;
-    const mentionedUsernames = extractMentionUsernames(newBody);
+    const newContent = dto.content ?? existing.content;
+    const mentionedUsernames = extractMentionUsernames(newContent);
     const resolved = mentionedUsernames.length
       ? await this.repository.resolveUsernamesInWorkspace(
           workspaceId,
@@ -200,14 +200,14 @@ export class TaskCommentsService {
       .filter((id) => id !== actor.userId);
 
     const updated = await this.repository.update(id, {
-      body: dto.body,
-      bodyBlocks: dto.bodyBlocks as Prisma.InputJsonValue | undefined,
+      content: dto.content,
+      contentBlocks: dto.contentBlocks as Prisma.InputJsonValue | undefined,
       mentions: mentionedUserIds,
       editedAt: new Date(),
     });
 
     this.logger.log(
-      `task-comment.updated id=${id} actor=${actor.userId} mentions=${mentionedUserIds.length} bodyPreview="${truncate(dto.body ?? '', LOG_BODY_MAX_CHARS)}"`,
+      `task-comment.updated id=${id} actor=${actor.userId} mentions=${mentionedUserIds.length} contentPreview="${truncate(dto.content ?? '', LOG_CONTENT_MAX_CHARS)}"`,
     );
 
     return CommentResponseDto.fromEntity(updated as unknown as CommentShape);

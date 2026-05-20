@@ -9,6 +9,7 @@ import { useTasksStore } from '../../stores/tasks.store';
 import { useTask } from '../../hooks/use-task';
 import { useTaskSse } from '../../hooks/use-task-sse';
 import { useTaskTypeTemplate } from '../../hooks/use-task-type-template';
+import { useUpdateTask } from '../../hooks/use-update-task';
 import type { TaskDetail } from '../../types/task.types';
 import { DEFAULT_ACTIVITY_FILTERS } from '../../schemas/activity-filters.schema';
 
@@ -108,6 +109,7 @@ export function TaskView({ taskId }: TaskViewProps) {
       'assignees',
     ],
   });
+  const updateTask = useUpdateTask();
 
   // TTT-041 — busca lazy do template do CustomTaskType da task. `null` quando
   // a task nao tem `customTypeId` ou quando o backend ainda nao tem template.
@@ -176,9 +178,21 @@ export function TaskView({ taskId }: TaskViewProps) {
           <TaskDescription
             value={task.markdownContent ?? task.description ?? ''}
             aria-label='Descricao da tarefa'
+            onChange={(next) =>
+              updateTask.mutate({
+                taskId: task.id,
+                payload: { markdownContent: next, description: next },
+              })
+            }
           />
 
-          <CustomFieldsSection taskId={task.id} definitionIds={definitionIds} />
+          <CustomFieldsSection
+            taskId={task.id}
+            definitionIds={definitionIds}
+            listId={task.processId}
+            taskTypeName={task.customType?.value ?? null}
+            taskTypeId={task.customType?.id ?? null}
+          />
           <LinkedTasksSection task={task as TaskDetail} />
           <TimeTrackingSection task={task as TaskDetail} />
           <SubtasksSection task={task as TaskDetail} />

@@ -88,7 +88,7 @@ export class CustomTaskTypesRepository {
   async findAllForWorkspaceFlat(workspaceId: string) {
     return this.prisma.customTaskType.findMany({
       where: this.buildVisibilityWhere(workspaceId),
-      orderBy: [{ isBuiltin: 'desc' }, { sortOrder: 'asc' }, { name: 'asc' }],
+      orderBy: [{ createdAt: 'asc' }, { id: 'asc' }],
       select: BASE_SELECT,
     });
   }
@@ -160,12 +160,34 @@ export class CustomTaskTypesRepository {
     });
   }
 
-  async softDelete(id: string) {
-    await this.prisma.customTaskType.update({
-      where: { id },
-      data: { deletedAt: new Date() },
-      select: { id: true },
-    });
+  async softDeleteWithCascadeNull(id: string) {
+    await this.prisma.$transaction([
+      this.prisma.workItem.updateMany({
+        where: { customTypeId: id, deletedAt: null },
+        data: { customTypeId: null },
+      }),
+      this.prisma.space.updateMany({
+        where: { defaultTaskTypeId: id, deletedAt: null },
+        data: { defaultTaskTypeId: null },
+      }),
+      this.prisma.folder.updateMany({
+        where: { defaultTaskTypeId: id, deletedAt: null },
+        data: { defaultTaskTypeId: null },
+      }),
+      this.prisma.list.updateMany({
+        where: { defaultTaskTypeId: id, deletedAt: null },
+        data: { defaultTaskTypeId: null },
+      }),
+      this.prisma.customFieldDefinition.updateMany({
+        where: { customTaskTypeId: id, deletedAt: null },
+        data: { customTaskTypeId: null },
+      }),
+      this.prisma.customTaskType.update({
+        where: { id },
+        data: { deletedAt: new Date() },
+        select: { id: true },
+      }),
+    ]);
   }
 
   async findByIdIncludingDeleted(id: string, workspaceId: string) {
@@ -195,42 +217,4 @@ export class CustomTaskTypesRepository {
     return space !== null;
   }
 
-  async countDependents(id: string): Promise<{
-    workItems: number;
-    spacesAsDefault: number;
-    foldersAsDefault: number;
-    listsAsDefault: number;
-    customFields: number;
-  }> {
-    const [
-      workItems,
-      spacesAsDefault,
-      foldersAsDefault,
-      listsAsDefault,
-      customFields,
-    ] = await this.prisma.$transaction([
-      this.prisma.workItem.count({
-        where: { customTypeId: id, deletedAt: null },
-      }),
-      this.prisma.space.count({
-        where: { defaultTaskTypeId: id, deletedAt: null },
-      }),
-      this.prisma.folder.count({
-        where: { defaultTaskTypeId: id, deletedAt: null },
-      }),
-      this.prisma.list.count({
-        where: { defaultTaskTypeId: id, deletedAt: null },
-      }),
-      this.prisma.customFieldDefinition.count({
-        where: { customTaskTypeId: id, deletedAt: null },
-      }),
-    ]);
-    return {
-      workItems,
-      spacesAsDefault,
-      foldersAsDefault,
-      listsAsDefault,
-      customFields,
-    };
-  }
 }

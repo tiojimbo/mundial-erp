@@ -1,6 +1,7 @@
 'use client';
 
 import { useCustomTaskTypes } from '@/features/tasks/hooks/use-custom-task-types';
+import { getIconByName } from '@/features/tasks/components/icon-picker';
 
 /**
  * `/settings/custom-task-types` — listagem read-only (PLANO §12).
@@ -31,7 +32,9 @@ export default function CustomTaskTypesSettingsPage(): JSX.Element {
         />
       ) : query.data && query.data.length > 0 ? (
         <ul role="list" className="flex flex-col gap-2">
-          {query.data.map((type) => (
+          {query.data.map((type) => {
+            const Icon = getIconByName(type.icon);
+            return (
             <li
               key={type.id}
               role="listitem"
@@ -47,7 +50,7 @@ export default function CustomTaskTypesSettingsPage(): JSX.Element {
                   color: type.color ?? 'var(--text-sub-600)',
                 }}
               >
-                {type.icon?.slice(0, 2).toUpperCase() ?? 'T'}
+                <Icon aria-hidden className="size-4" />
               </div>
               <div className="flex-1">
                 <p className="text-label-sm text-text-strong-950">{type.value}</p>
@@ -63,7 +66,8 @@ export default function CustomTaskTypesSettingsPage(): JSX.Element {
                 </span>
               )}
             </li>
-          ))}
+            );
+          })}
         </ul>
       ) : (
         <div className="rounded-lg border border-dashed border-stroke-soft-200 p-6 text-center text-paragraph-sm text-text-sub-600">

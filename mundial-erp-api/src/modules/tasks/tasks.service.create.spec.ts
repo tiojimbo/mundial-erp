@@ -49,7 +49,6 @@ interface Harness {
   service: TasksService;
   prisma: MockPrisma;
   repository: MockRepository;
-  depsRepository: { moveEdgesForMerge: jest.Mock };
   linksRepository: { moveEdgesForMerge: jest.Mock };
   outbox: MockOutbox;
   assignees: Required<Pick<MockSync, 'syncAssignees'>>;
@@ -134,9 +133,6 @@ function buildHarness(opts?: {
     $transaction: jest.fn(async (cb: (tx: TxShape) => unknown) => cb(tx)),
   };
 
-  const depsRepository = {
-    moveEdgesForMerge: jest.fn(async () => undefined),
-  };
   const linksRepository = {
     moveEdgesForMerge: jest.fn(async () => undefined),
   };
@@ -145,7 +141,6 @@ function buildHarness(opts?: {
   const service = new TasksService(
     prisma as never,
     repository as never,
-    depsRepository as never,
     linksRepository as never,
     outbox as never,
     assignees as never,
@@ -158,7 +153,6 @@ function buildHarness(opts?: {
     service,
     prisma,
     repository,
-    depsRepository,
     linksRepository,
     outbox,
     assignees,

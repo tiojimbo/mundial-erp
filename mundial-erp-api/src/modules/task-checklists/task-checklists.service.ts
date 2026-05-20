@@ -90,7 +90,7 @@ export class TaskChecklistsService {
 
     const created = await this.repository.createChecklist({
       workItemId: taskId,
-      name: dto.name.trim(),
+      title: dto.title.trim(),
       position,
     });
 
@@ -107,8 +107,8 @@ export class TaskChecklistsService {
       throw new NotFoundException('Checklist nao encontrada');
     }
 
-    const data: { name?: string; position?: number } = {};
-    if (dto.name !== undefined) data.name = dto.name.trim();
+    const data: { title?: string; position?: number } = {};
+    if (dto.title !== undefined) data.title = dto.title.trim();
     if (dto.position !== undefined) data.position = dto.position;
 
     const updated = await this.repository.updateChecklist(id, data);
@@ -160,13 +160,13 @@ export class TaskChecklistsService {
     const itemsBefore = (checklist as unknown as ChecklistShape).items ?? [];
     const isFirstItem = itemsBefore.length === 0;
     const parentWorkItemId = (checklist as unknown as ChecklistShape).workItemId;
-    const parentChecklistName = (checklist as unknown as ChecklistShape).name;
+    const parentChecklistTitle = (checklist as unknown as ChecklistShape).title;
 
     const created = await this.prisma.$transaction(async (tx) => {
       const row = await this.repository.createItem(
         {
           checklistId,
-          name: dto.name.trim(),
+          title: dto.title.trim(),
           parentId: dto.parentId ?? null,
           assigneeId: dto.assigneeId ?? null,
           position,
@@ -177,14 +177,13 @@ export class TaskChecklistsService {
         tx,
       );
       if (isFirstItem) {
-        // Primeiro item da checklist recem-criada => emite CHECKLIST_CREATED.
         await this.outbox.enqueue(tx, {
           aggregateId: parentWorkItemId,
           eventType: OUTBOX_CHECKLIST_CREATED,
           payload: {
             taskId: parentWorkItemId,
             checklistId,
-            checklistName: parentChecklistName,
+            checklistTitle: parentChecklistTitle,
             actorId: actorUserId,
           },
           workspaceId,
@@ -225,7 +224,7 @@ export class TaskChecklistsService {
     }
 
     const data: {
-      name?: string;
+      title?: string;
       parentId?: string | null;
       assigneeId?: string | null;
       position?: number;
@@ -234,7 +233,7 @@ export class TaskChecklistsService {
       resolvedBy?: string | null;
     } = {};
 
-    if (dto.name !== undefined) data.name = dto.name.trim();
+    if (dto.title !== undefined) data.title = dto.title.trim();
     if (dto.parentId !== undefined) data.parentId = dto.parentId;
     if (dto.assigneeId !== undefined) data.assigneeId = dto.assigneeId;
     if (dto.position !== undefined) data.position = dto.position;
@@ -263,7 +262,7 @@ export class TaskChecklistsService {
             taskId: item.checklist.workItemId,
             checklistId,
             itemId,
-            itemName: row.name,
+            itemTitle: row.title,
             actorId: actorUserId,
           },
           workspaceId,

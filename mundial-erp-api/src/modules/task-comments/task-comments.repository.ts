@@ -12,8 +12,8 @@ const COMMENT_SELECT = {
   id: true,
   workItemId: true,
   authorId: true,
-  body: true,
-  bodyBlocks: true,
+  content: true,
+  contentBlocks: true,
   parentId: true,
   mentions: true,
   assigneeId: true,
@@ -34,8 +34,8 @@ const COMMENT_SELECT = {
 export interface CommentCreateInput {
   workItemId: string;
   authorId: string;
-  body: string;
-  bodyBlocks?: Prisma.InputJsonValue | null;
+  content: string;
+  contentBlocks?: Prisma.InputJsonValue | null;
   parentId?: string | null;
   mentions?: string[];
   assigneeId?: string | null;
@@ -43,8 +43,8 @@ export interface CommentCreateInput {
 }
 
 export interface CommentUpdateInput {
-  body?: string;
-  bodyBlocks?: Prisma.InputJsonValue | null;
+  content?: string;
+  contentBlocks?: Prisma.InputJsonValue | null;
   mentions?: string[];
   editedAt?: Date;
 }
@@ -128,11 +128,11 @@ export class TaskCommentsRepository {
     const data: Prisma.WorkItemCommentUncheckedCreateInput = {
       workItemId: input.workItemId,
       authorId: input.authorId,
-      body: input.body,
-      bodyBlocks:
-        input.bodyBlocks === undefined || input.bodyBlocks === null
+      content: input.content,
+      contentBlocks:
+        input.contentBlocks === undefined || input.contentBlocks === null
           ? Prisma.JsonNull
-          : input.bodyBlocks,
+          : input.contentBlocks,
       mentions:
         input.mentions === undefined || input.mentions.length === 0
           ? Prisma.JsonNull
@@ -156,10 +156,10 @@ export class TaskCommentsRepository {
   ) {
     const db = tx ?? this.prisma;
     const data: Prisma.WorkItemCommentUncheckedUpdateInput = {};
-    if (input.body !== undefined) data.body = input.body;
-    if (input.bodyBlocks !== undefined) {
-      data.bodyBlocks =
-        input.bodyBlocks === null ? Prisma.JsonNull : input.bodyBlocks;
+    if (input.content !== undefined) data.content = input.content;
+    if (input.contentBlocks !== undefined) {
+      data.contentBlocks =
+        input.contentBlocks === null ? Prisma.JsonNull : input.contentBlocks;
     }
     if (input.mentions !== undefined) {
       data.mentions =

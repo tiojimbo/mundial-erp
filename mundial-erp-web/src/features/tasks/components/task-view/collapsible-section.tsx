@@ -42,7 +42,7 @@ export function CollapsibleSection({
 
   return (
     <section className="flex flex-col gap-2">
-      <header className="flex items-center justify-between">
+      <header className="group flex items-center justify-between">
         <button
           type="button"
           onClick={() => toggle(sectionKey)}

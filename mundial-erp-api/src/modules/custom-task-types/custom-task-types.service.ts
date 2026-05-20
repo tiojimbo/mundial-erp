@@ -101,7 +101,14 @@ export class CustomTaskTypesService {
     workspaceId: string,
   ): Promise<CustomTaskTypeResponseDto[]> {
     const items = await this.repository.findAllForWorkspaceFlat(workspaceId);
-    return items.map((i) => CustomTaskTypeResponseDto.fromEntity(i));
+    const seen = new Set<string>();
+    const deduped = items.filter((i) => {
+      const key = i.name.trim().toLowerCase();
+      if (seen.has(key)) return false;
+      seen.add(key);
+      return true;
+    });
+    return deduped.map((i) => CustomTaskTypeResponseDto.fromEntity(i));
   }
 
   async findById(
@@ -181,10 +188,10 @@ export class CustomTaskTypesService {
     if (!visible) {
       throw new NotFoundException(NOT_FOUND_MESSAGE);
     }
-    if (visible.workspaceId === null || visible.isBuiltin) {
+    if (visible.isBuiltin) {
       throw new ForbiddenException(BUILTIN_LOCK_MESSAGE);
     }
-    if (visible.workspaceId !== workspaceId) {
+    if (visible.workspaceId !== null && visible.workspaceId !== workspaceId) {
       throw new NotFoundException(NOT_FOUND_MESSAGE);
     }
     if (
@@ -237,10 +244,10 @@ export class CustomTaskTypesService {
     if (!row) {
       throw new NotFoundException(NOT_FOUND_MESSAGE);
     }
-    if (row.workspaceId === null || row.isBuiltin) {
+    if (row.isBuiltin) {
       throw new ForbiddenException(BUILTIN_LOCK_MESSAGE);
     }
-    if (row.workspaceId !== workspaceId) {
+    if (row.workspaceId !== null && row.workspaceId !== workspaceId) {
       throw new NotFoundException(NOT_FOUND_MESSAGE);
     }
     if (
@@ -253,26 +260,12 @@ export class CustomTaskTypesService {
       return;
     }
 
-    const deps = await this.repository.countDependents(id);
-    const total =
-      deps.workItems +
-      deps.spacesAsDefault +
-      deps.foldersAsDefault +
-      deps.listsAsDefault +
-      deps.customFields;
-    if (total > 0) {
-      throw new ConflictException({
-        message: 'Custom task type em uso — remova dependencias antes',
-        code: 'CUSTOM_TASK_TYPE_IN_USE',
-        dependents: deps,
-      });
-    }
-
-    await this.repository.softDelete(id);
+    await this.repository.softDeleteWithCascadeNull(id);
     await this.publishInvalidation(`ws:${workspaceId}`);
   }
 
   private async publishInvalidation(payload: string): Promise<void> {
+    await this.invalidateByMessage(payload);
     try {
       await this.redis.publish(
         CustomTaskTypesService.INVALIDATION_CHANNEL,

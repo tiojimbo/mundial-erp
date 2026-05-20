@@ -1,38 +1,183 @@
-import { useQuery } from '@tanstack/react-query';
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { useWorkspaceStore } from '@/stores/workspace.store';
 import { customFieldDefinitionsService } from '../services/custom-field-definitions.service';
-import type { CustomFieldDefinitionsListParams } from '../types/custom-field.types';
+import type {
+  AddCustomFieldLocationPayload,
+  CreateCustomFieldDefinitionPayload,
+  CustomFieldDefinitionsScope,
+  CustomFieldLocationType,
+  ManagerScope,
+  UpdateCustomFieldDefinitionPayload,
+} from '../types/custom-field.types';
 
-/**
- * `queryKey` estavel: `[workspaceId, 'custom-field-definitions', params]`.
- *
- * Workspace prefix garante isolamento de cache entre tenants (mesmo padrao
- * adotado em `taskQueryKeys`). Stale 30s alinhado com PLANO §"Hooks".
- */
 export const customFieldDefinitionsQueryKeys = {
   all: (workspaceId: string) =>
     [workspaceId, 'custom-field-definitions'] as const,
-  list: (workspaceId: string, params?: CustomFieldDefinitionsListParams) =>
+  list: (
+    workspaceId: string,
+    scope?: CustomFieldDefinitionsScope,
+  ) =>
     [
       ...customFieldDefinitionsQueryKeys.all(workspaceId),
       'list',
-      params ?? {},
+      scope ?? {},
+    ] as const,
+  manager: (
+    workspaceId: string,
+    scope: ManagerScope,
+    targetId?: string,
+  ) =>
+    [
+      ...customFieldDefinitionsQueryKeys.all(workspaceId),
+      'manager',
+      scope,
+      targetId ?? '',
+    ] as const,
+  groups: (workspaceId: string, taskTypeId: string) =>
+    [
+      ...customFieldDefinitionsQueryKeys.all(workspaceId),
+      'groups',
+      'task-type',
+      taskTypeId,
     ] as const,
 };
 
 export const CUSTOM_FIELD_DEFINITIONS_STALE_TIME_MS = 30_000;
 
-export function useCustomFieldDefinitions(
-  params?: CustomFieldDefinitionsListParams,
-) {
+export function useCustomFieldDefinitions(scope?: CustomFieldDefinitionsScope) {
   const workspaceId = useWorkspaceStore(
     (state) => state.currentWorkspace?.id ?? '',
   );
 
   return useQuery({
-    queryKey: customFieldDefinitionsQueryKeys.list(workspaceId, params),
-    queryFn: () => customFieldDefinitionsService.list(params),
+    queryKey: customFieldDefinitionsQueryKeys.list(workspaceId, scope),
+    queryFn: () => customFieldDefinitionsService.listGrouped(scope),
     enabled: Boolean(workspaceId),
     staleTime: CUSTOM_FIELD_DEFINITIONS_STALE_TIME_MS,
+  });
+}
+
+export function useCustomFieldsManager(
+  scope: ManagerScope,
+  targetId?: string,
+) {
+  const workspaceId = useWorkspaceStore(
+    (state) => state.currentWorkspace?.id ?? '',
+  );
+  const targetRequired =
+    scope === 'list' || scope === 'folder' || scope === 'space';
+  return useQuery({
+    queryKey: customFieldDefinitionsQueryKeys.manager(
+      workspaceId,
+      scope,
+      targetId,
+    ),
+    queryFn: () => customFieldDefinitionsService.manager(scope, targetId),
+    enabled:
+      Boolean(workspaceId) && (!targetRequired || Boolean(targetId)),
+    staleTime: CUSTOM_FIELD_DEFINITIONS_STALE_TIME_MS,
+  });
+}
+
+export function useCustomFieldGroups(taskTypeId: string) {
+  const workspaceId = useWorkspaceStore(
+    (state) => state.currentWorkspace?.id ?? '',
+  );
+  return useQuery({
+    queryKey: customFieldDefinitionsQueryKeys.groups(workspaceId, taskTypeId),
+    queryFn: () => customFieldDefinitionsService.groupsByTaskType(taskTypeId),
+    enabled: Boolean(workspaceId) && Boolean(taskTypeId),
+    staleTime: CUSTOM_FIELD_DEFINITIONS_STALE_TIME_MS,
+  });
+}
+
+export function useCreateCustomField() {
+  const qc = useQueryClient();
+  const workspaceId = useWorkspaceStore(
+    (state) => state.currentWorkspace?.id ?? '',
+  );
+  return useMutation({
+    mutationFn: (payload: CreateCustomFieldDefinitionPayload) =>
+      customFieldDefinitionsService.create(payload),
+    onSuccess: () =>
+      qc.invalidateQueries({
+        queryKey: customFieldDefinitionsQueryKeys.all(workspaceId),
+      }),
+  });
+}
+
+export function useUpdateCustomField() {
+  const qc = useQueryClient();
+  const workspaceId = useWorkspaceStore(
+    (state) => state.currentWorkspace?.id ?? '',
+  );
+  return useMutation({
+    mutationFn: ({
+      id,
+      payload,
+    }: {
+      id: string;
+      payload: UpdateCustomFieldDefinitionPayload;
+    }) => customFieldDefinitionsService.update(id, payload),
+    onSuccess: () =>
+      qc.invalidateQueries({
+        queryKey: customFieldDefinitionsQueryKeys.all(workspaceId),
+      }),
+  });
+}
+
+export function useDeleteCustomField() {
+  const qc = useQueryClient();
+  const workspaceId = useWorkspaceStore(
+    (state) => state.currentWorkspace?.id ?? '',
+  );
+  return useMutation({
+    mutationFn: (id: string) => customFieldDefinitionsService.remove(id),
+    onSuccess: () =>
+      qc.invalidateQueries({
+        queryKey: customFieldDefinitionsQueryKeys.all(workspaceId),
+      }),
+  });
+}
+
+export function useAddCustomFieldLocation() {
+  const qc = useQueryClient();
+  const workspaceId = useWorkspaceStore(
+    (state) => state.currentWorkspace?.id ?? '',
+  );
+  return useMutation({
+    mutationFn: (payload: AddCustomFieldLocationPayload) =>
+      customFieldDefinitionsService.addToLocation(payload),
+    onSuccess: () =>
+      qc.invalidateQueries({
+        queryKey: customFieldDefinitionsQueryKeys.all(workspaceId),
+      }),
+  });
+}
+
+export function useRemoveCustomFieldLocation() {
+  const qc = useQueryClient();
+  const workspaceId = useWorkspaceStore(
+    (state) => state.currentWorkspace?.id ?? '',
+  );
+  return useMutation({
+    mutationFn: ({
+      customFieldId,
+      locationType,
+      locationId,
+    }: {
+      customFieldId: string;
+      locationType: CustomFieldLocationType;
+      locationId: string;
+    }) =>
+      customFieldDefinitionsService.removeFromLocation(
+        customFieldId,
+        locationType,
+        locationId,
+      ),
+    onSuccess: () =>
+      qc.invalidateQueries({
+        queryKey: customFieldDefinitionsQueryKeys.all(workspaceId),
+      }),
   });
 }

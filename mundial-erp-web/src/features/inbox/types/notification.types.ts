@@ -35,8 +35,18 @@ export type NotificationCounts = {
   cleared: number;
 };
 
+export type NotificationsMeta = {
+  total: number;
+  page: number;
+  limit: number;
+  totalPages: number;
+  hasNextPage: boolean;
+  hasPreviousPage: boolean;
+};
+
 export type NotificationsResponse = {
-  items: Notification[];
+  notifications: Notification[];
+  meta: NotificationsMeta;
   counts: NotificationCounts;
 };
 

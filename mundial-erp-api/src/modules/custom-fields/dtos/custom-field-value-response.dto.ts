@@ -27,13 +27,13 @@ export class CustomFieldValueResponseDto {
   id!: string;
 
   @ApiProperty()
-  workItemId!: string;
+  taskId!: string;
 
   @ApiProperty()
-  definitionId!: string;
+  customFieldId!: string;
 
   @ApiProperty({ type: () => CustomFieldDefinitionResponseDto })
-  definition!: CustomFieldDefinitionResponseDto;
+  customField!: CustomFieldDefinitionResponseDto;
 
   @ApiPropertyOptional({
     description:
@@ -53,9 +53,9 @@ export class CustomFieldValueResponseDto {
   ): CustomFieldValueResponseDto {
     const dto = new CustomFieldValueResponseDto();
     dto.id = entity.id;
-    dto.workItemId = entity.workItemId;
-    dto.definitionId = entity.definitionId;
-    dto.definition = CustomFieldDefinitionResponseDto.fromEntity(
+    dto.taskId = entity.workItemId;
+    dto.customFieldId = entity.definitionId;
+    dto.customField = CustomFieldDefinitionResponseDto.fromEntity(
       entity.definition,
       options,
     );

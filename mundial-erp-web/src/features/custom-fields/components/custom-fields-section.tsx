@@ -1,9 +1,12 @@
 'use client';
 
-import { useMemo } from 'react';
+import { useMemo, useRef } from 'react';
 import { useCustomFieldValues, usePatchCustomFieldValue } from '../hooks/use-custom-field-values';
+import { useCnpjLookup } from '../hooks/use-cnpj-lookup';
 import { useFeatureFlag } from '../hooks/use-feature-flag';
 import type {
+  CnpjAutofillSource,
+  CnpjLookupResult,
   CustomFieldDefinition,
   CustomFieldRawValue,
   CustomFieldScalarValue,
@@ -62,16 +65,18 @@ export function CustomFieldsSection({
   const writeEnabled = useFeatureFlag('custom_fields_write');
   const { data: values, isLoading, isError } = useCustomFieldValues(taskId);
   const patchMutation = usePatchCustomFieldValue();
+  const cnpjLookup = useCnpjLookup();
+  const lastLookedUpRef = useRef<string | null>(null);
 
   const filtered = useMemo<CustomFieldValue[]>(() => {
     if (!values || values.length === 0) return [];
     const filteredEntries =
       definitionIds && definitionIds.length > 0
-        ? values.filter((entry) => definitionIds.includes(entry.definitionId))
+        ? values.filter((entry) => definitionIds.includes(entry.customFieldId))
         : values;
 
     return [...filteredEntries].sort(
-      (a, b) => a.definition.sortOrder - b.definition.sortOrder,
+      (a, b) => a.customField.position - b.customField.position,
     );
   }, [values, definitionIds]);
 
@@ -81,6 +86,32 @@ export function CustomFieldsSection({
 
   if (filtered.length === 0) {
     return null;
+  }
+
+  function applyAutofill(
+    definition: CustomFieldDefinition,
+    rawValue: CustomFieldRawValue,
+  ) {
+    if (definition.type !== 'CNPJ') return;
+
+    const digits = String(rawValue ?? '').replace(/\D/g, '');
+    if (digits.length !== 14) return;
+    if (lastLookedUpRef.current === digits) return;
+    lastLookedUpRef.current = digits;
+
+    cnpjLookup.mutate(digits, {
+      onSuccess: (result) => {
+        for (const { source, targetDefinitionId } of CNPJ_AUTOFILL_MAP) {
+          const value = readPath(result, source);
+          if (value === null || value === undefined) continue;
+          patchMutation.mutate({
+            taskId,
+            customFieldId: targetDefinitionId,
+            value: typeof value === 'number' ? value : String(value),
+          });
+        }
+      },
+    });
   }
 
   const isReadOnly = readOnlyOverride ?? !writeEnabled;
@@ -98,16 +129,17 @@ export function CustomFieldsSection({
       <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
         {filtered.map((entry) => (
           <CustomFieldEditor
-            key={entry.definitionId}
-            definition={entry.definition}
+            key={entry.customFieldId}
+            definition={entry.customField}
             value={normalizeScalar(entry)}
             readOnly={isReadOnly}
             onChange={(next: CustomFieldRawValue) => {
               patchMutation.mutate({
                 taskId,
-                definitionId: entry.definitionId,
+                customFieldId: entry.customFieldId,
                 value: next,
               });
+              applyAutofill(entry.customField, next);
             }}
           />
         ))}
@@ -126,26 +158,78 @@ export function CustomFieldsSection({
  * parser.
  */
 function normalizeScalar(entry: CustomFieldValue): CustomFieldScalarValue {
-  const { value, definition } = entry;
+  const { value, customField } = entry;
   if (value === null || value === undefined) return null;
 
-  switch (definition.type) {
+  switch (customField.type) {
     case 'NUMBER':
     case 'CURRENCY':
+    case 'PERCENTAGE':
+    case 'DURATION':
+    case 'RATING':
       if (typeof value === 'number') return value;
       if (typeof value === 'string' && value.length > 0) {
         const parsed = Number(value);
         return Number.isFinite(parsed) ? parsed : null;
       }
       return null;
+    case 'CHECKBOX':
+      if (typeof value === 'boolean') return value;
+      if (value === 'true') return true;
+      if (value === 'false') return false;
+      return null;
+    case 'PEOPLE':
+    case 'RELATIONSHIP':
+      if (Array.isArray(value)) {
+        return value.filter((item): item is string => typeof item === 'string');
+      }
+      return null;
     case 'DATE':
-      // Pode chegar como ISO ou date-only; deixamos a string crua para o
-      // DateField recortar em `toDateInput`.
       return typeof value === 'string' ? value : String(value);
     default:
+      if (Array.isArray(value)) return null;
       return typeof value === 'string' ? value : String(value);
   }
 }
+
+function readPath(obj: CnpjLookupResult, path: string): unknown {
+  return path
+    .split('.')
+    .reduce<unknown>(
+      (acc, key) =>
+        acc && typeof acc === 'object'
+          ? (acc as Record<string, unknown>)[key]
+          : undefined,
+      obj,
+    );
+}
+
+const CNPJ_AUTOFILL_MAP: {
+  source: CnpjAutofillSource;
+  targetDefinitionId: string;
+}[] = [
+  { source: 'razaoSocial', targetDefinitionId: 'cfd-cnpj-af-razao-social' },
+  { source: 'nomeFantasia', targetDefinitionId: 'cfd-cnpj-af-nome-fantasia' },
+  { source: 'contato.email', targetDefinitionId: 'cfd-cnpj-af-email' },
+  { source: 'contato.telefone', targetDefinitionId: 'cfd-cnpj-af-telefone' },
+  { source: 'endereco.cep', targetDefinitionId: 'cfd-cnpj-af-cep' },
+  { source: 'endereco.logradouro', targetDefinitionId: 'cfd-cnpj-af-logradouro' },
+  { source: 'endereco.numero', targetDefinitionId: 'cfd-cnpj-af-numero' },
+  { source: 'endereco.complemento', targetDefinitionId: 'cfd-cnpj-af-complemento' },
+  { source: 'endereco.bairro', targetDefinitionId: 'cfd-cnpj-af-bairro' },
+  { source: 'endereco.municipio', targetDefinitionId: 'cfd-cnpj-af-municipio' },
+  { source: 'endereco.uf', targetDefinitionId: 'cfd-cnpj-af-uf' },
+  { source: 'dataAbertura', targetDefinitionId: 'cfd-cnpj-af-data-abertura' },
+  { source: 'situacaoCadastral', targetDefinitionId: 'cfd-cnpj-af-situacao' },
+  { source: 'naturezaJuridica', targetDefinitionId: 'cfd-cnpj-af-natureza' },
+  { source: 'cnaePrincipal.codigo', targetDefinitionId: 'cfd-cnpj-af-cnae-codigo' },
+  {
+    source: 'cnaePrincipal.descricao',
+    targetDefinitionId: 'cfd-cnpj-af-cnae-descricao',
+  },
+  { source: 'porte', targetDefinitionId: 'cfd-cnpj-af-porte' },
+  { source: 'capitalSocial', targetDefinitionId: 'cfd-cnpj-af-capital-social' },
+];
 
 /** Re-export do tipo para consumidores externos (CreateTaskDialog). */
 export type { CustomFieldDefinition };

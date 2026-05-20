@@ -28,12 +28,12 @@ export const TEMPLATE_MAX_NODES = 200 as const;
 export const TEMPLATE_MAX_DEPTH = 3 as const;
 
 interface RawChecklistItem {
-  name?: unknown;
+  title?: unknown;
   parentId?: unknown;
 }
 
 interface RawChecklist {
-  name?: unknown;
+  title?: unknown;
   items?: unknown;
 }
 
@@ -169,8 +169,8 @@ export class TemplatePayloadValidatorPipe implements PipeTransform {
               `Template excede ${TEMPLATE_MAX_NODES} nos`,
             );
           }
-          if (typeof checklist.name !== 'string') {
-            throw new BadRequestException('checklist.name deve ser string');
+          if (typeof checklist.title !== 'string') {
+            throw new BadRequestException('checklist.title deve ser string');
           }
           if (!Array.isArray(checklist.items)) {
             throw new BadRequestException('checklist.items deve ser array');
@@ -182,9 +182,9 @@ export class TemplatePayloadValidatorPipe implements PipeTransform {
               );
             }
             const item = itemUnknown as RawChecklistItem;
-            if (typeof item.name !== 'string') {
+            if (typeof item.title !== 'string') {
               throw new BadRequestException(
-                'checklist.item.name deve ser string',
+                'checklist.item.title deve ser string',
               );
             }
             if (

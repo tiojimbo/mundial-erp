@@ -67,8 +67,8 @@ export class CreateTaskDto {
   markdownContent?: string;
 
   /**
-   * Quando omitido, o service resolve o primeiro `WorkflowStatus` com
-   * `category=NOT_STARTED` do departamento do process.
+   * Quando omitido, o service resolve o primeiro `Status` com
+   * `type=NOT_STARTED` do departamento do process.
    */
   @ApiPropertyOptional()
   @IsOptional()

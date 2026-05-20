@@ -11,7 +11,7 @@ export interface ChecklistItemShape {
   id: string;
   checklistId: string;
   parentId: string | null;
-  name: string;
+  title: string;
   assigneeId: string | null;
   resolved: boolean;
   resolvedAt: Date | null;
@@ -25,7 +25,7 @@ export interface ChecklistItemShape {
 export interface ChecklistShape {
   id: string;
   workItemId: string;
-  name: string;
+  title: string;
   position: number;
   createdAt: Date;
   updatedAt: Date;
@@ -43,19 +43,19 @@ export class ChecklistItemResponseDto {
   parentId!: string | null;
 
   @ApiProperty()
-  name!: string;
+  text!: string;
 
   @ApiPropertyOptional()
   assigneeId!: string | null;
 
   @ApiProperty()
-  resolved!: boolean;
+  completed!: boolean;
 
   @ApiPropertyOptional()
-  resolvedAt!: Date | null;
+  completedAt!: Date | null;
 
   @ApiPropertyOptional()
-  resolvedBy!: string | null;
+  completedById!: string | null;
 
   @ApiProperty()
   position!: number;
@@ -74,11 +74,11 @@ export class ChecklistItemResponseDto {
     dto.id = entity.id;
     dto.checklistId = entity.checklistId;
     dto.parentId = entity.parentId;
-    dto.name = entity.name;
+    dto.text = entity.title;
     dto.assigneeId = entity.assigneeId;
-    dto.resolved = entity.resolved;
-    dto.resolvedAt = entity.resolvedAt;
-    dto.resolvedBy = entity.resolvedBy;
+    dto.completed = entity.resolved;
+    dto.completedAt = entity.resolvedAt;
+    dto.completedById = entity.resolvedBy;
     dto.position = entity.position;
     dto.source = entity.source;
     dto.createdAt = entity.createdAt;
@@ -92,10 +92,10 @@ export class ChecklistResponseDto {
   id!: string;
 
   @ApiProperty()
-  workItemId!: string;
+  taskId!: string;
 
   @ApiProperty()
-  name!: string;
+  title!: string;
 
   @ApiProperty()
   position!: number;
@@ -112,8 +112,8 @@ export class ChecklistResponseDto {
   static fromEntity(entity: ChecklistShape): ChecklistResponseDto {
     const dto = new ChecklistResponseDto();
     dto.id = entity.id;
-    dto.workItemId = entity.workItemId;
-    dto.name = entity.name;
+    dto.taskId = entity.workItemId;
+    dto.title = entity.title;
     dto.position = entity.position;
     dto.createdAt = entity.createdAt;
     dto.updatedAt = entity.updatedAt;

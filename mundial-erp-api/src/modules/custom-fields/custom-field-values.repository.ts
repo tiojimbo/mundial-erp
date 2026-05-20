@@ -23,6 +23,8 @@ export interface UpsertValueData {
   valueText: string | null;
   valueNumber: number | null;
   valueDate: Date | null;
+  valueJson: Prisma.InputJsonValue | null;
+  valueBoolean: boolean | null;
 }
 
 export type ValueWithDefinition = CustomFieldValue & {
@@ -91,6 +93,18 @@ export class CustomFieldValuesRepository {
    * Aceita `tx` opcional para participar da $transaction primaria do caller
    * (necessario para garantir atomicidade outbox + valor — PLANO §"Regras" #1).
    */
+  async deleteValue(
+    workItemId: string,
+    definitionId: string,
+  ): Promise<ValueWithDefinition | null> {
+    const current = await this.findValueByPair(workItemId, definitionId);
+    if (!current) return null;
+    await this.prisma.customFieldValue.delete({
+      where: { workItemId_definitionId: { workItemId, definitionId } },
+    });
+    return current;
+  }
+
   async upsertValue(
     data: UpsertValueData,
     tx?: Prisma.TransactionClient,
@@ -109,11 +123,15 @@ export class CustomFieldValuesRepository {
         valueText: data.valueText,
         valueNumber: data.valueNumber,
         valueDate: data.valueDate,
+        valueJson: data.valueJson ?? Prisma.JsonNull,
+        valueBoolean: data.valueBoolean,
       },
       update: {
         valueText: data.valueText,
         valueNumber: data.valueNumber,
         valueDate: data.valueDate,
+        valueJson: data.valueJson ?? Prisma.JsonNull,
+        valueBoolean: data.valueBoolean,
       },
       include: { definition: true },
     });

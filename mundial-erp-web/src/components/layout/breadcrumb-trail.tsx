@@ -4,6 +4,8 @@ import { Fragment } from 'react';
 import Link from 'next/link';
 import { Star, type LucideIcon } from 'lucide-react';
 import * as Tooltip from '@/components/ui/tooltip';
+import { FavoriteStarButton } from '@/features/favorites/components/favorite-star-button';
+import type { FavoriteEntityType } from '@/features/favorites/types/favorite.types';
 
 type BreadcrumbNodeProps = {
   label: string;
@@ -119,9 +121,17 @@ type BreadcrumbTrailProps = {
     active?: boolean;
     onClick?: () => void;
   };
+  favoriteTarget?: {
+    entityType: FavoriteEntityType;
+    entityId: string;
+  };
 };
 
-export function BreadcrumbTrail({ items, favorite }: BreadcrumbTrailProps) {
+export function BreadcrumbTrail({
+  items,
+  favorite,
+  favoriteTarget,
+}: BreadcrumbTrailProps) {
   return (
     <header className="flex shrink-0 items-center px-10 py-2.5">
       <nav aria-label="Breadcrumb" className="flex items-center">
@@ -142,7 +152,14 @@ export function BreadcrumbTrail({ items, favorite }: BreadcrumbTrailProps) {
               </Fragment>
             );
           })}
-          {favorite ? (
+          {favoriteTarget ? (
+            <li className="ml-1 flex items-center">
+              <FavoriteStarButton
+                entityType={favoriteTarget.entityType}
+                entityId={favoriteTarget.entityId}
+              />
+            </li>
+          ) : favorite ? (
             <BreadcrumbFavorite active={favorite.active} onClick={favorite.onClick} />
           ) : null}
         </ol>

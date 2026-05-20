@@ -76,7 +76,7 @@ describe('ActionRunnerService', () => {
 
   it('change_status atualiza statusId', async () => {
     const result = await runner.run(
-      { type: 'change_status', params: { workflowStatusId: 's-2' } },
+      { type: 'change_status', params: { statusId: 's-2' } },
       buildContext(),
     );
     expect(result.status).toBe('ok');

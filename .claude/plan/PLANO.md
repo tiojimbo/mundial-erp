@@ -705,7 +705,7 @@ ActivityInstance: @@index([assignedUserId, status], name: "idx_ai_user_status")
 | PATCH | `/orders/:id` | Atualizar dados (items, pagamento, comprovante) |
 | PATCH | `/orders/:id/status` | Avançar status → **dispara BPM engine** (valida guards conforme 3.2) |
 | GET | `/orders/:id/timeline` | Timeline completa do processo |
-| GET | `/orders/:id/pdf` | Gerar PDF "Proposta de Venda" (ver seção 4 para estrutura completa) |
+| GET | `/orders/:id/pdf` | Gerar PDF do pedido - Impr. Normal (1 via). `?via=duas` retorna Impr. 2 Vias (ver seção 4) |
 | PATCH | `/orders/:id/items/:itemId/supplies/:supplyId` | Marcar supply como READY/PENDING (toggle checklist insumos) |
 | POST | `/orders/:id/items/:itemId/supplies` | Adicionar supply a um item (acabamento, insumo) |
 | PATCH | `/orders/:id/payment` | Registrar pagamento (paidAmountCents + paymentProofUrl) |
@@ -740,7 +740,7 @@ ActivityInstance: @@index([assignedUserId, status], name: "idx_ai_user_status")
 - Outputs: registro de produto acabado (ProductionOutput)
 - Losses: registro de perdas (ProductionLoss)
 - Ordens de Separação: CRUD + separar + conferir (SeparationOrder/SeparationOrderItem)
-- Etiquetas: `GET /orders/:id/pdf/production-label` + `GET /orders/:id/pdf/separation-label`
+- Etiquetas: pendem da Ordem de Produção - `GET /production-orders/:id/pdf?tipo=etiqueta-acabado` + `GET /production-orders/:id/pdf?tipo=etiqueta-revenda` (ver seção 4)
 
 ### 2.10 Sync — Integração Pro Finanças (`/api/v1/sync`)
 | Método | Rota | Ação |
@@ -874,7 +874,7 @@ Cada atividade segue os **7 campos obrigatórios** da metodologia:
 | Dono | Vendedor (OPERATOR) |
 | Entrada | Cliente identificado (cadastrado ou novo) + demanda verbalizada |
 | Checklist | 1. Registrar cliente (se não cadastrado, acionar Cadastro de Clientes) · 2. Selecionar produtos da tabela de preços · 3. Definir quantidades · 4. Adicionar insumos/acabamentos por item (acabamento frontal, lateral, parafusos, etc.) · 5. Aplicar descontos se autorizados · 6. Preencher dados de entrega (endereço, bairro, cidade, UF, CEP, referência) · 7. Definir prazo de entrega e validade da proposta · 8. Registrar observações |
-| Saída | Pedido com status EM_ORCAMENTO. Pode gerar PDF "Proposta de Venda" via dropdown de ações |
+| Saída | Pedido com status EM_ORCAMENTO. Pode gerar PDF do pedido (Impr. Normal / Impr. 2 Vias) via dropdown de ações |
 | SLA | 2 horas |
 | Exceções | Cliente sem cadastro → cadastrar inline ou handoff. Produto sem preço → handoff para "Gestão de Produtos" |
 
@@ -1173,164 +1173,171 @@ Cada atividade segue os **7 campos obrigatórios** da metodologia:
 
 ---
 
-## 4. Geração de PDF — Proposta de Venda
+## 4. Geração de PDF do Pedido
 
-Cada pedido pode gerar um PDF de "PROPOSTA DE VENDA" acessível via dropdown de ações na lista de pedidos.
+Documentos gerados a partir do pedido e da ordem de produção, replicando 1:1 o layout real do Pro Finanças (auditado via admin + Postman em 19/05/2026). Lib do PF: **Prawn** (Ruby, confirmado nos metadados Creator/Producer de todos os PDFs). No Mundial ERP: **PDFKit** (equivalente server-side em Node, layout programático com tabelas, controle total).
 
-### 4.1 Estrutura do PDF
+Para **vendas, apenas dois documentos são usados**: Impr. Normal e Impr. 2 Vias. Os demais tipos que o PF oferece (Impr. Pequena, Orçamento v1/v2/v3, Etiqueta, Promissória, Aut. Faturamento, Contrato v1/v2, Contrato Venda, Cupom) estão fora de escopo.
 
-```
-┌─────────────────────────────────────────────────────────┐
-│ [LOGO]  PROPOSTA DE VENDA    Data: DD/MM/AAAA           │
-│                               Página: 1/N               │
-│                               Pedido nº: 00123          │
-├─────────────────────────────────────────────────────────┤
-│ DADOS DO CLIENTE                                        │
-│ Nome: ___________  CNPJ/CPF: ___________                │
-│ IE: ___________    Tel: ___________                     │
-│ Celular: _______   Email: ___________                   │
-│ Endereço: ______________________________________        │
-├────────────────────────┬────────────────────────────────┤
-│ INFO COMERCIAL         │ INFO DE ENTREGA               │
-│ Prazo entrega: 15 dias │ Endereço: ________________    │
-│ Pagamento: A VISTA     │ Bairro: ________ Cidade: ____ │
-│ Validade: 7 dias       │ UF: __ CEP: _______           │
-│ Produzir: [x]          │ Ref: ___________              │
-│ Revenda: [ ]           │ Obs: ___________              │
-│ Subst. Trib.: [ ]      │                               │
-├────────────────────────┴────────────────────────────────┤
-│ PRODUTOS                                                │
-│ Produto  | S/Carga | Beta | FCK | Qtd | Un | V.Un | VT │
-│ ---------|---------|------|-----|-----|----|------|--- │
-│ TELHA 25 |  500    | 1.2  | 30  |  2  | M2 | 1500 |3000│
-│ PARAFUSO |  -      | -    | -   | 100 | UN |  0.5 |  50│
-├─────────────────────────────────────────────────────────┤
-│ RESUMO FINANCEIRO                                       │
-│ Subtotal: R$ 5.000  Frete: R$ 200  Desconto: R$ 0      │
-│ Subst. Trib./IPI: R$ 0   TOTAL A PAGAR: R$ 5.200       │
-├─────────────────────────────────────────────────────────┤
-│ ________________          ________________              │
-│ Vendedor                  Cliente                       │
-└─────────────────────────────────────────────────────────┘
-```
+Nenhum PDF do PF (venda ou OP) tem código de barras. Geração de barcode (bwip-js / Code-128) é exclusiva da Requisição Interna de Estoque (seção 1.8b), que é documento separado e sem relação com os PDFs desta seção.
 
-### 4.2 Implementação
+### 4.1 Documentos e rotas
 
-**Backend:**
-- Endpoint: `GET /api/v1/orders/:id/pdf` → retorna PDF binário (Content-Type: application/pdf)
-- Service: `OrderPdfService` que monta o documento usando dados de Order + Client + Company + OrderItems (com campos técnicos)
-- Biblioteca: **PDFKit** (Node.js, leve, server-side, controle total do layout)
-- Template com logo da empresa carregado de `Company.logoUrl`
+| Documento | Uso | PF admin | PF API customer | Mundial ERP |
+|---|---|---|---|---|
+| Impr. Normal | Venda, 1 via | `GET /admin/pedidos/:id.pdf` | `GET /pedidos/:id.pdf` | `GET /api/v1/orders/:id/pdf` |
+| Impr. 2 Vias | Venda, 2 vias | `GET /admin/pedidos/:id.pdf?tipo=resumido` | `GET /pedidos/:id.pdf?tipo=resumido` | `GET /api/v1/orders/:id/pdf?via=duas` |
+| Ficha OP | Produção | `GET /admin/ordem_producaos/:id.pdf` | não exposto | `GET /api/v1/production-orders/:id/pdf` |
+| Etiqueta Produto Acabado | Produção | `GET /admin/ordem_producaos/:id.pdf?tipo=etiqueta_produto_acabado` | não exposto | `GET /api/v1/production-orders/:id/pdf?tipo=etiqueta-acabado` |
+| Etiqueta Revenda | Separação | `GET /admin/ordem_producaos/:id.pdf?tipo=etiqueta_revenda` | não exposto | `GET /api/v1/production-orders/:id/pdf?tipo=etiqueta-revenda` |
 
-### 4.2b Etiqueta de Produção (ETIQUETA 1 — itens FABRICACAO_PROPRIA)
+As etiquetas pendem da **Ordem de Produção** (entidade própria no PF), não do pedido. No PF a API customer (Postman) só expõe o PDF do pedido (`/pedidos/:id.pdf`); os PDFs de OP só existem no admin.
 
-Colada no produto fabricado ao sair da linha de produção.
+### 4.2 Impr. Normal (venda, 1 via)
+
+A4 retrato (210x297mm), 1 página, 1 via. Estrutura fiel ao PF, de cima pra baixo:
 
 ```
-┌─────────────────────────────────────────────────┐
-│ BRASILIA                                        │
-│ CNPJ: XX.XXX.XXX/XXXX-XX  IE: XXXXXXXXX        │
-│ Endereço: Quadra X, QD X, LT X                 │
-│ Cidade, Estado                                  │
-├─────────────────────────────────────────────────┤
-│ Ordem de Produção Codigo: 00456                 │
-│ Data Prevista: 15/04/2026                       │
-├──────┬──────────────────────┬──────┬────┬───┬───┤
-│ Cod  │ Descrição            │ Qtde │ Un │Pçs│Tam│
-├──────┼──────────────────────┼──────┼────┼───┼───┤
-│TT-001│ TELHA TR25 BANDEJA   │35,00 │ M2 │10 │3.5│
-│      │ FACE INF BRANCA EPS  │      │    │   │   │
-│      │ 3CM 0,43MM - ()      │      │    │   │   │
-├──────┴──────────────────────┴──────┴────┴───┴───┤
-│ Qtd. Total de Itens: 35,00                      │
-├─────────────────────────────────────────────────┤
-│ CONSUMIDOR - CPF XXX.XXX.XXX-XX                 │
-│ Nome Completo do Cliente                        │
-│ Endereço Entrega:                               │
-│ Logradouro, Bairro, Cidade - UF - CEP          │
-├─────────────────────────────────────────────────┤
-│ Pedido n.: 00123 | Data: 01/04/2026   (pág. 2) │
-└─────────────────────────────────────────────────┘
+┌───────────────────────────────────────────────────────────────────┐
+│ [LOGO]  BRASILIA                              Responsavel:         │
+│         CNPJ 00.000.000/0000-00               <vendedor>           │
+│         <endereço completo - bairro - cidade  Ordem Pedido:        │
+│          - UF - CEP>                                               │
+│         (00)0000-0000  (00)00000-0000         Pedido:              │
+│         E-mail:                               <nº pedido>          │
+│         Site: <site>                                               │
+├───────────────────────────────────────────────────────────────────┤
+│ VENDA                                                               │
+│ Fluxo: <x>   Cobrança: <x>   Plano Pgto.: <x>   Status: <x>        │
+├──────────────────────────────────────────────┬────────────────────┤
+│ Cliente/ Razão Social: <nome>                  │ Data da Emissão   │
+│ Nome Fantasia: <nome>                          │ DD/MM/AAAA HH:MM  │
+│ CPF: <x>   IE/RG: <x>                          │ Data Entrega      │
+│ Telefone: <x>   E-mail: <x>   Rota: <x>        │ DD/MM/AAAA        │
+│ Endereço: <logradouro, bairro, cidade - UF - CEP>                  │
+├───────────────────────────────────────────────────────────────────┤
+│ Produtos/Serviços │UNID.│QUANT.│VL.Unit.│SubTotal│Vl.Desc.│VL.Total│VL.IPI│
+│ <produto>         │ M2  │ ...  │  ...   │  ...   │  ...   │  ...   │ ...  │
+├───────────────────────────────────────────────────────────────────┤
+│                          Vl. Total dos Produtos          0.000,00 │
+│                          Vl. Total dos Serviços              0,00 │
+│                          Vl. Frete                           0,00 │
+│                          Descontos                           0,00 │
+│                          PCT dos Descontos                   0,00 │
+│                          Vl. IPI                             0,00 │
+├───────────────────────────────────────────────────────────────────┤
+│ Peso Total 0,00   Qtde. Itens 000   Valor Total do Pedido 0.000,00│
+├───────────────────────────────────────────────────────────────────┤
+│ ____________________________   ____________________________       │
+│ Assinatura do Responsavel / Empresa   Assinatura do Cliente        │
+└───────────────────────────────────────────────────────────────────┘
+   Rodapé fixo: "Controle melhor seu processo de vendas ... ProFinanças"
 ```
 
-> Código do produto usa o formato interno (TT-001, PF-001, etc.).
+> Sem colunas técnicas (S/Carga, Beta, FCK) e sem bloco de flags Produzir/Revenda/Subst.Trib. O PF não exibe nada disso no PDF de venda. Layout limpo, idêntico ao print usado hoje.
 
-### 4.2c Etiqueta de Separação (ETIQUETA 2 — itens REVENDA/INSUMO)
+### 4.3 Impr. 2 Vias (venda, 2 vias)
 
-Estrutura idêntica à Etiqueta 1, mas com itens de revenda/insumo (parafusos, cola, acabamentos). Códigos usam formato interno (PF-001, AC-001, IN-001). Só é gerada se o pedido tiver itens REVENDA/INSUMO.
+Mesmo layout do Impr. Normal, com duas diferenças exatas:
 
-### 4.2d Ficha da Ordem de Produção (DOCUMENTO 3 — PDF completo)
+1. O bloco inteiro se repete duas vezes na mesma página A4, separado por uma linha pontilhada de recorte no meio (uma via para a empresa, outra para o cliente).
+2. O bloco de totais NÃO tem a linha "PCT dos Descontos" (só Produtos, Serviços, Frete, Descontos, IPI).
 
-Documento de produção completo, não é etiqueta.
+### 4.4 Ficha da Ordem de Produção
+
+A4 retrato. Documento de produção completo (não é etiqueta). Estrutura fiel:
 
 ```
-┌─────────────────────────────────────────────────────────┐
-│ ORDEM DE PRODUÇÃO                                       │
-├──────┬────────┬──────────┬───────────────┬──────────────┤
-│NUM OP│ DATA   │TIPO(S/N) │DATA PREV/FIN  │ SITUAÇÃO     │
-│ 456  │01/04/26│ SIM      │15/04/26       │ EM ANDAMENTO │
-├──────┴────────┴──────────┴───────────────┴──────────────┤
-│ DADOS OPERACIONAIS                                      │
-│ Fluxo: Produção | Máquina: Padrão | Lote: -- | Ctrl: 123│
-├─────────────────────────────────────────────────────────┤
-│ PEDIDO VINCULADO                                        │
-│ Cod: 123 | Emissão: 01/04 | Prev Entrega: 15/04        │
-│ Liberado: Sim | Faturado: Sim | OC: --                  │
-├─────────────────────────────────────────────────────────┤
-│ DADOS DO CLIENTE                                        │
-│ Nome | CPF | Tel | Cel | Email                          │
-│ ENDEREÇO DE ENTREGA: Logradouro completo com CEP        │
-│ OBSERVAÇÕES: (campo livre)                              │
-├─────────────────────────────────────────────────────────┤
-│ PRODUTOS / SERVIÇOS                                     │
-│ Código │ Produto         │ UNID │ PEÇAS │ TAMANHO │QUANT│
-│ TT-001 │ TELHA TR25 BAND │  M2  │  10   │   3.5   │ 35 │
-├─────────────────────────────────────────────────────────┤
-│ MATÉRIA PRIMA                                           │
-│ Cod │ Produto │ UN │ Qtde │ M3 │ Peso │Custo│CustoTot│OP│
-│ 100 │ EPS 3CM │ KG │ 50   │0.5 │ 25   │ 10  │  500   │ S│
-├─────────────────────────────────────────────────────────┤
-│ PRODUTO ACABADO                                         │
-│ Cod │ Produto         │ UN │ Qtde │ OP                  │
-│ 039 │ TELHA TR25 BAND │ M2 │ 35   │ E                   │
-├─────────────────────────────────────────────────────────┤
-│ PERDA: (vazia ou com registros)                         │
-├─────────────────────────────────────────────────────────┤
-│ CUSTOS                                                  │
-│ Custo Total: R$ 500 | Custo Unit: R$ 14,28             │
-│ Custo Perda: R$ 0   | Custo Unit c/ Perda: R$ 14,28    │
-└─────────────────────────────────────────────────────────┘
+                       Ordem de Produção        Data emissão: DD/MM/AAAA
+┌─────────┬──────────┬───────────┬──────────────────┬──────┬───────────┐
+│ NUM. OP │ DATA     │ TIPO      │ DATA PREV/FINALIZ │      │ SITUAÇÃO  │
+│ 0000    │ DD/MM/AA │ SIM/NÃO   │ DD/MM/AAAA        │      │ <estado>  │
+├─────────┴──────────┴───────────┴──────────────────┴──────┴───────────┤
+│ FLUXO <x>   │ MAQUINA <x>   │ LOTE <x>   │ CONTROLE <x>             │
+│ OBSERVAÇÃO <x>                                                       │
+├──────────────────────── Pedido Vinculado ───────────────────────────┤
+│ Codigo │ Data da Emissão │ Previsão Entrega │ Liberado │ Faturado │ OC│
+│ Cliente: <nome>   CPF: <x>   Telefone   Celular   E-mail            │
+│ Endereço Entrega: <logradouro, bairro, cidade - UF - CEP>           │
+│ Observações: <x>                                                    │
+├──────────────────────────────────────────────────────────────────────┤
+│ Produtos / Serviços                  │ UNID. │ PEÇAS │ TAMANHO │ QUANT.│
+│ <produto>                            │  M2   │  0.0  │  0.00   │ 0,000 │
+├──────────────────────── MATERIA PRIMA ──────────────────────────────┤
+│ Codigo │ Produto │ UN │ Qtde │ M3 │ Peso │ Custo │ CustoTot │ OP     │
+├──────────────────────── PRODUTO ACABADO ────────────────────────────┤
+│ Codigo │ Produto │ UN │ Qtde │ OP                                    │
+├──────────────────────── PERDA ──────────────────────────────────────┤
+│                          Custo Total              0,00              │
+│                          Custo Unit.              0,00              │
+│                          Custo Perda              0,00              │
+│                          Custo Unit. com Perda    0,00              │
+└──────────────────────────────────────────────────────────────────────┘
 ```
 
-### 4.3 Implementação
+> MATERIA PRIMA e PERDA aparecem vazias quando a OP não tem fórmula/consumo registrado (confirmado na OP auditada).
 
-**Backend — Endpoints de geração de documentos:**
+### 4.5 Etiquetas (Produto Acabado e Revenda)
+
+Formato 85x113mm (240x320pt, etiqueta estreita, fonte grande). Acabado e Revenda têm layout idêntico; muda só o filtro de item (produto acabado vs revenda/insumo). A etiqueta Revenda sai vazia se a OP não tem itens de revenda. Sem código de barras.
+
+```
+                    BRASILIA
+              CNPJ: 00.000.000/0000-00
+              Insc. Estadual: 0000000000
+              Quadra 00 QD 00 LT 00
+              Cidade, Estado
+
+         Ordem de Produção Codigo: 0000
+              Data Prevista: DD/MM/AAAA
+─────────────────────────────────────────────
+Codigo  Descrição
+Qtde    Un
+─────────────────────────────────────────────
+0000  <DESCRIÇÃO DO PRODUTO
+       MULTI-LINHA> - ()
+0,00  M2   Peças: 0.0   Tamanho: 0.00
+─────────────────────────────────────────────
+Qtd. Total de Items: 00.00
+─────────────────────────────────────────────
+       CONSUMIDOR - CPF 000.000.000-00
+             <NOME DO CLIENTE>
+            Endereço Entrega:
+   <logradouro, bairro, cidade - UF - CEP>
+       Pedido n.: 0000 | Data: DD/MM/AAAA
+─────────────────────────────────────────────
+```
+
+### 4.6 Implementação
+
+**Backend - endpoints:**
+
 | Método | Rota | Documento |
 |---|---|---|
-| GET | `/orders/:id/pdf/proposal` | PDF "Proposta de Venda" |
-| GET | `/orders/:id/pdf/production-label` | Etiqueta 1 (produção — itens FABRICACAO_PROPRIA) |
-| GET | `/orders/:id/pdf/separation-label` | Etiqueta 2 (separação — itens REVENDA_ESTOQUE, retorna 404 se não houver) |
-| GET | `/production-orders/:id/pdf` | Ficha completa da OP (matéria-prima, produto acabado, custos, perda) |
+| GET | `/orders/:id/pdf` | Impr. Normal (1 via) |
+| GET | `/orders/:id/pdf?via=duas` | Impr. 2 Vias |
+| GET | `/production-orders/:id/pdf` | Ficha da OP |
+| GET | `/production-orders/:id/pdf?tipo=etiqueta-acabado` | Etiqueta Produto Acabado |
+| GET | `/production-orders/:id/pdf?tipo=etiqueta-revenda` | Etiqueta Revenda |
+
+Todos retornam PDF binário (`Content-Type: application/pdf`).
 
 **Serviços:**
-- `ProposalPdfService` — gera Proposta de Venda (PDFKit)
-- `LabelPdfService` — gera Etiquetas 1 e 2 (PDFKit, formato menor)
-- `ProductionOrderPdfService` — gera Ficha OP completa (PDFKit)
+- `OrderPdfService` - Impr. Normal e Impr. 2 Vias. A variante 2 vias repete o bloco e omite a linha "PCT dos Descontos".
+- `ProductionOrderPdfService` - Ficha OP + etiquetas (acabado/revenda pelo filtro de classificação do item).
 
-**Biblioteca:** PDFKit (Node.js, server-side, controle total do layout)
+**Dados consumidos:**
+- `Company` -> unidade, logo, CNPJ, IE, endereço completo, telefones, e-mail, site (cabeçalho)
+- `Client` -> razão social, nome fantasia, CPF/CNPJ, IE/RG, telefone, e-mail, rota, endereço
+- `Order` -> número, tipo (VENDA), fluxo, cobrança, plano pgto., status, datas emissão/entrega
+- `OrderItem` + `Product` -> descrição, unidade, quantidade, valor unit., subtotal, desconto, total, IPI
+- Totais calculados -> produtos, serviços, frete, descontos, PCT descontos (só Normal), IPI, peso total, qtde. itens, valor total
+- `ProductionOrder` -> dados da OP, pedido vinculado, matéria-prima, produto acabado, perda, custos
 
-**Frontend — Dropdown "Ações" na lista de pedidos:**
-- "Imprimir Proposta de Venda" → `GET /orders/:id/pdf/proposal`
-- "Imprimir Etiqueta Produção" → `GET /orders/:id/pdf/production-label`
-- "Imprimir Etiqueta Separação" → `GET /orders/:id/pdf/separation-label` (oculto se pedido não tem itens REVENDA_ESTOQUE)
-- "Imprimir Ficha OP" → `GET /production-orders/:id/pdf` (disponível após FATURADO)
-
-**Dados consumidos do banco:**
-- `Company` → nome, logo, CNPJ, endereço (cabeçalho)
-- `Client` → nome, CPF/CNPJ, IE, telefone, celular, email, endereço (dados do cliente)
-- `Order` → número, data emissão, prazo entrega, validade proposta, forma pagamento, flags (produzir, revenda, subst. trib.), notas, endereço entrega (info comercial + entrega)
-- `OrderItem` + `Product` → nome produto, loadCapacity, beta, fckMpa, quantidade, unidade, preço unitário, total (tabela de produtos)
-- Totais calculados → subtotal, frete, desconto, subst. tributária/IPI, total geral (rodapé)
+**Frontend - dropdown "Ações" na lista de pedidos:**
+- "Impr. Normal" -> `GET /orders/:id/pdf`
+- "Impr. 2 Vias" -> `GET /orders/:id/pdf?via=duas`
+- "Ficha OP" / "Etiqueta Acabado" / "Etiqueta Revenda" -> rotas de `/production-orders/:id/pdf` (disponíveis após FATURADO, quando a OP existe)
 
 ---
 

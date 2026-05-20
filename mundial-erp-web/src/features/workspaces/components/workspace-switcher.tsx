@@ -77,9 +77,9 @@ export function WorkspaceSwitcher() {
               borderRadius: '0.375rem',
               borderWidth: '1px',
               borderStyle: 'solid',
-              borderColor: 'var(--border)',
+              borderColor: 'var(--sidebar-border)',
             }}
-            className='z-50 w-[256px] origin-(--radix-dropdown-menu-content-transform-origin) overflow-hidden bg-popover p-1 text-popover-foreground data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0 data-[state=closed]:zoom-out-95 data-[state=open]:zoom-in-95 data-[side=bottom]:slide-in-from-top-2 data-[side=top]:slide-in-from-bottom-2 data-[side=left]:slide-in-from-right-2 data-[side=right]:slide-in-from-left-2'
+            className='z-50 w-[256px] origin-(--radix-dropdown-menu-content-transform-origin) overflow-hidden bg-sidebar p-1 text-sidebar-foreground data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0 data-[state=closed]:zoom-out-95 data-[state=open]:zoom-in-95 data-[side=bottom]:slide-in-from-top-2 data-[side=top]:slide-in-from-bottom-2 data-[side=left]:slide-in-from-right-2 data-[side=right]:slide-in-from-left-2'
           >
             <div className='mb-1 p-2'>
               <div className='flex items-center gap-2'>
@@ -99,10 +99,10 @@ export function WorkspaceSwitcher() {
                   </span>
                 </span>
                 <div className='flex flex-col'>
-                  <span className='text-[14px] font-medium text-popover-foreground'>
+                  <span className='text-[14px] font-medium text-sidebar-foreground'>
                     {current.name}
                   </span>
-                  <span className='text-[12px] text-muted-foreground'>
+                  <span className='text-[12px] text-sidebar-foreground'>
                     {memberCount === 1
                       ? '1 membro'
                       : `${memberCount} membros`}
@@ -113,26 +113,26 @@ export function WorkspaceSwitcher() {
 
             <DropdownMenu.Item
               onSelect={() => router.push('/configuracoes/empresa')}
-              className="relative flex cursor-pointer items-center gap-2 rounded-sm px-2 py-1.5 text-sm outline-hidden select-none focus:bg-accent focus:text-accent-foreground data-[disabled]:pointer-events-none data-[disabled]:opacity-50 [&_svg:not([class*='size-'])]:size-4 [&_svg:not([class*='text-'])]:text-muted-foreground [&_svg]:pointer-events-none [&_svg]:shrink-0"
+              className="relative flex cursor-pointer items-center gap-2 rounded-sm px-2 py-1.5 text-sm outline-hidden select-none focus:bg-sidebar-accent focus:text-sidebar-accent-foreground data-[disabled]:pointer-events-none data-[disabled]:opacity-50 [&_svg:not([class*='size-'])]:size-4 [&_svg:not([class*='text-'])]:text-sidebar-foreground [&_svg]:pointer-events-none [&_svg]:shrink-0"
             >
               <RiSettings3Line aria-hidden='true' className='mr-2 h-4 w-4' />
-              <span className='text-[14px] text-popover-foreground'>
+              <span className='text-[14px] text-sidebar-foreground'>
                 Configurações
               </span>
             </DropdownMenu.Item>
 
             <DropdownMenu.Separator
-              className='-mx-1 my-1 h-px bg-border'
+              className='-mx-1 my-1 h-px bg-sidebar-border'
             />
 
-            <div className='px-2 py-1 text-[12px] text-muted-foreground'>
+            <div className='px-2 py-1 text-[12px] text-sidebar-foreground'>
               Alternar Espaços de trabalho
             </div>
 
             {/* preventDefault: ação vive no botão `+` interno, não no Item. */}
             <DropdownMenu.Item
               onSelect={(e) => e.preventDefault()}
-              className='relative flex cursor-default items-center gap-2 rounded-sm px-2 py-1.5 text-sm outline-hidden select-none focus:bg-accent focus:text-accent-foreground data-[disabled]:pointer-events-none data-[disabled]:opacity-50'
+              className='relative flex cursor-default items-center gap-2 rounded-sm px-2 py-1.5 text-sm outline-hidden select-none focus:bg-sidebar-accent focus:text-sidebar-accent-foreground data-[disabled]:pointer-events-none data-[disabled]:opacity-50'
             >
               <div className='flex items-center gap-2'>
                 <button
@@ -143,11 +143,11 @@ export function WorkspaceSwitcher() {
                     setOpen(false);
                     router.push('/workspaces/new');
                   }}
-                  className='inline-flex !size-7 shrink-0 cursor-pointer items-center justify-center gap-2 whitespace-nowrap rounded-md border border-border bg-muted text-sm font-medium shadow-xs outline-none transition-all hover:bg-accent hover:text-accent-foreground focus-visible:border-ring focus-visible:ring-[3px] focus-visible:ring-ring/50 disabled:pointer-events-none disabled:opacity-50'
+                  className='inline-flex !size-7 shrink-0 cursor-pointer items-center justify-center gap-2 whitespace-nowrap rounded-md border border-sidebar-border bg-sidebar-accent text-sm font-medium text-sidebar-foreground shadow-xs outline-none transition-all hover:bg-sidebar-accent/70 hover:text-sidebar-accent-foreground focus-visible:border-sidebar-ring focus-visible:ring-[3px] focus-visible:ring-sidebar-ring/50 disabled:pointer-events-none disabled:opacity-50'
                 >
                   <RiAddLine aria-hidden='true' className='h-4 w-4' />
                 </button>
-                <span className='text-[14px] text-popover-foreground'>
+                <span className='text-[14px] text-sidebar-foreground'>
                   Criar Espaço de trabalho
                 </span>
               </div>

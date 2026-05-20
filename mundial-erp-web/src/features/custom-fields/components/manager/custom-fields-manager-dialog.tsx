@@ -1,6 +1,6 @@
 'use client';
 
-import { useMemo } from 'react';
+import { useEffect, useMemo } from 'react';
 import * as Modal from '@/components/ui/modal';
 import { useCustomFieldsManager } from '../../hooks/use-custom-field-definitions';
 import {
@@ -18,12 +18,14 @@ interface CustomFieldsManagerDialogProps {
   open: boolean;
   onClose: () => void;
   initialView?: ManagerView;
+  initialSelectedDefId?: string | null;
 }
 
 export function CustomFieldsManagerDialog({
   open,
   onClose,
   initialView,
+  initialSelectedDefId,
 }: CustomFieldsManagerDialogProps) {
   const {
     state,
@@ -40,6 +42,12 @@ export function CustomFieldsManagerDialog({
   const { scope, targetId } = viewToScope(state.view);
   const managerQuery = useCustomFieldsManager(scope, targetId);
 
+  useEffect(() => {
+    if (open && initialSelectedDefId) {
+      selectDef(initialSelectedDefId);
+    }
+  }, [open, initialSelectedDefId, selectDef]);
+
   const selectedDef = useMemo(() => {
     if (!state.selectedDefId) return null;
     return (
@@ -54,7 +62,7 @@ export function CustomFieldsManagerDialog({
         <Modal.Content
           showClose={false}
           overlayClassName="bg-black/60 backdrop-blur-none"
-          className="!w-[95vw] !max-w-[95vw] flex h-[90vh] max-h-[90vh] flex-col overflow-hidden !rounded-lg border p-0"
+          className="!w-[1250px] !max-w-[96vw] flex h-[800px] !max-h-[92vh] flex-col overflow-hidden !rounded-xl border-0 !shadow-none p-0"
         >
           <Modal.Title className="sr-only">
             Campos personalizados
@@ -79,13 +87,13 @@ export function CustomFieldsManagerDialog({
                 view={state.view}
                 onClose={closeCreate}
               />
-            ) : (
+            ) : selectedDef ? (
               <ManagerFieldDetailSidebar
                 def={selectedDef}
                 onDeleted={() => selectDef(null)}
                 onClose={() => selectDef(null)}
               />
-            )}
+            ) : null}
           </div>
         </Modal.Content>
       </Modal.Root>

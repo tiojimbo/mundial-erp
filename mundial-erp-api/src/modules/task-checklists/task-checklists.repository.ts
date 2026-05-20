@@ -15,7 +15,7 @@ import { PrismaService } from '../../database/prisma.service';
 const CHECKLIST_SELECT = {
   id: true,
   workItemId: true,
-  name: true,
+  title: true,
   position: true,
   createdAt: true,
   updatedAt: true,
@@ -25,7 +25,7 @@ const CHECKLIST_ITEM_SELECT = {
   id: true,
   checklistId: true,
   parentId: true,
-  name: true,
+  title: true,
   assigneeId: true,
   resolved: true,
   resolvedAt: true,
@@ -38,13 +38,13 @@ const CHECKLIST_ITEM_SELECT = {
 
 export interface ChecklistCreateInput {
   workItemId: string;
-  name: string;
+  title: string;
   position: number;
 }
 
 export interface ChecklistItemCreateInput {
   checklistId: string;
-  name: string;
+  title: string;
   parentId?: string | null;
   assigneeId?: string | null;
   position: number;
@@ -133,7 +133,7 @@ export class TaskChecklistsRepository {
     return this.prisma.workItemChecklist.create({
       data: {
         workItemId: input.workItemId,
-        name: input.name,
+        title: input.title,
         position: input.position,
       },
       select: CHECKLIST_SELECT,
@@ -210,7 +210,7 @@ export class TaskChecklistsRepository {
     return db.workItemChecklistItem.create({
       data: {
         checklistId: input.checklistId,
-        name: input.name,
+        title: input.title,
         parentId: input.parentId ?? null,
         assigneeId: input.assigneeId ?? null,
         position: input.position,

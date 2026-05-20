@@ -83,6 +83,14 @@ export type UserFilters = {
   sortOrder?: 'asc' | 'desc';
 };
 
+export type StatusInlineConfig = {
+  id: string;
+  name: string;
+  type: 'NOT_STARTED' | 'ACTIVE' | 'DONE' | 'CLOSED';
+  color: string;
+  position: number;
+};
+
 export type DepartmentConfig = {
   id: string;
   name: string;
@@ -95,6 +103,7 @@ export type DepartmentConfig = {
   isProtected: boolean;
   isActive: boolean;
   areas: AreaConfig[];
+  statuses?: StatusInlineConfig[];
   createdAt: string;
   updatedAt: string;
 };
@@ -108,6 +117,11 @@ export type AreaConfig = {
   sortOrder: number;
   isDefault: boolean;
   isActive: boolean;
+};
+
+export type AreaDetailConfig = AreaConfig & {
+  useSpaceStatuses?: boolean;
+  statuses?: StatusInlineConfig[];
 };
 
 export type CreateDepartmentPayload = {
@@ -125,11 +139,12 @@ export type UpdateDepartmentPayload = {
   color?: string;
   isPrivate?: boolean;
   isActive?: boolean;
+  defaultTaskTypeId?: string | null;
 };
 
 export type CreateAreaPayload = {
   name: string;
-  departmentId: string;
+  spaceId: string;
   description?: string;
   isPrivate?: boolean;
   icon?: string;
@@ -150,6 +165,7 @@ export type UpdateAreaPayload = {
    * departamento para a área (ver `AreasService.update`).
    */
   useSpaceStatuses?: boolean;
+  defaultTaskTypeId?: string | null;
 };
 
 export type WorkflowStatusConfig = {
@@ -170,11 +186,29 @@ export type ProcessConfig = {
   departmentId: string;
   areaId: string;
   area: AreaConfig | null;
+  spaceId: string | null;
+  defaultTaskTypeId: string | null;
+  defaultTaskType: {
+    id: string;
+    value: string;
+    pluralName: string | null;
+    description: string | null;
+    icon: string | null;
+    spaceId: string | null;
+  } | null;
   featureRoute: string | null;
   description: string | null;
   isProtected: boolean;
   isActive: boolean;
   activities: ActivityConfig[];
+  statusInheritance?: 'SPACE' | 'FOLDER' | 'CUSTOM';
+  statuses?: Array<{
+    id: string;
+    name: string;
+    color: string;
+    type: 'NOT_STARTED' | 'ACTIVE' | 'DONE' | 'CLOSED';
+    position: number;
+  }>;
   createdAt: string;
   updatedAt: string;
 };
@@ -191,18 +225,16 @@ export type ActivityConfig = {
 
 export type CreateProcessPayload = {
   name: string;
-  areaId?: string;
-  departmentId?: string;
+  folderId: string;
   description?: string;
   isPrivate?: boolean;
-  processType?: 'LIST' | 'BPM';
 };
 
 export type UpdateProcessPayload = {
   name?: string;
-  areaId?: string;
   description?: string;
   isActive?: boolean;
+  defaultTaskTypeId?: string | null;
 };
 
 export type CreateActivityPayload = {

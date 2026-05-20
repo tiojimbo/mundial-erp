@@ -1,9 +1,9 @@
 /**
- * Backfill — Workflow statuses default para departments pre-existentes.
+ * Backfill — Status default para departments pre-existentes.
  *
  * Departments criados antes da logica de seed em DepartmentsService.create
  * nao receberam os 4 status default. Este script detecta departments sem
- * nenhum WorkflowStatus e cria os 4 defaults ("Para Fazer", "Em Andamento",
+ * nenhum Status e cria os 4 defaults ("Para Fazer", "Em Andamento",
  * "Concluido", "Finalizado").
  *
  * Idempotente: reexecutar so insere para departments que continuam zerados.
@@ -15,7 +15,7 @@
  */
 
 import 'dotenv/config';
-import { PrismaClient, StatusCategory } from '@prisma/client';
+import { PrismaClient, StatusType } from '@prisma/client';
 import { PrismaPg } from '@prisma/adapter-pg';
 
 const adapter = new PrismaPg({ connectionString: process.env.DATABASE_URL! });
@@ -24,10 +24,10 @@ const prisma = new PrismaClient({ adapter });
 const DRY_RUN = process.argv.includes('--dry-run');
 
 const DEFAULT_WORKFLOW_STATUSES = [
-  { name: 'Para Fazer', category: StatusCategory.NOT_STARTED, color: '#94a3b8', sortOrder: 1 },
-  { name: 'Em Andamento', category: StatusCategory.ACTIVE, color: '#3b82f6', sortOrder: 2 },
-  { name: 'Concluído', category: StatusCategory.DONE, color: '#22c55e', sortOrder: 3 },
-  { name: 'Finalizado', category: StatusCategory.CLOSED, color: '#16a34a', sortOrder: 4 },
+  { name: 'Para Fazer', type: StatusType.NOT_STARTED, color: '#94a3b8', position: 1 },
+  { name: 'Em Andamento', type: StatusType.ACTIVE, color: '#3b82f6', position: 2 },
+  { name: 'Concluído', type: StatusType.DONE, color: '#22c55e', position: 3 },
+  { name: 'Finalizado', type: StatusType.CLOSED, color: '#16a34a', position: 4 },
 ] as const;
 
 async function main() {
@@ -53,13 +53,12 @@ async function main() {
     if (DRY_RUN) continue;
     await prisma.$transaction(async (tx) => {
       for (const status of DEFAULT_WORKFLOW_STATUSES) {
-        await tx.workflowStatus.create({
+        await tx.status.create({
           data: {
             name: status.name,
-            category: status.category,
+            type: status.type,
             color: status.color,
-            sortOrder: status.sortOrder,
-            isDefault: true,
+            position: status.position,
             space: { connect: { id: dept.id } },
           },
         });

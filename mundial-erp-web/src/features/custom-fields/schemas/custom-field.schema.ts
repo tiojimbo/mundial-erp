@@ -5,12 +5,8 @@ import type { CustomFieldDefinition } from '../types/custom-field.types';
  * Schemas Zod por tipo de custom field.
  *
  * `schemaForField(definition)` despacha pelo `type` da definition e respeita
- * `required` + `config` (min/max/options). Mensagens em pt-BR para alinhar
- * com formularios atuais.
- *
- * Importante: esses schemas validam o INPUT do form (cliente). O backend
- * tambem valida via `validators/field-type-dispatch.ts`. Em divergencia,
- * o backend e a fonte de verdade — UI deve refletir 422 do PATCH.
+ * `required` + `config` + `options`. Backend e fonte de verdade — se
+ * divergir, UI reflete 422.
  */
 
 export const textSchema = z.string().max(2000);
@@ -45,19 +41,52 @@ export const phoneSchema = z
   .string()
   .regex(/^(\+?55\s?)?\(?\d{2}\)?\s?9?\d{4,5}-?\d{4}$/, 'Telefone invalido');
 
-/**
- * Compoe um schema Zod para um custom field a partir da definition.
- *
- * Regras:
- * - `required = true` -> base schema sem `.optional()` (TEXT exige `min(1)`).
- * - `required = false` -> base schema com `.optional()`.
- * - DROPDOWN sem opcoes: cai em `z.never()` para falhar previsivelmente em vez
- *   de quebrar com runtime do `z.enum([])`.
- */
+export const checkboxSchema = z.boolean();
+
+export const percentageSchema = (min = 0, max = 100) =>
+  z.number().min(min).max(max);
+
+export const durationSchema = z.number().int().min(0);
+
+export const ratingSchema = (maxStars = 5) =>
+  z.number().int().min(0).max(maxStars);
+
+const ID_REGEX = /^[0-9a-zA-Z_-]{8,64}$/;
+
+export const idSchema = z.string().regex(ID_REGEX, 'ID invalido');
+
+export const idArraySchema = z.array(idSchema);
+
+function uniqueIds(arr: string[]): boolean {
+  return new Set(arr).size === arr.length;
+}
+
+function extractStringOptions(d: CustomFieldDefinition): string[] {
+  if (Array.isArray(d.options) && d.options.length > 0) {
+    const flat = d.options
+      .map((opt) => {
+        if (typeof opt === 'string') return opt;
+        if (
+          typeof opt === 'object' &&
+          opt !== null &&
+          typeof (opt as { value?: unknown }).value === 'string'
+        ) {
+          return (opt as { value: string }).value;
+        }
+        return null;
+      })
+      .filter((v): v is string => v !== null);
+    if (flat.length > 0) return flat;
+  }
+  return (d.config?.options ?? []).map((opt) => opt.value);
+}
+
 export function schemaForField(d: CustomFieldDefinition): z.ZodTypeAny {
   switch (d.type) {
     case 'TEXT':
-      return d.required ? textSchema.min(1, 'Campo obrigatorio') : textSchema.optional();
+      return d.required
+        ? textSchema.min(1, 'Campo obrigatorio')
+        : textSchema.optional();
 
     case 'NUMBER': {
       const schema = numberSchema(d.config?.min, d.config?.max);
@@ -70,8 +99,10 @@ export function schemaForField(d: CustomFieldDefinition): z.ZodTypeAny {
     case 'DATE':
       return d.required ? dateSchema : dateSchema.optional();
 
-    case 'DROPDOWN': {
-      const options = (d.config?.options ?? []).map((opt) => opt.value);
+    case 'DROPDOWN':
+    case 'SELECT':
+    case 'LABEL': {
+      const options = extractStringOptions(d);
       if (options.length === 0) {
         return d.required ? z.never() : z.never().optional();
       }
@@ -93,5 +124,41 @@ export function schemaForField(d: CustomFieldDefinition): z.ZodTypeAny {
 
     case 'PHONE':
       return d.required ? phoneSchema : phoneSchema.optional();
+
+    case 'CHECKBOX':
+      return d.required ? checkboxSchema : checkboxSchema.optional();
+
+    case 'PERCENTAGE': {
+      const schema = percentageSchema(d.config?.min, d.config?.max);
+      return d.required ? schema : schema.optional();
+    }
+
+    case 'DURATION':
+      return d.required ? durationSchema : durationSchema.optional();
+
+    case 'RATING': {
+      const schema = ratingSchema(d.config?.maxStars);
+      return d.required ? schema : schema.optional();
+    }
+
+    case 'USER':
+    case 'TEAM':
+      return d.required ? idSchema : idSchema.optional();
+
+    case 'PEOPLE':
+    case 'RELATIONSHIP': {
+      const base = idArraySchema.refine(uniqueIds, 'IDs duplicados');
+      if (d.required) {
+        return base.refine(
+          (arr) => arr.length > 0,
+          'Selecione ao menos um item',
+        );
+      }
+      return base.optional();
+    }
+
+    case 'ROLLUP':
+      // Readonly do lado do cliente — sem validacao de input.
+      return z.any().optional();
   }
 }

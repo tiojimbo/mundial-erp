@@ -3,6 +3,9 @@ import { CustomFieldDefinitionResponseDto } from './custom-field-definition-resp
 
 export class GroupedCustomFieldsResponseDto {
   @ApiProperty({ type: [CustomFieldDefinitionResponseDto] })
+  workspace!: CustomFieldDefinitionResponseDto[];
+
+  @ApiProperty({ type: [CustomFieldDefinitionResponseDto] })
   space!: CustomFieldDefinitionResponseDto[];
 
   @ApiProperty({ type: [CustomFieldDefinitionResponseDto] })

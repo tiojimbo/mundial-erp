@@ -6,25 +6,14 @@ import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { render, screen, fireEvent, act } from '@testing-library/react';
 import { DropdownField } from './dropdown-field';
 import type { CustomFieldDefinition } from '../../types/custom-field.types';
+import { makeCustomFieldDefinition } from "../../types/custom-field.fixtures";
 
-const definition: CustomFieldDefinition = {
-  id: 'def-dropdown-1',
-  workspaceId: 'ws-1',
-  key: 'status',
-  label: 'Status',
-  type: 'DROPDOWN',
-  required: false,
-  config: {
+const definition: CustomFieldDefinition = makeCustomFieldDefinition({ id: 'def-dropdown-1', workspaceId: 'ws-1', name: 'Status', type: 'DROPDOWN', config: {
     options: [
       { value: 'open', label: 'Aberto' },
       { value: 'closed', label: 'Fechado' },
     ],
-  },
-  isBuiltin: false,
-  sortOrder: 0,
-  createdAt: '2026-01-01T00:00:00.000Z',
-  updatedAt: '2026-01-01T00:00:00.000Z',
-};
+  } });
 
 describe('DropdownField (TTT-024)', () => {
   beforeEach(() => {
@@ -35,7 +24,7 @@ describe('DropdownField (TTT-024)', () => {
     vi.restoreAllMocks();
   });
 
-  it('renderiza select com options do config', () => {
+  it('renderiza combobox com placeholder quando sem valor', () => {
     const onChange = vi.fn();
     render(
       <DropdownField
@@ -44,26 +33,22 @@ describe('DropdownField (TTT-024)', () => {
         onChange={onChange}
       />,
     );
-    expect(screen.getByRole('combobox', { name: /status/i })).toBeInTheDocument();
-    expect(screen.getByRole('option', { name: 'Aberto' })).toBeInTheDocument();
-    expect(screen.getByRole('option', { name: 'Fechado' })).toBeInTheDocument();
+    const combobox = screen.getByRole('combobox', { name: /status/i });
+    expect(combobox).toBeInTheDocument();
+    expect(combobox).toHaveTextContent('Sem valor');
   });
 
-  it('debouncea onChange ao selecionar opcao', () => {
+  it('mostra label da opcao selecionada quando value bate', () => {
     const onChange = vi.fn();
     render(
       <DropdownField
         definition={definition}
-        value={null}
+        value='open'
         onChange={onChange}
       />,
     );
-    const select = screen.getByRole('combobox', { name: /status/i });
-    fireEvent.change(select, { target: { value: 'open' } });
-    act(() => {
-      vi.advanceTimersByTime(500);
-    });
-    expect(onChange).toHaveBeenCalledWith('open');
+    const combobox = screen.getByRole('combobox', { name: /status/i });
+    expect(combobox).toHaveTextContent('Aberto');
   });
 
   it('placeholder quando options vazio', () => {

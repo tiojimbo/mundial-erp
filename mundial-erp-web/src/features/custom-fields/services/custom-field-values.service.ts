@@ -15,12 +15,22 @@ export const customFieldValuesService = {
 
   async setValue(
     taskId: string,
-    definitionId: string,
+    customFieldId: string,
     value: CustomFieldRawValue,
   ): Promise<CustomFieldValue> {
     const { data } = await api.put<ApiResponse<CustomFieldValue>>(
-      `/tasks/${taskId}/custom-fields/${definitionId}`,
+      `/custom-fields/task/${taskId}/field/${customFieldId}`,
       { value },
+    );
+    return data.data;
+  },
+
+  async clearValue(
+    taskId: string,
+    customFieldId: string,
+  ): Promise<{ message: string }> {
+    const { data } = await api.delete<ApiResponse<{ message: string }>>(
+      `/custom-fields/task/${taskId}/field/${customFieldId}`,
     );
     return data.data;
   },

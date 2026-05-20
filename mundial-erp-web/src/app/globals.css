@@ -30,13 +30,13 @@
   --input: oklch(92.2% 0 0);
   --ring: oklch(70.8% 0 0);
 
-  --sidebar: oklch(98.5% 0 0);
-  --sidebar-foreground: oklch(14.5% 0 0);
-  --sidebar-primary: oklch(20.5% 0 0);
-  --sidebar-primary-foreground: oklch(98.5% 0 0);
-  --sidebar-accent: oklch(94% 0 0);
-  --sidebar-accent-foreground: oklch(20.5% 0 0);
-  --sidebar-border: oklch(92.2% 0 0);
+  --sidebar: #0a1624;
+  --sidebar-foreground: oklch(98.5% 0 0);
+  --sidebar-primary: oklch(98.5% 0 0);
+  --sidebar-primary-foreground: oklch(20.5% 0 0);
+  --sidebar-accent: oklch(100% 0 0 / 0.08);
+  --sidebar-accent-foreground: oklch(98.5% 0 0);
+  --sidebar-border: oklch(100% 0 0 / 0.1);
   --sidebar-ring: oklch(70.8% 0 0);
 
   --chart-1: oklch(64.6% 0.222 41.116);
@@ -500,4 +500,11 @@
 .remixicon path {
   transform: scale(0.8996);
   transform-origin: center;
+}
+
+.favorites-bar-scroll::-webkit-scrollbar {
+  display: none;
+}
+.favorites-bar-scroll {
+  scrollbar-width: none;
 }

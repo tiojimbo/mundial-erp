@@ -34,9 +34,16 @@ import {
 } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
 import { cn } from '@/lib/cn';
-import { StatusIcon } from '@/features/work-items/components/status-icon';
+import { StatusIcon } from '@/features/processes/components/status-icon';
+import { getIconByName } from './icon-picker';
 import { useUpdateTaskStatus } from '../hooks/use-update-task-status';
 import type { Task, TaskStatus } from '../types/task.types';
+
+type TaskBoardDefaultType = {
+  value: string;
+  pluralName: string | null;
+  icon: string | null;
+};
 
 type TaskBoardProps = {
   tasks: Task[];
@@ -44,6 +51,7 @@ type TaskBoardProps = {
   wipLimits?: Record<string, number | undefined>;
   isLoading?: boolean;
   onAddTask?: (statusId: string) => void;
+  defaultTaskType?: TaskBoardDefaultType | null;
 };
 
 type ColumnData = { status: TaskStatus; tasks: Task[] };
@@ -151,13 +159,24 @@ function BoardTaskCard({
       )}
       {...(draggableHandleProps ?? {})}
     >
-      <Link
-        href={`/tasks/${task.id}`}
-        className="block truncate text-[13px] font-semibold text-text-strong-950 outline-none hover:underline"
-        onClick={(event) => event.stopPropagation()}
-      >
-        {task.title}
-      </Link>
+      <div className="flex items-center gap-1.5">
+        {(() => {
+          const TypeIcon = getIconByName(task.customType?.icon);
+          return (
+            <TypeIcon
+              aria-hidden
+              className="size-3.5 shrink-0 text-text-sub-600"
+            />
+          );
+        })()}
+        <Link
+          href={`/tasks/${task.id}`}
+          className="block truncate text-[13px] font-semibold text-text-strong-950 outline-none hover:underline"
+          onClick={(event) => event.stopPropagation()}
+        >
+          {task.title}
+        </Link>
+      </div>
 
       <div className="mt-2 flex flex-col gap-1.5">
         <div
@@ -260,12 +279,14 @@ type BoardColumnProps = {
   column: ColumnData;
   wipLimit: number | undefined;
   onAddTask?: (statusId: string) => void;
+  defaultTaskType?: TaskBoardDefaultType | null;
 };
 
 function BoardColumn({
   column,
   wipLimit,
   onAddTask,
+  defaultTaskType,
 }: BoardColumnProps): JSX.Element {
   const { setNodeRef, isOver } = useDroppable({
     id: column.status.id,
@@ -295,7 +316,7 @@ function BoardColumn({
             style={{ backgroundColor: `rgb(${rgbTriplet} / 0.15)` }}
           >
             <StatusIcon
-              category={column.status.category}
+              type={column.status.type}
               color={column.status.color}
               size={12}
             />
@@ -361,7 +382,7 @@ function BoardColumn({
           style={{ color: `rgb(${rgbTriplet} / 0.9)` }}
         >
           <RiAddLine aria-hidden className="size-3.5" />
-          Adicionar tarefa
+          {defaultTaskType?.pluralName ?? 'Adicionar tarefa'}
         </button>
       </div>
     </section>
@@ -374,6 +395,7 @@ export function TaskBoard({
   wipLimits,
   isLoading,
   onAddTask,
+  defaultTaskType,
 }: TaskBoardProps): JSX.Element {
   const updateStatus = useUpdateTaskStatus();
   const [activeTask, setActiveTask] = useState<Task | null>(null);
@@ -504,7 +526,7 @@ export function TaskBoard({
 
     // Mesmo hook usado pelo popover de status da list view — já aplica
     // update otimista no cache detail, lists e principalmente no cache
-    // `work-items/grouped` (via `moveTaskBetweenGroups`), que é a fonte do
+    // `tasks/list` (via `moveTaskBetweenGroups`), que é a fonte do
     // board. É isso que faz o status refletir em todas as views e ao abrir
     // a task.
     updateStatus.mutate(
@@ -557,6 +579,7 @@ export function TaskBoard({
               column={column}
               wipLimit={wipLimits?.[column.status.id]}
               onAddTask={onAddTask}
+              defaultTaskType={defaultTaskType}
             />
           ))}
         </div>

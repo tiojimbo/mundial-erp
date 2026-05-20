@@ -2,30 +2,45 @@
 
 import { useEffect, useMemo, useState } from 'react';
 import { toast } from 'sonner';
-import { ChevronDown } from 'lucide-react';
+import { ChevronDown, Trash2 } from 'lucide-react';
 import { arrayMove } from '@dnd-kit/sortable';
 import * as ScrollArea from '@radix-ui/react-scroll-area';
 import * as Modal from '@/components/ui/modal';
 import * as Button from '@/components/ui/button';
 import * as Radio from '@/components/ui/radio';
 import * as Tooltip from '@/components/ui/tooltip';
+import * as Dropdown from '@/components/ui/dropdown';
 import { useQueryClient } from '@tanstack/react-query';
-import type { WorkItemStatus } from '@/features/work-items/types/work-item.types';
 import {
-  useWorkflowStatuses,
-  useCreateWorkflowStatus,
-  useUpdateWorkflowStatus,
-  useDeleteWorkflowStatus,
-  useReorderWorkflowStatuses,
-  WORKFLOW_STATUSES_KEY,
-} from '../../hooks/use-workflow-statuses';
-import { useUpdateArea } from '../../hooks/use-departments';
+  useCreateStatus,
+  useUpdateStatus,
+  useDeleteStatus,
+  STATUSES_KEY,
+} from '../../hooks/use-statuses';
+import {
+  useStatusTemplates,
+  useCreateStatusTemplate,
+  useDeleteStatusTemplate,
+} from '../../hooks/use-status-templates';
+import {
+  useDepartment,
+  useArea,
+  useUpdateArea,
+  DEPARTMENTS_KEY,
+  AREAS_KEY,
+} from '../../hooks/use-departments';
+import {
+  useProcess,
+  useUpdateProcessStatusInherit,
+  PROCESSES_KEY,
+} from '../../hooks/use-processes';
+import type { StatusInlineConfig } from '../../types/settings.types';
 import { cn } from '@/lib/cn';
 import { GroupSection } from './group-section';
 import {
   DEFAULT_NEW_STATUS_COLOR,
   GROUPS,
-  type StatusCategory,
+  type StatusType,
 } from './constants';
 import type { StatusDraft } from './status-row';
 
@@ -34,7 +49,7 @@ type Mode = 'inherit' | 'custom';
 export interface StatusEditorDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
-  targetType: 'department' | 'area';
+  targetType: 'department' | 'area' | 'list';
   targetId: string;
   targetName: string;
   parentName?: string;
@@ -47,13 +62,13 @@ function tempId(): string {
   return `temp-${Math.random().toString(36).slice(2, 10)}-${Date.now()}`;
 }
 
-function toDraft(status: WorkItemStatus, sortOrder: number): StatusDraft {
+function toDraft(status: StatusInlineConfig, position: number): StatusDraft {
   return {
     id: status.id,
     name: status.name,
     color: status.color,
-    category: status.category,
-    sortOrder,
+    type: status.type,
+    position,
   };
 }
 
@@ -69,16 +84,45 @@ export function StatusEditorDialog({
   initialUseSpaceStatuses,
 }: StatusEditorDialogProps) {
   const queryClient = useQueryClient();
-  const { data: serverStatuses, isLoading } = useWorkflowStatuses(
-    departmentId,
-    targetType === 'area' ? targetId : undefined,
-  );
 
-  const createStatus = useCreateWorkflowStatus();
-  const updateStatus = useUpdateWorkflowStatus();
-  const deleteStatus = useDeleteWorkflowStatus();
-  const reorderStatuses = useReorderWorkflowStatuses();
+  const departmentQuery = useDepartment(
+    targetType === 'department' ? departmentId : '',
+  );
+  const areaQuery = useArea(targetType === 'area' ? targetId : '');
+  const processQuery = useProcess(targetType === 'list' ? targetId : '');
+
+  const isLoading =
+    targetType === 'department'
+      ? departmentQuery.isLoading
+      : targetType === 'area'
+        ? areaQuery.isLoading
+        : processQuery.isLoading;
+
+  const serverStatuses: StatusInlineConfig[] = useMemo(() => {
+    if (targetType === 'department') {
+      return departmentQuery.data?.statuses ?? [];
+    }
+    if (targetType === 'area') {
+      return areaQuery.data?.statuses ?? [];
+    }
+    return (processQuery.data?.statuses ?? []) as StatusInlineConfig[];
+  }, [
+    targetType,
+    departmentQuery.data,
+    areaQuery.data,
+    processQuery.data,
+  ]);
+
+  const createStatus = useCreateStatus();
+  const updateStatus = useUpdateStatus();
+  const deleteStatus = useDeleteStatus();
   const updateArea = useUpdateArea(targetType === 'area' ? targetId : '');
+  const updateProcessInherit = useUpdateProcessStatusInherit(
+    targetType === 'list' ? targetId : '',
+  );
+  const templatesQuery = useStatusTemplates();
+  const createTemplate = useCreateStatusTemplate();
+  const deleteTemplate = useDeleteStatusTemplate();
 
   const forcedCustom = targetType === 'department';
   const [mode, setMode] = useState<Mode>(forcedCustom ? 'custom' : initialMode);
@@ -86,15 +130,14 @@ export function StatusEditorDialog({
   const [justAddedId, setJustAddedId] = useState<string | null>(null);
   const [saving, setSaving] = useState<boolean>(false);
 
-  // Resync local draft when server data arrives or dialog reopens
   useEffect(() => {
     if (!open) return;
     if (!serverStatuses) return;
     const drafts: StatusDraft[] = [];
     for (const group of GROUPS) {
       const groupItems = serverStatuses
-        .filter((s) => s.category === group.key)
-        .sort((a, b) => a.name.localeCompare(b.name));
+        .filter((s) => s.type === group.key)
+        .sort((a, b) => a.position - b.position);
       groupItems.forEach((s, idx) => drafts.push(toDraft(s, idx)));
     }
     setStatuses(drafts);
@@ -106,29 +149,29 @@ export function StatusEditorDialog({
   }, [open, initialMode, forcedCustom]);
 
   const serverById = useMemo(() => {
-    const map = new Map<string, WorkItemStatus>();
-    (serverStatuses ?? []).forEach((s) => map.set(s.id, s));
+    const map = new Map<string, StatusInlineConfig>();
+    serverStatuses.forEach((s) => map.set(s.id, s));
     return map;
   }, [serverStatuses]);
 
-  function statusesByGroup(group: StatusCategory): StatusDraft[] {
+  function statusesByGroup(group: StatusType): StatusDraft[] {
     return statuses
-      .filter((s) => s.category === group)
-      .sort((a, b) => a.sortOrder - b.sortOrder);
+      .filter((s) => s.type === group)
+      .sort((a, b) => a.position - b.position);
   }
 
-  function addStatus(group: StatusCategory) {
+  function addStatus(group: StatusType) {
     const existingInGroup = statusesByGroup(group);
     const nextOrder = existingInGroup.length
-      ? Math.max(...existingInGroup.map((s) => s.sortOrder)) + 1
+      ? Math.max(...existingInGroup.map((s) => s.position)) + 1
       : 0;
     const newId = tempId();
     const newStatus: StatusDraft = {
       id: newId,
       name: '',
       color: DEFAULT_NEW_STATUS_COLOR,
-      category: group,
-      sortOrder: nextOrder,
+      type: group,
+      position: nextOrder,
     };
     setStatuses((prev) => [...prev, newStatus]);
     setJustAddedId(newId);
@@ -147,8 +190,61 @@ export function StatusEditorDialog({
     setStatuses((prev) => prev.filter((s) => s.id !== id));
   }
 
+  function applyTemplate(templateId: string) {
+    const template = (templatesQuery.data ?? []).find(
+      (t) => t.id === templateId,
+    );
+    if (!template) return;
+    const drafts: StatusDraft[] = template.statuses.map((item) => ({
+      id: tempId(),
+      name: item.name,
+      color: item.color,
+      type: item.type,
+      position: item.position,
+    }));
+    setStatuses(drafts);
+    toast.success(`Template "${template.name}" aplicado`);
+  }
+
+  async function handleSaveAsTemplate() {
+    if (statuses.length === 0) {
+      toast.error('Adicione status antes de salvar como template.');
+      return;
+    }
+    const name = window.prompt('Nome do template:');
+    if (!name || !name.trim()) return;
+    try {
+      await createTemplate.mutateAsync({
+        name: name.trim(),
+        statuses: statuses.map((s) => ({
+          name: s.name.trim(),
+          type: s.type,
+          color: s.color,
+          position: s.position,
+        })),
+      });
+      toast.success('Template salvo');
+    } catch (err) {
+      const message =
+        err instanceof Error ? err.message : 'Falha ao salvar template.';
+      toast.error(message);
+    }
+  }
+
+  async function handleDeleteTemplate(templateId: string, templateName: string) {
+    if (!window.confirm(`Remover template "${templateName}"?`)) return;
+    try {
+      await deleteTemplate.mutateAsync(templateId);
+      toast.success('Template removido');
+    } catch (err) {
+      const message =
+        err instanceof Error ? err.message : 'Falha ao remover template.';
+      toast.error(message);
+    }
+  }
+
   function reorderGroup(
-    group: StatusCategory,
+    group: StatusType,
     activeId: string,
     overId: string,
   ) {
@@ -157,9 +253,9 @@ export function StatusEditorDialog({
     const newIndex = groupItems.findIndex((s) => s.id === overId);
     if (oldIndex === -1 || newIndex === -1) return;
     const moved = arrayMove(groupItems, oldIndex, newIndex);
-    const reindexed = moved.map((s, idx) => ({ ...s, sortOrder: idx }));
+    const reindexed = moved.map((s, idx) => ({ ...s, position: idx }));
     setStatuses((prev) => [
-      ...prev.filter((s) => s.category !== group),
+      ...prev.filter((s) => s.type !== group),
       ...reindexed,
     ]);
   }
@@ -195,7 +291,7 @@ export function StatusEditorDialog({
     }
 
     const localIds = new Set(statuses.map((s) => s.id));
-    const deleted = (serverStatuses ?? []).filter((s) => !localIds.has(s.id));
+    const deleted = serverStatuses.filter((s) => !localIds.has(s.id));
     const created = statuses.filter((s) => s.id.startsWith('temp-'));
     const updated = statuses.filter((s) => {
       if (s.id.startsWith('temp-')) return false;
@@ -204,11 +300,11 @@ export function StatusEditorDialog({
       return (
         original.name !== s.name.trim() ||
         original.color !== s.color ||
-        original.sortOrder !== s.sortOrder
+        original.position !== s.position
       );
     });
     const areaModeChanged =
-      targetType === 'area' &&
+      (targetType === 'area' || targetType === 'list') &&
       mode !== initialMode &&
       (mode === 'inherit') !== (initialUseSpaceStatuses ?? true);
 
@@ -225,55 +321,62 @@ export function StatusEditorDialog({
     try {
       if (mode === 'custom') {
         for (const d of deleted) {
-          await deleteStatus.mutateAsync({ id: d.id });
+          await deleteStatus.mutateAsync(d.id);
         }
 
-        const createdIdMap = new Map<string, string>();
         for (const c of created) {
-          const result = await createStatus.mutateAsync({
+          await createStatus.mutateAsync({
+            type: c.type,
             name: c.name.trim(),
-            category: c.category,
             color: c.color,
-            departmentId,
+            position: c.position,
+            ...(targetType === 'department'
+              ? { spaceId: departmentId }
+              : { folderId: targetId }),
           });
-          createdIdMap.set(c.id, result.id);
         }
 
         for (const u of updated) {
           const original = serverById.get(u.id);
           if (!original) continue;
-          const patch: { name?: string; color?: string } = {};
+          const patch: {
+            name?: string;
+            color?: string;
+            position?: number;
+          } = {};
           if (original.name !== u.name.trim()) patch.name = u.name.trim();
           if (original.color !== u.color) patch.color = u.color;
+          if (original.position !== u.position) patch.position = u.position;
           if (Object.keys(patch).length > 0) {
-            await updateStatus.mutateAsync({ id: u.id, ...patch });
+            await updateStatus.mutateAsync({ id: u.id, payload: patch });
           }
-        }
-
-        const reorderChanged = updated.some((u) => {
-          const original = serverById.get(u.id);
-          return original && original.sortOrder !== u.sortOrder;
-        });
-        if (reorderChanged || created.length > 0) {
-          const reorderPayload = statuses.map((s) => ({
-            id: createdIdMap.get(s.id) ?? s.id,
-            sortOrder: s.sortOrder,
-          }));
-          await reorderStatuses.mutateAsync(reorderPayload);
         }
       }
 
       if (areaModeChanged) {
-        await updateArea.mutateAsync({ useSpaceStatuses: mode === 'inherit' });
+        if (targetType === 'area') {
+          await updateArea.mutateAsync({ useSpaceStatuses: mode === 'inherit' });
+        } else if (targetType === 'list') {
+          await updateProcessInherit.mutateAsync({
+            statusInheritance: mode === 'inherit' ? 'SPACE' : 'CUSTOM',
+          });
+        }
       }
 
-      queryClient.invalidateQueries({
-        queryKey: [
-          ...WORKFLOW_STATUSES_KEY,
-          departmentId,
-          targetType === 'area' ? targetId : null,
-        ],
-      });
+      queryClient.invalidateQueries({ queryKey: STATUSES_KEY });
+      if (targetType === 'department') {
+        queryClient.invalidateQueries({
+          queryKey: [...DEPARTMENTS_KEY, departmentId],
+        });
+      } else if (targetType === 'area') {
+        queryClient.invalidateQueries({
+          queryKey: [...AREAS_KEY, targetId],
+        });
+      } else {
+        queryClient.invalidateQueries({
+          queryKey: [...PROCESSES_KEY, targetId],
+        });
+      }
       toast.success('Status atualizados');
       onOpenChange(false);
     } catch (err) {
@@ -305,7 +408,6 @@ export function StatusEditorDialog({
 
         <Modal.Body>
           <div className="flex gap-6">
-            {/* Coluna esquerda — Tipo do status */}
             <div className="w-[45%] space-y-3">
               <div className="flex items-center gap-1.5">
                 <span className="text-label-sm text-text-strong-950">
@@ -375,7 +477,6 @@ export function StatusEditorDialog({
               </Radio.Group>
             </div>
 
-            {/* Coluna direita — editor */}
             <div
               className={cn(
                 'flex-1 space-y-4',
@@ -384,22 +485,52 @@ export function StatusEditorDialog({
               aria-disabled={mode === 'inherit'}
             >
               <div className="flex items-center justify-end gap-2">
-                {/* TODO(task-view): suporte a templates (criar/salvar).
-                    Desabilitado nesta versao ate Tatiana cobrir a historia. */}
+                <Dropdown.Root>
+                  <Dropdown.Trigger asChild>
+                    <button
+                      type="button"
+                      className="flex cursor-pointer items-center gap-1 rounded-lg border border-stroke-soft-200 px-2.5 py-1 text-[12px] text-text-sub-600 hover:bg-bg-weak-50"
+                    >
+                      Templates
+                      <ChevronDown className="size-3" />
+                    </button>
+                  </Dropdown.Trigger>
+                  <Dropdown.Content align="end" className="w-56">
+                    {(templatesQuery.data ?? []).length === 0 ? (
+                      <Dropdown.Item disabled>
+                        Nenhum template salvo
+                      </Dropdown.Item>
+                    ) : (
+                      (templatesQuery.data ?? []).map((t) => (
+                        <Dropdown.Item
+                          key={t.id}
+                          onSelect={() => applyTemplate(t.id)}
+                          className="flex items-center justify-between gap-2"
+                        >
+                          <span className="truncate">{t.name}</span>
+                          <button
+                            type="button"
+                            aria-label={`Remover template ${t.name}`}
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              handleDeleteTemplate(t.id, t.name);
+                            }}
+                            className="flex size-4 items-center justify-center text-text-soft-400 hover:text-destructive"
+                          >
+                            <Trash2 className="size-3" />
+                          </button>
+                        </Dropdown.Item>
+                      ))
+                    )}
+                  </Dropdown.Content>
+                </Dropdown.Root>
                 <button
                   type="button"
-                  disabled
-                  className="flex items-center gap-1 rounded-lg border border-stroke-soft-200 px-2.5 py-1 text-[12px] text-text-sub-600 disabled:opacity-50"
+                  onClick={handleSaveAsTemplate}
+                  disabled={createTemplate.isPending}
+                  className="cursor-pointer rounded-lg border border-stroke-soft-200 px-2.5 py-1 text-[12px] text-text-sub-600 hover:bg-bg-weak-50 disabled:cursor-not-allowed disabled:opacity-50"
                 >
-                  Templates
-                  <ChevronDown className="size-3" />
-                </button>
-                <button
-                  type="button"
-                  disabled
-                  className="rounded-lg border border-stroke-soft-200 px-2.5 py-1 text-[12px] text-text-sub-600 disabled:opacity-50"
-                >
-                  Salvar template
+                  {createTemplate.isPending ? 'Salvando...' : 'Salvar template'}
                 </button>
               </div>
 

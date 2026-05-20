@@ -9,7 +9,7 @@ export class AutomationActionDto {
   @IsString()
   type: string;
 
-  @ApiProperty({ example: { workflowStatusId: 'cuid' } })
+  @ApiProperty({ example: { statusId: 'cuid' } })
   @IsObject()
   params: Record<string, unknown>;
 }

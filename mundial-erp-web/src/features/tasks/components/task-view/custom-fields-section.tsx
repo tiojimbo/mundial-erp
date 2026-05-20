@@ -1,9 +1,15 @@
 'use client';
 
-import { useMemo } from 'react';
-import { Settings2 } from 'lucide-react';
+import { useEffect, useMemo, useState } from 'react';
+import { Plus, Settings, Settings2, X } from 'lucide-react';
+import { toast } from 'sonner';
 
-import { useCustomFieldDefinitions } from '@/features/custom-fields/hooks/use-custom-field-definitions';
+import * as Modal from '@/components/ui/modal';
+import { CustomFieldsManagerDialog } from '@/features/custom-fields/components/manager/custom-fields-manager-dialog';
+import {
+  useCreateCustomField,
+  useCustomFieldDefinitions,
+} from '@/features/custom-fields/hooks/use-custom-field-definitions';
 import {
   useCustomFieldValues,
   usePatchCustomFieldValue,
@@ -12,6 +18,7 @@ import { useFeatureFlag } from '@/features/custom-fields/hooks/use-feature-flag'
 import type {
   CustomFieldDefinition,
   CustomFieldRawValue,
+  CustomFieldType,
   CustomFieldValue,
 } from '@/features/custom-fields/types/custom-field.types';
 import { CnpjField } from '@/features/custom-fields/components/fields/cnpj-field';
@@ -57,62 +64,175 @@ export type CustomFieldsSectionProps = {
    * = sem template => exibir todas as definitions do workspace.
    */
   definitionIds?: readonly string[] | null;
+  /**
+   * `processId` da task (= listId no dominio Hoppe). Quando presente, o botao
+   * "Criar campo" inline cria o campo escopado a esta lista; senao, omite o
+   * atalho (usuario abre o gerenciador completo).
+   */
+  listId?: string | null;
+  /**
+   * Nome do task type da task (ex: "Nota Fiscal"). Usado no label do subgrupo
+   * `taskType` ("Campos do tipo Nota Fiscal") pra paridade com Hoppe.
+   */
+  taskTypeName?: string | null;
+  /**
+   * `customTaskTypeId` da task. Usado pra filtrar custom fields escopados
+   * a este task type (paridade Hoppe: GET /custom-fields?taskTypeId=...).
+   */
+  taskTypeId?: string | null;
+};
+
+const QUICK_TYPE_OPTIONS: ReadonlyArray<{ value: CustomFieldType; label: string }> = [
+  { value: 'TEXT', label: 'Texto' },
+  { value: 'NUMBER', label: 'Número' },
+  { value: 'CURRENCY', label: 'Moeda' },
+  { value: 'DATE', label: 'Data' },
+  { value: 'DROPDOWN', label: 'Lista suspensa' },
+  { value: 'CHECKBOX', label: 'Caixa de seleção' },
+  { value: 'URL', label: 'URL' },
+  { value: 'EMAIL', label: 'E-mail' },
+  { value: 'PHONE', label: 'Telefone' },
+  { value: 'PERCENTAGE', label: 'Porcentagem' },
+  { value: 'DURATION', label: 'Duração' },
+  { value: 'RATING', label: 'Avaliação' },
+  { value: 'PEOPLE', label: 'Pessoas' },
+  { value: 'RELATIONSHIP', label: 'Relacionamento' },
+  { value: 'LABEL', label: 'Etiqueta' },
+  { value: 'SELECT', label: 'Seleção' },
+  { value: 'CPF', label: 'CPF' },
+  { value: 'CNPJ', label: 'CNPJ' },
+];
+
+type BucketKey = 'taskType' | 'list' | 'folder' | 'space';
+
+const BUCKET_ORDER: BucketKey[] = ['taskType', 'list', 'folder', 'space'];
+
+const BUCKET_LABEL: Record<BucketKey, string> = {
+  taskType: 'Campos do tipo',
+  list: 'Campos desta lista',
+  folder: 'Herdados da pasta',
+  space: 'Herdados do departamento',
 };
 
 export function CustomFieldsSection({
   taskId,
   definitionIds,
+  listId,
+  taskTypeName,
+  taskTypeId,
 }: CustomFieldsSectionProps) {
   const writeEnabled = useFeatureFlag('custom_fields_write');
 
-  const definitionsQuery = useCustomFieldDefinitions();
+  const definitionsScope = useMemo(() => {
+    const scope: { listId?: string; taskTypeId?: string } = {};
+    if (listId) scope.listId = listId;
+    if (taskTypeId) scope.taskTypeId = taskTypeId;
+    return Object.keys(scope).length > 0 ? scope : undefined;
+  }, [listId, taskTypeId]);
+  const definitionsQuery = useCustomFieldDefinitions(definitionsScope);
   const valuesQuery = useCustomFieldValues(taskId);
   const patchMutation = usePatchCustomFieldValue();
 
   const isLoading = definitionsQuery.isLoading || valuesQuery.isLoading;
   const isError = definitionsQuery.isError || valuesQuery.isError;
 
-  const allDefinitions: CustomFieldDefinition[] =
-    definitionsQuery.data?.data ?? [];
-
-  const visibleDefinitions = useMemo(() => {
-    if (!definitionIds) {
-      return [...allDefinitions].sort(
-        (a, b) => a.sortOrder - b.sortOrder || a.label.localeCompare(b.label),
-      );
+  const bucketGroups = useMemo(() => {
+    const grouped = definitionsQuery.data;
+    if (!grouped) return [] as { key: BucketKey; label: string; defs: CustomFieldDefinition[] }[];
+    const seen = new Set<string>();
+    const out: { key: BucketKey; label: string; defs: CustomFieldDefinition[] }[] = [];
+    for (const key of BUCKET_ORDER) {
+      const raw = (grouped[key] ?? []) as CustomFieldDefinition[];
+      const dedup = raw.filter((def) => {
+        if (seen.has(def.id)) return false;
+        seen.add(def.id);
+        return true;
+      });
+      if (dedup.length === 0) continue;
+      out.push({
+        key,
+        label:
+          key === 'taskType' && taskTypeName
+            ? `Campos do tipo ${taskTypeName}`
+            : BUCKET_LABEL[key],
+        defs: dedup.sort(
+          (a, b) => a.position - b.position || a.name.localeCompare(b.name),
+        ),
+      });
     }
+    return out;
+  }, [definitionsQuery.data, taskTypeName]);
+
+  const visibleGroups = useMemo(() => {
+    if (!definitionIds) return bucketGroups;
     if (definitionIds.length === 0) return [];
-    const map = new Map(allDefinitions.map((d) => [d.id, d]));
-    return definitionIds
-      .map((id) => map.get(id))
-      .filter((d): d is CustomFieldDefinition => Boolean(d));
-  }, [allDefinitions, definitionIds]);
+    const order = new Map(definitionIds.map((id, i) => [id, i]));
+    return bucketGroups
+      .map((g) => ({
+        ...g,
+        defs: g.defs
+          .filter((d) => order.has(d.id))
+          .sort((a, b) => (order.get(a.id) ?? 0) - (order.get(b.id) ?? 0)),
+      }))
+      .filter((g) => g.defs.length > 0);
+  }, [bucketGroups, definitionIds]);
+
+  const allVisible = useMemo(
+    () => visibleGroups.flatMap((g) => g.defs),
+    [visibleGroups],
+  );
 
   const valueMap = useMemo(() => {
     const map = new Map<string, CustomFieldValue>();
     for (const entry of valuesQuery.data ?? []) {
-      map.set(entry.definitionId, entry);
+      map.set(entry.customFieldId, entry);
     }
     return map;
   }, [valuesQuery.data]);
 
-  function handleChange(definitionId: string, next: CustomFieldRawValue) {
+  const [managerOpen, setManagerOpen] = useState(false);
+  const [managerInitDefId, setManagerInitDefId] = useState<string | null>(null);
+  const [quickCreateOpen, setQuickCreateOpen] = useState(false);
+  const openSettings = (definitionId: string) => {
+    setManagerInitDefId(definitionId);
+    setManagerOpen(true);
+  };
+  const handleManagerClose = () => {
+    setManagerOpen(false);
+    setManagerInitDefId(null);
+  };
+
+  function handleChange(customFieldId: string, next: CustomFieldRawValue) {
     if (!writeEnabled) return;
-    patchMutation.mutate({ taskId, definitionId, value: next });
+    patchMutation.mutate({ taskId, customFieldId, value: next });
   }
 
   return (
     <CollapsibleSection
       sectionKey='custom-fields'
       title='Campos personalizados'
+      counter={allVisible.length || null}
       actions={
-        <button
-          type='button'
-          aria-label='Gerenciar campos personalizados desta lista'
-          className='flex h-7 w-7 items-center justify-center rounded-md text-muted-foreground transition-colors hover:bg-muted'
-        >
-          <Settings2 className='h-3.5 w-3.5' />
-        </button>
+        <>
+          {writeEnabled && listId ? (
+            <button
+              type='button'
+              aria-label='Criar campo personalizado nesta lista'
+              onClick={() => setQuickCreateOpen(true)}
+              className='flex h-7 w-7 items-center justify-center rounded-md text-muted-foreground opacity-0 transition-all hover:bg-muted group-hover:opacity-100 focus-visible:opacity-100'
+            >
+              <Plus className='h-3.5 w-3.5' />
+            </button>
+          ) : null}
+          <button
+            type='button'
+            aria-label='Gerenciar campos personalizados desta lista'
+            onClick={() => setManagerOpen(true)}
+            className='flex h-7 w-7 items-center justify-center rounded-md text-muted-foreground opacity-0 transition-all hover:bg-muted group-hover:opacity-100 focus-visible:opacity-100'
+          >
+            <Settings2 className='h-3.5 w-3.5' />
+          </button>
+        </>
       }
     >
       {isLoading && (
@@ -133,24 +253,88 @@ export function CustomFieldsSection({
         </div>
       )}
 
-      {!isLoading && !isError && visibleDefinitions.length === 0 && (
+      {!isLoading && !isError && allVisible.length === 0 && (
         <EmptyCardCta label='Criar campo personalizado' />
       )}
 
-      {!isLoading && !isError && visibleDefinitions.length > 0 && (
-        <div className='grid grid-cols-1 gap-3 md:grid-cols-2'>
-          {visibleDefinitions.map((definition) => (
-            <FieldRow
-              key={definition.id}
-              definition={definition}
-              entry={valueMap.get(definition.id) ?? null}
+      {!isLoading && !isError && allVisible.length > 0 && (
+        <div className='flex flex-col gap-4'>
+          {visibleGroups.map((group) => (
+            <FieldSubgroup
+              key={group.key}
+              subKey={group.key}
+              label={group.label}
+              defs={group.defs}
+              valueMap={valueMap}
               readOnly={!writeEnabled}
-              onChange={(next) => handleChange(definition.id, next)}
+              onChange={handleChange}
+              onOpenSettings={openSettings}
             />
           ))}
         </div>
       )}
+      <CustomFieldsManagerDialog
+        open={managerOpen}
+        onClose={handleManagerClose}
+        initialSelectedDefId={managerInitDefId}
+      />
+      {listId ? (
+        <QuickCreateFieldDialog
+          open={quickCreateOpen}
+          onClose={() => setQuickCreateOpen(false)}
+          listId={listId}
+        />
+      ) : null}
     </CollapsibleSection>
+  );
+}
+
+type FieldSubgroupProps = {
+  subKey: string;
+  label: string;
+  defs: CustomFieldDefinition[];
+  valueMap: Map<string, CustomFieldValue>;
+  readOnly: boolean;
+  onChange: (customFieldId: string, next: CustomFieldRawValue) => void;
+  onOpenSettings: (definitionId: string) => void;
+};
+
+function FieldSubgroup({
+  label,
+  defs,
+  valueMap,
+  readOnly,
+  onChange,
+  onOpenSettings,
+}: FieldSubgroupProps) {
+  return (
+    <div className='flex flex-col gap-2'>
+      <div className='flex items-center gap-1.5 text-left text-[11px] font-semibold uppercase tracking-wide text-muted-foreground'>
+        {label}
+      </div>
+      <div className='flex flex-col gap-3'>
+        {defs.map((definition) => (
+          <div key={definition.id} className='group/fr flex items-start gap-2'>
+            <div className='min-w-0 flex-1'>
+              <FieldRow
+                definition={definition}
+                entry={valueMap.get(definition.id) ?? null}
+                readOnly={readOnly}
+                onChange={(next) => onChange(definition.id, next)}
+              />
+            </div>
+            <button
+              type='button'
+              aria-label={`Configurações do campo ${definition.name}`}
+              onClick={() => onOpenSettings(definition.id)}
+              className='mt-5 inline-flex h-5 w-5 shrink-0 cursor-pointer items-center justify-center rounded text-muted-foreground opacity-0 transition-opacity hover:bg-muted group-hover/fr:opacity-100 focus-visible:opacity-100'
+            >
+              <Settings className='h-3 w-3' />
+            </button>
+          </div>
+        ))}
+      </div>
+    </div>
   );
 }
 
@@ -169,7 +353,11 @@ type FieldRowProps = {
  * `<TextField/>`, `<DropdownField/>`, etc., que ja estao prontos.
  */
 function FieldRow({ definition, entry, readOnly, onChange }: FieldRowProps) {
-  const value = entry?.value ?? null;
+  const rawValue = entry?.value ?? null;
+  const value: string | number | null =
+    typeof rawValue === 'string' || typeof rawValue === 'number'
+      ? rawValue
+      : null;
 
   switch (definition.type) {
     case 'TEXT':
@@ -262,5 +450,179 @@ function FieldRow({ definition, entry, readOnly, onChange }: FieldRowProps) {
           onChange={onChange}
         />
       );
+    default:
+      // Tipos novos (SELECT, CHECKBOX, etc.) ainda nao renderizados nesta
+      // task-view legada. Sprint 6 (UI Manager) substitui este dispatcher
+      // pelo CustomFieldEditor central que cobre os 21 tipos.
+      return null;
   }
+}
+
+type QuickCreateFieldDialogProps = {
+  open: boolean;
+  onClose: () => void;
+  listId: string;
+};
+
+function QuickCreateFieldDialog({
+  open,
+  onClose,
+  listId,
+}: QuickCreateFieldDialogProps) {
+  const [name, setName] = useState('');
+  const [type, setType] = useState<CustomFieldType>('TEXT');
+  const [label, setLabel] = useState('');
+  const [description, setDescription] = useState('');
+  const [required, setRequired] = useState(false);
+  const createMutation = useCreateCustomField();
+
+  useEffect(() => {
+    if (open) {
+      setName('');
+      setType('TEXT');
+      setLabel('');
+      setDescription('');
+      setRequired(false);
+      createMutation.reset();
+    }
+  }, [open, createMutation]);
+
+  const submit = () => {
+    const trimmed = name.trim();
+    if (trimmed.length === 0) return;
+    createMutation.mutate(
+      {
+        name: trimmed,
+        label: label.trim() || trimmed,
+        type,
+        required,
+        pinned: false,
+        visibleToGuests: true,
+        description: description.trim() || undefined,
+        listId,
+      },
+      {
+        onSuccess: () => {
+          toast.success('Campo criado.');
+          onClose();
+        },
+        onError: () =>
+          toast.error('Erro ao criar — confira nome, tipo e escopo.'),
+      },
+    );
+  };
+
+  return (
+    <Modal.Root open={open} onOpenChange={(next) => !next && onClose()}>
+      <Modal.Content
+        showClose={false}
+        overlayClassName='bg-black/60 backdrop-blur-none'
+        className='!max-w-[420px] flex max-h-[90vh] flex-col overflow-hidden !rounded-xl border-0 !shadow-regular-md p-0'
+      >
+        <Modal.Title className='sr-only'>Criar campo personalizado</Modal.Title>
+        <header className='border-border flex shrink-0 items-center justify-between border-b px-4 py-3'>
+          <div className='flex flex-col'>
+            <span className='text-label-sm'>Criar campo</span>
+            <span className='text-muted-foreground text-paragraph-xs'>
+              Crie um novo campo personalizado nesta lista
+            </span>
+          </div>
+          <button
+            type='button'
+            aria-label='Fechar'
+            onClick={onClose}
+            className='inline-flex size-7 cursor-pointer items-center justify-center rounded-md text-muted-foreground transition-colors hover:bg-accent'
+          >
+            <X className='h-4 w-4' />
+          </button>
+        </header>
+
+        <div className='flex min-h-0 flex-1 flex-col gap-4 overflow-y-auto p-5'>
+          <div>
+            <label className='text-foreground/80 mb-1.5 block text-paragraph-sm font-medium'>
+              Nome <span className='text-destructive'>*</span>
+            </label>
+            <input
+              type='text'
+              value={name}
+              autoFocus
+              onChange={(e) => setName(e.target.value)}
+              placeholder='Digite o nome do campo'
+              className='border-input h-9 w-full rounded-md border bg-transparent px-3 text-paragraph-sm outline-none focus-visible:ring-[3px] focus-visible:ring-ring/50'
+            />
+          </div>
+
+          <div>
+            <label className='text-foreground/80 mb-1.5 block text-paragraph-sm font-medium'>
+              Tipo
+            </label>
+            <select
+              value={type}
+              onChange={(e) => setType(e.target.value as CustomFieldType)}
+              className='border-input h-9 w-full cursor-pointer rounded-md border bg-transparent px-3 text-paragraph-sm outline-none focus-visible:ring-[3px] focus-visible:ring-ring/50'
+            >
+              {QUICK_TYPE_OPTIONS.map((opt) => (
+                <option key={opt.value} value={opt.value}>
+                  {opt.label}
+                </option>
+              ))}
+            </select>
+          </div>
+
+          <div>
+            <label className='text-foreground/80 mb-1.5 block text-paragraph-sm font-medium'>
+              Label
+            </label>
+            <input
+              type='text'
+              value={label}
+              onChange={(e) => setLabel(e.target.value)}
+              placeholder='Opcional — assume o nome se vazio'
+              className='border-input h-9 w-full rounded-md border bg-transparent px-3 text-paragraph-sm outline-none focus-visible:ring-[3px] focus-visible:ring-ring/50'
+            />
+          </div>
+
+          <div>
+            <label className='text-foreground/80 mb-1.5 block text-paragraph-sm font-medium'>
+              Descrição
+            </label>
+            <textarea
+              value={description}
+              onChange={(e) => setDescription(e.target.value)}
+              placeholder='Opcional'
+              className='border-input min-h-[60px] w-full resize-none rounded-md border bg-transparent px-3 py-2 text-paragraph-sm outline-none focus-visible:ring-[3px] focus-visible:ring-ring/50'
+            />
+          </div>
+
+          <label className='flex cursor-pointer items-center gap-2 text-paragraph-sm'>
+            <input
+              type='checkbox'
+              checked={required}
+              onChange={(e) => setRequired(e.target.checked)}
+              className='size-4 cursor-pointer rounded border-input'
+            />
+            Obrigatório nas tarefas
+          </label>
+        </div>
+
+        <footer className='border-border flex shrink-0 items-center justify-end gap-2 border-t px-4 py-3'>
+          <button
+            type='button'
+            onClick={onClose}
+            className='inline-flex h-9 cursor-pointer items-center justify-center rounded-md border bg-background px-4 text-paragraph-sm font-medium shadow-regular-xs transition-all hover:bg-accent'
+          >
+            Cancelar
+          </button>
+          <button
+            type='button'
+            onClick={submit}
+            disabled={name.trim().length === 0 || createMutation.isPending}
+            className='bg-primary-base text-static-white inline-flex h-9 cursor-pointer items-center justify-center rounded-md px-4 text-paragraph-sm font-medium shadow-regular-xs transition-all hover:bg-primary-dark disabled:pointer-events-none disabled:opacity-50'
+          >
+            {createMutation.isPending ? 'Criando...' : 'Criar campo'}
+          </button>
+        </footer>
+      </Modal.Content>
+    </Modal.Root>
+  );
 }

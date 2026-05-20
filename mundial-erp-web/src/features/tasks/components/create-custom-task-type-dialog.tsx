@@ -11,13 +11,18 @@ import { cn } from '@/lib/cn';
 type Props = {
   open: boolean;
   onOpenChange: (open: boolean) => void;
+  spaceId: string | null;
 };
 
 const NAME_MAX = 16;
 const DESC_MAX = 100;
-const DEFAULT_ICON = 'CircleDot';
+const DEFAULT_ICON = 'CircleDotIcon';
 
-export function CreateCustomTaskTypeDialog({ open, onOpenChange }: Props) {
+export function CreateCustomTaskTypeDialog({
+  open,
+  onOpenChange,
+  spaceId,
+}: Props) {
   const [icon, setIcon] = useState<string>(DEFAULT_ICON);
   const [name, setName] = useState('');
   const [pluralName, setPluralName] = useState('');
@@ -40,10 +45,13 @@ export function CreateCustomTaskTypeDialog({ open, onOpenChange }: Props) {
     if (!canSubmit) return;
     try {
       await createType.mutateAsync({
-        value: name.trim(),
-        pluralName: pluralName.trim() || undefined,
-        description: description.trim() || undefined,
-        icon,
+        spaceId: spaceId ?? null,
+        payload: {
+          value: name.trim(),
+          pluralName: pluralName.trim() || undefined,
+          description: description.trim() || undefined,
+          icon,
+        },
       });
       toast.success('Tipo de tarefa criado');
       onOpenChange(false);

@@ -48,7 +48,7 @@ export function NumberField({
           readOnly={isReadOnly}
           min={definition.config?.min}
           max={definition.config?.max}
-          placeholder={definition.label}
+          placeholder={definition.name}
           onChange={(event) => {
             const next = event.target.value;
             setLocalValue(next);

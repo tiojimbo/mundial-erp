@@ -1,12 +1,13 @@
 'use client';
 
-import { useState } from 'react';
+import { useMemo, useState } from 'react';
 import {
   ChevronRight,
-  Database,
-  Globe,
-  Layers,
-  LayoutGrid,
+  Folder,
+  FolderOpen,
+  List,
+  Lock,
+  Search,
 } from 'lucide-react';
 import { useSidebarTree } from '@/features/navigation/hooks/use-sidebar-tree';
 import { cn } from '@/lib/cn';
@@ -17,54 +18,80 @@ interface ManagerSidebarProps {
   onChangeView: (view: ManagerView) => void;
 }
 
-interface QuickItemProps {
-  active: boolean;
-  label: string;
-  icon: React.ReactNode;
-  badge?: string;
-  onClick: () => void;
+const DEPT_COLORS: Record<string, string> = {
+  CO: '#d97706',
+  CM: '#0d9488',
+  FI: '#ea580c',
+  PR: '#22c55e',
+  SI: '#7c3aed',
+};
+
+function getAbbr(name: string): string {
+  return name.substring(0, 2).toUpperCase();
 }
 
-function QuickItem({ active, label, icon, badge, onClick }: QuickItemProps) {
+function DeptAvatar({ abbr, color }: { abbr: string; color: string | null }) {
+  return (
+    <span
+      className="relative flex size-5 shrink-0 overflow-hidden rounded-[5px]"
+      style={{ backgroundColor: color || DEPT_COLORS[abbr] || '#6b7280' }}
+      aria-hidden="true"
+    >
+      <span className="flex size-full items-center justify-center rounded-[5px] !text-[10px] font-semibold uppercase leading-none text-white">
+        {abbr}
+      </span>
+    </span>
+  );
+}
+
+function QuickItem({
+  active,
+  label,
+  onClick,
+}: {
+  active: boolean;
+  label: string;
+  onClick: () => void;
+}) {
   return (
     <button
       type="button"
       onClick={onClick}
       className={cn(
-        'flex h-8 w-full cursor-pointer items-center justify-start gap-2 rounded-md px-2 text-sm font-medium transition-all hover:bg-accent hover:text-accent-foreground',
-        active ? 'bg-primary/10 text-primary' : 'text-muted-foreground',
+        'flex h-8 w-full cursor-pointer items-center rounded-md px-2 text-left text-paragraph-sm transition-colors',
+        active
+          ? 'bg-accent font-medium text-foreground'
+          : 'text-foreground hover:bg-accent/60',
       )}
     >
-      {icon}
-      <span className="truncate">{label}</span>
-      {badge ? (
-        <span className="bg-primary/10 text-primary ml-auto rounded px-1.5 py-0.5 text-[10px] font-medium">
-          {badge}
-        </span>
-      ) : null}
+      <span>{label}</span>
     </button>
   );
 }
 
-interface LocationNodeProps {
-  label: string;
-  active: boolean;
-  hasChildren: boolean;
-  expanded: boolean;
-  depth: number;
-  onToggle: () => void;
-  onSelect: () => void;
-}
-
 function LocationNode({
   label,
+  kind,
+  color,
+  isPrivate,
   active,
   hasChildren,
   expanded,
   depth,
   onToggle,
   onSelect,
-}: LocationNodeProps) {
+}: {
+  label: string;
+  kind: 'space' | 'folder' | 'list';
+  color: string | null;
+  isPrivate: boolean;
+  active: boolean;
+  hasChildren: boolean;
+  expanded: boolean;
+  depth: number;
+  onToggle: () => void;
+  onSelect: () => void;
+}) {
   return (
     <div className="flex items-center" style={{ paddingLeft: depth * 12 }}>
       <button
@@ -72,7 +99,7 @@ function LocationNode({
         onClick={onToggle}
         aria-label={expanded ? 'Recolher' : 'Expandir'}
         className={cn(
-          'flex h-6 w-6 shrink-0 cursor-pointer items-center justify-center rounded-md transition-all hover:bg-accent hover:text-accent-foreground',
+          'flex h-6 w-5 shrink-0 cursor-pointer items-center justify-center rounded transition-colors hover:bg-accent',
           hasChildren ? '' : 'invisible',
         )}
       >
@@ -87,11 +114,27 @@ function LocationNode({
         type="button"
         onClick={onSelect}
         className={cn(
-          'flex h-7 flex-1 cursor-pointer items-center justify-start gap-2 rounded-md px-2 text-sm transition-all hover:bg-accent hover:text-accent-foreground',
-          active ? 'bg-primary/10 font-medium text-primary' : '',
+          'flex h-7 flex-1 cursor-pointer items-center gap-2 rounded-md px-2 text-paragraph-sm transition-colors',
+          active ? 'bg-accent font-medium' : 'hover:bg-accent/60',
         )}
       >
-        <Globe className="text-muted-foreground h-3.5 w-3.5" />
+        {kind === 'space' ? (
+          <DeptAvatar abbr={getAbbr(label)} color={color} />
+        ) : kind === 'folder' ? (
+          expanded ? (
+            <FolderOpen className="text-muted-foreground size-4 shrink-0" />
+          ) : (
+            <Folder className="text-muted-foreground size-4 shrink-0" />
+          )
+        ) : (
+          <List
+            className="text-muted-foreground size-4 shrink-0"
+            strokeWidth={2}
+          />
+        )}
+        {kind === 'list' && isPrivate ? (
+          <Lock className="text-muted-foreground size-3 shrink-0" />
+        ) : null}
         <span className="truncate">{label}</span>
       </button>
     </div>
@@ -101,6 +144,8 @@ function LocationNode({
 export function ManagerSidebar({ view, onChangeView }: ManagerSidebarProps) {
   const treeQuery = useSidebarTree();
   const [expanded, setExpanded] = useState<Set<string>>(new Set());
+  const [locSearch, setLocSearch] = useState('');
+  const [searchOpen, setSearchOpen] = useState(false);
 
   const toggle = (id: string) =>
     setExpanded((prev) => {
@@ -110,55 +155,73 @@ export function ManagerSidebar({ view, onChangeView }: ManagerSidebarProps) {
       return next;
     });
 
+  const spaces = useMemo(() => {
+    const term = locSearch.trim().toLowerCase();
+    const all = treeQuery.data ?? [];
+    if (term.length === 0) return all;
+    return all.filter((s) => s.name.toLowerCase().includes(term));
+  }, [treeQuery.data, locSearch]);
+
   return (
-    <aside className="bg-background flex h-full w-64 shrink-0 flex-col border-r">
+    <aside className="bg-background flex h-full w-72 shrink-0 flex-col border-r">
+      <div className="border-b px-4 py-4">
+        <h2 className="text-label-sm leading-snug">
+          Gerenciador de campos personalizados
+        </h2>
+      </div>
       <div className="flex-1 overflow-y-auto">
-        <div className="px-3 py-3">
-          <h3 className="text-muted-foreground mb-2 text-xs font-semibold uppercase tracking-wider">
-            Acesso rápido
-          </h3>
-          <div className="space-y-0.5">
-            <QuickItem
-              active={view.kind === 'all'}
-              label="Todos os campos personalizados"
-              icon={<Database className="h-4 w-4" />}
-              onClick={() => onChangeView({ kind: 'all' })}
-            />
-            <QuickItem
-              active={view.kind === 'workspace'}
-              label="Campos do workspace"
-              icon={<Globe className="h-4 w-4" />}
-              onClick={() => onChangeView({ kind: 'workspace' })}
-            />
-            <QuickItem
-              active={view.kind === 'allGroups'}
-              label="Todos os grupos"
-              icon={<Layers className="h-4 w-4" />}
-              onClick={() => onChangeView({ kind: 'allGroups' })}
-            />
-            <QuickItem
-              active={view.kind === 'taskTypeFields'}
-              label="Campos por tipo de tarefa"
-              icon={<LayoutGrid className="h-4 w-4" />}
-              badge="Novo"
-              onClick={() => onChangeView({ kind: 'taskTypeFields' })}
-            />
-          </div>
+        <div className="space-y-0.5 px-3 py-3">
+          <QuickItem
+            active={view.kind === 'all'}
+            label="Todos os campos personalizados"
+            onClick={() => onChangeView({ kind: 'all' })}
+          />
+          <QuickItem
+            active={view.kind === 'workspace'}
+            label="Espaço de trabalho"
+            onClick={() => onChangeView({ kind: 'workspace' })}
+          />
+          <QuickItem
+            active={view.kind === 'allGroups'}
+            label="Todos os grupos"
+            onClick={() => onChangeView({ kind: 'allGroups' })}
+          />
+          <QuickItem
+            active={view.kind === 'taskTypeFields'}
+            label="Campos por tipo de tarefa"
+            onClick={() => onChangeView({ kind: 'taskTypeFields' })}
+          />
         </div>
 
-        <div className="bg-border mx-3 h-px shrink-0" />
-
-        <div className="px-3 py-3">
-          <h3 className="text-muted-foreground mb-2 text-xs font-semibold uppercase tracking-wider">
-            Por local
-          </h3>
+        <div className="px-3 py-2">
+          <div className="mb-2 flex items-center justify-between px-2">
+            <h3 className="text-[#838383] text-subheading-xs">
+              Por localização
+            </h3>
+            <button
+              type="button"
+              aria-label="Buscar local"
+              onClick={() => setSearchOpen((v) => !v)}
+              className="text-muted-foreground hover:text-foreground flex h-5 w-5 cursor-pointer items-center justify-center rounded transition-colors"
+            >
+              <Search className="h-3.5 w-3.5" />
+            </button>
+          </div>
+          {searchOpen ? (
+            <input
+              type="search"
+              autoFocus
+              placeholder="Filtrar..."
+              value={locSearch}
+              onChange={(e) => setLocSearch(e.target.value)}
+              className="border-input mb-2 h-7 w-full rounded-md border bg-transparent px-2 text-paragraph-xs outline-none focus-visible:ring-[3px] focus-visible:ring-ring/50"
+            />
+          ) : null}
           <div className="space-y-0.5">
             {treeQuery.isLoading ? (
-              <p className="px-2 text-xs text-muted-foreground">
-                Carregando...
-              </p>
-            ) : treeQuery.data && treeQuery.data.length > 0 ? (
-              treeQuery.data.map((space) => {
+              <p className="text-muted-foreground px-2 text-paragraph-xs">Carregando...</p>
+            ) : spaces.length > 0 ? (
+              spaces.map((space) => {
                 const spaceOpen = expanded.has(space.id);
                 const hasChildren =
                   space.areas.length > 0 ||
@@ -167,6 +230,9 @@ export function ManagerSidebar({ view, onChangeView }: ManagerSidebarProps) {
                   <div key={space.id}>
                     <LocationNode
                       label={space.name}
+                      kind="space"
+                      color={space.color}
+                      isPrivate={false}
                       depth={0}
                       active={
                         view.kind === 'space' && view.spaceId === space.id
@@ -184,6 +250,9 @@ export function ManagerSidebar({ view, onChangeView }: ManagerSidebarProps) {
                           <LocationNode
                             key={proc.id}
                             label={proc.name}
+                            kind="list"
+                            color={null}
+                            isPrivate={proc.isPrivate}
                             depth={1}
                             active={
                               view.kind === 'list' && view.listId === proc.id
@@ -202,6 +271,9 @@ export function ManagerSidebar({ view, onChangeView }: ManagerSidebarProps) {
                             <div key={area.id}>
                               <LocationNode
                                 label={area.name}
+                                kind="folder"
+                                color={null}
+                                isPrivate={false}
                                 depth={1}
                                 active={
                                   view.kind === 'folder' &&
@@ -222,6 +294,9 @@ export function ManagerSidebar({ view, onChangeView }: ManagerSidebarProps) {
                                     <LocationNode
                                       key={proc.id}
                                       label={proc.name}
+                                      kind="list"
+                                      color={null}
+                                      isPrivate={proc.isPrivate}
                                       depth={2}
                                       active={
                                         view.kind === 'list' &&
@@ -248,7 +323,7 @@ export function ManagerSidebar({ view, onChangeView }: ManagerSidebarProps) {
                 );
               })
             ) : (
-              <p className="px-2 text-xs text-muted-foreground">
+              <p className="text-muted-foreground px-2 text-paragraph-xs">
                 Sem departamentos
               </p>
             )}

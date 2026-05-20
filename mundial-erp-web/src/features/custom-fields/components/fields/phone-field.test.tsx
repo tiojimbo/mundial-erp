@@ -8,20 +8,9 @@ import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { render, screen, fireEvent, act } from '@testing-library/react';
 import { PhoneField } from './phone-field';
 import type { CustomFieldDefinition } from '../../types/custom-field.types';
+import { makeCustomFieldDefinition } from "../../types/custom-field.fixtures";
 
-const definition: CustomFieldDefinition = {
-  id: 'def-phone-1',
-  workspaceId: 'ws-1',
-  key: 'phone',
-  label: 'Telefone',
-  type: 'PHONE',
-  required: false,
-  config: null,
-  isBuiltin: false,
-  sortOrder: 0,
-  createdAt: '2026-01-01T00:00:00.000Z',
-  updatedAt: '2026-01-01T00:00:00.000Z',
-};
+const definition: CustomFieldDefinition = makeCustomFieldDefinition({ id: 'def-phone-1', workspaceId: 'ws-1', name: 'Telefone', type: 'PHONE' });
 
 describe('PhoneField (TTT-024)', () => {
   beforeEach(() => {

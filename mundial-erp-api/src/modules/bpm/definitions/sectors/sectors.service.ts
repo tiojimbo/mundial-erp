@@ -8,7 +8,7 @@ import { CreateSectorDto } from './dto/create-sector.dto';
 import { UpdateSectorDto } from './dto/update-sector.dto';
 import { SectorResponseDto } from './dto/sector-response.dto';
 import { PaginationDto } from '../../../../common/dtos/pagination.dto';
-import { SpacesRepository } from '../spaces/spaces.repository';
+import { SpacesRepository } from '../../../spaces/spaces.repository';
 
 @Injectable()
 export class SectorsService {

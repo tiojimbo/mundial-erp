@@ -94,7 +94,7 @@ export function ManagerAddExistingFieldDialog({
         </Modal.Header>
         <Modal.Body className="flex flex-col gap-3">
           {!target ? (
-            <p className="text-sm text-muted-foreground">
+            <p className="text-paragraph-sm text-muted-foreground">
               Selecione um local (lista, pasta ou departamento) na barra
               lateral para vincular campos existentes.
             </p>
@@ -105,22 +105,22 @@ export function ManagerAddExistingFieldDialog({
                 placeholder="Buscar campo..."
                 value={search}
                 onChange={(e) => setSearch(e.target.value)}
-                className="h-9 rounded-md border border-input bg-background px-3 text-sm"
+                className="h-9 rounded-md border border-input bg-background px-3 text-paragraph-sm"
               />
               <div className="max-h-[320px] overflow-auto rounded-md border">
                 {allQuery.isLoading ? (
-                  <p className="p-3 text-sm text-muted-foreground">
+                  <p className="p-3 text-paragraph-sm text-muted-foreground">
                     Carregando...
                   </p>
                 ) : fields.length === 0 ? (
-                  <p className="p-3 text-sm text-muted-foreground">
+                  <p className="p-3 text-paragraph-sm text-muted-foreground">
                     Nenhum campo encontrado.
                   </p>
                 ) : (
                   fields.map((f) => (
                     <label
                       key={f.id}
-                      className="flex cursor-pointer items-center gap-2 border-b px-3 py-2 text-sm last:border-b-0 hover:bg-muted/40"
+                      className="flex cursor-pointer items-center gap-2 border-b px-3 py-2 text-paragraph-sm last:border-b-0 hover:bg-muted/40"
                     >
                       <input
                         type="checkbox"
@@ -129,7 +129,7 @@ export function ManagerAddExistingFieldDialog({
                         className="size-3.5 cursor-pointer rounded-[4px] border"
                       />
                       <span className="font-medium">{f.name}</span>
-                      <span className="text-muted-foreground text-xs">
+                      <span className="text-muted-foreground text-paragraph-xs">
                         {f.type}
                       </span>
                     </label>
@@ -143,7 +143,7 @@ export function ManagerAddExistingFieldDialog({
           <button
             type="button"
             onClick={onClose}
-            className="rounded-md border border-input bg-background px-3 py-2 text-sm hover:bg-muted/60"
+            className="rounded-md border border-input bg-background px-3 py-2 text-paragraph-sm hover:bg-muted/60"
           >
             Cancelar
           </button>
@@ -151,7 +151,7 @@ export function ManagerAddExistingFieldDialog({
             type="button"
             onClick={handleConfirm}
             disabled={!target || selected.size === 0 || addLocation.isPending}
-            className="rounded-md bg-primary px-3 py-2 text-sm font-medium text-primary-foreground hover:opacity-90 disabled:opacity-50"
+            className="rounded-md bg-primary-base px-3 py-2 text-paragraph-sm font-medium text-static-white hover:opacity-90 disabled:opacity-50"
           >
             {addLocation.isPending
               ? 'Vinculando...'

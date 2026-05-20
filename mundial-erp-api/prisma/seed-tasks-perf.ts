@@ -13,7 +13,7 @@
  *
  * Distribuicao (aproximada):
  *   - Status category: 60% ACTIVE, 25% DONE, 10% NOT_STARTED, 5% CLOSED.
- *     (spec do Sprint fala em "CANCELLED" — o enum StatusCategory do
+ *     (spec do Sprint fala em "CANCELLED" — o enum StatusType do
  *     schema.prisma so tem CLOSED; mapeamos CANCELLED -> CLOSED.)
  *   - 30% das tasks tem 1 assignee primario.
  *   - 10% tem multi-assignees adicionais (2-4).
@@ -53,7 +53,7 @@ import {
   ProcessStatus,
   ProcessType,
   Role,
-  StatusCategory,
+  StatusType,
   TaskPriority,
   WorkItemType,
   WorkspaceMemberRole,
@@ -120,12 +120,12 @@ function pickN<T>(arr: readonly T[], n: number): T[] {
   return out;
 }
 
-function pickStatusCategory(): StatusCategory {
+function pickStatusType(): StatusType {
   const r = rand();
-  if (r < 0.6) return StatusCategory.ACTIVE;
-  if (r < 0.85) return StatusCategory.DONE;
-  if (r < 0.95) return StatusCategory.NOT_STARTED;
-  return StatusCategory.CLOSED;
+  if (r < 0.6) return StatusType.ACTIVE;
+  if (r < 0.85) return StatusType.DONE;
+  if (r < 0.95) return StatusType.NOT_STARTED;
+  return StatusType.CLOSED;
 }
 
 const PRIORITIES: TaskPriority[] = [
@@ -286,30 +286,30 @@ async function ensureAreas(spaceIds: string[], count: number): Promise<string[]>
  * satisfazer a FK de WorkItem.statusId. Retorna deptId -> {category -> statusId}.
  */
 async function ensureStatuses(spaceIds: string[]): Promise<
-  Map<string, Record<StatusCategory, string>>
+  Map<string, Record<StatusType, string>>
 > {
-  const result = new Map<string, Record<StatusCategory, string>>();
+  const result = new Map<string, Record<StatusType, string>>();
   for (const spaceId of spaceIds) {
-    const categories: StatusCategory[] = [
-      StatusCategory.NOT_STARTED,
-      StatusCategory.ACTIVE,
-      StatusCategory.DONE,
-      StatusCategory.CLOSED,
+    const categories: StatusType[] = [
+      StatusType.NOT_STARTED,
+      StatusType.ACTIVE,
+      StatusType.DONE,
+      StatusType.CLOSED,
     ];
-    const byCategory = {} as Record<StatusCategory, string>;
+    const byCategory = {} as Record<StatusType, string>;
     for (const cat of categories) {
       const name = `perf-${cat.toLowerCase()}`;
-      const existing = await prisma.workflowStatus.findFirst({
+      const existing = await prisma.status.findFirst({
         where: { spaceId, name },
       });
       if (existing) {
         byCategory[cat] = existing.id;
         continue;
       }
-      const created = await prisma.workflowStatus.create({
+      const created = await prisma.status.create({
         data: {
           name,
-          category: cat,
+          type: cat,
           color: '#808080',
           spaceId,
         },
@@ -412,7 +412,7 @@ async function cleanFixture(): Promise<void> {
     where: { slug: { startsWith: 'perf-process-' } },
   });
 
-  await prisma.workflowStatus.deleteMany({
+  await prisma.status.deleteMany({
     where: { name: { startsWith: 'perf-' } },
   });
 
@@ -452,7 +452,7 @@ interface BatchExtras {
 function buildBatch(
   size: number,
   lists: { id: string; spaceId: string }[],
-  statuses: Map<string, Record<StatusCategory, string>>,
+  statuses: Map<string, Record<StatusType, string>>,
   creatorId: string,
   users: string[],
   tags: string[],
@@ -466,7 +466,7 @@ function buildBatch(
 
   for (let i = 0; i < size; i++) {
     const list = pick(lists);
-    const statusCat = pickStatusCategory();
+    const statusCat = pickStatusType();
     const statusId = statuses.get(list.spaceId)![statusCat];
     const priority = pick(PRIORITIES);
     const title = `perf-task-${salt}-${i}-${Math.floor(rand() * 1e12)}`;
@@ -482,8 +482,8 @@ function buildBatch(
       itemType: WorkItemType.TASK,
       priority,
       creatorId,
-      completedAt: statusCat === StatusCategory.DONE ? new Date() : null,
-      closedAt: statusCat === StatusCategory.CLOSED ? new Date() : null,
+      completedAt: statusCat === StatusType.DONE ? new Date() : null,
+      closedAt: statusCat === StatusType.CLOSED ? new Date() : null,
     });
 
     const hasPrimary = rand() < 0.3;
@@ -630,7 +630,7 @@ async function run(): Promise<void> {
           for (let c = 0; c < item.checklistCount; c++) {
             checklistRows.push({
               workItemId: wiId,
-              name: `checklist ${c}`,
+              title: `checklist ${c}`,
               position: c,
             });
           }

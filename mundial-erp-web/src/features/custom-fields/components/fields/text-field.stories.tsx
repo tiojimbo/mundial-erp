@@ -7,21 +7,10 @@
 
 import type { Meta, StoryObj } from '@storybook/react';
 import type { CustomFieldDefinition } from '../../types/custom-field.types';
+import { makeCustomFieldDefinition } from "../../types/custom-field.fixtures";
 import { TextField } from './text-field';
 
-const baseDef: CustomFieldDefinition = {
-  id: 'def-text-1',
-  workspaceId: null,
-  key: 'observacao',
-  label: 'Observacao',
-  type: 'TEXT',
-  required: false,
-  config: { hint: 'Texto livre, max 2000 caracteres.' },
-  isBuiltin: true,
-  sortOrder: 10,
-  createdAt: '2026-04-25T00:00:00Z',
-  updatedAt: '2026-04-25T00:00:00Z',
-};
+const baseDef: CustomFieldDefinition = makeCustomFieldDefinition({ id: 'def-text-1', workspaceId: null, name: 'Observacao', type: 'TEXT', config: { hint: 'Texto livre, max 2000 caracteres.' }, fixed: true, position: 10 });
 
 const meta: Meta<typeof TextField> = {
   title: 'CustomFields/TextField',

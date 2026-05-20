@@ -2,6 +2,7 @@
 
 import { cn } from '@/lib/cn';
 
+import { useCreateComment } from '../../../hooks/use-create-comment';
 import type { TaskActivitiesListParams } from '../../../services/task-activities.service';
 import { ActivitiesHeader } from './activities-header';
 import { ActivityFeed } from './activity-feed';
@@ -32,6 +33,12 @@ export function ActivitiesPanel({
   open = true,
   activityParams,
 }: ActivitiesPanelProps) {
+  const createComment = useCreateComment();
+
+  const handleSubmit = async (content: string) => {
+    await createComment.mutateAsync({ taskId, payload: { content } });
+  };
+
   if (asSheet && !open) return null;
 
   return (
@@ -46,7 +53,7 @@ export function ActivitiesPanel({
     >
       <ActivitiesHeader taskId={taskId} onClose={onClose} />
       <ActivityFeed taskId={taskId} params={activityParams} />
-      <CommentComposer taskId={taskId} />
+      <CommentComposer taskId={taskId} onSubmit={handleSubmit} />
     </aside>
   );
 }

@@ -25,6 +25,7 @@ import { FavoritesService } from './favorites.service';
 import { CreateFavoriteDto } from './dtos/create-favorite.dto';
 import { FavoriteResponseDto } from './dtos/favorite-response.dto';
 import { GroupedFavoritesResponseDto } from './dtos/grouped-favorites-response.dto';
+import { CheckFavoriteResponseDto } from './dtos/check-favorite-response.dto';
 
 @ApiTags('Favorites')
 @ApiBearerAuth()
@@ -41,9 +42,8 @@ export class FavoritesController {
   findAll(
     @CurrentUser() user: JwtPayload,
     @WorkspaceId() workspaceId: string,
-    @Query() pagination: PaginationDto,
   ) {
-    return this.service.findAll(user.sub, workspaceId, pagination);
+    return this.service.findAll(user.sub, workspaceId);
   }
 
   @Get('favorites/spaces')
@@ -64,6 +64,7 @@ export class FavoritesController {
 
   @Get('favorites/check/:entityType/:entityId')
   @ApiOperation({ summary: 'Verificar se uma entidade esta favoritada' })
+  @ApiResponse({ status: 200, type: CheckFavoriteResponseDto })
   check(
     @CurrentUser() user: JwtPayload,
     @WorkspaceId() workspaceId: string,

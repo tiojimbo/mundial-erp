@@ -16,10 +16,14 @@ import {
   useProcesses,
   useCreateProcess,
   useDeleteProcess,
+  useUpdateProcess,
   useCreateActivity,
   useDeleteActivity,
 } from '../hooks/use-processes';
 import { useDepartments } from '../hooks/use-departments';
+import { useWorkspaceTaskTypes } from '@/features/tasks/hooks/use-workspace-task-types';
+import { useWorkspaceStore } from '@/stores/workspace.store';
+import type { ProcessConfig } from '../types/settings.types';
 
 export function ProcessesConfig() {
   const { notification } = useNotification();
@@ -46,7 +50,7 @@ export function ProcessesConfig() {
   function handleCreateProcess() {
     if (!newProcessName || !newProcessAreaId) return;
     createProcess.mutate(
-      { name: newProcessName, areaId: newProcessAreaId },
+      { name: newProcessName, folderId: newProcessAreaId },
       {
         onSuccess: () => {
           notification({ title: 'Sucesso', description: 'Processo criado.', status: 'success' });
@@ -284,12 +288,10 @@ export function ProcessesConfig() {
                 </div>
               )}
 
-              {/* LIST processes - show message when expanded */}
+              {/* LIST processes */}
               {isExpanded && !isBpm && (
                 <div className="border-t border-stroke-soft-200 bg-bg-weak-50 p-4">
-                  <p className="text-paragraph-sm text-text-soft-400 text-center py-2">
-                    Processos do tipo LIST não possuem atividades.
-                  </p>
+                  <DefaultTaskTypeRow process={process} />
                 </div>
               )}
             </div>
@@ -318,6 +320,59 @@ export function ProcessesConfig() {
           </Modal.Content>
         </Modal.Root>
       )}
+    </div>
+  );
+}
+
+function DefaultTaskTypeRow({ process }: { process: ProcessConfig }) {
+  const { notification } = useNotification();
+  const updateProcess = useUpdateProcess(process.id);
+  const currentWorkspace = useWorkspaceStore((s) => s.currentWorkspace);
+  const typesQuery = useWorkspaceTaskTypes(currentWorkspace?.id);
+  const types = typesQuery.data ?? [];
+  const currentId = process.defaultTaskTypeId ?? '';
+
+  function handleChange(next: string) {
+    const value = next === '' ? null : next;
+    updateProcess.mutate(
+      { defaultTaskTypeId: value },
+      {
+        onSuccess: () =>
+          notification({
+            title: 'Tipo padrão atualizado',
+            description: value
+              ? 'Novo tipo definido como padrão.'
+              : 'Padrão removido.',
+            status: 'success',
+          }),
+        onError: () =>
+          notification({
+            title: 'Erro',
+            description: 'Falha ao atualizar tipo padrão.',
+            status: 'error',
+          }),
+      },
+    );
+  }
+
+  return (
+    <div className="flex items-center gap-3">
+      <label className="text-label-sm text-text-strong-950 w-32">
+        Tipo padrão
+      </label>
+      <select
+        value={currentId}
+        onChange={(e) => handleChange(e.target.value)}
+        disabled={updateProcess.isPending || typesQuery.isLoading}
+        className="flex-1 rounded-lg border border-stroke-soft-200 bg-bg-white-0 px-3 py-2 text-paragraph-sm shadow-xs disabled:opacity-50"
+      >
+        <option value="">Nenhum (sem padrão)</option>
+        {types.map((t) => (
+          <option key={t.id} value={t.id}>
+            {t.value}
+          </option>
+        ))}
+      </select>
     </div>
   );
 }

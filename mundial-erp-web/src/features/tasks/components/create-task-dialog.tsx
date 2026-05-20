@@ -17,6 +17,7 @@ import {
 import { cn } from '@/lib/cn';
 import { useCreateTask } from '../hooks/use-create-task';
 import { useCustomTaskTypes } from '../hooks/use-custom-task-types';
+import { useProcess } from '@/features/settings/hooks/use-processes';
 import { useTaskTypeTemplate } from '../hooks/use-task-type-template';
 import {
   createTaskFormSchema,
@@ -95,6 +96,9 @@ export function CreateTaskDialog({
     string | null
   >(null);
   const customTypesQuery = useCustomTaskTypes();
+  const lockedProcessQuery = useProcess(lockedProcessId ?? '');
+  const defaultTaskTypeId =
+    lockedProcessQuery.data?.defaultTaskTypeId ?? null;
   const workspaceId = useWorkspaceStore(
     (state) => state.currentWorkspace?.id ?? '',
   );
@@ -132,9 +136,9 @@ export function CreateTaskDialog({
         priority: 'NORMAL',
         dueDate: '',
       });
-      setSelectedCustomTypeId(null);
+      setSelectedCustomTypeId(defaultTaskTypeId);
     }
-  }, [open, lockedProcessId, reset]);
+  }, [open, lockedProcessId, defaultTaskTypeId, reset]);
 
   const isLocked = Boolean(lockedProcessId);
   const useDepartment = !isLocked && Boolean(departmentId);
@@ -288,7 +292,9 @@ export function CreateTaskDialog({
                   id={titleId}
                   className="text-label-sm text-text-strong-950"
                 >
-                  Nova tarefa
+                  {lockedProcessQuery.data?.defaultTaskType?.value
+                    ? `Nova ${lockedProcessQuery.data.defaultTaskType.value}`
+                    : 'Nova tarefa'}
                 </Dialog.Title>
                 <Dialog.Description
                   id={descId}

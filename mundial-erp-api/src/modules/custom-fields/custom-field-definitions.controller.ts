@@ -3,8 +3,6 @@ import {
   Controller,
   Delete,
   Get,
-  HttpCode,
-  HttpStatus,
   Param,
   Post,
   Put,
@@ -24,7 +22,14 @@ import { UpdateCustomFieldDefinitionDto } from './dtos/update-custom-field-defin
 import { CustomFieldDefinitionResponseDto } from './dtos/custom-field-definition-response.dto';
 import { GroupedCustomFieldsResponseDto } from './dtos/grouped-custom-fields-response.dto';
 import { ListCustomFieldsQueryDto } from './dtos/list-custom-fields-query.dto';
-import { Roles } from '../auth/decorators';
+import { ManagerCustomFieldsQueryDto } from './dtos/manager-custom-fields-query.dto';
+import { ManagerCustomFieldItemDto } from './dtos/manager-custom-fields-response.dto';
+import {
+  AddCustomFieldLocationDto,
+  RemoveCustomFieldLocationQueryDto,
+} from './dtos/custom-field-location.dto';
+import { CurrentUser, Roles } from '../auth/decorators';
+import type { JwtPayload } from '../auth/decorators';
 import { WorkspaceId } from '../workspaces/decorators/workspace-id.decorator';
 
 @ApiTags('Custom Fields')
@@ -46,6 +51,29 @@ export class CustomFieldDefinitionsController {
     return this.service.list(workspaceId, query);
   }
 
+  @Get('manager')
+  @Roles(Role.ADMIN, Role.MANAGER, Role.OPERATOR, Role.VIEWER)
+  @ApiOperation({
+    summary:
+      'Vista de gerenciamento: custom fields enriquecidos com usageCount, locations, taskTypes',
+  })
+  @ApiResponse({
+    status: 200,
+    type: ManagerCustomFieldItemDto,
+    isArray: true,
+  })
+  manager(
+    @WorkspaceId() workspaceId: string,
+    @Query() query: ManagerCustomFieldsQueryDto,
+  ) {
+    return this.service.manager(workspaceId, query.scope, {
+      spaceId: query.spaceId,
+      folderId: query.folderId,
+      listId: query.listId,
+      taskTypeId: query.taskTypeId,
+    });
+  }
+
   @Get(':id')
   @Roles(Role.ADMIN, Role.MANAGER, Role.OPERATOR, Role.VIEWER)
   @ApiOperation({ summary: 'Buscar custom field definition por ID' })
@@ -55,20 +83,36 @@ export class CustomFieldDefinitionsController {
     return this.service.findOne(workspaceId, id);
   }
 
+  @Post('location')
+  @Roles(Role.ADMIN, Role.MANAGER)
+  @Throttle({ default: { limit: 60, ttl: 60_000 } })
+  @ApiOperation({
+    summary: 'Vincular/mover campo existente a um local (list/folder/space)',
+  })
+  @ApiResponse({ status: 201 })
+  @ApiResponse({ status: 404, description: 'Definition nao encontrada' })
+  addLocation(
+    @WorkspaceId() workspaceId: string,
+    @Body() dto: AddCustomFieldLocationDto,
+  ) {
+    return this.service.addLocation(workspaceId, dto);
+  }
+
   @Post()
   @Roles(Role.ADMIN, Role.MANAGER)
   @Throttle({ default: { limit: 60, ttl: 60_000 } })
   @ApiOperation({ summary: 'Criar custom field definition para o workspace' })
   @ApiResponse({ status: 201, type: CustomFieldDefinitionResponseDto })
   @ApiResponse({
-    status: 409,
-    description: 'Ja existe definition com a mesma key neste workspace',
+    status: 400,
+    description: 'Já existe um campo personalizado com esse nome neste nível',
   })
   create(
     @WorkspaceId() workspaceId: string,
     @Body() dto: CreateCustomFieldDefinitionDto,
+    @CurrentUser() user: JwtPayload,
   ) {
-    return this.service.create(workspaceId, dto);
+    return this.service.create(workspaceId, dto, user.sub);
   }
 
   @Put(':id')
@@ -89,12 +133,30 @@ export class CustomFieldDefinitionsController {
     return this.service.update(workspaceId, id, dto);
   }
 
+  @Delete(':customFieldId/location')
+  @Roles(Role.ADMIN, Role.MANAGER)
+  @Throttle({ default: { limit: 60, ttl: 60_000 } })
+  @ApiOperation({ summary: 'Desvincular campo de um local (list/folder/space)' })
+  @ApiResponse({ status: 200 })
+  @ApiResponse({ status: 404, description: 'Definition nao encontrada' })
+  removeLocation(
+    @WorkspaceId() workspaceId: string,
+    @Param('customFieldId') customFieldId: string,
+    @Query() query: RemoveCustomFieldLocationQueryDto,
+  ) {
+    return this.service.removeLocation(
+      workspaceId,
+      customFieldId,
+      query.locationType,
+      query.locationId,
+    );
+  }
+
   @Delete(':id')
   @Roles(Role.ADMIN, Role.MANAGER)
-  @HttpCode(HttpStatus.NO_CONTENT)
   @Throttle({ default: { limit: 60, ttl: 60_000 } })
-  @ApiOperation({ summary: 'Soft-delete de custom field definition' })
-  @ApiResponse({ status: 204 })
+  @ApiOperation({ summary: 'Soft-delete e retorna o objeto deletado' })
+  @ApiResponse({ status: 200, type: CustomFieldDefinitionResponseDto })
   @ApiResponse({
     status: 403,
     description: 'Builtin custom field definitions are read-only',

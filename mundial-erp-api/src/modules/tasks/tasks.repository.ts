@@ -32,13 +32,23 @@ export const TASK_LIST_SELECT = {
   timeSpentSeconds: true,
   createdAt: true,
   updatedAt: true,
+  customType: {
+    select: {
+      id: true,
+      name: true,
+      namePlural: true,
+      icon: true,
+      color: true,
+      workspaceId: true,
+      isBuiltin: true,
+    },
+  },
   status: {
     select: {
       id: true,
       name: true,
-      category: true,
+      type: true,
       color: true,
-      icon: true,
     },
   },
 } satisfies Prisma.WorkItemSelect;
@@ -238,9 +248,19 @@ export class TasksRepository {
         select: {
           id: true,
           name: true,
-          category: true,
+          type: true,
           color: true,
+        },
+      },
+      customType: {
+        select: {
+          id: true,
+          name: true,
+          namePlural: true,
           icon: true,
+          color: true,
+          workspaceId: true,
+          isBuiltin: true,
         },
       },
     };
@@ -619,9 +639,9 @@ export class TasksRepository {
   }
 
   /**
-   * Primeiro `WorkflowStatus` com `category=NOT_STARTED` do departamento do
+   * Primeiro `Status` com `type=NOT_STARTED` do departamento do
    * process. Usado quando o caller de `create` nao informa `statusId`.
-   * Budget: 2 queries (process -> department, workflow_status).
+   * Budget: 2 queries (process -> department, status).
    */
   async findFirstStatusForProcess(
     listId: string,
@@ -633,13 +653,13 @@ export class TasksRepository {
       select: { spaceId: true },
     });
     if (!process?.spaceId) return null;
-    return db.workflowStatus.findFirst({
+    return db.status.findFirst({
       where: {
         spaceId: process.spaceId,
-        category: 'NOT_STARTED',
+        type: 'NOT_STARTED',
         deletedAt: null,
       },
-      orderBy: [{ sortOrder: 'asc' }, { createdAt: 'asc' }],
+      orderBy: [{ position: 'asc' }, { createdAt: 'asc' }],
       select: { id: true },
     });
   }
@@ -821,25 +841,106 @@ export class TasksRepository {
    */
   async findStatusesForScope(
     workspaceId: string,
-    scope: { spaceId: string; folderId?: string | null },
+    scope: {
+      level: 'list' | 'folder' | 'space';
+      id: string;
+      spaceId: string;
+      folderId: string | null;
+    },
   ) {
-    return this.prisma.workflowStatus.findMany({
-      where: {
-        deletedAt: null,
-        space: { id: scope.spaceId, workspaceId },
-        ...(scope.folderId
-          ? { OR: [{ folderId: null }, { folderId: scope.folderId }] }
-          : { folderId: null }),
-      },
+    const where = await this.resolveStatusWhere(workspaceId, scope);
+    return this.prisma.status.findMany({
+      where,
       select: {
         id: true,
         name: true,
         color: true,
-        category: true,
-        sortOrder: true,
+        type: true,
+        position: true,
       },
-      orderBy: { sortOrder: 'asc' },
+      orderBy: { position: 'asc' },
     });
+  }
+
+  private async resolveStatusWhere(
+    workspaceId: string,
+    scope: {
+      level: 'list' | 'folder' | 'space';
+      id: string;
+      spaceId: string;
+      folderId: string | null;
+    },
+  ): Promise<Prisma.StatusWhereInput> {
+    const base: Prisma.StatusWhereInput = {
+      deletedAt: null,
+      OR: [
+        { space: { workspaceId } },
+        { folder: { space: { workspaceId } } },
+        {
+          list: {
+            OR: [
+              { space: { workspaceId } },
+              { folder: { space: { workspaceId } } },
+            ],
+          },
+        },
+      ],
+    };
+
+    if (scope.level === 'list') {
+      const list = await this.prisma.list.findUnique({
+        where: { id: scope.id },
+        select: {
+          spaceId: true,
+          folderId: true,
+          statusInheritance: true,
+          folder: {
+            select: { spaceId: true, statusInheritance: true },
+          },
+        },
+      });
+      if (!list) return { ...base, listId: scope.id };
+      if (list.statusInheritance === 'CUSTOM') {
+        return { ...base, listId: scope.id };
+      }
+      if (list.statusInheritance === 'SPACE') {
+        return {
+          ...base,
+          spaceId: list.spaceId,
+          folderId: null,
+          listId: null,
+        };
+      }
+      const folder = list.folder;
+      if (folder && folder.statusInheritance === 'CUSTOM' && list.folderId) {
+        return { ...base, folderId: list.folderId, listId: null };
+      }
+      const spaceId = folder?.spaceId ?? list.spaceId;
+      return { ...base, spaceId, folderId: null, listId: null };
+    }
+
+    if (scope.level === 'folder') {
+      const folder = await this.prisma.folder.findUnique({
+        where: { id: scope.id },
+        select: { spaceId: true, statusInheritance: true },
+      });
+      if (folder?.statusInheritance === 'CUSTOM') {
+        return { ...base, folderId: scope.id, listId: null };
+      }
+      return {
+        ...base,
+        spaceId: folder?.spaceId ?? scope.spaceId,
+        folderId: null,
+        listId: null,
+      };
+    }
+
+    return {
+      ...base,
+      spaceId: scope.spaceId,
+      folderId: null,
+      listId: null,
+    };
   }
 
   /**

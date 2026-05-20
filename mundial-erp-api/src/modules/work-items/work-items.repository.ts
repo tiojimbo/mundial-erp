@@ -137,13 +137,13 @@ export class WorkItemsRepository {
       select: { spaceId: true },
     });
 
-    const statuses = await this.prisma.workflowStatus.findMany({
+    const statuses = await this.prisma.status.findMany({
       where: {
         spaceId: process?.spaceId ?? undefined,
         space: { workspaceId },
         deletedAt: null,
       },
-      orderBy: { sortOrder: 'asc' },
+      orderBy: { position: 'asc' },
     });
 
     return { items, statuses };
@@ -227,13 +227,13 @@ export class WorkItemsRepository {
   }
 
   async findStatusById(workspaceId: string, statusId: string) {
-    return this.prisma.workflowStatus.findFirst({
+    return this.prisma.status.findFirst({
       where: {
         id: statusId,
         deletedAt: null,
         space: { workspaceId },
       },
-      select: { id: true, spaceId: true, category: true },
+      select: { id: true, spaceId: true, type: true },
     });
   }
 }

@@ -46,30 +46,24 @@ import {
 } from './use-custom-field-values';
 import { customFieldValuesService } from '../services/custom-field-values.service';
 import type { CustomFieldValue } from '../types/custom-field.types';
+import { makeCustomFieldDefinition } from '../types/custom-field.fixtures';
 
 const TASK_ID = 'task-1';
 const DEFINITION_ID = 'def-1';
 const WS_ID = 'ws-test';
 
-const definition = {
+const definition = makeCustomFieldDefinition({
   id: DEFINITION_ID,
   workspaceId: WS_ID,
-  key: 'description',
-  label: 'Descricao',
-  type: 'TEXT' as const,
-  required: false,
-  config: null,
-  isBuiltin: false,
-  sortOrder: 0,
-  createdAt: '2026-01-01T00:00:00.000Z',
-  updatedAt: '2026-01-01T00:00:00.000Z',
-};
+  name: 'Descricao',
+  type: 'TEXT',
+});
 
 const initialValue: CustomFieldValue = {
   id: 'val-1',
-  workItemId: TASK_ID,
-  definitionId: DEFINITION_ID,
-  definition,
+  taskId: TASK_ID,
+  customFieldId: DEFINITION_ID,
+  customField: definition,
   value: 'antigo',
   createdAt: '2026-01-01T00:00:00.000Z',
   updatedAt: '2026-01-01T00:00:00.000Z',
@@ -124,7 +118,7 @@ describe('usePatchCustomFieldValue (TTT-024)', () => {
     act(() => {
       result.current.mutate({
         taskId: TASK_ID,
-        definitionId: DEFINITION_ID,
+        customFieldId: DEFINITION_ID,
         value: 'novo',
       });
     });
@@ -152,7 +146,7 @@ describe('usePatchCustomFieldValue (TTT-024)', () => {
     act(() => {
       result.current.mutate({
         taskId: TASK_ID,
-        definitionId: DEFINITION_ID,
+        customFieldId: DEFINITION_ID,
         value: 'novo',
       });
     });
@@ -182,7 +176,7 @@ describe('usePatchCustomFieldValue (TTT-024)', () => {
     act(() => {
       result.current.mutate({
         taskId: TASK_ID,
-        definitionId: DEFINITION_ID,
+        customFieldId: DEFINITION_ID,
         value: 'salvo',
       });
     });

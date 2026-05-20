@@ -90,32 +90,41 @@ export function Header() {
               </Avatar.Root>
             </button>
           </Dropdown.Trigger>
-          <Dropdown.Content align='end' className='w-56 rounded-md'>
+          <Dropdown.Content
+            align='end'
+            className='w-56 rounded-md bg-sidebar text-sidebar-foreground ring-sidebar-border'
+          >
             {/* User info */}
             <div className='px-3 py-2'>
-              <p className='text-label-sm text-text-strong-950'>
+              <p className='text-label-sm text-sidebar-foreground'>
                 {user?.name}
               </p>
-              <p className='text-paragraph-xs text-text-sub-600'>
+              <p className='text-paragraph-xs text-sidebar-foreground'>
                 {user?.email}
               </p>
             </div>
 
-            <Dropdown.Separator />
+            <Dropdown.Separator className='-mx-2 my-1 h-px bg-sidebar-border' />
 
             {/* Configurações */}
-            <Dropdown.Item asChild>
+            <Dropdown.Item
+              asChild
+              className='text-sidebar-foreground data-[highlighted]:bg-sidebar-accent data-[highlighted]:text-sidebar-accent-foreground'
+            >
               <Link href='/configuracoes'>
-                <Dropdown.ItemIcon as={RiSettings4Line} />
+                <Dropdown.ItemIcon as={RiSettings4Line} className='text-sidebar-foreground' />
                 Configurações
               </Link>
             </Dropdown.Item>
 
-            <Dropdown.Separator />
+            <Dropdown.Separator className='-mx-2 my-1 h-px bg-sidebar-border' />
 
             {/* Logout */}
-            <Dropdown.Item onClick={logout}>
-              <Dropdown.ItemIcon as={RiLogoutBoxRLine} />
+            <Dropdown.Item
+              onClick={logout}
+              className='text-sidebar-foreground data-[highlighted]:bg-sidebar-accent data-[highlighted]:text-sidebar-accent-foreground'
+            >
+              <Dropdown.ItemIcon as={RiLogoutBoxRLine} className='text-sidebar-foreground' />
               Sair
             </Dropdown.Item>
           </Dropdown.Content>

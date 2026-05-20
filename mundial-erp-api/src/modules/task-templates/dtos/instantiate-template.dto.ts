@@ -22,7 +22,7 @@ export class InstantiateTemplateDto {
 
   @ApiPropertyOptional({
     description:
-      'Id do WorkflowStatus inicial. Quando ausente, usa o status default do Process.',
+      'Id do Status inicial. Quando ausente, usa o status default do Process.',
   })
   @IsOptional()
   @IsString()

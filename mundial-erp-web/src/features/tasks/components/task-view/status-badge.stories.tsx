@@ -1,30 +1,9 @@
-/**
- * Storybook stories — StatusBadge (placeholder, imports reais chegam com Renato).
- *
- * Status: arquivo pronto para ser "importado" quando Storybook estiver
- * configurado (story story-INFRA-02 de Renato). Ate la, stories nao rodam
- * — mas servem de documentacao visual das variantes esperadas.
- *
- * Variantes cobertas:
- *   - 5 status categories: NOT_STARTED, ACTIVE, ON_HOLD, DONE, CANCELLED.
- *   - Estado checked/unchecked (para checklists internos).
- *   - Tamanho sm / md / lg.
- *
- * Deps: @storybook/react, @storybook/react-vite ou @storybook/nextjs.
- */
-
 import type { Meta, StoryObj } from '@storybook/react';
 
-// NOTE: componente real ainda nao existe. Stub placeholder ate Renato entregar.
-type StatusCategory =
-  | 'NOT_STARTED'
-  | 'ACTIVE'
-  | 'ON_HOLD'
-  | 'DONE'
-  | 'CANCELLED';
+type StatusType = 'NOT_STARTED' | 'ACTIVE' | 'DONE' | 'CLOSED';
 
 interface StatusBadgeProps {
-  category: StatusCategory;
+  type: StatusType;
   label: string;
   checked?: boolean;
   size?: 'sm' | 'md' | 'lg';
@@ -32,7 +11,7 @@ interface StatusBadgeProps {
 
 const StatusBadge = (props: StatusBadgeProps): JSX.Element => (
   <span
-    data-category={props.category}
+    data-type={props.type}
     data-checked={props.checked}
     data-size={props.size ?? 'md'}
     style={{
@@ -55,29 +34,25 @@ export default meta;
 type Story = StoryObj<typeof StatusBadge>;
 
 export const NotStarted: Story = {
-  args: { category: 'NOT_STARTED', label: 'A fazer' },
+  args: { type: 'NOT_STARTED', label: 'A fazer' },
 };
 
 export const Active: Story = {
-  args: { category: 'ACTIVE', label: 'Em andamento' },
-};
-
-export const OnHold: Story = {
-  args: { category: 'ON_HOLD', label: 'Pausada' },
+  args: { type: 'ACTIVE', label: 'Em andamento' },
 };
 
 export const Done: Story = {
-  args: { category: 'DONE', label: 'Concluida' },
+  args: { type: 'DONE', label: 'Concluida' },
 };
 
-export const Cancelled: Story = {
-  args: { category: 'CANCELLED', label: 'Cancelada' },
+export const Closed: Story = {
+  args: { type: 'CLOSED', label: 'Fechada' },
 };
 
 export const CheckedDone: Story = {
-  args: { category: 'DONE', label: 'Concluida', checked: true },
+  args: { type: 'DONE', label: 'Concluida', checked: true },
 };
 
 export const UncheckedActive: Story = {
-  args: { category: 'ACTIVE', label: 'Em andamento', checked: false },
+  args: { type: 'ACTIVE', label: 'Em andamento', checked: false },
 };

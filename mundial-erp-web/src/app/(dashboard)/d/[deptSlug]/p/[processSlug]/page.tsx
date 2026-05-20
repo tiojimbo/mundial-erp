@@ -7,19 +7,18 @@ import {
   RiListCheck2,
   RiLayoutColumnLine,
   RiChat1Line,
-  RiPushpinLine,
   RiCalendar2Line,
   RiBarChart2Line,
   type RemixiconComponentType,
 } from '@remixicon/react';
-import { Folder, LayoutList } from 'lucide-react';
+import { Calendar, Folder, LayoutList, Plus, SquareKanban } from 'lucide-react';
 import { BreadcrumbTrail } from '@/components/layout/breadcrumb-trail';
 import { useSidebarTree } from '@/features/navigation/hooks/use-sidebar-tree';
 import { useAuth } from '@/providers/auth-provider';
 import { useDeleteProcessView } from '@/features/process-views/hooks/use-delete-process-view';
-import { useWorkItemsGrouped } from '@/features/work-items/hooks/use-work-items';
-import { ProcessCardListBody } from '@/features/work-items/components/process-card-list-body';
-import { ProcessToolbar } from '@/features/work-items/components/process-toolbar';
+import { useTasksGrouped } from '@/features/tasks/hooks/use-tasks-grouped';
+import { ProcessCardListBody } from '@/features/processes/components/process-card-list-body';
+import { ProcessToolbar } from '@/features/processes/components/process-toolbar';
 import { CreateTaskDialog } from '@/features/tasks/components/create-task-dialog';
 import { NewViewPopover } from '@/features/process-views/components/new-view-popover';
 import {
@@ -27,11 +26,11 @@ import {
   type ViewContextMenuState,
 } from '@/features/process-views/components/view-context-menu';
 import { useProcessViews } from '@/features/process-views/hooks/use-process-views';
+import { useProcess } from '@/features/settings/hooks/use-processes';
 import type { ProcessViewType } from '@/features/process-views/types/process-view.types';
 import { TaskBoard } from '@/features/tasks/components/task-board';
-import { useWorkflowStatuses } from '@/features/settings/hooks/use-workflow-statuses';
 import type { Task, TaskStatus } from '@/features/tasks/types/task.types';
-import type { WorkItem, WorkItemGroup } from '@/features/work-items/types/work-item.types';
+import type { TasksGroupedItem } from '@/features/tasks/services/tasks.service';
 import type {
   SidebarDepartment,
   SidebarArea,
@@ -53,65 +52,6 @@ const VIEW_TYPE_LABEL: Record<ProcessViewType, string> = {
   GANTT: 'Gantt',
 };
 
-/**
- * Adapta `WorkItem` (retorno de `/work-items/grouped`) para o shape `Task`
- * consumido pelo `TaskBoard`. Campos de ricos que nao vem no endpoint de
- * grouped (tags, watchers, points, etc) recebem defaults sensatos — o Board
- * so usa titulo, status, assignees primarios e datas para renderizar.
- */
-function mapWorkItemToTask(
-  item: WorkItem,
-  group: WorkItemGroup,
-  processId: string,
-): Task {
-  return {
-    id: item.id,
-    processId,
-    title: item.title,
-    description: item.description ?? null,
-    markdownContent: null,
-    status: {
-      id: group.statusId,
-      name: group.statusName,
-      category: group.category,
-      color: group.statusColor,
-      icon: group.statusIcon,
-    },
-    statusId: item.statusId,
-    itemType: item.itemType,
-    priority: item.priority,
-    customTypeId: null,
-    customType: null,
-    primaryAssigneeId: item.assigneeId,
-    primaryAssigneeName: item.assigneeName,
-    assignees: item.assigneeId
-      ? [
-          {
-            userId: item.assigneeId,
-            userName: item.assigneeName,
-            isPrimary: true,
-          },
-        ]
-      : [],
-    tags: [],
-    creatorId: item.creatorId,
-    creatorName: item.creatorName,
-    parentId: item.parentId,
-    mergedIntoId: null,
-    startDate: item.startDate,
-    dueDate: item.dueDate,
-    completedAt: item.completedAt,
-    closedAt: item.closedAt,
-    archived: false,
-    estimatedMinutes: item.estimatedMinutes,
-    trackedMinutes: item.trackedMinutes,
-    timeSpentSeconds: 0,
-    points: null,
-    sortOrder: item.sortOrder,
-    createdAt: item.createdAt,
-    updatedAt: item.updatedAt,
-  } as Task;
-}
 
 /**
  * Find the matching department + area + process from the sidebar tree using URL slugs.
@@ -188,74 +128,53 @@ export default function GenericProcessPage() {
     [sidebarTree, params.deptSlug, params.processSlug],
   );
 
-  const { data: groupedData, isLoading: isDataLoading } = useWorkItemsGrouped(
-    match?.process.id ?? '',
-    'status',
+  const { data: groupedData, isLoading: isDataLoading } = useTasksGrouped(
+    match?.process.id ?? null,
   );
 
   const { data: customViews } = useProcessViews(match?.process.id);
   const deleteView = useDeleteProcessView(match?.process.id);
+  const { data: processConfig } = useProcess(match?.process.id ?? '');
+  const defaultTaskType = processConfig?.defaultTaskType ?? null;
 
   const activeCustomView = useMemo(() => {
     if (activeViewId === 'list') return null;
     return customViews?.find((v) => v.id === activeViewId) ?? null;
   }, [activeViewId, customViews]);
 
-  const isBoardActive = activeCustomView?.viewType === 'BOARD';
+  const isBoardActive = activeViewId === 'board' || activeCustomView?.viewType === 'BOARD';
+  const isCalendarActive = activeViewId === 'calendar' || activeCustomView?.viewType === 'CALENDAR';
 
-  const boardStatusesQuery = useWorkflowStatuses(
-    match?.dept.id ?? '',
-    match?.area?.id ?? undefined,
-  );
-
-  // Usa a mesma fonte da List view (`useWorkItemsGrouped`) — endpoint
-  // `/work-items/grouped` comprovadamente retorna as tasks do processo.
-  // O `/tasks` workspace-wide estava retornando vazio neste contexto.
-  // Cada task carrega seu status completo, entao derivamos `boardStatuses`
-  // com merge entre workflow-statuses (ordem + colunas vazias) e statuses
-  // embutidos (defensivo).
   const boardTasks: Task[] = useMemo(() => {
-    if (!groupedData?.groups) return [];
-    const processId = match?.process.id ?? '';
+    if (!groupedData) return [];
     const term = search.trim().toLowerCase();
-    const all = groupedData.groups.flatMap((group: WorkItemGroup) =>
-      group.items.map((item: WorkItem) =>
-        mapWorkItemToTask(item, group, processId),
-      ),
+    const all = groupedData.flatMap((entry: TasksGroupedItem) =>
+      entry.tasks.map((task) => ({
+        ...task,
+        status: {
+          id: entry.group.id,
+          name: entry.group.name,
+          type: entry.group.label,
+          color: entry.group.color,
+        },
+      })),
     );
     return all.filter((task) => {
-      if (!showClosed && task.status.category === 'CLOSED') return false;
+      if (!showClosed && task.status.type === 'CLOSED') return false;
       if (term && !task.title.toLowerCase().includes(term)) return false;
       return true;
     });
-  }, [groupedData, match?.process.id, search, showClosed]);
+  }, [groupedData, search, showClosed]);
 
   const boardStatuses: TaskStatus[] = useMemo(() => {
-    const fromWorkflow = (boardStatusesQuery.data ?? []).map((s) => ({
-      id: s.id,
-      name: s.name,
-      category: s.category,
-      color: s.color,
-      icon: s.icon,
+    if (!groupedData) return [];
+    return groupedData.map((entry) => ({
+      id: entry.group.id,
+      name: entry.group.name,
+      type: entry.group.label,
+      color: entry.group.color,
     }));
-    const byId = new Map<string, TaskStatus>(
-      fromWorkflow.map((s) => [s.id, s]),
-    );
-    if (groupedData?.groups) {
-      for (const g of groupedData.groups) {
-        if (!byId.has(g.statusId)) {
-          byId.set(g.statusId, {
-            id: g.statusId,
-            name: g.statusName,
-            category: g.category,
-            color: g.statusColor,
-            icon: g.statusIcon,
-          });
-        }
-      }
-    }
-    return Array.from(byId.values());
-  }, [boardStatusesQuery.data, groupedData]);
+  }, [groupedData]);
 
   // Build a ProcessSummaryList from the grouped data
   const processSummary: ProcessSummaryList | null = useMemo(() => {
@@ -271,33 +190,36 @@ export default function GenericProcessPage() {
       isPrivate: process.isPrivate,
       areaId: area?.id ?? null,
       areaName: area?.name ?? null,
-      totalItems: groupedData?.total ?? 0,
-      groups: (groupedData?.groups ?? []).map((g) => ({
-        statusId: g.statusId,
-        statusName: g.statusName,
-        statusColor: g.statusColor,
-        statusCategory: g.category,
-        count: g.count,
-        items: g.items.map((item) => ({
-          id: item.id,
-          title: item.title,
-          statusId: item.statusId,
-          priority: item.priority,
-          assigneeId: item.assigneeId,
-          assigneeName: item.assigneeName,
-          startDate: item.startDate,
-          dueDate: item.dueDate,
-          sortOrder: item.sortOrder,
+      totalItems:
+        groupedData?.reduce((sum, e) => sum + e.tasks.length, 0) ?? 0,
+      groups: (groupedData ?? []).map((entry) => ({
+        statusId: entry.group.id,
+        statusName: entry.group.name,
+        statusColor: entry.group.color,
+        statusType: entry.group.label,
+        count: entry.tasks.length,
+        items: entry.tasks.map((task) => ({
+          id: task.id,
+          title: task.title,
+          statusId: task.statusId,
+          priority: task.priority,
+          assigneeId: task.primaryAssigneeId,
+          assigneeName: task.primaryAssigneeName,
+          startDate: task.startDate,
+          dueDate: task.dueDate,
+          sortOrder: task.sortOrder,
+          typeIcon: task.customType?.icon ?? null,
+          typeName: task.customType?.value ?? null,
         })),
       })),
     };
   }, [match, groupedData]);
 
   const closedCount = useMemo(() => {
-    if (!groupedData?.groups) return 0;
-    return groupedData.groups
-      .filter((g) => g.category === 'DONE' || g.category === 'CLOSED')
-      .reduce((acc, g) => acc + g.count, 0);
+    if (!groupedData) return 0;
+    return groupedData
+      .filter((e) => e.group.label === 'DONE' || e.group.label === 'CLOSED')
+      .reduce((acc, e) => acc + e.tasks.length, 0);
   }, [groupedData]);
 
   // Loading state (tree not yet loaded)
@@ -337,31 +259,47 @@ export default function GenericProcessPage() {
                 ]
               : [{ label: process.name, icon: Folder }]),
           ]}
-          favorite={{ active: false }}
+          favoriteTarget={{ entityType: 'LIST', entityId: process.id }}
         />
 
         {/* Tabs */}
-        <nav className="flex items-center overflow-x-auto border-b-[0.25px] border-stroke-soft-200 px-10">
-          <button
-            type="button"
-            className="relative flex items-center gap-1.5 px-3 py-2 text-[13px] font-medium text-text-sub-600 transition-colors hover:text-text-strong-950 h-[35.5px]"
-          >
-            <RiChat1Line className="size-4" />
-            Canal
-          </button>
+        <nav className="flex items-center overflow-x-auto border-b border-border px-10">
           <button
             type="button"
             onClick={() => setActiveViewId('list')}
             onContextMenu={(e) => handleViewContextMenu(e, 'list')}
-            className={`relative flex items-center gap-1.5 px-3 py-2 text-[13px] font-medium transition-colors h-[35.5px] ${
+            className={`relative flex h-[35.5px] items-center gap-1.5 px-3 py-2 text-[13px] font-medium tracking-tight transition-colors ${
               activeViewId === 'list'
-                ? 'text-text-strong-950 after:absolute after:bottom-0 after:left-0 after:right-0 after:h-0.5 after:bg-text-strong-950'
-                : 'text-text-sub-600 hover:text-text-strong-950'
+                ? 'text-foreground after:absolute after:bottom-0 after:left-0 after:right-0 after:h-[2px] after:bg-foreground'
+                : 'text-muted-foreground hover:text-foreground'
             }`}
           >
-            <RiListCheck2 className="size-4" />
-            List
-            <RiPushpinLine className="size-3" />
+            <LayoutList className="size-3.5 shrink-0" aria-hidden />
+            Lista
+          </button>
+          <button
+            type="button"
+            onClick={() => setActiveViewId('board')}
+            className={`relative flex h-[35.5px] items-center gap-1.5 px-3 py-2 text-[13px] font-medium tracking-tight transition-colors ${
+              activeViewId === 'board'
+                ? 'text-foreground after:absolute after:bottom-0 after:left-0 after:right-0 after:h-[2px] after:bg-foreground'
+                : 'text-muted-foreground hover:text-foreground'
+            }`}
+          >
+            <SquareKanban className="size-3.5 shrink-0" aria-hidden />
+            Quadro
+          </button>
+          <button
+            type="button"
+            onClick={() => setActiveViewId('calendar')}
+            className={`relative flex h-[35.5px] items-center gap-1.5 px-3 py-2 text-[13px] font-medium tracking-tight transition-colors ${
+              activeViewId === 'calendar'
+                ? 'text-foreground after:absolute after:bottom-0 after:left-0 after:right-0 after:h-[2px] after:bg-foreground'
+                : 'text-muted-foreground hover:text-foreground'
+            }`}
+          >
+            <Calendar className="size-3.5 shrink-0" aria-hidden />
+            Calendário
           </button>
           {customViews?.map((view) => {
             const Icon = VIEW_TYPE_ICON[view.viewType];
@@ -372,13 +310,13 @@ export default function GenericProcessPage() {
                 type="button"
                 onClick={() => setActiveViewId(view.id)}
                 onContextMenu={(e) => handleViewContextMenu(e, view.id)}
-                className={`relative flex h-[35.5px] items-center gap-1.5 px-3 py-2 text-[13px] font-medium transition-colors ${
+                className={`relative flex h-[35.5px] items-center gap-1.5 px-3 py-2 text-[13px] font-medium tracking-tight transition-colors ${
                   isActive
-                    ? 'text-text-strong-950 after:absolute after:bottom-0 after:left-0 after:right-0 after:h-0.5 after:bg-text-strong-950'
-                    : 'text-text-sub-600 hover:text-text-strong-950'
+                    ? 'text-foreground after:absolute after:bottom-0 after:left-0 after:right-0 after:h-[2px] after:bg-foreground'
+                    : 'text-muted-foreground hover:text-foreground'
                 }`}
               >
-                <Icon className="size-4" />
+                <Icon className="size-3.5 shrink-0" />
                 {view.name}
               </button>
             );
@@ -388,9 +326,9 @@ export default function GenericProcessPage() {
             trigger={
               <button
                 type="button"
-                className="flex h-[35.5px] items-center gap-1.5 px-3 py-2 text-[13px] font-medium text-text-sub-600 transition-colors hover:text-text-strong-950"
+                className="flex h-[35.5px] items-center gap-1.5 px-3 py-2 text-[13px] font-medium tracking-tight text-muted-foreground transition-colors hover:text-foreground"
               >
-                <RiAddLine className="size-3.5" />
+                <Plus className="size-3.5 shrink-0" aria-hidden />
                 Nova Visualização
               </button>
             }
@@ -408,6 +346,10 @@ export default function GenericProcessPage() {
         onShowClosedChange={setShowClosed}
         closedCount={closedCount}
         onCreateTask={() => setIsCreateOpen(true)}
+        defaultTaskType={defaultTaskType}
+        customFieldsScope={
+          process?.id ? { kind: 'list', listId: process.id } : undefined
+        }
       />
 
       {/* Tab Content */}
@@ -426,11 +368,7 @@ export default function GenericProcessPage() {
               </div>
             ) : processSummary ? (
               <div className="py-2">
-                <ProcessCardListBody
-                  process={processSummary}
-                  departmentId={dept.id}
-                  areaId={area?.id ?? null}
-                />
+                <ProcessCardListBody process={processSummary} />
               </div>
             ) : null}
           </div>
@@ -442,20 +380,29 @@ export default function GenericProcessPage() {
           <TaskBoard
             tasks={boardTasks}
             statuses={boardStatuses}
-            isLoading={isDataLoading || boardStatusesQuery.isLoading}
+            isLoading={isDataLoading}
+            defaultTaskType={defaultTaskType}
           />
+        </div>
+      )}
+
+      {isCalendarActive && (
+        <div className="flex flex-col items-center justify-center gap-2 py-20 text-muted-foreground">
+          <Calendar className="size-8" aria-hidden />
+          <p className="text-[13px]">Visualização Calendário em breve.</p>
         </div>
       )}
 
       {activeCustomView &&
         activeCustomView.viewType !== 'LIST' &&
-        activeCustomView.viewType !== 'BOARD' && (
-          <div className="flex flex-col items-center justify-center gap-2 py-20 text-text-soft-400">
+        activeCustomView.viewType !== 'BOARD' &&
+        activeCustomView.viewType !== 'CALENDAR' && (
+          <div className="flex flex-col items-center justify-center gap-2 py-20 text-muted-foreground">
             {(() => {
               const Icon = VIEW_TYPE_ICON[activeCustomView.viewType];
               return <Icon className="size-8" />;
             })()}
-            <p className="text-paragraph-sm">
+            <p className="text-[13px]">
               Visualização {VIEW_TYPE_LABEL[activeCustomView.viewType]} em
               breve.
             </p>

@@ -14,6 +14,8 @@ import { SearchModule } from './modules/search/search.module';
 import { AuthModule } from './modules/auth/auth.module';
 import { UsersModule } from './modules/users/users.module';
 import { BpmModule } from './modules/bpm/bpm.module';
+import { StatusModule } from './modules/status/status.module';
+import { StatusTemplatesModule } from './modules/status-templates/status-templates.module';
 import { CompaniesModule } from './modules/companies/companies.module';
 import { ProductTypesModule } from './modules/product-types/product-types.module';
 import { StatesModule } from './modules/states/states.module';
@@ -62,6 +64,9 @@ import { NotificationsModule } from './modules/notifications/notifications.modul
 import { RealtimeModule } from './modules/realtime/realtime.module';
 import { WorkspacesModule } from './modules/workspaces/workspaces.module';
 import { FavoritesModule } from './modules/favorites/favorites.module';
+import { SpacesModule } from './modules/spaces/spaces.module';
+import { FoldersModule } from './modules/folders/folders.module';
+import { ListsModule } from './modules/lists/lists.module';
 
 // Tasks feature (Sprints 1-7) — facade semantica sobre WorkItem.
 // Registrar APOS WorkItemsModule para honrar dependencia de providers
@@ -164,6 +169,8 @@ import { KommoBackfillModule } from './modules/kommo-backfill/kommo-backfill.mod
 
     // BPM (Motor de Processos)
     BpmModule,
+    StatusModule,
+    StatusTemplatesModule,
 
     // Companies (Empresas)
     CompaniesModule,
@@ -289,6 +296,11 @@ import { KommoBackfillModule } from './modules/kommo-backfill/kommo-backfill.mod
 
     // Workspaces (Multi-tenancy — Squad Workspace F1.4)
     WorkspacesModule,
+
+    // Hierarquia paridade Hoppe: Workspace > Space > Folder > List
+    SpacesModule,
+    FoldersModule,
+    ListsModule,
 
     // Favorites (Hoppe-style /favorites — por usuario e workspace)
     FavoritesModule,

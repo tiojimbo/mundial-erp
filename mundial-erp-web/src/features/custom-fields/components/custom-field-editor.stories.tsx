@@ -11,25 +11,21 @@ import type {
   CustomFieldDefinition,
   CustomFieldType,
 } from '../types/custom-field.types';
+import { makeCustomFieldDefinition } from '../types/custom-field.fixtures';
 import { CustomFieldEditor } from './custom-field-editor';
 
 function makeDef(
   type: CustomFieldType,
   overrides: Partial<CustomFieldDefinition> = {},
 ): CustomFieldDefinition {
-  return {
+  return makeCustomFieldDefinition({
     id: `def-${type.toLowerCase()}`,
     workspaceId: null,
-    key: type.toLowerCase(),
-    label: `Campo ${type}`,
+    name: `Campo ${type}`,
     type,
-    required: false,
-    isBuiltin: true,
-    sortOrder: 0,
-    createdAt: '2026-04-25T00:00:00Z',
-    updatedAt: '2026-04-25T00:00:00Z',
+    fixed: true,
     ...overrides,
-  };
+  });
 }
 
 const meta: Meta<typeof CustomFieldEditor> = {

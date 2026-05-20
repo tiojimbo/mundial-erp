@@ -17,8 +17,8 @@ export interface CommentShape {
   id: string;
   workItemId: string;
   authorId: string;
-  body: string;
-  bodyBlocks: Prisma.JsonValue | null;
+  content: string;
+  contentBlocks: Prisma.JsonValue | null;
   parentId: string | null;
   mentions: Prisma.JsonValue | null;
   assigneeId: string | null;
@@ -66,10 +66,10 @@ export class CommentResponseDto {
   authorId!: string;
 
   @ApiProperty()
-  body!: string;
+  content!: string;
 
   @ApiPropertyOptional()
-  bodyBlocks!: Prisma.JsonValue | null;
+  contentBlocks!: Prisma.JsonValue | null;
 
   @ApiPropertyOptional()
   parentId!: string | null;
@@ -109,8 +109,8 @@ export class CommentResponseDto {
     dto.id = entity.id;
     dto.workItemId = entity.workItemId;
     dto.authorId = entity.authorId;
-    dto.body = entity.body;
-    dto.bodyBlocks = entity.bodyBlocks;
+    dto.content = entity.content;
+    dto.contentBlocks = entity.contentBlocks;
     dto.parentId = entity.parentId;
     dto.mentions = Array.isArray(entity.mentions)
       ? (entity.mentions as string[])

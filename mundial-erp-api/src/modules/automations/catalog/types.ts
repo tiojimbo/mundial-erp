@@ -31,7 +31,7 @@ export interface ActionParamDef {
   referenceType?:
     | 'user'
     | 'list'
-    | 'workflow-status'
+    | 'status'
     | 'tag'
     | 'task-type'
     | 'custom-field'

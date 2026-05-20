@@ -172,8 +172,10 @@ const ICON_MAP: Record<string, LucideIcon> = Object.fromEntries(
 );
 
 export function getIconByName(name?: string | null): LucideIcon {
-  if (name && ICON_MAP[name]) return ICON_MAP[name];
-  return CircleDot;
+  if (!name) return CircleDot;
+  if (ICON_MAP[name]) return ICON_MAP[name];
+  const stripped = name.endsWith('Icon') ? name.slice(0, -4) : `${name}Icon`;
+  return ICON_MAP[stripped] ?? CircleDot;
 }
 
 type Props = {

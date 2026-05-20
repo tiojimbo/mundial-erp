@@ -21,15 +21,15 @@ export class CreateCommentDto {
   @IsString()
   @MinLength(1)
   @MaxLength(10_000)
-  body!: string;
+  content!: string;
 
   @ApiPropertyOptional({
     description:
-      'BlockNote JSON AST opcional. Persistido como Json no banco. FE deve gerar `body` a partir dele.',
+      'BlockNote JSON AST opcional. Persistido como Json no banco. FE deve gerar `content` a partir dele.',
   })
   @IsOptional()
   @IsObject()
-  bodyBlocks?: Record<string, unknown>;
+  contentBlocks?: Record<string, unknown>;
 
   @ApiPropertyOptional({
     description: 'ID do comentário pai (resposta em thread).',

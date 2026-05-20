@@ -43,7 +43,7 @@ export function TextField({
           className={inputClass}
           value={localValue}
           readOnly={isReadOnly}
-          placeholder={definition.label}
+          placeholder={definition.name}
           onChange={(event) => {
             const next = event.target.value;
             setLocalValue(next);

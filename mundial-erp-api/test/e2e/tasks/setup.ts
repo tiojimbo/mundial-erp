@@ -217,14 +217,14 @@ export const createTestProcess = async (
     },
   });
 
-  const defaultStatus = await prisma.workflowStatus.create({
+  const defaultStatus = await prisma.status.create({
     data: {
       name: 'To Do',
-      category: 'NOT_STARTED',
+      type: 'NOT_STARTED',
       color: '#94a3b8',
       spaceId: space.id,
       folderId: folder.id,
-      isDefault: true,
+      position: 0,
     },
   });
 
@@ -314,7 +314,7 @@ export const cleanupWorkspace = async (
         });
       }
 
-      await tx.workflowStatus.updateMany({
+      await tx.status.updateMany({
         where: { spaceId: { in: spaceIds } },
         data: { deletedAt: now },
       });

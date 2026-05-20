@@ -33,9 +33,9 @@ export const ACTIONS_CATALOG: ReadonlyArray<ActionDef> = [
     category: 'task',
     params: [
       {
-        name: 'workflowStatusId',
+        name: 'statusId',
         type: 'reference',
-        referenceType: 'workflow-status',
+        referenceType: 'status',
         required: true,
       },
     ],

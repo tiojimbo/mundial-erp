@@ -13,6 +13,7 @@ import { CustomFieldDefinitionsRepository } from './custom-field-definitions.rep
 import { CustomFieldValuesRepository } from './custom-field-values.repository';
 import { CustomFieldValueResponseDto } from './dtos/custom-field-value-response.dto';
 import {
+  FieldDispatchResult,
   validateRequiredWhen,
   validateValue,
 } from './validators/field-type-dispatch';
@@ -149,6 +150,7 @@ export class CustomFieldValuesService implements OnModuleDestroy {
       type: definition.type,
       required: definition.required,
       config: definition.config,
+      options: definition.options,
     });
     if (!dispatchResult.valid) {
       throw new UnprocessableEntityException({
@@ -159,11 +161,15 @@ export class CustomFieldValuesService implements OnModuleDestroy {
       });
     }
 
-    // 5. Calculo das colunas valor (apenas uma preenchida).
-    const columns = this.toValueColumns(
+    // 4b. Integridade referencial para tipos que apontam pra outras entidades.
+    await this.validateReferentialIntegrity(
+      workspaceId,
       definition.type,
-      dispatchResult.normalized,
+      dispatchResult,
     );
+
+    // 5. Calculo das colunas valor (apenas uma preenchida).
+    const columns = this.toValueColumns(dispatchResult);
     const signature = this.signatureOf(columns);
 
     // 6. Idempotencia: dedup em janela de 5s.
@@ -204,6 +210,8 @@ export class CustomFieldValuesService implements OnModuleDestroy {
           valueText: true,
           valueNumber: true,
           valueDate: true,
+          valueBoolean: true,
+          valueJson: true,
           definition: { select: { key: true, type: true } },
         },
       });
@@ -236,6 +244,8 @@ export class CustomFieldValuesService implements OnModuleDestroy {
           valueText: columns.valueText,
           valueNumber: columns.valueNumber,
           valueDate: columns.valueDate,
+          valueJson: columns.valueJson,
+          valueBoolean: columns.valueBoolean,
         },
         tx,
       );
@@ -256,6 +266,8 @@ export class CustomFieldValuesService implements OnModuleDestroy {
               valueText: columns.valueText,
               valueNumber: columns.valueNumber,
               valueDate: columns.valueDate?.toISOString() ?? null,
+              valueJson: columns.valueJson,
+              valueBoolean: columns.valueBoolean,
             },
           } satisfies Prisma.InputJsonValue,
         },
@@ -283,6 +295,40 @@ export class CustomFieldValuesService implements OnModuleDestroy {
     });
   }
 
+  async clearValue(
+    workspaceId: string,
+    taskId: string,
+    definitionId: string,
+  ): Promise<CustomFieldValueResponseDto> {
+    const task = await this.valuesRepo.findTaskInWorkspace(workspaceId, taskId);
+    if (!task) {
+      throw new NotFoundException('Tarefa nao encontrada');
+    }
+
+    const definition = await this.definitionsRepo.findVisibleById(
+      workspaceId,
+      definitionId,
+    );
+    if (!definition) {
+      throw new NotFoundException('Custom field definition nao encontrada');
+    }
+
+    const removed = await this.valuesRepo.deleteValue(taskId, definitionId);
+    if (!removed) {
+      throw new NotFoundException('Valor nao encontrado para esta tarefa');
+    }
+
+    this.dedupCache.delete(`${taskId}:${definitionId}`);
+
+    this.logger.log(
+      `custom-field-value.cleared task=${taskId} def=${definitionId} workspace=${workspaceId}`,
+    );
+
+    return CustomFieldValueResponseDto.fromEntity(removed, {
+      exposeWorkspaceId: removed.definition.workspaceId === workspaceId,
+    });
+  }
+
   // ------------------------------------------------------------------
   // Helpers privados
   // ------------------------------------------------------------------
@@ -299,37 +345,46 @@ export class CustomFieldValuesService implements OnModuleDestroy {
     return readOnly === true;
   }
 
-  private toValueColumns(
-    type: CustomFieldType,
-    normalized: unknown,
-  ): {
+  private toValueColumns(dispatch: FieldDispatchResult): {
     valueText: string | null;
     valueNumber: number | null;
     valueDate: Date | null;
+    valueJson: Prisma.InputJsonValue | null;
+    valueBoolean: boolean | null;
   } {
-    if (normalized === undefined || normalized === null) {
-      return { valueText: null, valueNumber: null, valueDate: null };
+    const empty = {
+      valueText: null,
+      valueNumber: null,
+      valueDate: null,
+      valueJson: null,
+      valueBoolean: null,
+    };
+    if (
+      dispatch.normalized === undefined ||
+      dispatch.normalized === null ||
+      !dispatch.column
+    ) {
+      return empty;
     }
-    switch (type) {
-      case CustomFieldType.NUMBER:
-      case CustomFieldType.CURRENCY:
+    switch (dispatch.column) {
+      case 'valueText':
+        return { ...empty, valueText: String(dispatch.normalized) };
+      case 'valueNumber':
+        return { ...empty, valueNumber: dispatch.normalized as number };
+      case 'valueDate':
+        return { ...empty, valueDate: dispatch.normalized as Date };
+      case 'valueBoolean':
+        return { ...empty, valueBoolean: dispatch.normalized as boolean };
+      case 'valueJson':
         return {
-          valueText: null,
-          valueNumber: normalized as number,
-          valueDate: null,
+          ...empty,
+          valueJson: dispatch.normalized as Prisma.InputJsonValue,
         };
-      case CustomFieldType.DATE:
-        return {
-          valueText: null,
-          valueNumber: null,
-          valueDate: normalized as Date,
-        };
-      default:
-        return {
-          valueText: String(normalized),
-          valueNumber: null,
-          valueDate: null,
-        };
+      default: {
+        const exhaustive: never = dispatch.column;
+        void exhaustive;
+        return empty;
+      }
     }
   }
 
@@ -337,12 +392,87 @@ export class CustomFieldValuesService implements OnModuleDestroy {
     valueText: string | null;
     valueNumber: number | null;
     valueDate: Date | null;
+    valueJson: Prisma.InputJsonValue | null;
+    valueBoolean: boolean | null;
   }): string {
     return JSON.stringify({
       t: columns.valueText,
       n: columns.valueNumber,
       d: columns.valueDate?.toISOString() ?? null,
+      j: columns.valueJson,
+      b: columns.valueBoolean,
     });
+  }
+
+  private async validateReferentialIntegrity(
+    workspaceId: string,
+    type: CustomFieldType,
+    dispatch: FieldDispatchResult,
+  ): Promise<void> {
+    if (!dispatch.valid || dispatch.normalized === undefined) return;
+
+    if (type === CustomFieldType.USER) {
+      const userId = dispatch.normalized as string;
+      const exists = await this.userBelongsToWorkspace(userId, workspaceId);
+      if (!exists) {
+        throw new UnprocessableEntityException({
+          message: 'USER referenciado nao existe no workspace',
+          code: 'CUSTOM_FIELD_REF_NOT_FOUND',
+          type,
+        });
+      }
+      return;
+    }
+
+    if (type === CustomFieldType.PEOPLE) {
+      const ids = dispatch.normalized as string[];
+      if (ids.length === 0) return;
+      const count = await this.prisma.workspaceMember.count({
+        where: { workspaceId, userId: { in: ids } },
+      });
+      if (count !== ids.length) {
+        throw new UnprocessableEntityException({
+          message: 'PEOPLE contem userIds que nao pertencem ao workspace',
+          code: 'CUSTOM_FIELD_REF_NOT_FOUND',
+          type,
+        });
+      }
+      return;
+    }
+
+    if (type === CustomFieldType.RELATIONSHIP) {
+      const ids = dispatch.normalized as string[];
+      if (ids.length === 0) return;
+      const count = await this.prisma.workItem.count({
+        where: {
+          id: { in: ids },
+          deletedAt: null,
+          list: { space: { workspaceId } },
+        },
+      });
+      if (count !== ids.length) {
+        throw new UnprocessableEntityException({
+          message: 'RELATIONSHIP contem taskIds que nao existem no workspace',
+          code: 'CUSTOM_FIELD_REF_NOT_FOUND',
+          type,
+        });
+      }
+    }
+
+    // TEAM: sem tabela Team no schema. Validacao de existencia fica pendente
+    // ate o modulo de Teams ser introduzido. Por ora aceitamos qualquer id
+    // que passe pelo dispatcher (formato cuid/uuid).
+  }
+
+  private async userBelongsToWorkspace(
+    userId: string,
+    workspaceId: string,
+  ): Promise<boolean> {
+    const member = await this.prisma.workspaceMember.findFirst({
+      where: { workspaceId, userId },
+      select: { id: true },
+    });
+    return member !== null;
   }
 
   private readDedupCache(key: string): DedupCacheEntry | null {
@@ -414,11 +544,16 @@ export class CustomFieldValuesService implements OnModuleDestroy {
       valueText: string | null;
       valueNumber: Prisma.Decimal | number | null;
       valueDate: Date | null;
+      valueBoolean?: boolean | null;
+      valueJson?: Prisma.JsonValue | null;
     },
-  ): string | number | Date | null {
+  ): string | number | boolean | Date | null {
     switch (type) {
       case CustomFieldType.NUMBER:
       case CustomFieldType.CURRENCY:
+      case CustomFieldType.PERCENTAGE:
+      case CustomFieldType.DURATION:
+      case CustomFieldType.RATING:
         if (row.valueNumber === null || row.valueNumber === undefined) {
           return null;
         }
@@ -427,6 +562,13 @@ export class CustomFieldValuesService implements OnModuleDestroy {
           : Number(row.valueNumber);
       case CustomFieldType.DATE:
         return row.valueDate;
+      case CustomFieldType.CHECKBOX:
+        return row.valueBoolean ?? null;
+      case CustomFieldType.PEOPLE:
+      case CustomFieldType.RELATIONSHIP:
+        // Tipos array/json nao sao suportados como trigger de requiredWhen
+        // (compara igualdade === string). Retorna null pra nao casar.
+        return null;
       default:
         return row.valueText;
     }

@@ -12,7 +12,7 @@ export function ChatLayout() {
   const activeThreadMessageId = useChatStore((s) => s.activeThreadMessageId);
 
   return (
-    <div className='flex h-full overflow-hidden'>
+    <div className='flex h-full overflow-hidden p-2'>
       {/* Canal principal — ocupa espaco disponivel, encolhe quando thread abre */}
       <div className='flex min-w-0 flex-1 flex-col'>
         {activeChannelId ? (

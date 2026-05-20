@@ -6,7 +6,7 @@ export class CreateChecklistDto {
   @IsString()
   @MinLength(1)
   @MaxLength(200)
-  name!: string;
+  title!: string;
 
   @ApiPropertyOptional({ example: 0, default: 0 })
   @IsOptional()

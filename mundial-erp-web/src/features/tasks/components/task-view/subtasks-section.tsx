@@ -1,6 +1,7 @@
 'use client';
 
 import type { TaskDetail } from '../../types/task.types';
+import { useCreateTask } from '../../hooks/use-create-task';
 
 import { CollapsibleSection } from './collapsible-section';
 import { EmptyCardCta } from './empty-card-cta';
@@ -19,8 +20,17 @@ export type SubtasksSectionProps = {
 
 export function SubtasksSection({ task }: SubtasksSectionProps) {
   const subtasks = task.subtasks ?? [];
-  const done = subtasks.filter((s) => s.status.category === 'DONE').length;
+  const done = subtasks.filter((s) => s.status.type === 'DONE').length;
   const total = subtasks.length;
+  const createTask = useCreateTask();
+
+  const handleAdd = () => {
+    createTask.mutate({
+      processId: task.processId,
+      parentId: task.id,
+      title: 'Nova subtarefa',
+    });
+  };
 
   return (
     <CollapsibleSection
@@ -30,7 +40,7 @@ export function SubtasksSection({ task }: SubtasksSectionProps) {
     >
       {total > 0 && <ProgressBar value={done} max={total} />}
       {total === 0 ? (
-        <EmptyCardCta label="Adicionar subtarefa" />
+        <EmptyCardCta label="Adicionar subtarefa" onClick={handleAdd} />
       ) : (
         <ul className="mt-2 flex flex-col gap-1">
           {subtasks.map((st) => (

@@ -7,16 +7,16 @@ import { CSS } from '@dnd-kit/utilities';
 import { cn } from '@/lib/cn';
 import * as Popover from '@/components/ui/popover';
 import * as Dropdown from '@/components/ui/dropdown';
-import { StatusIcon } from '@/features/work-items/components/status-icon';
+import { StatusIcon } from '@/features/processes/components/status-icon';
 import { ColorPalette } from './color-palette';
-import type { StatusCategory } from './constants';
+import type { StatusType } from './constants';
 
 export interface StatusDraft {
   id: string;
   name: string;
   color: string;
-  category: StatusCategory;
-  sortOrder: number;
+  type: StatusType;
+  position: number;
 }
 
 export interface StatusRowProps {
@@ -89,7 +89,7 @@ export function StatusRow({
         <GripVertical className="size-3.5" />
       </button>
 
-      <StatusIcon category={status.category} color={status.color} size={14} />
+      <StatusIcon type={status.type} color={status.color} size={14} />
 
       <input
         ref={inputRef}

@@ -327,8 +327,8 @@ export class WorkItemsService {
         statusId: status.id,
         statusName: status.name,
         statusColor: status.color,
-        statusIcon: status.icon,
-        category: status.category,
+        statusIcon: null,
+        category: status.type,
         count: 0,
         items: [],
       });
@@ -341,8 +341,8 @@ export class WorkItemsService {
           statusId: item.statusId,
           statusName: item.status?.name ?? 'Desconhecido',
           statusColor: item.status?.color ?? '#gray',
-          statusIcon: item.status?.icon ?? null,
-          category: item.status?.category ?? 'NOT_STARTED',
+          statusIcon: null,
+          category: item.status?.type ?? 'NOT_STARTED',
           count: 0,
           items: [],
         };
@@ -456,13 +456,13 @@ export class WorkItemsService {
       dto.statusId,
     );
     if (newStatus) {
-      if (newStatus.category === 'DONE' && !entity.completedAt) {
+      if (newStatus.type === 'DONE' && !entity.completedAt) {
         updateData.completedAt = new Date();
       }
-      if (newStatus.category === 'CLOSED' && !entity.closedAt) {
+      if (newStatus.type === 'CLOSED' && !entity.closedAt) {
         updateData.closedAt = new Date();
       }
-      if (newStatus.category !== 'DONE' && newStatus.category !== 'CLOSED') {
+      if (newStatus.type !== 'DONE' && newStatus.type !== 'CLOSED') {
         updateData.completedAt = null;
         updateData.closedAt = null;
       }

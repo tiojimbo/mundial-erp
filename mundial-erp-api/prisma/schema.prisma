@@ -135,7 +135,7 @@ enum ProcessType {
   LIST
 }
 
-enum StatusCategory {
+enum StatusType {
   NOT_STARTED
   ACTIVE
   DONE
@@ -348,7 +348,7 @@ enum MemberPermission {
 enum StatusInheritance {
   SPACE
   FOLDER
-  OWN
+  CUSTOM
 }
 
 enum AutomationTrigger {
@@ -409,18 +409,19 @@ model User {
   foldersCreated Folder[] @relation("FolderCreator")
   listsCreated   List[]   @relation("ListCreator")
 
-  spaceMemberships         SpaceMember[]       @relation("SpaceMemberUser")
-  folderMemberships        FolderMember[]      @relation("FolderMemberUser")
-  listMemberships          ListMember[]        @relation("ListMemberUser")
-  spaceMembershipsAddedBy  SpaceMember[]       @relation("SpaceMemberAddedBy")
-  folderMembershipsAddedBy FolderMember[]      @relation("FolderMemberAddedBy")
-  listMembershipsAddedBy   ListMember[]        @relation("ListMemberAddedBy")
-  commentsAssigned         WorkItemComment[]   @relation("CommentAssignee")
-  commentsAssignedBy       WorkItemComment[]   @relation("CommentAssignedBy")
-  commentsResolved         WorkItemComment[]   @relation("CommentResolvedBy")
-  commentReactions         CommentReaction[]   @relation("CommentReactionUser")
-  workItemTimeEntries      WorkItemTimeEntry[] @relation("TimeEntryUser")
-  automationsCreated       Automation[]        @relation("AutomationCreator")
+  spaceMemberships         SpaceMember[]           @relation("SpaceMemberUser")
+  folderMemberships        FolderMember[]          @relation("FolderMemberUser")
+  listMemberships          ListMember[]            @relation("ListMemberUser")
+  spaceMembershipsAddedBy  SpaceMember[]           @relation("SpaceMemberAddedBy")
+  folderMembershipsAddedBy FolderMember[]          @relation("FolderMemberAddedBy")
+  listMembershipsAddedBy   ListMember[]            @relation("ListMemberAddedBy")
+  commentsAssigned         WorkItemComment[]       @relation("CommentAssignee")
+  commentsAssignedBy       WorkItemComment[]       @relation("CommentAssignedBy")
+  commentsResolved         WorkItemComment[]       @relation("CommentResolvedBy")
+  commentReactions         CommentReaction[]       @relation("CommentReactionUser")
+  workItemTimeEntries      WorkItemTimeEntry[]     @relation("TimeEntryUser")
+  automationsCreated       Automation[]            @relation("AutomationCreator")
+  customFieldsCreated      CustomFieldDefinition[] @relation("CustomFieldCreator")
 
   // --- Workspace ---
   lastAccessedWorkspace Workspace?        @relation("LastAccessedWorkspace", fields: [lastAccessedWorkspaceId], references: [id])
@@ -529,10 +530,11 @@ model Space {
   sectors           Sector[]
   folders           Folder[]
   users             User[]
-  statuses          WorkflowStatus[]
+  statuses          Status[]
   lists             List[]                  @relation("ListSpace")
   members           SpaceMember[]
   customFields      CustomFieldDefinition[] @relation("CustomFieldOnSpace")
+  customFieldLinks  CustomFieldSpace[]
   customTaskTypes   CustomTaskType[]        @relation("SpaceTaskTypes")
   tags              WorkItemTag[]
   workItemTemplates WorkItemTemplate[]      @relation("TemplateSpace")
@@ -581,9 +583,10 @@ model Folder {
   creator         User?                   @relation("FolderCreator", fields: [creatorId], references: [id])
   defaultTaskType CustomTaskType?         @relation("FolderDefaultTaskType", fields: [defaultTaskTypeId], references: [id])
   lists           List[]                  @relation("ListFolder")
-  statuses        WorkflowStatus[]        @relation("FolderStatuses")
+  statuses        Status[]                @relation("FolderStatuses")
   members         FolderMember[]
   customFields    CustomFieldDefinition[] @relation("CustomFieldOnFolder")
+  customFieldLinks CustomFieldFolder[]
 
   @@index([spaceId], name: "idx_folders_space")
   @@map("folders")
@@ -624,7 +627,9 @@ model List {
   views             ProcessView[]
   members           ListMember[]
   customFields      CustomFieldDefinition[] @relation("CustomFieldOnList")
+  customFieldLinks  CustomFieldList[]
   workItemTemplates WorkItemTemplate[]      @relation("TemplateList")
+  statuses          Status[]                @relation("ListStatuses")
 
   @@index([spaceId], name: "idx_lists_space")
   @@index([folderId], name: "idx_lists_folder")
@@ -738,30 +743,46 @@ model Handoff {
 // 1.4b — Workflow Status System (per Space)
 // ============================================================================
 
-model WorkflowStatus {
-  id        String         @id @default(cuid())
+model Status {
+  id        String     @id @default(cuid())
   name      String
-  category  StatusCategory
+  type      StatusType
   color     String
-  icon      String?
-  sortOrder Int            @default(0) @map("sort_order")
-  spaceId   String         @map("space_id")
-  folderId  String?        @map("folder_id")
-  isDefault Boolean        @default(false) @map("is_default")
-  createdAt DateTime       @default(now()) @map("created_at")
-  updatedAt DateTime       @updatedAt @map("updated_at")
-  deletedAt DateTime?      @map("deleted_at")
+  position  Int        @default(0)
+  spaceId   String?    @map("space_id")
+  folderId  String?    @map("folder_id")
+  listId    String?    @map("list_id")
+  createdAt DateTime   @default(now()) @map("created_at")
+  updatedAt DateTime   @updatedAt @map("updated_at")
+  deletedAt DateTime?  @map("deleted_at")
 
-  space     Space      @relation(fields: [spaceId], references: [id])
+  space     Space?     @relation(fields: [spaceId], references: [id])
   folder    Folder?    @relation("FolderStatuses", fields: [folderId], references: [id])
+  list      List?      @relation("ListStatuses", fields: [listId], references: [id])
   workItems WorkItem[]
 
-  // Tasks feature (Sprint 3-4 Migration 3/3 tasks_advanced)
-  statusHistory WorkItemStatusHistory[] @relation("StatusHistoryStatus")
+  statusHistory  WorkItemStatusHistory[] @relation("StatusHistoryStatus")
+  requiredFields StatusRequiredField[]
 
-  @@index([spaceId, sortOrder], name: "idx_wf_statuses_space_sort")
-  @@index([folderId, sortOrder], name: "idx_wf_statuses_folder_sort")
-  @@map("workflow_statuses")
+  @@index([spaceId, position], name: "idx_statuses_space_position")
+  @@index([folderId, position], name: "idx_statuses_folder_position")
+  @@index([listId, position], name: "idx_statuses_list_position")
+  @@map("statuses")
+}
+
+model StatusRequiredField {
+  id            String   @id @default(cuid())
+  statusId      String   @map("status_id")
+  customFieldId String   @map("custom_field_id")
+  createdAt     DateTime @default(now()) @map("created_at")
+  updatedAt     DateTime @updatedAt @map("updated_at")
+
+  status      Status                @relation(fields: [statusId], references: [id], onDelete: Cascade)
+  customField CustomFieldDefinition @relation(fields: [customFieldId], references: [id], onDelete: Cascade)
+
+  @@unique([statusId, customFieldId])
+  @@index([statusId])
+  @@map("status_required_fields")
 }
 
 model StatusTemplate {
@@ -779,13 +800,12 @@ model StatusTemplate {
 }
 
 model StatusTemplateItem {
-  id         String         @id @default(cuid())
-  templateId String         @map("template_id")
+  id         String     @id @default(cuid())
+  templateId String     @map("template_id")
   name       String
-  category   StatusCategory
+  type       StatusType
   color      String
-  icon       String?
-  sortOrder  Int            @default(0) @map("sort_order")
+  position   Int        @default(0)
 
   template StatusTemplate @relation(fields: [templateId], references: [id], onDelete: Cascade)
 
@@ -834,7 +854,7 @@ model WorkItem {
   deletedAt DateTime? @map("deleted_at")
 
   list            List            @relation(fields: [listId], references: [id])
-  status          WorkflowStatus  @relation(fields: [statusId], references: [id])
+  status          Status          @relation(fields: [statusId], references: [id])
   primaryAssignee User?           @relation("WorkItemAssignee", fields: [primaryAssigneeCache], references: [id])
   creator         User            @relation("WorkItemCreator", fields: [creatorId], references: [id])
   parent          WorkItem?       @relation("Subtasks", fields: [parentId], references: [id])
@@ -877,7 +897,7 @@ model WorkItem {
 // ============================================================================
 
 /// CustomTaskType — builtin (workspaceId NULL) + custom por workspace.
-/// Builtins sao seeds (Task, Milestone); workspace pode futuramente criar
+/// Builtins sao seeds (Tarefa, Marco); workspace pode futuramente criar
 /// tipos proprios. API expoe apenas leitura (GET /custom-task-types).
 model CustomTaskType {
   id          String    @id @default(cuid())
@@ -1017,7 +1037,7 @@ model WorkItemTagLink {
 model WorkItemChecklist {
   id         String    @id @default(cuid())
   workItemId String    @map("work_item_id")
-  name       String
+  title      String
   position   Int       @default(0)
   createdAt  DateTime  @default(now()) @map("created_at")
   updatedAt  DateTime  @updatedAt @map("updated_at")
@@ -1035,7 +1055,7 @@ model WorkItemChecklistItem {
   id          String              @id @default(cuid())
   checklistId String              @map("checklist_id")
   parentId    String?             @map("parent_id")
-  name        String
+  title       String
   assigneeId  String?             @map("assignee_id")
   resolved    Boolean             @default(false)
   resolvedAt  DateTime?           @map("resolved_at")
@@ -1084,8 +1104,8 @@ model WorkItemStatusHistory {
   durationSeconds Int?      @map("duration_seconds")
   byUserId        String?   @map("by_user_id")
 
-  workItem WorkItem       @relation(fields: [workItemId], references: [id], onDelete: Cascade)
-  status   WorkflowStatus @relation("StatusHistoryStatus", fields: [statusId], references: [id])
+  workItem WorkItem @relation(fields: [workItemId], references: [id], onDelete: Cascade)
+  status   Status   @relation("StatusHistoryStatus", fields: [statusId], references: [id])
 
   @@index([workItemId, enteredAt(sort: Desc)], name: "idx_status_history_task_entered")
   @@map("work_item_status_history")
@@ -1140,22 +1160,22 @@ model WorkItemAttachment {
 
 /// Comentario dedicado (nao reusa ChatChannel). BlockNote JSON opcional.
 model WorkItemComment {
-  id           String    @id @default(cuid())
-  workItemId   String    @map("work_item_id")
-  authorId     String    @map("author_id")
-  parentId     String?   @map("parent_id")
-  body         String    @db.Text
-  bodyBlocks   Json?     @map("body_blocks")
-  mentions     Json?
-  assigneeId   String?   @map("assignee_id")
-  assignedById String?   @map("assigned_by_id")
-  resolvedAt   DateTime? @map("resolved_at")
-  resolvedById String?   @map("resolved_by_id")
-  source       String?
-  editedAt     DateTime? @map("edited_at")
-  createdAt    DateTime  @default(now()) @map("created_at")
-  updatedAt    DateTime  @updatedAt @map("updated_at")
-  deletedAt    DateTime? @map("deleted_at")
+  id            String    @id @default(cuid())
+  workItemId    String    @map("work_item_id")
+  authorId      String    @map("author_id")
+  parentId      String?   @map("parent_id")
+  content       String    @db.Text
+  contentBlocks Json?     @map("content_blocks")
+  mentions      Json?
+  assigneeId    String?   @map("assignee_id")
+  assignedById  String?   @map("assigned_by_id")
+  resolvedAt    DateTime? @map("resolved_at")
+  resolvedById  String?   @map("resolved_by_id")
+  source        String?
+  editedAt      DateTime? @map("edited_at")
+  createdAt     DateTime  @default(now()) @map("created_at")
+  updatedAt     DateTime  @updatedAt @map("updated_at")
+  deletedAt     DateTime? @map("deleted_at")
 
   workItem   WorkItem          @relation(fields: [workItemId], references: [id], onDelete: Cascade)
   author     User              @relation("CommentAuthor", fields: [authorId], references: [id])
@@ -2594,10 +2614,10 @@ model Workspace {
   updatedAt DateTime      @updatedAt @map("updated_at")
   deletedAt DateTime?     @map("deleted_at")
 
-  owner                  User                    @relation("WorkspaceOwner", fields: [ownerId], references: [id])
+  owner                  User                      @relation("WorkspaceOwner", fields: [ownerId], references: [id])
   members                WorkspaceMember[]
   invites                WorkspaceInvite[]
-  lastAccessedByUsers    User[]                  @relation("LastAccessedWorkspace")
+  lastAccessedByUsers    User[]                    @relation("LastAccessedWorkspace")
   spaces                 Space[]
   clients                Client[]
   orders                 Order[]
@@ -2625,6 +2645,7 @@ model Workspace {
   workItemTags           WorkItemTag[]
   workItemTemplates      WorkItemTemplate[]
   customFieldDefinitions CustomFieldDefinition[]
+  customFieldGroups      CustomFieldGroup[]
   automations            Automation[]
   kommoAccount           KommoAccount?
   favorites              Favorite[]
@@ -3004,16 +3025,27 @@ model KommoMetricSnapshot {
 // ============================================================================
 
 enum CustomFieldType {
-  TEXT
-  NUMBER
+  CHECKBOX
+  CNPJ
+  CPF
   CURRENCY
   DATE
   DROPDOWN
-  CPF
-  CNPJ
-  URL
+  DURATION
   EMAIL
+  LABEL
+  NUMBER
+  PEOPLE
+  PERCENTAGE
   PHONE
+  RATING
+  RELATIONSHIP
+  ROLLUP
+  SELECT
+  TEAM
+  TEXT
+  URL
+  USER
 }
 
 /// CustomFieldDefinition — definicao reutilizavel de um campo personalizado.
@@ -3028,30 +3060,51 @@ model CustomFieldDefinition {
   listId           String?         @map("list_id")
   customTaskTypeId String?         @map("custom_task_type_id")
   key              String
+  name             String
   label            String
+  description      String?
   type             CustomFieldType
   required         Boolean         @default(false)
+  options          Json            @default("[]")
   config           Json?
+  defaultValue     Json?           @map("default_value")
+  validation       Json?
+  pinned           Boolean         @default(false)
+  visibleToGuests  Boolean         @default(true) @map("visible_to_guests")
+  fillMethod       String          @default("manual") @map("fill_method")
   isBuiltin        Boolean         @default(false) @map("is_builtin")
   sortOrder        Int             @default(0) @map("sort_order")
+  createdById      String?         @map("created_by_id")
+  groupId          String?         @map("group_id")
+  groupName        String?         @map("group_name")
+  groupPosition    Int?            @map("group_position")
+  groupColor       String?         @map("group_color")
   createdAt        DateTime        @default(now()) @map("created_at")
   updatedAt        DateTime        @updatedAt @map("updated_at")
   deletedAt        DateTime?       @map("deleted_at")
 
-  workspace      Workspace?              @relation(fields: [workspaceId], references: [id])
-  space          Space?                  @relation("CustomFieldOnSpace", fields: [spaceId], references: [id])
-  folder         Folder?                 @relation("CustomFieldOnFolder", fields: [folderId], references: [id])
-  list           List?                   @relation("CustomFieldOnList", fields: [listId], references: [id])
-  customTaskType CustomTaskType?         @relation("CustomFieldOnTaskType", fields: [customTaskTypeId], references: [id])
-  values         CustomFieldValue[]
-  templateFields TaskTypeTemplateField[]
+  workspace          Workspace?              @relation(fields: [workspaceId], references: [id])
+  space              Space?                  @relation("CustomFieldOnSpace", fields: [spaceId], references: [id])
+  folder             Folder?                 @relation("CustomFieldOnFolder", fields: [folderId], references: [id])
+  list               List?                   @relation("CustomFieldOnList", fields: [listId], references: [id])
+  customTaskType     CustomTaskType?         @relation("CustomFieldOnTaskType", fields: [customTaskTypeId], references: [id])
+  createdBy          User?                   @relation("CustomFieldCreator", fields: [createdById], references: [id])
+  group              CustomFieldGroup?       @relation(fields: [groupId], references: [id], onDelete: SetNull)
+  values             CustomFieldValue[]
+  templateFields     TaskTypeTemplateField[]
+  statusRequirements StatusRequiredField[]
+  listLinks          CustomFieldList[]
+  folderLinks        CustomFieldFolder[]
+  spaceLinks         CustomFieldSpace[]
 
-  @@unique([workspaceId, key])
+  @@unique([workspaceId, key, spaceId, folderId, listId, customTaskTypeId], map: "cfd_workspace_scoped_key_unique")
   @@index([workspaceId, deletedAt])
+  @@index([workspaceId, type], name: "idx_cfd_workspace_type")
   @@index([spaceId], name: "idx_cfd_space")
   @@index([folderId], name: "idx_cfd_folder")
   @@index([listId], name: "idx_cfd_list")
   @@index([customTaskTypeId], name: "idx_cfd_task_type")
+  @@index([createdById], name: "idx_cfd_created_by")
   @@map("custom_field_definitions")
 }
 
@@ -3068,6 +3121,8 @@ model CustomFieldValue {
   valueText    String?   @map("value_text") @db.Text
   valueNumber  Decimal?  @map("value_number") @db.Decimal(18, 4)
   valueDate    DateTime? @map("value_date")
+  valueJson    Json?     @map("value_json")
+  valueBoolean Boolean?  @map("value_boolean")
   createdAt    DateTime  @default(now()) @map("created_at")
   updatedAt    DateTime  @updatedAt @map("updated_at")
 
@@ -3077,6 +3132,79 @@ model CustomFieldValue {
   @@unique([workItemId, definitionId])
   @@index([workItemId])
   @@map("custom_field_values")
+}
+
+model CustomFieldGroup {
+  id          String   @id @default(cuid())
+  workspaceId String   @map("workspace_id")
+  name        String
+  color       String?
+  position    Int      @default(0)
+  createdAt   DateTime @default(now()) @map("created_at")
+  updatedAt   DateTime @updatedAt @map("updated_at")
+
+  workspace   Workspace               @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  definitions CustomFieldDefinition[]
+  listLinks   CustomFieldList[]
+  folderLinks CustomFieldFolder[]
+  spaceLinks  CustomFieldSpace[]
+
+  @@index([workspaceId])
+  @@map("custom_field_groups")
+}
+
+model CustomFieldList {
+  id            String   @id @default(cuid())
+  customFieldId String   @map("custom_field_id")
+  listId        String   @map("list_id")
+  groupId       String?  @map("group_id")
+  createdAt     DateTime @default(now()) @map("created_at")
+  updatedAt     DateTime @updatedAt @map("updated_at")
+
+  customField CustomFieldDefinition @relation(fields: [customFieldId], references: [id], onDelete: Cascade)
+  list        List                  @relation(fields: [listId], references: [id], onDelete: Cascade)
+  group       CustomFieldGroup?     @relation(fields: [groupId], references: [id], onDelete: SetNull)
+
+  @@unique([customFieldId, listId])
+  @@index([listId])
+  @@index([customFieldId])
+  @@map("custom_field_lists")
+}
+
+model CustomFieldFolder {
+  id            String   @id @default(cuid())
+  customFieldId String   @map("custom_field_id")
+  folderId      String   @map("folder_id")
+  groupId       String?  @map("group_id")
+  createdAt     DateTime @default(now()) @map("created_at")
+  updatedAt     DateTime @updatedAt @map("updated_at")
+
+  customField CustomFieldDefinition @relation(fields: [customFieldId], references: [id], onDelete: Cascade)
+  folder      Folder                @relation(fields: [folderId], references: [id], onDelete: Cascade)
+  group       CustomFieldGroup?     @relation(fields: [groupId], references: [id], onDelete: SetNull)
+
+  @@unique([customFieldId, folderId])
+  @@index([folderId])
+  @@index([customFieldId])
+  @@map("custom_field_folders")
+}
+
+model CustomFieldSpace {
+  id            String   @id @default(cuid())
+  customFieldId String   @map("custom_field_id")
+  spaceId       String   @map("space_id")
+  groupId       String?  @map("group_id")
+  createdAt     DateTime @default(now()) @map("created_at")
+  updatedAt     DateTime @updatedAt @map("updated_at")
+
+  customField CustomFieldDefinition @relation(fields: [customFieldId], references: [id], onDelete: Cascade)
+  space       Space                 @relation(fields: [spaceId], references: [id], onDelete: Cascade)
+  group       CustomFieldGroup?     @relation(fields: [groupId], references: [id], onDelete: SetNull)
+
+  @@unique([customFieldId, spaceId])
+  @@index([spaceId])
+  @@index([customFieldId])
+  @@map("custom_field_spaces")
 }
 
 // ============================================================================
@@ -3136,20 +3264,28 @@ enum FavoriteEntity {
   CHAT_CHANNEL
 }
 
+enum FavoritePosition {
+  TOP
+  SIDEBAR
+  BOTTOM
+}
+
 model Favorite {
-  id          String         @id @default(cuid())
-  userId      String         @map("user_id")
-  workspaceId String         @map("workspace_id")
-  entityType  FavoriteEntity @map("entity_type")
-  entityId    String         @map("entity_id")
-  position    Int            @default(0)
-  createdAt   DateTime       @default(now()) @map("created_at")
+  id          String           @id @default(cuid())
+  userId      String           @map("user_id")
+  workspaceId String           @map("workspace_id")
+  entityType  FavoriteEntity   @map("entity_type")
+  entityId    String           @map("entity_id")
+  position    FavoritePosition @default(SIDEBAR)
+  order       Int              @default(0)
+  createdAt   DateTime         @default(now()) @map("created_at")
+  updatedAt   DateTime         @updatedAt @map("updated_at")
 
   user      User      @relation(fields: [userId], references: [id], onDelete: Cascade)
   workspace Workspace @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
 
   @@unique([userId, workspaceId, entityType, entityId], name: "uniq_user_workspace_entity")
-  @@index([userId, workspaceId])
+  @@index([userId, workspaceId, position, order])
   @@map("favorites")
 }
 

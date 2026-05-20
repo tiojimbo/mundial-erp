@@ -5,12 +5,9 @@ import { PrismaService } from '../../database/prisma.service';
 const WORK_ITEM_SUMMARY_SELECT = {
   id: true,
   title: true,
-  statusId: true,
-  priority: true,
-  dueDate: true,
-  primaryAssigneeCache: true,
-  archived: true,
-  status: { select: { category: true } },
+  status: { select: { id: true, name: true, color: true, type: true } },
+  customType: { select: { id: true, name: true, icon: true } },
+  list: { select: { id: true, name: true } },
 } as const;
 
 export interface LinkEdge {

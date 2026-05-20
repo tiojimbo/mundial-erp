@@ -190,7 +190,7 @@ export class TaskTemplatesRepository {
   }
 
   /**
-   * Primeiro `WorkflowStatus` NOT_STARTED do departamento do process. Usado
+   * Primeiro `Status` NOT_STARTED do departamento do process. Usado
    * quando o caller de `instantiate` nao informa `statusId`.
    */
   async findDefaultStatusForProcess(
@@ -203,13 +203,13 @@ export class TaskTemplatesRepository {
       select: { spaceId: true },
     });
     if (!process?.spaceId) return null;
-    return db.workflowStatus.findFirst({
+    return db.status.findFirst({
       where: {
         spaceId: process.spaceId,
-        category: 'NOT_STARTED',
+        type: 'NOT_STARTED',
         deletedAt: null,
       },
-      orderBy: [{ sortOrder: 'asc' }, { createdAt: 'asc' }],
+      orderBy: [{ position: 'asc' }, { createdAt: 'asc' }],
       select: { id: true },
     });
   }
@@ -237,7 +237,7 @@ export class TaskTemplatesRepository {
             orderBy: { position: 'asc' as const },
             select: {
               id: true,
-              name: true,
+              title: true,
               parentId: true,
               position: true,
             },

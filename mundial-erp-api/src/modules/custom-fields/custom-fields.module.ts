@@ -8,12 +8,16 @@ import { CustomFieldValuesController } from './custom-field-values.controller';
 import { CustomFieldValuesRepository } from './custom-field-values.repository';
 import { CustomFieldValuesService } from './custom-field-values.service';
 import { CustomFieldsWriteGuard } from './custom-fields-write.guard';
+import { CustomFieldGroupsController } from './groups/custom-field-groups.controller';
+import { CustomFieldGroupsRepository } from './groups/custom-field-groups.repository';
+import { CustomFieldGroupsService } from './groups/custom-field-groups.service';
 import {
   CUSTOM_FIELDS_METRICS,
   NoopCustomFieldsMetrics,
 } from './custom-fields.metrics';
 import { PrometheusCustomFieldsMetrics } from './custom-fields-prometheus.metrics';
 import { PROM_REGISTRY } from '../../common/metrics/metrics.tokens';
+import { CnpjLookupModule } from './cnpj-lookup/cnpj-lookup.module';
 
 /**
  * CustomFieldsModule (M1 — TTT-011).
@@ -46,10 +50,17 @@ const metricsProvider: Provider = {
 };
 
 @Module({
-  controllers: [CustomFieldDefinitionsController, CustomFieldValuesController],
+  imports: [CnpjLookupModule],
+  controllers: [
+    CustomFieldDefinitionsController,
+    CustomFieldGroupsController,
+    CustomFieldValuesController,
+  ],
   providers: [
     CustomFieldDefinitionsRepository,
     CustomFieldDefinitionsService,
+    CustomFieldGroupsRepository,
+    CustomFieldGroupsService,
     CustomFieldValuesRepository,
     CustomFieldValuesService,
     CustomFieldsWriteGuard,
@@ -60,6 +71,7 @@ const metricsProvider: Provider = {
     // CustomFieldDefinitionsService como interface estavel — nunca
     // o repository, conforme PLANO §"Boundaries".
     CustomFieldDefinitionsService,
+    CustomFieldGroupsService,
     CustomFieldValuesService,
   ],
 })

@@ -12,7 +12,11 @@ export function useUnreadCount() {
   return useQuery({
     queryKey: [...NOTIFICATIONS_KEY, 'unread-count'],
     queryFn: async () => {
-      const res = await notificationService.getNotifications('all');
+      const res = await notificationService.getNotifications({
+        view: 'all',
+        page: 1,
+        limit: 1,
+      });
       return res.counts?.all ?? 0;
     },
     refetchInterval: 60_000,

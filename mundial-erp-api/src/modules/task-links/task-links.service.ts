@@ -1,46 +1,41 @@
 import {
   BadRequestException,
+  ConflictException,
   Injectable,
   Logger,
   NotFoundException,
 } from '@nestjs/common';
-import { LinkType, Prisma } from '@prisma/client';
+import { LinkType, Prisma, StatusType } from '@prisma/client';
 import { PrismaService } from '../../database/prisma.service';
 import { TaskOutboxService } from '../task-outbox/task-outbox.service';
 import { TaskLinksRepository, type LinkEdge } from './task-links.repository';
 import { CreateLinkDto } from './dtos/create-link.dto';
 import {
-  TaskLinksResponseDto,
+  DeleteLinkResponseDto,
+  LinkedTaskDto,
   WorkItemLinkItemDto,
-  WorkItemLinkSummaryDto,
-  type WorkItemLinkSummaryShape,
+  type LinkedTaskShape,
 } from './dtos/link-response.dto';
 
 const OUTBOX_EVENT_LINK_ADDED = 'LINK_ADDED' as const;
 const OUTBOX_EVENT_LINK_REMOVED = 'LINK_REMOVED' as const;
 
-function mapTaskSummary(task: unknown): WorkItemLinkSummaryDto {
+function mapLinkedTask(task: unknown): LinkedTaskDto {
   const t = task as {
     id: string;
     title: string;
-    statusId: string;
-    priority: string | null;
-    dueDate: Date | null;
-    primaryAssigneeCache: string | null;
-    archived: boolean;
-    status: { category: string } | null;
+    status: { id: string; name: string; color: string; type: StatusType } | null;
+    customType: { id: string; name: string; icon: string | null } | null;
+    list: { id: string; name: string } | null;
   };
-  const shape: WorkItemLinkSummaryShape = {
+  const shape: LinkedTaskShape = {
     id: t.id,
     title: t.title,
-    statusId: t.statusId,
-    statusCategory: t.status?.category ?? null,
-    priority: t.priority,
-    dueDate: t.dueDate,
-    primaryAssigneeId: t.primaryAssigneeCache,
-    archived: t.archived,
+    status: t.status,
+    customType: t.customType,
+    list: t.list,
   };
-  return WorkItemLinkSummaryDto.fromEntity(shape);
+  return LinkedTaskDto.fromEntity(shape);
 }
 
 function inverseType(type: LinkType): LinkType {
@@ -62,7 +57,7 @@ export class TaskLinksService {
   async findAll(
     workspaceId: string,
     taskId: string,
-  ): Promise<TaskLinksResponseDto> {
+  ): Promise<WorkItemLinkItemDto[]> {
     const task = await this.repository.findTaskInWorkspace(workspaceId, taskId);
     if (!task) {
       throw new NotFoundException('Tarefa nao encontrada');
@@ -76,22 +71,20 @@ export class TaskLinksService {
     const items: WorkItemLinkItemDto[] = [];
     for (const row of outgoing) {
       const item = new WorkItemLinkItemDto();
-      item.linkId = row.id;
+      item.id = row.id;
       item.type = row.type;
-      item.task = mapTaskSummary((row as { toTask: unknown }).toTask);
+      item.linkedTask = mapLinkedTask((row as { toTask: unknown }).toTask);
       items.push(item);
     }
     for (const row of incoming) {
       const item = new WorkItemLinkItemDto();
-      item.linkId = row.id;
+      item.id = row.id;
       item.type = inverseType(row.type);
-      item.task = mapTaskSummary((row as { fromTask: unknown }).fromTask);
+      item.linkedTask = mapLinkedTask((row as { fromTask: unknown }).fromTask);
       items.push(item);
     }
 
-    const response = new TaskLinksResponseDto();
-    response.links = items;
-    return response;
+    return items;
   }
 
   async create(
@@ -136,7 +129,7 @@ export class TaskLinksService {
         tx,
       );
       if (existing) {
-        return existing;
+        throw new ConflictException('Este link ja existe');
       }
 
       try {
@@ -158,13 +151,7 @@ export class TaskLinksService {
           error instanceof Prisma.PrismaClientKnownRequestError &&
           error.code === 'P2002'
         ) {
-          const racing = await this.repository.findEdgePair(
-            edge.fromTaskId,
-            edge.toTaskId,
-            edge.type,
-            tx,
-          );
-          if (racing) return racing;
+          throw new ConflictException('Este link ja existe');
         }
         throw error;
       }
@@ -190,19 +177,16 @@ export class TaskLinksService {
       select: {
         id: true,
         title: true,
-        statusId: true,
-        priority: true,
-        dueDate: true,
-        primaryAssigneeCache: true,
-        archived: true,
-        status: { select: { category: true } },
+        status: { select: { id: true, name: true, color: true, type: true } },
+        customType: { select: { id: true, name: true, icon: true } },
+        list: { select: { id: true, name: true } },
       },
     });
 
     const item = new WorkItemLinkItemDto();
-    item.linkId = created.id;
+    item.id = created.id;
     item.type = perspectivedType;
-    item.task = mapTaskSummary(otherTask);
+    item.linkedTask = mapLinkedTask(otherTask);
     return item;
   }
 
@@ -211,14 +195,13 @@ export class TaskLinksService {
     taskId: string,
     linkId: string,
     actorUserId: string,
-  ): Promise<void> {
+  ): Promise<DeleteLinkResponseDto> {
     await this.prisma.$transaction(async (tx) => {
       const link = await this.repository.findEdgeById(workspaceId, linkId, tx);
       if (!link) {
         throw new NotFoundException('Link nao encontrado');
       }
       if (link.fromTaskId !== taskId && link.toTaskId !== taskId) {
-        // Link existe mas nao toca a task — 404 silencioso pra nao vazar id.
         throw new NotFoundException('Link nao encontrado');
       }
 
@@ -240,5 +223,7 @@ export class TaskLinksService {
     this.logger.log(
       `task-link.removed linkId=${linkId} taskId=${taskId} actor=${actorUserId}`,
     );
+
+    return { message: 'Link removido com sucesso' };
   }
 }

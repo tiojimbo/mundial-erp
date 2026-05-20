@@ -65,10 +65,10 @@ export function DepartmentsConfig() {
     );
   }
 
-  function handleCreateArea(departmentId: string) {
+  function handleCreateArea(spaceId: string) {
     if (!newAreaName) return;
     createArea.mutate(
-      { name: newAreaName, departmentId },
+      { name: newAreaName, spaceId },
       {
         onSuccess: () => {
           notification({ title: 'Sucesso', description: 'Área criada.', status: 'success' });

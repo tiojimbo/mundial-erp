@@ -63,7 +63,6 @@ function buildHarness(opts?: {
     repository as never,
     {} as never,
     {} as never,
-    {} as never,
     assignees as never,
     {} as never,
     {} as never,

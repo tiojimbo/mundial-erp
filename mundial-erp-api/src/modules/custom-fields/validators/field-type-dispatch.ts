@@ -1,23 +1,3 @@
-/**
- * Dispatcher de validacao por `CustomFieldType`.
- *
- * Cada tipo possui regras distintas:
- *   - TEXT       — string sanitizada (HTML stripado), max 5000 chars
- *   - NUMBER     — number, honra `config.min` e `config.max`
- *   - CURRENCY   — number >= 0, armazenado em Decimal(18,4)
- *   - DATE       — ISO 8601 string ou Date convertida em Date
- *   - DROPDOWN   — string presente em `config.options[].value`
- *   - CPF/CNPJ   — delegacao para validator + normalizacao em digitos
- *   - EMAIL/PHONE/URL — validators dedicados
- *
- * Retorno padronizado:
- *   - `valid: true`  + `normalized` (string|number|Date) para persistir.
- *   - `valid: false` + `reason` (motivo curto pt-BR).
- *
- * O service consome esse dispatcher antes do upsert e mapeia o resultado para
- * `valueText | valueNumber | valueDate` da row `CustomFieldValue`.
- */
-
 import { CustomFieldType } from '@prisma/client';
 import { validateCnpj } from './cnpj.validator';
 import { validateCpf } from './cpf.validator';
@@ -25,30 +5,35 @@ import { validateEmail } from './email.validator';
 import { validatePhone } from './phone.validator';
 import { validateUrl } from './url.validator';
 
-export type NormalizedValue = string | number | Date;
+export type ValueColumn =
+  | 'valueText'
+  | 'valueNumber'
+  | 'valueDate'
+  | 'valueJson'
+  | 'valueBoolean';
+
+export type NormalizedValue =
+  | string
+  | number
+  | boolean
+  | Date
+  | string[]
+  | Record<string, unknown>;
 
 export interface FieldDispatchResult {
   valid: boolean;
   normalized?: NormalizedValue;
+  column?: ValueColumn;
   reason?: string;
 }
 
-/**
- * Forma minima da definition consumida pelo dispatcher. Aceitamos um shape
- * flexivel para nao acoplar o validator ao tipo gerado pelo Prisma — o
- * service traduz a row para esse contrato.
- */
 export interface DefinitionShape {
   type: CustomFieldType;
   required: boolean;
   config: unknown;
+  options?: unknown;
 }
 
-/**
- * Forma minima usada pelo `validateRequiredWhen` (precisa do `label` para
- * compor mensagem de erro alem do `config`). Mantida separada para nao
- * impor `label` em todos os call sites do dispatcher legacy.
- */
 export interface DefinitionRequiredWhenShape {
   label: string;
   config: unknown;
@@ -73,12 +58,21 @@ interface DropdownConfig {
   options?: DropdownOption[];
 }
 
+interface RatingConfig {
+  maxStars?: number;
+}
+
 const TEXT_MAX_LENGTH = 5_000;
+const ID_REGEX = /^[0-9a-zA-Z_-]{8,64}$/;
+const DURATION_UNIT_MS: Record<string, number> = {
+  ms: 1,
+  s: 1_000,
+  m: 60_000,
+  h: 3_600_000,
+  d: 86_400_000,
+};
 
 function sanitizeText(value: string): string {
-  // Strip de HTML conservador: remove tags <...> sem tentar parsing complexo.
-  // O frontend trata renderizacao com escape via React; aqui o objetivo e
-  // remover injecoes <script>...</script>, <iframe ...>, etc.
   return value.replace(/<[^>]*>/g, '').trim();
 }
 
@@ -86,18 +80,45 @@ function isPlainObject(value: unknown): value is Record<string, unknown> {
   return typeof value === 'object' && value !== null && !Array.isArray(value);
 }
 
+function isValidId(value: unknown): value is string {
+  return typeof value === 'string' && ID_REGEX.test(value);
+}
+
+function extractStringOptions(definition: DefinitionShape): string[] {
+  const rootOptions = Array.isArray(definition.options)
+    ? definition.options
+    : [];
+  const fromRoot = rootOptions
+    .map((opt) => {
+      if (typeof opt === 'string') return opt;
+      if (isPlainObject(opt) && typeof opt.value === 'string') return opt.value;
+      return null;
+    })
+    .filter((v): v is string => v !== null);
+  if (fromRoot.length > 0) return fromRoot;
+
+  const cfg = isPlainObject(definition.config)
+    ? (definition.config as DropdownConfig)
+    : {};
+  const cfgOptions = Array.isArray(cfg.options) ? cfg.options : [];
+  return cfgOptions
+    .filter(
+      (opt): opt is DropdownOption =>
+        isPlainObject(opt) && typeof (opt as DropdownOption).value === 'string',
+    )
+    .map((opt) => opt.value);
+}
+
 export function validateValue(
   type: CustomFieldType,
   rawValue: unknown,
   definition: DefinitionShape,
 ): FieldDispatchResult {
-  // Tratamento de null/undefined: se o campo eh required sem valor -> erro.
   if (rawValue === null || rawValue === undefined || rawValue === '') {
     if (definition.required) {
       return { valid: false, reason: 'Campo obrigatorio' };
     }
-    // Permitir limpeza explicita do valor.
-    return { valid: true, normalized: undefined as unknown as string };
+    return { valid: true };
   }
 
   switch (type) {
@@ -115,7 +136,7 @@ export function validateValue(
       if (definition.required && sanitized.length === 0) {
         return { valid: false, reason: 'Campo obrigatorio' };
       }
-      return { valid: true, normalized: sanitized };
+      return { valid: true, normalized: sanitized, column: 'valueText' };
     }
 
     case CustomFieldType.NUMBER: {
@@ -132,7 +153,7 @@ export function validateValue(
       if (typeof cfg.max === 'number' && parsed > cfg.max) {
         return { valid: false, reason: `Valor maximo: ${cfg.max}` };
       }
-      return { valid: true, normalized: parsed };
+      return { valid: true, normalized: parsed, column: 'valueNumber' };
     }
 
     case CustomFieldType.CURRENCY: {
@@ -143,13 +164,11 @@ export function validateValue(
       if (parsed < 0) {
         return { valid: false, reason: 'CURRENCY nao pode ser negativo' };
       }
-      // Decimal(18,4) cabe ate 14 digitos antes do ponto (~10^14). Escolhemos
-      // 1e14 como teto pratico para evitar literal com perda de precisao em
-      // double — capturamos 99,99% dos casos uteis sem flertar com o limite.
+      // Decimal(18,4) — teto pratico abaixo de 1e14 pra evitar perda em double.
       if (parsed >= 1e14) {
         return { valid: false, reason: 'CURRENCY excede limite' };
       }
-      return { valid: true, normalized: parsed };
+      return { valid: true, normalized: parsed, column: 'valueNumber' };
     }
 
     case CustomFieldType.DATE: {
@@ -158,39 +177,23 @@ export function validateValue(
       if (Number.isNaN(date.getTime())) {
         return { valid: false, reason: 'DATE invalido (use ISO 8601)' };
       }
-      return { valid: true, normalized: date };
+      return { valid: true, normalized: date, column: 'valueDate' };
     }
 
-    case CustomFieldType.DROPDOWN: {
+    case CustomFieldType.DROPDOWN:
+    case CustomFieldType.SELECT:
+    case CustomFieldType.LABEL: {
       if (typeof rawValue !== 'string') {
-        return { valid: false, reason: 'DROPDOWN espera string' };
+        return { valid: false, reason: `${type} espera string` };
       }
-      const cfg = isPlainObject(definition.config)
-        ? (definition.config as DropdownConfig)
-        : {};
-      const options = Array.isArray(cfg.options) ? cfg.options : [];
-      const allowed = new Set(
-        options
-          .filter(
-            (opt): opt is DropdownOption =>
-              isPlainObject(opt) &&
-              typeof (opt as DropdownOption).value === 'string',
-          )
-          .map((opt) => opt.value),
-      );
+      const allowed = new Set(extractStringOptions(definition));
       if (allowed.size === 0) {
-        return {
-          valid: false,
-          reason: 'DROPDOWN sem options configuradas',
-        };
+        return { valid: false, reason: `${type} sem options configuradas` };
       }
       if (!allowed.has(rawValue)) {
-        return {
-          valid: false,
-          reason: 'Valor fora das options permitidas',
-        };
+        return { valid: false, reason: 'Valor fora das options permitidas' };
       }
-      return { valid: true, normalized: rawValue };
+      return { valid: true, normalized: rawValue, column: 'valueText' };
     }
 
     case CustomFieldType.CPF: {
@@ -198,10 +201,12 @@ export function validateValue(
         return { valid: false, reason: 'CPF espera string' };
       }
       const result = validateCpf(rawValue);
-      if (!result.valid) {
-        return { valid: false, reason: result.reason };
-      }
-      return { valid: true, normalized: result.normalized };
+      if (!result.valid) return { valid: false, reason: result.reason };
+      return {
+        valid: true,
+        normalized: result.normalized,
+        column: 'valueText',
+      };
     }
 
     case CustomFieldType.CNPJ: {
@@ -209,10 +214,12 @@ export function validateValue(
         return { valid: false, reason: 'CNPJ espera string' };
       }
       const result = validateCnpj(rawValue);
-      if (!result.valid) {
-        return { valid: false, reason: result.reason };
-      }
-      return { valid: true, normalized: result.normalized };
+      if (!result.valid) return { valid: false, reason: result.reason };
+      return {
+        valid: true,
+        normalized: result.normalized,
+        column: 'valueText',
+      };
     }
 
     case CustomFieldType.EMAIL: {
@@ -220,10 +227,12 @@ export function validateValue(
         return { valid: false, reason: 'EMAIL espera string' };
       }
       const result = validateEmail(rawValue);
-      if (!result.valid) {
-        return { valid: false, reason: result.reason };
-      }
-      return { valid: true, normalized: result.normalized };
+      if (!result.valid) return { valid: false, reason: result.reason };
+      return {
+        valid: true,
+        normalized: result.normalized,
+        column: 'valueText',
+      };
     }
 
     case CustomFieldType.PHONE: {
@@ -231,10 +240,12 @@ export function validateValue(
         return { valid: false, reason: 'PHONE espera string' };
       }
       const result = validatePhone(rawValue);
-      if (!result.valid) {
-        return { valid: false, reason: result.reason };
-      }
-      return { valid: true, normalized: result.normalized };
+      if (!result.valid) return { valid: false, reason: result.reason };
+      return {
+        valid: true,
+        normalized: result.normalized,
+        column: 'valueText',
+      };
     }
 
     case CustomFieldType.URL: {
@@ -242,10 +253,157 @@ export function validateValue(
         return { valid: false, reason: 'URL espera string' };
       }
       const result = validateUrl(rawValue);
-      if (!result.valid) {
-        return { valid: false, reason: result.reason };
+      if (!result.valid) return { valid: false, reason: result.reason };
+      return {
+        valid: true,
+        normalized: result.normalized,
+        column: 'valueText',
+      };
+    }
+
+    case CustomFieldType.CHECKBOX: {
+      if (typeof rawValue !== 'boolean') {
+        return { valid: false, reason: 'CHECKBOX espera boolean' };
       }
-      return { valid: true, normalized: result.normalized };
+      return { valid: true, normalized: rawValue, column: 'valueBoolean' };
+    }
+
+    case CustomFieldType.PERCENTAGE: {
+      const parsed = typeof rawValue === 'number' ? rawValue : Number(rawValue);
+      if (Number.isNaN(parsed) || !Number.isFinite(parsed)) {
+        return { valid: false, reason: 'PERCENTAGE invalido' };
+      }
+      const cfg = isPlainObject(definition.config)
+        ? (definition.config as NumberConfig)
+        : {};
+      const min = typeof cfg.min === 'number' ? cfg.min : 0;
+      const max = typeof cfg.max === 'number' ? cfg.max : 100;
+      if (parsed < min || parsed > max) {
+        return {
+          valid: false,
+          reason: `PERCENTAGE fora do intervalo [${min}, ${max}]`,
+        };
+      }
+      return { valid: true, normalized: parsed, column: 'valueNumber' };
+    }
+
+    case CustomFieldType.DURATION: {
+      let ms: number | null = null;
+      if (typeof rawValue === 'number') {
+        ms = rawValue;
+      } else if (isPlainObject(rawValue)) {
+        const v = (rawValue as { value?: unknown }).value;
+        const u = (rawValue as { unit?: unknown }).unit;
+        const value = typeof v === 'number' ? v : Number(v);
+        const unit = typeof u === 'string' ? u : 'ms';
+        const factor = DURATION_UNIT_MS[unit];
+        if (factor === undefined) {
+          return { valid: false, reason: `DURATION unit invalida: ${unit}` };
+        }
+        if (Number.isNaN(value) || !Number.isFinite(value)) {
+          return { valid: false, reason: 'DURATION.value invalido' };
+        }
+        ms = value * factor;
+      } else {
+        return {
+          valid: false,
+          reason: 'DURATION espera number (ms) ou {value, unit}',
+        };
+      }
+      if (!Number.isFinite(ms) || ms < 0) {
+        return { valid: false, reason: 'DURATION deve ser >= 0' };
+      }
+      return { valid: true, normalized: ms, column: 'valueNumber' };
+    }
+
+    case CustomFieldType.RATING: {
+      const parsed = typeof rawValue === 'number' ? rawValue : Number(rawValue);
+      if (Number.isNaN(parsed) || !Number.isInteger(parsed)) {
+        return { valid: false, reason: 'RATING espera inteiro' };
+      }
+      const cfg = isPlainObject(definition.config)
+        ? (definition.config as RatingConfig)
+        : {};
+      const maxStars =
+        typeof cfg.maxStars === 'number' && cfg.maxStars > 0 ? cfg.maxStars : 5;
+      if (parsed < 0 || parsed > maxStars) {
+        return {
+          valid: false,
+          reason: `RATING fora do intervalo [0, ${maxStars}]`,
+        };
+      }
+      return { valid: true, normalized: parsed, column: 'valueNumber' };
+    }
+
+    case CustomFieldType.USER: {
+      if (!isValidId(rawValue)) {
+        return { valid: false, reason: 'USER espera id valido' };
+      }
+      return { valid: true, normalized: rawValue, column: 'valueText' };
+    }
+
+    case CustomFieldType.TEAM: {
+      if (!isValidId(rawValue)) {
+        return { valid: false, reason: 'TEAM espera id valido' };
+      }
+      return { valid: true, normalized: rawValue, column: 'valueText' };
+    }
+
+    case CustomFieldType.PEOPLE: {
+      if (!Array.isArray(rawValue)) {
+        return { valid: false, reason: 'PEOPLE espera array de ids' };
+      }
+      if (rawValue.length === 0 && definition.required) {
+        return { valid: false, reason: 'Campo obrigatorio' };
+      }
+      const ids: string[] = [];
+      const seen = new Set<string>();
+      for (const item of rawValue) {
+        if (!isValidId(item)) {
+          return { valid: false, reason: 'PEOPLE contem id invalido' };
+        }
+        if (seen.has(item)) {
+          return { valid: false, reason: 'PEOPLE contem ids duplicados' };
+        }
+        seen.add(item);
+        ids.push(item);
+      }
+      return { valid: true, normalized: ids, column: 'valueJson' };
+    }
+
+    case CustomFieldType.RELATIONSHIP: {
+      if (!Array.isArray(rawValue)) {
+        return { valid: false, reason: 'RELATIONSHIP espera array de taskIds' };
+      }
+      if (rawValue.length === 0 && definition.required) {
+        return { valid: false, reason: 'Campo obrigatorio' };
+      }
+      const ids: string[] = [];
+      const seen = new Set<string>();
+      for (const item of rawValue) {
+        if (!isValidId(item)) {
+          return {
+            valid: false,
+            reason: 'RELATIONSHIP contem taskId invalido',
+          };
+        }
+        if (seen.has(item)) {
+          return {
+            valid: false,
+            reason: 'RELATIONSHIP contem taskIds duplicados',
+          };
+        }
+        seen.add(item);
+        ids.push(item);
+      }
+      return { valid: true, normalized: ids, column: 'valueJson' };
+    }
+
+    case CustomFieldType.ROLLUP: {
+      return {
+        valid: false,
+        reason: 'ROLLUP e readonly (calculado pelo servidor)',
+      };
     }
 
     default: {
@@ -256,11 +414,6 @@ export function validateValue(
   }
 }
 
-/**
- * Resultado da validacao condicional `requiredWhen`. Sem `normalized` porque
- * essa funcao nao transforma o valor — apenas decide se a tupla
- * (field, value) viola a regra de obrigatoriedade condicional.
- */
 export interface RequiredWhenResult {
   ok: boolean;
   reason?: string;
@@ -274,22 +427,6 @@ function isRequiredWhenRule(value: unknown): value is RequiredWhenRule {
   );
 }
 
-/**
- * Validacao server-side da regra `config.requiredWhen` (PLANO-TASK-TYPES-
- * TEMPLATES, Regra de Negocio #4).
- *
- * Se `definition.config.requiredWhen.{field, equals}` esta presente:
- *   - Procura o valor de `field` (por `key`) nos demais custom fields da
- *     mesma task (mapa `otherFieldsByKey`).
- *   - Se esse valor === `equals`, esta definicao passa a ser obrigatoria
- *     mesmo que `definition.required = false`.
- *   - Quando obrigatoria pelo trigger, valor nulo/undefined/string vazia
- *     resulta em `{ ok: false, reason }` com mensagem identificando label,
- *     campo trigger e valor esperado.
- *
- * Comportamento sem `requiredWhen` em config: retorna `{ ok: true }` sem
- * inspecionar nada (zero impacto em definitions legadas).
- */
 export function validateRequiredWhen(
   definition: DefinitionRequiredWhenShape,
   value: unknown,

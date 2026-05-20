@@ -3,7 +3,7 @@ import {
   PrismaClient,
   ProcessStatus,
   ProcessType,
-  StatusCategory,
+  StatusType,
   Visibility,
 } from '@prisma/client';
 import { PrismaPg } from '@prisma/adapter-pg';
@@ -46,22 +46,22 @@ async function main() {
   console.log(`  [ok] Space: ${space.name} (${space.id})`);
 
   const statusesData = [
-    { name: 'Aberto', category: StatusCategory.NOT_STARTED, color: '#94a3b8', sortOrder: 1 },
-    { name: 'Em andamento', category: StatusCategory.ACTIVE, color: '#3b82f6', sortOrder: 2 },
-    { name: 'Concluído', category: StatusCategory.DONE, color: '#22c55e', sortOrder: 3 },
+    { name: 'Aberto', type: StatusType.NOT_STARTED, color: '#94a3b8', position: 1 },
+    { name: 'Em andamento', type: StatusType.ACTIVE, color: '#3b82f6', position: 2 },
+    { name: 'Concluído', type: StatusType.DONE, color: '#22c55e', position: 3 },
   ];
   for (const s of statusesData) {
-    const existing = await prisma.workflowStatus.findFirst({
+    const existing = await prisma.status.findFirst({
       where: { spaceId: space.id, name: s.name },
     });
     if (existing) {
-      await prisma.workflowStatus.update({
+      await prisma.status.update({
         where: { id: existing.id },
-        data: { category: s.category, color: s.color, sortOrder: s.sortOrder },
+        data: { type: s.type, color: s.color, position: s.position },
       });
     } else {
-      await prisma.workflowStatus.create({
-        data: { ...s, spaceId: space.id, isDefault: true },
+      await prisma.status.create({
+        data: { ...s, spaceId: space.id },
       });
     }
   }

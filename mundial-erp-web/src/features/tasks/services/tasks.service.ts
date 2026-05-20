@@ -26,16 +26,13 @@ function buildTaskParams(filters?: TaskFilters): Record<string, unknown> {
 }
 
 function unwrapEnvelope<T>(body: unknown): T {
-  const outer = (body as { data?: unknown })?.data;
-  if (
-    outer !== null &&
-    typeof outer === 'object' &&
-    'data' in outer &&
-    'meta' in outer
-  ) {
-    return (outer as { data: T }).data;
+  if (body === null || typeof body !== 'object') {
+    return body as T;
   }
-  return outer as T;
+  if ('data' in body && 'meta' in body) {
+    return (body as { data: T }).data;
+  }
+  return body as T;
 }
 
 export const tasksService = {
@@ -66,14 +63,67 @@ export const tasksService = {
   },
 
   async update(taskId: string, payload: UpdateTaskPayload): Promise<Task> {
-    const { data } = await api.put<ApiResponse<Task>>(
-      `/tasks/${taskId}`,
-      payload,
-    );
-    return data.data;
+    const res = await api.put<unknown>(`/tasks/${taskId}`, payload);
+    return unwrapEnvelope<Task>(res.data);
   },
 
   async remove(taskId: string): Promise<void> {
     await api.delete(`/tasks/${taskId}`);
   },
+
+  async findGroupedByList(listId: string): Promise<TasksGroupedResponse> {
+    const res = await api.get<unknown>(`/tasks/list`, {
+      params: { level: 'list', listId },
+    });
+    return unwrapEnvelope<TasksGroupedResponse>(res.data);
+  },
+
+  async bulkUpdate(tasks: BulkUpdateTaskItem[]): Promise<Task[]> {
+    const res = await api.put<unknown>(`/tasks/bulk`, { tasks });
+    return unwrapEnvelope<Task[]>(res.data);
+  },
+
+  async bulkDelete(taskIds: string[]): Promise<{ count: number }> {
+    const res = await api.delete<unknown>(`/tasks/bulk`, {
+      data: { taskIds },
+    });
+    return unwrapEnvelope<{ count: number }>(res.data);
+  },
+
+  async assign(taskId: string, userIds: string[]): Promise<Task> {
+    const res = await api.put<unknown>(`/tasks/${taskId}/assign`, {
+      assignees: userIds.map((userId) => ({ userId })),
+    });
+    return unwrapEnvelope<Task>(res.data);
+  },
 };
+
+export type BulkUpdateTaskItem = {
+  id: string;
+  statusId?: string;
+  priority?: 'URGENT' | 'HIGH' | 'NORMAL' | 'LOW' | 'NONE';
+  primaryAssigneeId?: string | null;
+  dueDate?: string | null;
+  startDate?: string | null;
+  listId?: string;
+  archived?: boolean;
+};
+
+export type TasksGroupedGroup = {
+  id: string;
+  name: string;
+  label: 'NOT_STARTED' | 'ACTIVE' | 'DONE' | 'CLOSED';
+  type: 'STATUS';
+  collapsed: boolean;
+  field: 'statusId';
+  position: number;
+  viewId: string | null;
+  color: string;
+};
+
+export type TasksGroupedItem = {
+  group: TasksGroupedGroup;
+  tasks: Task[];
+};
+
+export type TasksGroupedResponse = TasksGroupedItem[];

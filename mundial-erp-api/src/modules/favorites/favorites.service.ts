@@ -1,10 +1,11 @@
 import { Injectable, Logger, NotFoundException } from '@nestjs/common';
-import { FavoriteEntity } from '@prisma/client';
+import { FavoriteEntity, FavoritePosition } from '@prisma/client';
 import { PaginationDto } from '../../common/dtos/pagination.dto';
 import { FavoritesRepository } from './favorites.repository';
 import { CreateFavoriteDto } from './dtos/create-favorite.dto';
 import { FavoriteResponseDto } from './dtos/favorite-response.dto';
 import { GroupedFavoritesResponseDto } from './dtos/grouped-favorites-response.dto';
+import { CheckFavoriteResponseDto } from './dtos/check-favorite-response.dto';
 
 @Injectable()
 export class FavoritesService {
@@ -15,18 +16,22 @@ export class FavoritesService {
   async findAll(
     userId: string,
     workspaceId: string,
-    pagination: PaginationDto,
   ): Promise<GroupedFavoritesResponseDto> {
-    const { items, total } = await this.repository.findAll(userId, workspaceId, {
-      skip: pagination.skip,
-      take: pagination.limit,
-    });
-    return {
+    const { items } = await this.repository.findAll(userId, workspaceId);
+    const entityMap = await this.repository.hydrateEntities(workspaceId, items);
+
+    const grouped: GroupedFavoritesResponseDto = {
       TOP: [],
-      SIDEBAR: items.map((entity) => FavoriteResponseDto.fromEntity(entity)),
+      SIDEBAR: [],
       BOTTOM: [],
-      total,
     };
+    for (const entity of items) {
+      const summary =
+        entityMap.get(`${entity.entityType}:${entity.entityId}`) ?? null;
+      const dto = FavoriteResponseDto.fromEntity(entity, summary);
+      grouped[entity.position].push(dto);
+    }
+    return grouped;
   }
 
   async findByEntityType(
@@ -40,8 +45,14 @@ export class FavoritesService {
       skip: pagination.skip,
       take: pagination.limit,
     });
+    const entityMap = await this.repository.hydrateEntities(workspaceId, items);
     return {
-      items: items.map((entity) => FavoriteResponseDto.fromEntity(entity)),
+      items: items.map((entity) =>
+        FavoriteResponseDto.fromEntity(
+          entity,
+          entityMap.get(`${entity.entityType}:${entity.entityId}`) ?? null,
+        ),
+      ),
       total,
       page: pagination.page,
       limit: pagination.limit,
@@ -53,16 +64,24 @@ export class FavoritesService {
     workspaceId: string,
     entityType: FavoriteEntity,
     entityId: string,
-  ): Promise<{ isFavorite: boolean; favoriteId?: string }> {
+  ): Promise<CheckFavoriteResponseDto> {
     const existing = await this.repository.findByEntity(
       userId,
       workspaceId,
       entityType,
       entityId,
     );
-    return existing
-      ? { isFavorite: true, favoriteId: existing.id }
-      : { isFavorite: false };
+    if (!existing) return { favorited: false, favorite: null };
+    const entityMap = await this.repository.hydrateEntities(workspaceId, [
+      existing,
+    ]);
+    return {
+      favorited: true,
+      favorite: FavoriteResponseDto.fromEntity(
+        existing,
+        entityMap.get(`${existing.entityType}:${existing.entityId}`) ?? null,
+      ),
+    };
   }
 
   async create(
@@ -86,7 +105,13 @@ export class FavoritesService {
       dto.entityId,
     );
     if (existing) {
-      return FavoriteResponseDto.fromEntity(existing);
+      const entityMap = await this.repository.hydrateEntities(workspaceId, [
+        existing,
+      ]);
+      return FavoriteResponseDto.fromEntity(
+        existing,
+        entityMap.get(`${existing.entityType}:${existing.entityId}`) ?? null,
+      );
     }
 
     const entity = await this.repository.create({
@@ -94,12 +119,19 @@ export class FavoritesService {
       workspaceId,
       entityType: dto.entityType,
       entityId: dto.entityId,
-      position: dto.position ?? 0,
+      position: dto.position ?? FavoritePosition.SIDEBAR,
+      order: dto.order ?? 0,
     });
     this.logger.log(
-      `favorite.created user=${userId} ws=${workspaceId} type=${dto.entityType} entity=${dto.entityId}`,
+      `favorite.created user=${userId} ws=${workspaceId} type=${dto.entityType} entity=${dto.entityId} pos=${entity.position}`,
     );
-    return FavoriteResponseDto.fromEntity(entity);
+    const entityMap = await this.repository.hydrateEntities(workspaceId, [
+      entity,
+    ]);
+    return FavoriteResponseDto.fromEntity(
+      entity,
+      entityMap.get(`${entity.entityType}:${entity.entityId}`) ?? null,
+    );
   }
 
   async remove(userId: string, workspaceId: string, id: string): Promise<void> {

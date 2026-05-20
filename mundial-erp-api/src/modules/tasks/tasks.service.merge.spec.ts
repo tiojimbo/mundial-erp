@@ -69,7 +69,6 @@ interface Harness {
   redis: MockRedis;
   outbox: MockOutbox;
   repository: MockTasksRepository;
-  depsRepository: MockEdgeRepository;
   linksRepository: MockEdgeRepository;
   rows: Map<string, Row>;
   parentMap: Map<string, string | null>;
@@ -155,9 +154,6 @@ function buildHarness(params: {
     ),
   };
 
-  const depsRepository: MockEdgeRepository = {
-    moveEdgesForMerge: jest.fn(async () => undefined),
-  };
   const linksRepository: MockEdgeRepository = {
     moveEdgesForMerge: jest.fn(async () => undefined),
   };
@@ -175,12 +171,9 @@ function buildHarness(params: {
     enqueue: jest.fn(async () => 'event-id'),
   };
 
-  // Instanciacao direta (sem Nest DI) — constructor inclui 9 args apos a
-  // refatoracao CTO que desacoplou Prisma direto via repositories dedicados.
   const service = new TasksService(
     prisma as never,
     repository as never,
-    depsRepository as never,
     linksRepository as never,
     outbox as never,
     { syncAssignees: jest.fn() } as never,
@@ -196,7 +189,6 @@ function buildHarness(params: {
     redis,
     outbox,
     repository,
-    depsRepository,
     linksRepository,
     rows: rowMap,
     parentMap,
@@ -237,7 +229,6 @@ describe('TasksService.merge', () => {
       'target',
       expect.anything(),
     );
-    expect(h.depsRepository.moveEdgesForMerge).toHaveBeenCalledTimes(1);
     expect(h.linksRepository.moveEdgesForMerge).toHaveBeenCalledTimes(1);
   });
 

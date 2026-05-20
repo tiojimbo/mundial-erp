@@ -1,5 +1,5 @@
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
-import { StatusCategory, TaskPriority, WorkItemType } from '@prisma/client';
+import { StatusType, TaskPriority, WorkItemType } from '@prisma/client';
 
 /**
  * Sumario de status — projecao minima para listagens.
@@ -11,14 +11,11 @@ export class TaskStatusSummaryDto {
   @ApiProperty()
   name!: string;
 
-  @ApiProperty({ enum: StatusCategory })
-  category!: StatusCategory;
+  @ApiProperty({ enum: StatusType })
+  type!: StatusType;
 
   @ApiProperty()
   color!: string;
-
-  @ApiPropertyOptional({ nullable: true })
-  icon!: string | null;
 }
 
 /**
@@ -33,6 +30,9 @@ export class TaskResponseDto {
 
   @ApiProperty()
   processId!: string;
+
+  @ApiProperty()
+  listId!: string;
 
   @ApiProperty()
   title!: string;
@@ -93,6 +93,17 @@ export class TaskResponseDto {
   customTypeId!: string | null;
 
   @ApiPropertyOptional({ nullable: true })
+  customType!: {
+    id: string;
+    value: string;
+    pluralName: string | null;
+    icon: string | null;
+    color: string | null;
+    workspaceId: string | null;
+    isBuiltin: boolean;
+  } | null;
+
+  @ApiPropertyOptional({ nullable: true })
   points!: number | null;
 
   @ApiProperty()
@@ -111,7 +122,8 @@ export class TaskResponseDto {
   static fromRow(row: Record<string, unknown>): TaskResponseDto {
     const dto = new TaskResponseDto();
     dto.id = row.id as string;
-    dto.processId = row.processId as string;
+    dto.listId = (row.listId ?? row.processId) as string;
+    dto.processId = dto.listId;
     dto.title = row.title as string;
     dto.description = (row.description as string | null) ?? null;
     dto.statusId = row.statusId as string;
@@ -119,9 +131,8 @@ export class TaskResponseDto {
       | {
           id: string;
           name: string;
-          category: StatusCategory;
+          type: StatusType;
           color: string;
-          icon: string | null;
         }
       | undefined
       | null;
@@ -129,9 +140,8 @@ export class TaskResponseDto {
       dto.status = {
         id: statusRow.id,
         name: statusRow.name,
-        category: statusRow.category,
+        type: statusRow.type,
         color: statusRow.color,
-        icon: statusRow.icon ?? null,
       };
     }
     dto.itemType = row.itemType as WorkItemType;
@@ -150,6 +160,18 @@ export class TaskResponseDto {
     dto.archived = (row.archived as boolean) ?? false;
     dto.archivedAt = (row.archivedAt as Date | null) ?? null;
     dto.customTypeId = (row.customTypeId as string | null) ?? null;
+    const ct = row.customType as Record<string, unknown> | null | undefined;
+    dto.customType = ct
+      ? {
+          id: ct.id as string,
+          value: ct.name as string,
+          pluralName: (ct.namePlural as string | null) ?? null,
+          icon: (ct.icon as string | null) ?? null,
+          color: (ct.color as string | null) ?? null,
+          workspaceId: (ct.workspaceId as string | null) ?? null,
+          isBuiltin: (ct.isBuiltin as boolean) ?? false,
+        }
+      : null;
     const points = row.points;
     if (points === null || points === undefined) {
       dto.points = null;

@@ -8,6 +8,7 @@ export type SidebarProcess = {
   isPrivate: boolean;
   isProtected: boolean;
   sortOrder: number;
+  defaultTaskTypeId: string | null;
 };
 
 export type SidebarArea = {
@@ -18,6 +19,7 @@ export type SidebarArea = {
   isPrivate: boolean;
   sortOrder: number;
   isDefault: boolean;
+  defaultTaskTypeId: string | null;
   processes: SidebarProcess[];
 };
 
@@ -32,6 +34,7 @@ export type SidebarDepartment = {
   isDefault: boolean;
   isProtected: boolean;
   sortOrder: number;
+  defaultTaskTypeId: string | null;
   areas: SidebarArea[];
   directProcesses: SidebarProcess[];
 };

@@ -5,10 +5,9 @@ import { useEffect, useMemo, useRef, useState } from 'react';
 import { useActivities } from '../../../hooks/use-activities';
 import { useComments } from '../../../hooks/use-comments';
 import type {
-  PaginatedResponse,
-  CursorPaginatedResponse,
-} from '@/types/api.types';
-import type { TaskActivitiesListParams } from '../../../services/task-activities.service';
+  ActivitiesListResponse,
+  TaskActivitiesListParams,
+} from '../../../services/task-activities.service';
 import type { TaskActivity, TaskComment } from '../../../types/task.types';
 
 import { ActivityItem } from './activity-item';
@@ -30,24 +29,6 @@ export type ActivityFeedProps = {
   params?: Omit<TaskActivitiesListParams, 'cursor' | 'page'>;
 };
 
-type ActivitiesPage =
-  | PaginatedResponse<TaskActivity>
-  | CursorPaginatedResponse<TaskActivity>;
-
-function flattenPages(
-  pages: ReadonlyArray<ActivitiesPage> | undefined,
-): TaskActivity[] {
-  if (!pages) return [];
-  const out: TaskActivity[] = [];
-  for (const p of pages) {
-    const items = Array.isArray(p?.data) ? p.data : [];
-    for (const item of items) out.push(item);
-  }
-  return out;
-}
-
-type InfiniteLike = { pages?: ReadonlyArray<ActivitiesPage> };
-
 export function ActivityFeed({
   taskId,
   activities: controlled,
@@ -57,8 +38,7 @@ export function ActivityFeed({
   const commentsQuery = useComments(taskId, undefined, controlled === undefined);
   const activities = useMemo(() => {
     if (controlled !== undefined) return controlled;
-    const infinite = query.data as InfiniteLike | undefined;
-    return flattenPages(infinite?.pages);
+    return (query.data as ActivitiesListResponse | undefined)?.items ?? [];
   }, [controlled, query.data]);
 
   const commentsById = useMemo(() => {

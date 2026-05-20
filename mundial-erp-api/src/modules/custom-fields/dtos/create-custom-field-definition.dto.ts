@@ -1,6 +1,7 @@
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 import { CustomFieldType } from '@prisma/client';
 import {
+  IsArray,
   IsBoolean,
   IsEnum,
   IsInt,
@@ -13,33 +14,42 @@ import {
   Min,
 } from 'class-validator';
 
-/**
- * Slug semantico do field (key). Lowercase, separador underscore, sem espacos.
- * Documentado aqui para ser reutilizado entre frontend e seeds.
- */
 const KEY_REGEX = /^[a-z][a-z0-9_]*$/;
 
 export class CreateCustomFieldDefinitionDto {
-  @ApiProperty({
-    minLength: 1,
-    maxLength: 120,
-    example: 'client_cnpj',
-    description:
-      'Slug semantico [a-z][a-z0-9_]*. Unico por workspace (ou globalmente para builtin).',
-  })
-  @IsString()
-  @IsNotEmpty()
-  @MaxLength(120)
-  @Matches(KEY_REGEX, {
-    message: 'key deve seguir o padrao [a-z][a-z0-9_]*',
-  })
-  key!: string;
-
   @ApiProperty({ minLength: 1, maxLength: 120, example: 'CNPJ do cliente' })
   @IsString()
   @IsNotEmpty()
   @MaxLength(120)
+  name!: string;
+
+  @ApiPropertyOptional({
+    description:
+      'Slug interno [a-z][a-z0-9_]*. Quando omitido, e derivado de `name`.',
+    example: 'cnpj_cliente',
+  })
+  @IsOptional()
+  @IsString()
+  @MaxLength(120)
+  @Matches(KEY_REGEX, {
+    message: 'key deve seguir o padrao [a-z][a-z0-9_]*',
+  })
+  key?: string;
+
+  @ApiProperty({
+    description: 'Legenda exibida no editor (paridade Hoppe — obrigatorio).',
+    maxLength: 120,
+  })
+  @IsString()
+  @IsNotEmpty()
+  @MaxLength(120)
   label!: string;
+
+  @ApiPropertyOptional({ description: 'Descricao livre do campo' })
+  @IsOptional()
+  @IsString()
+  @MaxLength(500)
+  description?: string;
 
   @ApiProperty({ enum: CustomFieldType, example: CustomFieldType.CNPJ })
   @IsEnum(CustomFieldType)
@@ -52,18 +62,51 @@ export class CreateCustomFieldDefinitionDto {
 
   @ApiPropertyOptional({
     description:
-      'Configuracao tipo-dependente: {options, min, max, hint, readOnly, requiredWhen}.',
-    example: { options: [{ value: 'pix', label: 'Pix' }] },
+      'Options Hoppe-style na raiz. Array de strings (preferencial) ou objetos {value,label}. Obrigatorio para LABEL.',
+    type: 'array',
+    items: { oneOf: [{ type: 'string' }, { type: 'object' }] },
   })
+  @IsOptional()
+  @IsArray()
+  options?: unknown[];
+
+  @ApiPropertyOptional()
   @IsOptional()
   @IsObject()
   config?: Record<string, unknown>;
 
-  @ApiPropertyOptional({
-    minimum: 0,
-    default: 0,
-    description: 'Ordem em listagens cheias (definicoes do workspace).',
-  })
+  @ApiPropertyOptional()
+  @IsOptional()
+  defaultValue?: unknown;
+
+  @ApiPropertyOptional()
+  @IsOptional()
+  @IsObject()
+  validation?: Record<string, unknown>;
+
+  @ApiPropertyOptional({ default: false })
+  @IsOptional()
+  @IsBoolean()
+  pinned?: boolean;
+
+  @ApiPropertyOptional({ default: true })
+  @IsOptional()
+  @IsBoolean()
+  visibleToGuests?: boolean;
+
+  @ApiPropertyOptional({ default: 'manual' })
+  @IsOptional()
+  @IsString()
+  @MaxLength(40)
+  fillMethod?: string;
+
+  @ApiPropertyOptional({ minimum: 0, default: 0 })
+  @IsOptional()
+  @IsInt()
+  @Min(0)
+  position?: number;
+
+  @ApiPropertyOptional({ description: 'Alias deprecated de `position`.' })
   @IsOptional()
   @IsInt()
   @Min(0)
@@ -84,8 +127,36 @@ export class CreateCustomFieldDefinitionDto {
   @IsString()
   listId?: string;
 
-  @ApiPropertyOptional({ description: 'Escopo: limitar a um CustomTaskType' })
+  @ApiPropertyOptional({
+    description:
+      'Escopo: limitar a um CustomTaskType (alias: customTaskTypeId)',
+  })
+  @IsOptional()
+  @IsString()
+  taskTypeId?: string;
+
+  @ApiPropertyOptional({ description: 'Alias de `taskTypeId`.' })
   @IsOptional()
   @IsString()
   customTaskTypeId?: string;
+
+  @ApiPropertyOptional()
+  @IsOptional()
+  @IsString()
+  groupId?: string;
+
+  @ApiPropertyOptional()
+  @IsOptional()
+  @IsString()
+  groupName?: string;
+
+  @ApiPropertyOptional()
+  @IsOptional()
+  @IsInt()
+  groupPosition?: number;
+
+  @ApiPropertyOptional()
+  @IsOptional()
+  @IsString()
+  groupColor?: string;
 }

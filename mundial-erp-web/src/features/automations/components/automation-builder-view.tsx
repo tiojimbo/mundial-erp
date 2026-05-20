@@ -37,7 +37,7 @@ type ParamType =
 type ReferenceType =
   | 'user'
   | 'list'
-  | 'workflow-status'
+  | 'status'
   | 'tag'
   | 'task-type'
   | 'custom-field'
@@ -482,7 +482,7 @@ function ParamField({
       );
     }
 
-    if (param.type === 'reference' && param.referenceType === 'workflow-status') {
+    if (param.type === 'reference' && param.referenceType === 'status') {
       return (
         <select
           value={(value as string) ?? ''}

@@ -74,16 +74,11 @@ export const taskFiltersSchema = z
   })
   .strict();
 
-/**
- * `WorkflowStatus` exposto como parte do `Task` de listagem.
- * Campos minimos conforme select obrigatorio.
- */
 export const taskStatusSchema = z.object({
   id: z.string().uuid(),
   name: z.string(),
-  category: z.enum(['NOT_STARTED', 'ACTIVE', 'DONE', 'CLOSED']),
+  type: z.enum(['NOT_STARTED', 'ACTIVE', 'DONE', 'CLOSED']),
   color: z.string(),
-  icon: z.string().nullable(),
 });
 
 export const taskAssigneeSchema = z.object({
@@ -106,10 +101,20 @@ export const customTaskTypeSchema = z.object({
   id: z.string().uuid(),
   value: z.string(),
   pluralName: z.string().nullable().optional(),
+  description: z.string().nullable().optional(),
   icon: z.string().nullable(),
   color: z.string().nullable(),
   workspaceId: z.string().uuid().nullable(),
+  spaceId: z.string().uuid().nullable().optional(),
   isBuiltin: z.boolean(),
+  creator: z
+    .object({
+      id: z.string().uuid(),
+      name: z.string().nullable(),
+      email: z.string(),
+    })
+    .nullable()
+    .optional(),
 });
 
 /**
@@ -210,7 +215,7 @@ const taskLinkTaskSummarySchema = z.object({
   id: z.string(),
   title: z.string(),
   statusId: z.string(),
-  statusCategory: z.string().nullable().optional(),
+  statusType: z.string().nullable().optional(),
   priority: z.string().nullable().optional(),
   dueDate: z.string().nullable().optional(),
   primaryAssigneeId: z.string().nullable().optional(),
@@ -255,8 +260,8 @@ export const taskCommentSchema = z.object({
   taskId: z.string().uuid(),
   authorId: z.string().uuid(),
   authorName: z.string().nullable(),
-  body: z.string(),
-  bodyBlocks: z.unknown().nullable(),
+  content: z.string(),
+  contentBlocks: z.unknown().nullable(),
   editedAt: z.string().datetime().nullable(),
   createdAt: z.string().datetime(),
   reactions: z.array(commentReactionSchema).default([]),
@@ -471,13 +476,13 @@ export const attachmentUploadSchema = z.object({
 });
 
 export const commentCreateSchema = z.object({
-  body: z.string().trim().min(1),
-  bodyBlocks: z.unknown().optional(),
+  content: z.string().trim().min(1),
+  contentBlocks: z.unknown().optional(),
 });
 
 export const commentUpdateSchema = z.object({
-  body: z.string().trim().min(1).optional(),
-  bodyBlocks: z.unknown().optional(),
+  content: z.string().trim().min(1).optional(),
+  contentBlocks: z.unknown().optional(),
 });
 
 export const createTemplateSchema = z.object({

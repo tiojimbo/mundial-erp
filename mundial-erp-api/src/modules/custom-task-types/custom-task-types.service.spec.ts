@@ -13,8 +13,7 @@ type RepoMock = {
   nameExists: jest.Mock;
   create: jest.Mock;
   update: jest.Mock;
-  softDelete: jest.Mock;
-  countDependents: jest.Mock;
+  softDeleteWithCascadeNull: jest.Mock;
   spaceBelongsToWorkspace: jest.Mock;
 };
 
@@ -54,16 +53,6 @@ function makeRow(overrides: Partial<Record<string, unknown>> = {}) {
   };
 }
 
-function zeroDeps() {
-  return {
-    workItems: 0,
-    spacesAsDefault: 0,
-    foldersAsDefault: 0,
-    listsAsDefault: 0,
-    customFields: 0,
-  };
-}
-
 function buildService() {
   const repository: RepoMock = {
     findById: jest.fn(),
@@ -72,8 +61,7 @@ function buildService() {
     nameExists: jest.fn(),
     create: jest.fn(),
     update: jest.fn(),
-    softDelete: jest.fn(),
-    countDependents: jest.fn(),
+    softDeleteWithCascadeNull: jest.fn(),
     spaceBelongsToWorkspace: jest.fn(),
   };
   const subscriber = {
@@ -240,55 +228,39 @@ describe('CustomTaskTypesService.remove', () => {
     ).rejects.toBeInstanceOf(NotFoundException);
   });
 
-  it('idempotente: ja soft-deletado retorna sem erro e sem chamar softDelete', async () => {
+  it('idempotente: ja soft-deletado retorna sem erro e sem chamar softDeleteWithCascadeNull', async () => {
     const { service, repository } = buildService();
     repository.findByIdIncludingDeleted.mockResolvedValue(
       makeRow({ deletedAt: new Date('2026-01-02') }),
     );
 
     await expect(service.remove(WS_ID, TYPE_ID)).resolves.toBeUndefined();
-    expect(repository.softDelete).not.toHaveBeenCalled();
-    expect(repository.countDependents).not.toHaveBeenCalled();
+    expect(repository.softDeleteWithCascadeNull).not.toHaveBeenCalled();
   });
 
-  it('409 quando ha work items vinculados', async () => {
+  it('1:1 Hoppe: com work items vinculados, deleta e propaga null (cascade)', async () => {
     const { service, repository } = buildService();
     repository.findByIdIncludingDeleted.mockResolvedValue(makeRow());
-    repository.countDependents.mockResolvedValue({
-      ...zeroDeps(),
-      workItems: 5,
-    });
 
-    await expect(service.remove(WS_ID, TYPE_ID)).rejects.toMatchObject({
-      response: expect.objectContaining({
-        code: 'CUSTOM_TASK_TYPE_IN_USE',
-        dependents: expect.objectContaining({ workItems: 5 }),
-      }),
-    });
-    expect(repository.softDelete).not.toHaveBeenCalled();
+    await expect(service.remove(WS_ID, TYPE_ID)).resolves.toBeUndefined();
+    expect(repository.softDeleteWithCascadeNull).toHaveBeenCalledWith(TYPE_ID);
   });
 
-  it('409 quando ha spaces/folders/lists usando como default', async () => {
+  it('1:1 Hoppe: com spaces/folders/lists como default, deleta e zera os defaults', async () => {
     const { service, repository } = buildService();
     repository.findByIdIncludingDeleted.mockResolvedValue(makeRow());
-    repository.countDependents.mockResolvedValue({
-      ...zeroDeps(),
-      spacesAsDefault: 1,
-    });
 
-    await expect(service.remove(WS_ID, TYPE_ID)).rejects.toBeInstanceOf(
-      ConflictException,
-    );
+    await expect(service.remove(WS_ID, TYPE_ID)).resolves.toBeUndefined();
+    expect(repository.softDeleteWithCascadeNull).toHaveBeenCalledWith(TYPE_ID);
   });
 
-  it('sucesso: softDelete + invalida cache quando zero dependentes', async () => {
+  it('sucesso: softDeleteWithCascadeNull + invalida cache', async () => {
     const { service, repository, redis } = buildService();
     repository.findByIdIncludingDeleted.mockResolvedValue(makeRow());
-    repository.countDependents.mockResolvedValue(zeroDeps());
 
     await service.remove(WS_ID, TYPE_ID);
 
-    expect(repository.softDelete).toHaveBeenCalledWith(TYPE_ID);
+    expect(repository.softDeleteWithCascadeNull).toHaveBeenCalledWith(TYPE_ID);
     expect(redis.publish).toHaveBeenCalledWith(
       CustomTaskTypesService.INVALIDATION_CHANNEL,
       `ws:${WS_ID}`,

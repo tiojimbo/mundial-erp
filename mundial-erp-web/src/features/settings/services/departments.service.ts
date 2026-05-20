@@ -6,6 +6,7 @@ import type {
   CreateAreaPayload,
   UpdateAreaPayload,
   AreaConfig,
+  AreaDetailConfig,
 } from '../types/settings.types';
 
 export const departmentsService = {
@@ -31,6 +32,11 @@ export const departmentsService = {
 
   async remove(id: string): Promise<void> {
     await api.delete(`/spaces/${id}`);
+  },
+
+  async getAreaById(id: string): Promise<AreaDetailConfig> {
+    const { data } = await api.get<AreaDetailConfig>(`/folders/${id}`);
+    return data;
   },
 
   async createArea(payload: CreateAreaPayload): Promise<AreaConfig> {

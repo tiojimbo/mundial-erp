@@ -56,22 +56,22 @@ interface TemplatePayloadNode {
   estimatedMinutes?: number;
   tags?: string[];
   checklists?: Array<{
-    name: string;
-    items?: Array<{ name: string; parentId?: string }>;
+    title: string;
+    items?: Array<{ title: string; parentId?: string }>;
   }>;
   subtasks?: TemplatePayloadNode[];
 }
 
 interface SnapshotChecklistItem {
   id: string;
-  name: string;
+  title: string;
   parentId: string | null;
   position: number;
 }
 
 interface SnapshotChecklist {
   id: string;
-  name: string;
+  title: string;
   items: SnapshotChecklistItem[];
 }
 
@@ -290,9 +290,9 @@ export class TaskTemplatesService {
       .filter((name): name is string => typeof name === 'string');
 
     const checklists = (node.checklists ?? []).map((cl) => ({
-      name: cl.name,
+      title: cl.title,
       items: (cl.items ?? []).map((it) => ({
-        name: it.name,
+        title: it.title,
         ...(it.parentId ? { parentId: it.parentId } : {}),
       })),
     }));
@@ -361,7 +361,7 @@ export class TaskTemplatesService {
       : (await this.repository.findDefaultStatusForProcess(listId))?.id;
     if (!statusId) {
       throw new BadRequestException(
-        'Nenhum WorkflowStatus NOT_STARTED disponivel para este process',
+        'Nenhum Status NOT_STARTED disponivel para este process',
       );
     }
 
@@ -457,35 +457,30 @@ export class TaskTemplatesService {
         const createdChecklist = await tx.workItemChecklist.create({
           data: {
             workItemId: created.id,
-            name: checklist.name,
+            title: checklist.title,
             position: clIdx,
           },
           select: { id: true },
         });
         counters.checklists += 1;
 
-        // Map nome -> id para resolver parentId por nome (se payload usar
-        // parentId textual). Atualmente o payload usa id string livre; se
-        // vier um parentId valido corresponde a um item ja criado neste
-        // loop. Como o pipe nao valida essa referencia, resolvemos ao
-        // melhor esforco; caso nao haja match, parentId fica null.
-        const localIdByName = new Map<string, string>();
+        const localIdByTitle = new Map<string, string>();
         for (const [itIdx, item] of (checklist.items ?? []).entries()) {
           const parentLookup =
-            item.parentId && localIdByName.has(item.parentId)
-              ? (localIdByName.get(item.parentId) ?? null)
+            item.parentId && localIdByTitle.has(item.parentId)
+              ? (localIdByTitle.get(item.parentId) ?? null)
               : null;
           const createdItem = await tx.workItemChecklistItem.create({
             data: {
               checklistId: createdChecklist.id,
-              name: item.name,
+              title: item.title,
               position: itIdx,
               parentId: parentLookup,
               source: 'TEMPLATE',
             },
             select: { id: true },
           });
-          localIdByName.set(item.name, createdItem.id);
+          localIdByTitle.set(item.title, createdItem.id);
         }
       }
 
