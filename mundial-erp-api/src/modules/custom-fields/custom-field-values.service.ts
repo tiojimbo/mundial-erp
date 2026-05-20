@@ -5,6 +5,7 @@ import {
   Logger,
   NotFoundException,
   OnModuleDestroy,
+  Optional,
   UnprocessableEntityException,
 } from '@nestjs/common';
 import { CustomFieldType, OutboxEventStatus, Prisma } from '@prisma/client';
@@ -21,6 +22,7 @@ import {
   CUSTOM_FIELDS_METRICS,
   type CustomFieldsMetrics,
 } from './custom-fields.metrics';
+import { TaskEventsPublisher } from '../automations/events/task-events.publisher';
 
 /**
  * Servico de valores de custom fields (GET por task + PATCH upsert).
@@ -77,6 +79,8 @@ export class CustomFieldValuesService implements OnModuleDestroy {
     private readonly valuesRepo: CustomFieldValuesRepository,
     @Inject(CUSTOM_FIELDS_METRICS)
     private readonly metrics: CustomFieldsMetrics,
+    @Optional()
+    private readonly automationEvents?: TaskEventsPublisher,
   ) {
     this.dedupCleanupInterval = setInterval(
       () => this.purgeDedupCache(),
@@ -193,6 +197,15 @@ export class CustomFieldValuesService implements OnModuleDestroy {
       }
     }
 
+    // Snapshot do valor anterior para enriquecer o evento de automation.
+    // Leitura fora da tx (best-effort) — usada apenas no payload do publisher.
+    const previousValueRow = this.automationEvents
+      ? await this.valuesRepo.findValueByPair(taskId, definitionId)
+      : null;
+    const beforeValue = previousValueRow
+      ? this.extractScalar(definition.type, previousValueRow)
+      : null;
+
     // 7. Upsert + outbox em $transaction.
     const persisted = await this.prisma.$transaction(async (tx) => {
       // 7a. `requiredWhen` server-side (PLANO Regra de Negocio #4).
@@ -290,6 +303,30 @@ export class CustomFieldValuesService implements OnModuleDestroy {
       `custom-field-value.set task=${taskId} definition=${definitionId} type=${definition.type} actor=${actorUserId}`,
     );
 
+    if (this.automationEvents) {
+      const ctx = await this.loadTaskContext(taskId, workspaceId);
+      if (ctx) {
+        const afterValue = this.extractScalar(definition.type, {
+          valueText: columns.valueText,
+          valueNumber: columns.valueNumber,
+          valueDate: columns.valueDate,
+          valueBoolean: columns.valueBoolean,
+          valueJson: columns.valueJson as Prisma.JsonValue,
+        });
+        this.automationEvents.emitCustomFieldChanged({
+          workspaceId,
+          taskId,
+          listId: ctx.listId,
+          folderId: ctx.folderId,
+          spaceId: ctx.spaceId,
+          actorUserId,
+          customFieldDefinitionId: definitionId,
+          before: beforeValue,
+          after: afterValue,
+        });
+      }
+    }
+
     return CustomFieldValueResponseDto.fromEntity(persisted, {
       exposeWorkspaceId: persisted.definition.workspaceId === workspaceId,
     });
@@ -313,6 +350,13 @@ export class CustomFieldValuesService implements OnModuleDestroy {
       throw new NotFoundException('Custom field definition nao encontrada');
     }
 
+    const beforeRow = this.automationEvents
+      ? await this.valuesRepo.findValueByPair(taskId, definitionId)
+      : null;
+    const beforeValue = beforeRow
+      ? this.extractScalar(definition.type, beforeRow)
+      : null;
+
     const removed = await this.valuesRepo.deleteValue(taskId, definitionId);
     if (!removed) {
       throw new NotFoundException('Valor nao encontrado para esta tarefa');
@@ -324,9 +368,52 @@ export class CustomFieldValuesService implements OnModuleDestroy {
       `custom-field-value.cleared task=${taskId} def=${definitionId} workspace=${workspaceId}`,
     );
 
+    if (this.automationEvents) {
+      const ctx = await this.loadTaskContext(taskId, workspaceId);
+      if (ctx) {
+        this.automationEvents.emitCustomFieldChanged({
+          workspaceId,
+          taskId,
+          listId: ctx.listId,
+          folderId: ctx.folderId,
+          spaceId: ctx.spaceId,
+          actorUserId: null,
+          customFieldDefinitionId: definitionId,
+          before: beforeValue,
+          after: null,
+        });
+      }
+    }
+
     return CustomFieldValueResponseDto.fromEntity(removed, {
       exposeWorkspaceId: removed.definition.workspaceId === workspaceId,
     });
+  }
+
+  private async loadTaskContext(taskId: string, workspaceId: string): Promise<{
+    listId: string;
+    folderId: string | null;
+    spaceId: string | null;
+  } | null> {
+    const row = await this.prisma.workItem.findFirst({
+      where: { id: taskId, deletedAt: null, list: { space: { workspaceId } } },
+      select: {
+        listId: true,
+        list: {
+          select: {
+            folderId: true,
+            spaceId: true,
+            folder: { select: { spaceId: true } },
+          },
+        },
+      },
+    });
+    if (!row) return null;
+    return {
+      listId: row.listId,
+      folderId: row.list.folderId ?? null,
+      spaceId: row.list.spaceId ?? row.list.folder?.spaceId ?? null,
+    };
   }
 
   // ------------------------------------------------------------------

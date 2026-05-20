@@ -47,8 +47,30 @@ export class AutomationsService {
         statuses: typeof rows;
       }
     >();
+    const listMap = new Map<
+      string,
+      {
+        id: string;
+        name: string;
+        folderId: string | null;
+        statuses: typeof rows;
+      }
+    >();
 
     for (const row of rows) {
+      if (row.listId) {
+        const key = row.listId;
+        if (!listMap.has(key) && row.list) {
+          listMap.set(key, {
+            id: row.list.id,
+            name: row.list.name,
+            folderId: row.list.folderId,
+            statuses: [],
+          });
+        }
+        listMap.get(key)?.statuses.push(row);
+        continue;
+      }
       if (row.folderId) {
         const key = row.folderId;
         if (!folderMap.has(key) && row.folder) {
@@ -59,24 +81,25 @@ export class AutomationsService {
             statuses: [],
           });
         }
-        folderMap.get(key)!.statuses.push(row);
-      } else {
-        const key = row.spaceId;
-        if (!key || !row.space) continue;
-        if (!spaceMap.has(key)) {
-          spaceMap.set(key, {
-            id: row.space.id,
-            name: row.space.name,
-            statuses: [],
-          });
-        }
-        spaceMap.get(key)!.statuses.push(row);
+        folderMap.get(key)?.statuses.push(row);
+        continue;
       }
+      const key = row.spaceId;
+      if (!key || !row.space) continue;
+      if (!spaceMap.has(key)) {
+        spaceMap.set(key, {
+          id: row.space.id,
+          name: row.space.name,
+          statuses: [],
+        });
+      }
+      spaceMap.get(key)?.statuses.push(row);
     }
 
     return {
       spaces: [...spaceMap.values()],
       folders: [...folderMap.values()],
+      lists: [...listMap.values()],
     };
   }
 

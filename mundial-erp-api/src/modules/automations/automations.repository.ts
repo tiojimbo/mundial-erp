@@ -201,9 +201,18 @@ export class AutomationsRepository {
     return this.prisma.status.findMany({
       where: {
         deletedAt: null,
-        space: { workspaceId, deletedAt: null },
+        OR: [
+          { space: { workspaceId, deletedAt: null } },
+          { folder: { space: { workspaceId, deletedAt: null } } },
+          { list: { space: { workspaceId, deletedAt: null } } },
+        ],
       },
-      orderBy: [{ spaceId: 'asc' }, { folderId: 'asc' }, { position: 'asc' }],
+      orderBy: [
+        { spaceId: 'asc' },
+        { folderId: 'asc' },
+        { listId: 'asc' },
+        { position: 'asc' },
+      ],
       select: {
         id: true,
         name: true,
@@ -212,8 +221,10 @@ export class AutomationsRepository {
         position: true,
         spaceId: true,
         folderId: true,
+        listId: true,
         space: { select: { id: true, name: true } },
         folder: { select: { id: true, name: true, spaceId: true } },
+        list: { select: { id: true, name: true, folderId: true } },
       },
     });
   }

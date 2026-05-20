@@ -344,3 +344,129 @@ export const cleanupWorkspace = async (
     });
   });
 };
+
+// ============================================================================
+// Helpers Hoppe-aligned (novos specs E2E pos-deprecacao WorkItem direto)
+// ----------------------------------------------------------------------------
+// Diretrizes (memorias project_erp_workitem_deprecation + frontend_api_scope):
+//   - Usar nomenclatura Space/Folder/List (sem department/area/process).
+//   - Criar tasks SO via POST /api/v1/tasks. Proibido prisma.workItem.create
+//     em novos specs — WorkItem sera removido apos paridade Hoppe.
+//   - Helpers legados (createTestProcess, createTestTask) permanecem para os
+//     specs ativos antigos ate migracao.
+// ============================================================================
+
+export interface TestListContext {
+  spaceId: string;
+  folderId: string;
+  listId: string;
+  defaultStatusId: string;
+}
+
+export interface CreateTaskViaApiPayload {
+  title?: string;
+  markdownContent?: string;
+  description?: string;
+  customTypeId?: string;
+  statusId?: string;
+  priority?: 'NONE' | 'LOW' | 'NORMAL' | 'HIGH' | 'URGENT';
+  assigneeIds?: string[];
+}
+
+export interface CreatedTaskViaApi {
+  taskId: string;
+  markdownContent: string | null;
+  customTypeId: string | null;
+  raw: Record<string, unknown>;
+}
+
+export const createTestListContext = async (
+  app: INestApplication<App>,
+  workspaceId: string,
+): Promise<TestListContext> => {
+  const prisma = app.get(PrismaService);
+  const suffix = uniqueId('ctx');
+
+  const space = await prisma.space.create({
+    data: {
+      workspaceId,
+      name: `Space ${suffix}`,
+      slug: `space-${suffix}`,
+    },
+  });
+
+  const folder = await prisma.folder.create({
+    data: {
+      name: `Folder ${suffix}`,
+      slug: `folder-${suffix}`,
+      spaceId: space.id,
+    },
+  });
+
+  const defaultStatus = await prisma.status.create({
+    data: {
+      name: 'To Do',
+      type: 'NOT_STARTED',
+      color: '#94a3b8',
+      spaceId: space.id,
+      folderId: folder.id,
+      position: 0,
+    },
+  });
+
+  const list = await prisma.list.create({
+    data: {
+      name: `List ${suffix}`,
+      slug: `list-${suffix}`,
+      spaceId: space.id,
+      folderId: folder.id,
+      processType: 'LIST',
+      status: 'ACTIVE',
+    },
+  });
+
+  return {
+    spaceId: space.id,
+    folderId: folder.id,
+    listId: list.id,
+    defaultStatusId: defaultStatus.id,
+  };
+};
+
+export const createTaskViaApi = async (
+  app: INestApplication<App>,
+  ctx: Pick<TestListContext, 'listId'>,
+  token: string,
+  payload: CreateTaskViaApiPayload = {},
+): Promise<CreatedTaskViaApi> => {
+  const res = await request(app.getHttpServer())
+    .post('/api/v1/tasks')
+    .set('Authorization', `Bearer ${token}`)
+    .send({
+      title: payload.title ?? `Task ${uniqueId('t')}`,
+      listId: ctx.listId,
+      ...(payload.markdownContent !== undefined && {
+        markdownContent: payload.markdownContent,
+      }),
+      ...(payload.description !== undefined && {
+        description: payload.description,
+      }),
+      ...(payload.customTypeId !== undefined && {
+        customTypeId: payload.customTypeId,
+      }),
+      ...(payload.statusId !== undefined && { statusId: payload.statusId }),
+      ...(payload.priority !== undefined && { priority: payload.priority }),
+      ...(payload.assigneeIds !== undefined && {
+        assigneeIds: payload.assigneeIds,
+      }),
+    })
+    .expect(201);
+
+  const body = res.body as Record<string, unknown>;
+  return {
+    taskId: body.id as string,
+    markdownContent: (body.markdownContent as string | null) ?? null,
+    customTypeId: (body.customTypeId as string | null) ?? null,
+    raw: body,
+  };
+};

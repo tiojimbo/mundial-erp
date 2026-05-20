@@ -1061,6 +1061,10 @@ export class TasksService {
         before: null,
         after: (data.statusId as string) ?? null,
       });
+      const parentId = (updated.parentId as string | null | undefined) ?? null;
+      if (parentId) {
+        void this.checkAllSubtasksResolved(parentId, workspaceId, actorId);
+      }
     }
     if (data.priority !== undefined) {
       changedFields.push('priority');
@@ -1112,6 +1116,59 @@ export class TasksService {
     }
     if (changedFields.length > 0) {
       this.automationEvents.emitTaskUpdated({ ...ctx, changedFields });
+    }
+  }
+
+  private async checkAllSubtasksResolved(
+    parentId: string,
+    workspaceId: string,
+    actorUserId: string,
+  ): Promise<void> {
+    if (!this.automationEvents) return;
+    try {
+      const parent = await this.prisma.workItem.findFirst({
+        where: {
+          id: parentId,
+          deletedAt: null,
+          list: { space: { workspaceId } },
+        },
+        select: {
+          listId: true,
+          list: {
+            select: {
+              folderId: true,
+              spaceId: true,
+              folder: { select: { spaceId: true } },
+            },
+          },
+        },
+      });
+      if (!parent) return;
+
+      const siblings = await this.prisma.workItem.findMany({
+        where: { parentId, deletedAt: null },
+        select: { status: { select: { type: true } } },
+      });
+      if (siblings.length === 0) return;
+
+      const allResolved = siblings.every(
+        (s) => s.status.type === 'DONE' || s.status.type === 'CLOSED',
+      );
+      if (!allResolved) return;
+
+      this.automationEvents.emitAllSubtasksResolved({
+        workspaceId,
+        taskId: parentId,
+        listId: parent.listId,
+        folderId: parent.list.folderId ?? null,
+        spaceId: parent.list.spaceId ?? parent.list.folder?.spaceId ?? null,
+        actorUserId,
+        parentTaskId: parentId,
+      });
+    } catch (err) {
+      this.logger.warn(
+        `automation.all_subtasks_resolved_check_failed parent=${parentId}: ${(err as Error).message}`,
+      );
     }
   }
 

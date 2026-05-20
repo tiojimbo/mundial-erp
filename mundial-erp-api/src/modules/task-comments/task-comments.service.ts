@@ -5,6 +5,7 @@ import {
   Injectable,
   Logger,
   NotFoundException,
+  Optional,
   forwardRef,
 } from '@nestjs/common';
 import { Prisma, Role } from '@prisma/client';
@@ -20,6 +21,7 @@ import {
 } from './dtos/comment-response.dto';
 import { ReactionResponseDto } from './dtos/reaction-response.dto';
 import { TaskOutboxService } from '../task-outbox/task-outbox.service';
+import { TaskEventsPublisher } from '../automations/events/task-events.publisher';
 
 const OUTBOX_COMMENT_ADDED = 'COMMENT_ADDED' as const;
 const LOG_CONTENT_MAX_CHARS = 200;
@@ -51,7 +53,35 @@ export class TaskCommentsService {
     private readonly repository: TaskCommentsRepository,
     @Inject(forwardRef(() => TaskOutboxService))
     private readonly outbox: TaskOutboxService,
+    @Optional()
+    private readonly automationEvents?: TaskEventsPublisher,
   ) {}
+
+  private async loadTaskContext(taskId: string, workspaceId: string): Promise<{
+    listId: string;
+    folderId: string | null;
+    spaceId: string | null;
+  } | null> {
+    const row = await this.prisma.workItem.findFirst({
+      where: { id: taskId, deletedAt: null, list: { space: { workspaceId } } },
+      select: {
+        listId: true,
+        list: {
+          select: {
+            folderId: true,
+            spaceId: true,
+            folder: { select: { spaceId: true } },
+          },
+        },
+      },
+    });
+    if (!row) return null;
+    return {
+      listId: row.listId,
+      folderId: row.list.folderId ?? null,
+      spaceId: row.list.spaceId ?? row.list.folder?.spaceId ?? null,
+    };
+  }
 
   async findByTask(
     workspaceId: string,
@@ -164,6 +194,22 @@ export class TaskCommentsService {
     this.logger.log(
       `task-comment.created task=${taskId} id=${created.id} author=${actorUserId} mentions=${mentionedUserIds.length} parentId=${dto.parentId ?? '-'} assigneeId=${dto.assigneeId ?? '-'} contentPreview="${truncate(dto.content, LOG_CONTENT_MAX_CHARS)}"`,
     );
+
+    if (this.automationEvents) {
+      const ctx = await this.loadTaskContext(taskId, workspaceId);
+      if (ctx) {
+        this.automationEvents.emitCommentCreated({
+          workspaceId,
+          taskId,
+          listId: ctx.listId,
+          folderId: ctx.folderId,
+          spaceId: ctx.spaceId,
+          actorUserId,
+          commentId: created.id,
+          authorId: actorUserId,
+        });
+      }
+    }
 
     return CommentResponseDto.fromEntity(created as unknown as CommentShape);
   }
