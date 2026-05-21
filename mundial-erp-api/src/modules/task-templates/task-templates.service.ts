@@ -5,7 +5,7 @@
  *   - CRUD de `WorkItemTemplate` com cross-tenant 404.
  *   - `snapshot(fromTaskId)`: captura subtree (depth ≤ 3, ≤ 200 nodes) e
  *     grava como payload do template.
- *   - `instantiate(processId, templateId)`: expande o payload em WorkItems
+ *   - `instantiate(listId, templateId)`: expande o payload em WorkItems
  *     + Checklists + Items + Tags dentro de `$transaction`.
  *
  * Todos os metodos sao workspace-scoped (1a clausula `where`). Contagens
@@ -56,22 +56,22 @@ interface TemplatePayloadNode {
   estimatedMinutes?: number;
   tags?: string[];
   checklists?: Array<{
-    name: string;
-    items?: Array<{ name: string; parentId?: string }>;
+    title: string;
+    items?: Array<{ title: string; parentId?: string }>;
   }>;
   subtasks?: TemplatePayloadNode[];
 }
 
 interface SnapshotChecklistItem {
   id: string;
-  name: string;
+  title: string;
   parentId: string | null;
   position: number;
 }
 
 interface SnapshotChecklist {
   id: string;
-  name: string;
+  title: string;
   items: SnapshotChecklistItem[];
 }
 
@@ -116,8 +116,8 @@ export class TaskTemplatesService {
       skip: filters.skip ?? 0,
       take: filters.limit ?? 20,
       scope: filters.scope,
-      departmentId: filters.departmentId,
-      processId: filters.processId,
+      spaceId: filters.spaceId ?? filters.departmentId,
+      listId: filters.listId ?? filters.processId,
       search: filters.search,
     });
     return {
@@ -143,7 +143,9 @@ export class TaskTemplatesService {
     actorUserId: string,
   ): Promise<TemplateResponseDto> {
     const payload = this.asPayload(dto.payload);
-    this.assertScopeInvariants(dto.scope, dto.departmentId, dto.processId);
+    const dtoSpaceId = dto.spaceId ?? dto.departmentId;
+    const dtoListId = dto.listId ?? dto.processId;
+    this.assertScopeInvariants(dto.scope, dtoSpaceId, dtoListId);
 
     const { subtaskCount, checklistCount } = this.countDenorm(payload);
 
@@ -151,8 +153,8 @@ export class TaskTemplatesService {
       workspaceId,
       name: dto.name.trim(),
       scope: dto.scope ?? TaskTemplateScope.WORKSPACE,
-      departmentId: dto.departmentId ?? null,
-      processId: dto.processId ?? null,
+      spaceId: dtoSpaceId ?? null,
+      listId: dtoListId ?? null,
       payload: payload as unknown as Prisma.InputJsonValue,
       subtaskCount,
       checklistCount,
@@ -176,16 +178,18 @@ export class TaskTemplatesService {
       throw new NotFoundException('Template nao encontrado');
     }
 
+    const dtoSpaceId = dto.spaceId ?? dto.departmentId;
+    const dtoListId = dto.listId ?? dto.processId;
     const scope = dto.scope ?? existing.scope;
-    const departmentId = dto.departmentId ?? existing.departmentId;
-    const processId = dto.processId ?? existing.processId;
-    this.assertScopeInvariants(scope, departmentId, processId);
+    const spaceId = dtoSpaceId ?? existing.spaceId;
+    const listId = dtoListId ?? existing.listId;
+    this.assertScopeInvariants(scope, spaceId, listId);
 
     const data: {
       name?: string;
       scope?: TaskTemplateScope;
-      departmentId?: string | null;
-      processId?: string | null;
+      spaceId?: string | null;
+      listId?: string | null;
       payload?: Prisma.InputJsonValue;
       subtaskCount?: number;
       checklistCount?: number;
@@ -193,9 +197,9 @@ export class TaskTemplatesService {
 
     if (dto.name !== undefined) data.name = dto.name.trim();
     if (dto.scope !== undefined) data.scope = dto.scope;
-    if (dto.departmentId !== undefined)
-      data.departmentId = dto.departmentId ?? null;
-    if (dto.processId !== undefined) data.processId = dto.processId ?? null;
+    if (dtoSpaceId !== undefined)
+      data.spaceId = dtoSpaceId ?? null;
+    if (dtoListId !== undefined) data.listId = dtoListId ?? null;
 
     if (dto.payload !== undefined) {
       const payload = this.asPayload(dto.payload);
@@ -286,9 +290,9 @@ export class TaskTemplatesService {
       .filter((name): name is string => typeof name === 'string');
 
     const checklists = (node.checklists ?? []).map((cl) => ({
-      name: cl.name,
+      title: cl.title,
       items: (cl.items ?? []).map((it) => ({
-        name: it.name,
+        title: it.title,
         ...(it.parentId ? { parentId: it.parentId } : {}),
       })),
     }));
@@ -325,7 +329,7 @@ export class TaskTemplatesService {
    */
   async instantiate(
     workspaceId: string,
-    processId: string,
+    listId: string,
     templateId: string,
     dto: InstantiateTemplateDto,
     actorUserId: string,
@@ -337,7 +341,7 @@ export class TaskTemplatesService {
     }
     const process = await this.repository.findProcessInWorkspace(
       workspaceId,
-      processId,
+      listId,
     );
     if (!process) {
       throw new NotFoundException('Process nao encontrado');
@@ -354,17 +358,17 @@ export class TaskTemplatesService {
 
     const statusId = dto.statusId
       ? dto.statusId
-      : (await this.repository.findDefaultStatusForProcess(processId))?.id;
+      : (await this.repository.findDefaultStatusForProcess(listId))?.id;
     if (!statusId) {
       throw new BadRequestException(
-        'Nenhum WorkflowStatus NOT_STARTED disponivel para este process',
+        'Nenhum Status NOT_STARTED disponivel para este process',
       );
     }
 
     const result = await this.prisma.$transaction(async (tx) => {
       return this.instantiateInTx(tx, {
         workspaceId,
-        processId,
+        listId,
         actorUserId,
         payload,
         statusId,
@@ -387,7 +391,7 @@ export class TaskTemplatesService {
     tx: Prisma.TransactionClient,
     ctx: {
       workspaceId: string;
-      processId: string;
+      listId: string;
       actorUserId: string;
       payload: TemplatePayloadNode;
       statusId: string;
@@ -432,7 +436,7 @@ export class TaskTemplatesService {
 
       const created = await tx.workItem.create({
         data: {
-          processId: ctx.processId,
+          listId: ctx.listId,
           title,
           description: node.description ?? null,
           markdownContent: node.markdown ?? null,
@@ -453,35 +457,30 @@ export class TaskTemplatesService {
         const createdChecklist = await tx.workItemChecklist.create({
           data: {
             workItemId: created.id,
-            name: checklist.name,
+            title: checklist.title,
             position: clIdx,
           },
           select: { id: true },
         });
         counters.checklists += 1;
 
-        // Map nome -> id para resolver parentId por nome (se payload usar
-        // parentId textual). Atualmente o payload usa id string livre; se
-        // vier um parentId valido corresponde a um item ja criado neste
-        // loop. Como o pipe nao valida essa referencia, resolvemos ao
-        // melhor esforco; caso nao haja match, parentId fica null.
-        const localIdByName = new Map<string, string>();
+        const localIdByTitle = new Map<string, string>();
         for (const [itIdx, item] of (checklist.items ?? []).entries()) {
           const parentLookup =
-            item.parentId && localIdByName.has(item.parentId)
-              ? (localIdByName.get(item.parentId) ?? null)
+            item.parentId && localIdByTitle.has(item.parentId)
+              ? (localIdByTitle.get(item.parentId) ?? null)
               : null;
           const createdItem = await tx.workItemChecklistItem.create({
             data: {
               checklistId: createdChecklist.id,
-              name: item.name,
+              title: item.title,
               position: itIdx,
               parentId: parentLookup,
               source: 'TEMPLATE',
             },
             select: { id: true },
           });
-          localIdByName.set(item.name, createdItem.id);
+          localIdByTitle.set(item.title, createdItem.id);
         }
       }
 
@@ -618,8 +617,8 @@ export class TaskTemplatesService {
     workspaceId: string;
     name: string;
     scope: TaskTemplateScope;
-    departmentId: string | null;
-    processId: string | null;
+    spaceId: string | null;
+    listId: string | null;
     payload: Prisma.JsonValue;
     subtaskCount: number;
     checklistCount: number;
@@ -633,8 +632,8 @@ export class TaskTemplatesService {
       workspaceId: entity.workspaceId,
       name: entity.name,
       scope: entity.scope,
-      departmentId: entity.departmentId,
-      processId: entity.processId,
+      spaceId: entity.spaceId,
+      listId: entity.listId,
       payload: (entity.payload ?? {}) as Record<string, unknown>,
       subtaskCount: entity.subtaskCount,
       checklistCount: entity.checklistCount,
@@ -647,15 +646,15 @@ export class TaskTemplatesService {
 
   private assertScopeInvariants(
     scope: TaskTemplateScope | undefined,
-    departmentId: string | null | undefined,
-    processId: string | null | undefined,
+    spaceId: string | null | undefined,
+    listId: string | null | undefined,
   ): void {
     const s = scope ?? TaskTemplateScope.WORKSPACE;
-    if (s === TaskTemplateScope.DEPARTMENT && !departmentId) {
-      throw new BadRequestException('scope=DEPARTMENT exige departmentId');
+    if (s === TaskTemplateScope.DEPARTMENT && !spaceId) {
+      throw new BadRequestException('scope=DEPARTMENT exige spaceId');
     }
-    if (s === TaskTemplateScope.PROCESS && !processId) {
-      throw new BadRequestException('scope=PROCESS exige processId');
+    if (s === TaskTemplateScope.PROCESS && !listId) {
+      throw new BadRequestException('scope=PROCESS exige listId');
     }
   }
 

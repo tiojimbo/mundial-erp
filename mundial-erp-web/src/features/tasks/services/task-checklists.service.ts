@@ -7,26 +7,24 @@ import type {
   UpdateChecklistDto,
   CreateChecklistItemDto,
   UpdateChecklistItemDto,
-  ReorderChecklistDto,
 } from '../types/task.types';
 
 /**
- * Checklists — PLANO-TASKS.md §7.3 e §8.9.
+ * Checklists — paths Hoppe (Sprint 5 HPP-080/081/082):
+ * - GET    /checklist/task/:taskId
+ * - POST   /checklist/task/:taskId
+ * - PUT    /checklist/:id
+ * - DELETE /checklist/:id
+ * - POST   /checklist/item/:checklistId
+ * - PUT    /checklist/:checklistId/item/:itemId
+ * - DELETE /checklist/item/:itemId
  *
- * Rotas:
- * - GET    /tasks/:taskId/checklists
- * - POST   /tasks/:taskId/checklists
- * - PATCH  /task-checklists/:checklistId
- * - DELETE /task-checklists/:checklistId
- * - POST   /task-checklists/:checklistId/items
- * - PATCH  /task-checklists/:checklistId/items/:itemId
- * - DELETE /task-checklists/:checklistId/items/:itemId
- * - POST   /task-checklists/:checklistId/reorder  body [{id, position}]
+ * Reorder foi removido — feito agora via PUT item-a-item com `position`.
  */
 export const taskChecklistsService = {
   async list(taskId: string): Promise<TaskChecklist[]> {
     const { data } = await api.get<ApiResponse<TaskChecklist[]>>(
-      `/tasks/${taskId}/checklists`,
+      `/checklist/task/${taskId}`,
     );
     return data.data;
   },
@@ -36,7 +34,7 @@ export const taskChecklistsService = {
     payload: CreateChecklistDto,
   ): Promise<TaskChecklist> {
     const { data } = await api.post<ApiResponse<TaskChecklist>>(
-      `/tasks/${taskId}/checklists`,
+      `/checklist/task/${taskId}`,
       payload,
     );
     return data.data;
@@ -46,15 +44,15 @@ export const taskChecklistsService = {
     checklistId: string,
     payload: UpdateChecklistDto,
   ): Promise<TaskChecklist> {
-    const { data } = await api.patch<ApiResponse<TaskChecklist>>(
-      `/task-checklists/${checklistId}`,
+    const { data } = await api.put<ApiResponse<TaskChecklist>>(
+      `/checklist/${checklistId}`,
       payload,
     );
     return data.data;
   },
 
   async remove(checklistId: string): Promise<void> {
-    await api.delete(`/task-checklists/${checklistId}`);
+    await api.delete(`/checklist/${checklistId}`);
   },
 
   async createItem(
@@ -62,7 +60,7 @@ export const taskChecklistsService = {
     payload: CreateChecklistItemDto,
   ): Promise<TaskChecklistItem> {
     const { data } = await api.post<ApiResponse<TaskChecklistItem>>(
-      `/task-checklists/${checklistId}/items`,
+      `/checklist/item/${checklistId}`,
       payload,
     );
     return data.data;
@@ -73,21 +71,14 @@ export const taskChecklistsService = {
     itemId: string,
     payload: UpdateChecklistItemDto,
   ): Promise<TaskChecklistItem> {
-    const { data } = await api.patch<ApiResponse<TaskChecklistItem>>(
-      `/task-checklists/${checklistId}/items/${itemId}`,
+    const { data } = await api.put<ApiResponse<TaskChecklistItem>>(
+      `/checklist/${checklistId}/item/${itemId}`,
       payload,
     );
     return data.data;
   },
 
-  async removeItem(checklistId: string, itemId: string): Promise<void> {
-    await api.delete(`/task-checklists/${checklistId}/items/${itemId}`);
-  },
-
-  async reorder(
-    checklistId: string,
-    payload: ReorderChecklistDto,
-  ): Promise<void> {
-    await api.post(`/task-checklists/${checklistId}/reorder`, payload);
+  async removeItem(itemId: string): Promise<void> {
+    await api.delete(`/checklist/item/${itemId}`);
   },
 };

@@ -18,16 +18,39 @@ export class NotificationCountsDto {
   cleared: number;
 }
 
+export class NotificationsMetaDto {
+  @ApiProperty({ example: 42 })
+  total!: number;
+
+  @ApiProperty({ example: 1 })
+  page!: number;
+
+  @ApiProperty({ example: 20 })
+  limit!: number;
+
+  @ApiProperty({ example: 3 })
+  totalPages!: number;
+
+  @ApiProperty({ example: true })
+  hasNextPage!: boolean;
+
+  @ApiProperty({ example: false })
+  hasPreviousPage!: boolean;
+}
+
 export class NotificationsListResponseDto {
   @ApiProperty({
     type: [NotificationResponseDto],
     description: 'Lista de notificacoes',
   })
-  items: NotificationResponseDto[];
+  notifications!: NotificationResponseDto[];
+
+  @ApiProperty({ type: NotificationsMetaDto })
+  meta!: NotificationsMetaDto;
 
   @ApiProperty({
     type: NotificationCountsDto,
     description: 'Contadores por visao',
   })
-  counts: NotificationCountsDto;
+  counts!: NotificationCountsDto;
 }

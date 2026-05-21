@@ -1,11 +1,13 @@
 import {
   Body,
   Controller,
+  Delete,
   Get,
   HttpCode,
   HttpStatus,
   Param,
   Post,
+  Put,
   Query,
 } from '@nestjs/common';
 import {
@@ -19,7 +21,9 @@ import { CustomTaskTypesService } from './custom-task-types.service';
 import { CustomTaskTypeFiltersDto } from './dtos/custom-task-type-filters.dto';
 import { CustomTaskTypeResponseDto } from './dtos/custom-task-type-response.dto';
 import { CreateCustomTaskTypeDto } from './dtos/create-custom-task-type.dto';
-import { Roles } from '../auth/decorators';
+import { UpdateCustomTaskTypeDto } from './dtos/update-custom-task-type.dto';
+import { CurrentUser, Roles } from '../auth/decorators';
+import type { JwtPayload } from '../auth/decorators';
 import { WorkspaceId } from '../workspaces/decorators/workspace-id.decorator';
 
 /**
@@ -55,10 +59,7 @@ export class CustomTaskTypesController {
   @ApiOperation({ summary: 'Detalhe de custom task type' })
   @ApiResponse({ status: 200, type: CustomTaskTypeResponseDto })
   @ApiResponse({ status: 404, description: 'Custom task type nao encontrado' })
-  async findById(
-    @WorkspaceId() workspaceId: string,
-    @Param('id') id: string,
-  ) {
+  async findById(@WorkspaceId() workspaceId: string, @Param('id') id: string) {
     const data = await this.service.findById(id, workspaceId);
     return { data, meta: { id } };
   }
@@ -71,8 +72,41 @@ export class CustomTaskTypesController {
   @ApiResponse({ status: 409, description: 'Nome ja existe no workspace' })
   create(
     @WorkspaceId() workspaceId: string,
+    @CurrentUser() user: JwtPayload,
     @Body() dto: CreateCustomTaskTypeDto,
   ) {
-    return this.service.create(workspaceId, dto);
+    return this.service.create(workspaceId, dto, user.sub);
+  }
+
+  @Put(':id')
+  @Roles(Role.ADMIN, Role.MANAGER)
+  @ApiOperation({ summary: 'Atualizar custom task type (workspace privado)' })
+  @ApiResponse({ status: 200, type: CustomTaskTypeResponseDto })
+  @ApiResponse({
+    status: 403,
+    description: 'Builtin custom task types are read-only',
+  })
+  @ApiResponse({ status: 404, description: 'Custom task type nao encontrado' })
+  @ApiResponse({ status: 409, description: 'Nome ja existe no workspace' })
+  update(
+    @WorkspaceId() workspaceId: string,
+    @Param('id') id: string,
+    @Body() dto: UpdateCustomTaskTypeDto,
+  ) {
+    return this.service.update(workspaceId, id, dto);
+  }
+
+  @Delete(':id')
+  @HttpCode(HttpStatus.NO_CONTENT)
+  @Roles(Role.ADMIN, Role.MANAGER)
+  @ApiOperation({ summary: 'Remover custom task type (soft delete)' })
+  @ApiResponse({ status: 204 })
+  @ApiResponse({
+    status: 403,
+    description: 'Builtin custom task types are read-only',
+  })
+  @ApiResponse({ status: 404, description: 'Custom task type nao encontrado' })
+  remove(@WorkspaceId() workspaceId: string, @Param('id') id: string) {
+    return this.service.remove(workspaceId, id);
   }
 }

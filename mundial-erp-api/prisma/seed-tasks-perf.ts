@@ -13,7 +13,7 @@
  *
  * Distribuicao (aproximada):
  *   - Status category: 60% ACTIVE, 25% DONE, 10% NOT_STARTED, 5% CLOSED.
- *     (spec do Sprint fala em "CANCELLED" — o enum StatusCategory do
+ *     (spec do Sprint fala em "CANCELLED" — o enum StatusType do
  *     schema.prisma so tem CLOSED; mapeamos CANCELLED -> CLOSED.)
  *   - 30% das tasks tem 1 assignee primario.
  *   - 10% tem multi-assignees adicionais (2-4).
@@ -53,7 +53,7 @@ import {
   ProcessStatus,
   ProcessType,
   Role,
-  StatusCategory,
+  StatusType,
   TaskPriority,
   WorkItemType,
   WorkspaceMemberRole,
@@ -120,12 +120,12 @@ function pickN<T>(arr: readonly T[], n: number): T[] {
   return out;
 }
 
-function pickStatusCategory(): StatusCategory {
+function pickStatusType(): StatusType {
   const r = rand();
-  if (r < 0.6) return StatusCategory.ACTIVE;
-  if (r < 0.85) return StatusCategory.DONE;
-  if (r < 0.95) return StatusCategory.NOT_STARTED;
-  return StatusCategory.CLOSED;
+  if (r < 0.6) return StatusType.ACTIVE;
+  if (r < 0.85) return StatusType.DONE;
+  if (r < 0.95) return StatusType.NOT_STARTED;
+  return StatusType.CLOSED;
 }
 
 const PRIORITIES: TaskPriority[] = [
@@ -242,12 +242,12 @@ async function ensureDepartments(
   const ids: string[] = [];
   for (let i = 0; i < count; i++) {
     const slug = `perf-dept-${i}`;
-    const existing = await prisma.department.findUnique({ where: { slug } });
+    const existing = await prisma.space.findUnique({ where: { slug } });
     if (existing) {
       ids.push(existing.id);
       continue;
     }
-    const created = await prisma.department.create({
+    const created = await prisma.space.create({
       data: {
         workspaceId,
         name: `Perf Department ${i}`,
@@ -259,21 +259,21 @@ async function ensureDepartments(
   return ids;
 }
 
-async function ensureAreas(departmentIds: string[], count: number): Promise<string[]> {
+async function ensureAreas(spaceIds: string[], count: number): Promise<string[]> {
   const ids: string[] = [];
   for (let i = 0; i < count; i++) {
     const slug = `perf-area-${i}`;
-    const deptId = departmentIds[i % departmentIds.length]!;
-    const existing = await prisma.area.findUnique({ where: { slug } });
+    const spaceId = spaceIds[i % spaceIds.length]!;
+    const existing = await prisma.folder.findUnique({ where: { slug } });
     if (existing) {
       ids.push(existing.id);
       continue;
     }
-    const created = await prisma.area.create({
+    const created = await prisma.folder.create({
       data: {
         name: `Perf Area ${i}`,
         slug,
-        departmentId: deptId,
+        spaceId,
       },
     });
     ids.push(created.id);
@@ -285,71 +285,71 @@ async function ensureAreas(departmentIds: string[], count: number): Promise<stri
  * Cria 4 statuses por department (NOT_STARTED, ACTIVE, DONE, CLOSED) para
  * satisfazer a FK de WorkItem.statusId. Retorna deptId -> {category -> statusId}.
  */
-async function ensureStatuses(departmentIds: string[]): Promise<
-  Map<string, Record<StatusCategory, string>>
+async function ensureStatuses(spaceIds: string[]): Promise<
+  Map<string, Record<StatusType, string>>
 > {
-  const result = new Map<string, Record<StatusCategory, string>>();
-  for (const deptId of departmentIds) {
-    const categories: StatusCategory[] = [
-      StatusCategory.NOT_STARTED,
-      StatusCategory.ACTIVE,
-      StatusCategory.DONE,
-      StatusCategory.CLOSED,
+  const result = new Map<string, Record<StatusType, string>>();
+  for (const spaceId of spaceIds) {
+    const categories: StatusType[] = [
+      StatusType.NOT_STARTED,
+      StatusType.ACTIVE,
+      StatusType.DONE,
+      StatusType.CLOSED,
     ];
-    const byCategory = {} as Record<StatusCategory, string>;
+    const byCategory = {} as Record<StatusType, string>;
     for (const cat of categories) {
       const name = `perf-${cat.toLowerCase()}`;
-      const existing = await prisma.workflowStatus.findFirst({
-        where: { departmentId: deptId, name },
+      const existing = await prisma.status.findFirst({
+        where: { spaceId, name },
       });
       if (existing) {
         byCategory[cat] = existing.id;
         continue;
       }
-      const created = await prisma.workflowStatus.create({
+      const created = await prisma.status.create({
         data: {
           name,
-          category: cat,
+          type: cat,
           color: '#808080',
-          departmentId: deptId,
+          spaceId,
         },
       });
       byCategory[cat] = created.id;
     }
-    result.set(deptId, byCategory);
+    result.set(spaceId, byCategory);
   }
   return result;
 }
 
 async function ensureProcesses(
-  departmentIds: string[],
-  areaIds: string[],
+  spaceIds: string[],
+  folderIds: string[],
   count: number,
-): Promise<{ id: string; departmentId: string }[]> {
-  const result: { id: string; departmentId: string }[] = [];
+): Promise<{ id: string; spaceId: string }[]> {
+  const result: { id: string; spaceId: string }[] = [];
   for (let i = 0; i < count; i++) {
     const slug = `perf-process-${i}`;
-    const deptId = departmentIds[i % departmentIds.length]!;
-    const areaId = areaIds[i % areaIds.length]!;
-    const existing = await prisma.process.findUnique({ where: { slug } });
+    const spaceId = spaceIds[i % spaceIds.length]!;
+    const folderId = folderIds[i % folderIds.length]!;
+    const existing = await prisma.list.findUnique({ where: { slug } });
     if (existing) {
       result.push({
         id: existing.id,
-        departmentId: existing.departmentId ?? deptId,
+        spaceId: existing.spaceId ?? spaceId,
       });
       continue;
     }
-    const created = await prisma.process.create({
+    const created = await prisma.list.create({
       data: {
         name: `Perf Process ${i}`,
         slug,
-        departmentId: deptId,
-        areaId,
+        spaceId,
+        folderId,
         processType: ProcessType.LIST,
         status: ProcessStatus.ACTIVE,
       },
     });
-    result.push({ id: created.id, departmentId: deptId });
+    result.push({ id: created.id, spaceId });
   }
   return result;
 }
@@ -394,35 +394,33 @@ async function cleanFixture(): Promise<void> {
 
   console.log('[seed-tasks-perf] clean: apagando fixture existente...');
 
-  const processes = await prisma.process.findMany({
+  const lists = await prisma.list.findMany({
     where: { slug: { startsWith: 'perf-process-' } },
     select: { id: true },
   });
-  const processIds = processes.map((p) => p.id);
+  const listIds = lists.map((l) => l.id);
 
-  // Work items (cascade remove assignees/watchers/tags/checklists/deps/etc
-  // graças aos ON DELETE CASCADE em migrations 2/3).
   await prisma.workItem.deleteMany({
-    where: { processId: { in: processIds } },
+    where: { listId: { in: listIds } },
   });
 
   await prisma.workItemTag.deleteMany({
     where: { workspaceId: ws.id, nameLower: { startsWith: 'perf-tag-' } },
   });
 
-  await prisma.process.deleteMany({
+  await prisma.list.deleteMany({
     where: { slug: { startsWith: 'perf-process-' } },
   });
 
-  await prisma.workflowStatus.deleteMany({
+  await prisma.status.deleteMany({
     where: { name: { startsWith: 'perf-' } },
   });
 
-  await prisma.area.deleteMany({
+  await prisma.folder.deleteMany({
     where: { slug: { startsWith: 'perf-area-' } },
   });
 
-  await prisma.department.deleteMany({
+  await prisma.space.deleteMany({
     where: { slug: { startsWith: 'perf-dept-' } },
   });
 
@@ -453,8 +451,8 @@ interface BatchExtras {
 
 function buildBatch(
   size: number,
-  processes: { id: string; departmentId: string }[],
-  statuses: Map<string, Record<StatusCategory, string>>,
+  lists: { id: string; spaceId: string }[],
+  statuses: Map<string, Record<StatusType, string>>,
   creatorId: string,
   users: string[],
   tags: string[],
@@ -467,14 +465,14 @@ function buildBatch(
   const extras: BatchExtras[] = [];
 
   for (let i = 0; i < size; i++) {
-    const proc = pick(processes);
-    const statusCat = pickStatusCategory();
-    const statusId = statuses.get(proc.departmentId)![statusCat];
+    const list = pick(lists);
+    const statusCat = pickStatusType();
+    const statusId = statuses.get(list.spaceId)![statusCat];
     const priority = pick(PRIORITIES);
     const title = `perf-task-${salt}-${i}-${Math.floor(rand() * 1e12)}`;
 
     workItems.push({
-      processId: proc.id,
+      listId: list.id,
       title,
       description:
         rand() < 0.3
@@ -484,8 +482,8 @@ function buildBatch(
       itemType: WorkItemType.TASK,
       priority,
       creatorId,
-      completedAt: statusCat === StatusCategory.DONE ? new Date() : null,
-      closedAt: statusCat === StatusCategory.CLOSED ? new Date() : null,
+      completedAt: statusCat === StatusType.DONE ? new Date() : null,
+      closedAt: statusCat === StatusType.CLOSED ? new Date() : null,
     });
 
     const hasPrimary = rand() < 0.3;
@@ -555,9 +553,9 @@ async function run(): Promise<void> {
   const tagIds = await ensureTags(workspace.id, TAG_COUNT);
   console.log(`  tags: ${tagIds.length}`);
 
-  const processIds = processes.map((p) => p.id);
+  const listIds = processes.map((p) => p.id);
   const currentCount = await prisma.workItem.count({
-    where: { processId: { in: processIds } },
+    where: { listId: { in: listIds } },
   });
   const toCreate = Math.max(0, FIXTURE_SIZE - currentCount);
   console.log(
@@ -603,7 +601,7 @@ async function run(): Promise<void> {
         const assigneeRows: Prisma.WorkItemAssigneeCreateManyInput[] = [];
         const tagRows: Prisma.WorkItemTagLinkCreateManyInput[] = [];
         const checklistRows: Prisma.WorkItemChecklistCreateManyInput[] = [];
-        const dependencyRows: Prisma.WorkItemDependencyCreateManyInput[] = [];
+        const linkRows: Prisma.WorkItemLinkCreateManyInput[] = [];
         const createdIds: string[] = [];
 
         for (const item of batch.extras) {
@@ -632,7 +630,7 @@ async function run(): Promise<void> {
           for (let c = 0; c < item.checklistCount; c++) {
             checklistRows.push({
               workItemId: wiId,
-              name: `checklist ${c}`,
+              title: `checklist ${c}`,
               position: c,
             });
           }
@@ -646,7 +644,11 @@ async function run(): Promise<void> {
               const toId =
                 createdIds[Math.floor(rand() * createdIds.length)]!;
               if (toId === fromId) continue;
-              dependencyRows.push({ fromTaskId: fromId, toTaskId: toId });
+              linkRows.push({
+                fromTaskId: fromId,
+                toTaskId: toId,
+                type: 'RELATES_TO',
+              });
             }
           }
         }
@@ -669,9 +671,9 @@ async function run(): Promise<void> {
             skipDuplicates: true,
           });
         }
-        if (dependencyRows.length > 0) {
-          await tx.workItemDependency.createMany({
-            data: dependencyRows,
+        if (linkRows.length > 0) {
+          await tx.workItemLink.createMany({
+            data: linkRows,
             skipDuplicates: true,
           });
         }

@@ -1,22 +1,11 @@
-/**
- * TaskCommentsService (TSK-407, PLANO §7.3)
- *
- * Regras:
- *   - body em texto puro canonical. bodyBlocks opcional (BlockNote JSON AST).
- *     NUNCA armazenar HTML bruto.
- *   - @Menções resolvem usernames (regex `@([\w.-]+)`) contra WorkspaceMember
- *     do workspace atual. Desconhecidos sao silenciosamente ignorados.
- *   - Enqueue outbox `COMMENT_ADDED` com `mentionedUserIds` => worker dispara
- *     Notification(type=MENTION/TASK_MENTIONED).
- *   - Author-only ou Manager+ para update/delete.
- *   - Log jamais expoe body completo — truncado em 200 chars.
- */
 import {
+  BadRequestException,
   ForbiddenException,
   Inject,
   Injectable,
   Logger,
   NotFoundException,
+  Optional,
   forwardRef,
 } from '@nestjs/common';
 import { Prisma, Role } from '@prisma/client';
@@ -30,10 +19,12 @@ import {
   CommentsListResponseDto,
   type CommentShape,
 } from './dtos/comment-response.dto';
+import { ReactionResponseDto } from './dtos/reaction-response.dto';
 import { TaskOutboxService } from '../task-outbox/task-outbox.service';
+import { TaskEventsPublisher } from '../automations/events/task-events.publisher';
 
 const OUTBOX_COMMENT_ADDED = 'COMMENT_ADDED' as const;
-const LOG_BODY_MAX_CHARS = 200;
+const LOG_CONTENT_MAX_CHARS = 200;
 const MENTION_REGEX = /@([\w.-]+)/g;
 const ROLES_MAY_MODERATE: ReadonlySet<Role> = new Set<Role>([
   Role.ADMIN,
@@ -45,9 +36,9 @@ function truncate(value: string, max: number): string {
   return `${value.slice(0, max)}...[+${value.length - max}]`;
 }
 
-function extractMentionUsernames(body: string): string[] {
+function extractMentionUsernames(content: string): string[] {
   const usernames = new Set<string>();
-  for (const match of body.matchAll(MENTION_REGEX)) {
+  for (const match of content.matchAll(MENTION_REGEX)) {
     usernames.add(match[1].toLowerCase());
   }
   return [...usernames];
@@ -62,7 +53,35 @@ export class TaskCommentsService {
     private readonly repository: TaskCommentsRepository,
     @Inject(forwardRef(() => TaskOutboxService))
     private readonly outbox: TaskOutboxService,
+    @Optional()
+    private readonly automationEvents?: TaskEventsPublisher,
   ) {}
+
+  private async loadTaskContext(taskId: string, workspaceId: string): Promise<{
+    listId: string;
+    folderId: string | null;
+    spaceId: string | null;
+  } | null> {
+    const row = await this.prisma.workItem.findFirst({
+      where: { id: taskId, deletedAt: null, list: { space: { workspaceId } } },
+      select: {
+        listId: true,
+        list: {
+          select: {
+            folderId: true,
+            spaceId: true,
+            folder: { select: { spaceId: true } },
+          },
+        },
+      },
+    });
+    if (!row) return null;
+    return {
+      listId: row.listId,
+      folderId: row.list.folderId ?? null,
+      spaceId: row.list.spaceId ?? row.list.folder?.spaceId ?? null,
+    };
+  }
 
   async findByTask(
     workspaceId: string,
@@ -86,19 +105,51 @@ export class TaskCommentsService {
     return response;
   }
 
+  async findOne(
+    workspaceId: string,
+    id: string,
+  ): Promise<CommentResponseDto> {
+    const found = await this.repository.findById(workspaceId, id);
+    if (!found) {
+      throw new NotFoundException('Comentario nao encontrado');
+    }
+    return CommentResponseDto.fromEntity(found as unknown as CommentShape);
+  }
+
   async create(
     workspaceId: string,
-    taskId: string,
     dto: CreateCommentDto,
     actorUserId: string,
   ): Promise<CommentResponseDto> {
+    const taskId = dto.taskId;
     const task = await this.repository.findTaskInWorkspace(workspaceId, taskId);
     if (!task) {
       throw new NotFoundException('Tarefa nao encontrada');
     }
 
-    // Resolve mencoes antes do tx — read-only, nao precisa atomicidade.
-    const mentionedUsernames = extractMentionUsernames(dto.body);
+    if (dto.parentId) {
+      const parent = await this.repository.assertParentBelongsToTask(
+        taskId,
+        dto.parentId,
+      );
+      if (!parent) {
+        throw new BadRequestException(
+          'Comentario pai nao pertence a esta tarefa',
+        );
+      }
+    }
+
+    if (dto.assigneeId) {
+      const assignee = await this.repository.assertUserInWorkspace(
+        workspaceId,
+        dto.assigneeId,
+      );
+      if (!assignee) {
+        throw new BadRequestException('Usuario destinatario fora do workspace');
+      }
+    }
+
+    const mentionedUsernames = extractMentionUsernames(dto.content);
     const resolved = mentionedUsernames.length
       ? await this.repository.resolveUsernamesInWorkspace(
           workspaceId,
@@ -109,14 +160,17 @@ export class TaskCommentsService {
       .map((u) => u.id)
       .filter((id) => id !== actorUserId);
 
-    // Insert + outbox enqueue dentro da mesma $transaction (ADR-003).
     const created = await this.prisma.$transaction(async (tx) => {
       const row = await this.repository.create(
         {
           workItemId: taskId,
           authorId: actorUserId,
-          body: dto.body,
-          bodyBlocks: dto.bodyBlocks as Prisma.InputJsonValue | undefined,
+          content: dto.content,
+          contentBlocks: dto.contentBlocks as Prisma.InputJsonValue | undefined,
+          parentId: dto.parentId,
+          mentions: mentionedUserIds,
+          assigneeId: dto.assigneeId,
+          assignedById: dto.assigneeId ? actorUserId : undefined,
         },
         tx,
       );
@@ -128,6 +182,8 @@ export class TaskCommentsService {
           commentId: row.id,
           authorId: actorUserId,
           mentionedUserIds,
+          parentId: dto.parentId ?? null,
+          assigneeId: dto.assigneeId ?? null,
           actorId: actorUserId,
         },
         workspaceId,
@@ -136,8 +192,24 @@ export class TaskCommentsService {
     });
 
     this.logger.log(
-      `task-comment.created task=${taskId} id=${created.id} author=${actorUserId} mentions=${mentionedUserIds.length} bodyPreview="${truncate(dto.body, LOG_BODY_MAX_CHARS)}"`,
+      `task-comment.created task=${taskId} id=${created.id} author=${actorUserId} mentions=${mentionedUserIds.length} parentId=${dto.parentId ?? '-'} assigneeId=${dto.assigneeId ?? '-'} contentPreview="${truncate(dto.content, LOG_CONTENT_MAX_CHARS)}"`,
     );
+
+    if (this.automationEvents) {
+      const ctx = await this.loadTaskContext(taskId, workspaceId);
+      if (ctx) {
+        this.automationEvents.emitCommentCreated({
+          workspaceId,
+          taskId,
+          listId: ctx.listId,
+          folderId: ctx.folderId,
+          spaceId: ctx.spaceId,
+          actorUserId,
+          commentId: created.id,
+          authorId: actorUserId,
+        });
+      }
+    }
 
     return CommentResponseDto.fromEntity(created as unknown as CommentShape);
   }
@@ -161,14 +233,27 @@ export class TaskCommentsService {
       );
     }
 
+    const newContent = dto.content ?? existing.content;
+    const mentionedUsernames = extractMentionUsernames(newContent);
+    const resolved = mentionedUsernames.length
+      ? await this.repository.resolveUsernamesInWorkspace(
+          workspaceId,
+          mentionedUsernames,
+        )
+      : [];
+    const mentionedUserIds = resolved
+      .map((u) => u.id)
+      .filter((id) => id !== actor.userId);
+
     const updated = await this.repository.update(id, {
-      body: dto.body,
-      bodyBlocks: dto.bodyBlocks as Prisma.InputJsonValue | undefined,
+      content: dto.content,
+      contentBlocks: dto.contentBlocks as Prisma.InputJsonValue | undefined,
+      mentions: mentionedUserIds,
       editedAt: new Date(),
     });
 
     this.logger.log(
-      `task-comment.updated id=${id} actor=${actor.userId} bodyPreview="${truncate(dto.body ?? '', LOG_BODY_MAX_CHARS)}"`,
+      `task-comment.updated id=${id} actor=${actor.userId} mentions=${mentionedUserIds.length} contentPreview="${truncate(dto.content ?? '', LOG_CONTENT_MAX_CHARS)}"`,
     );
 
     return CommentResponseDto.fromEntity(updated as unknown as CommentShape);
@@ -192,5 +277,28 @@ export class TaskCommentsService {
       );
     }
     await this.repository.softDelete(id);
+  }
+
+  async toggleReaction(
+    workspaceId: string,
+    commentId: string,
+    userId: string,
+    emoji: string,
+  ): Promise<ReactionResponseDto> {
+    const comment = await this.repository.findById(workspaceId, commentId);
+    if (!comment) {
+      throw new NotFoundException('Comentario nao encontrado');
+    }
+    const existing = await this.repository.findReaction(
+      commentId,
+      userId,
+      emoji,
+    );
+    if (existing) {
+      await this.repository.deleteReaction(commentId, userId, emoji);
+      return { action: 'removed', commentId, userId, emoji };
+    }
+    await this.repository.createReaction(commentId, userId, emoji);
+    return { action: 'added', commentId, userId, emoji };
   }
 }

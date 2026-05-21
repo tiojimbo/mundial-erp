@@ -70,9 +70,15 @@ export class KommoConversationsRepository {
       workspaceId,
       kommoChatId,
       account: { connect: { id: accountId } },
-      leadId: fields.leadId ?? null,
-      responsibleAgentId: fields.responsibleAgentId ?? null,
-      departmentId: fields.departmentId ?? null,
+      ...(fields.leadId
+        ? { lead: { connect: { id: fields.leadId } } }
+        : {}),
+      ...(fields.responsibleAgentId
+        ? { responsibleAgent: { connect: { id: fields.responsibleAgentId } } }
+        : {}),
+      ...(fields.departmentId
+        ? { department: { connect: { id: fields.departmentId } } }
+        : {}),
       status: fields.status,
       firstMessageAt: fields.firstMessageAt ?? null,
       firstResponseAt: fields.firstResponseAt ?? null,
@@ -80,15 +86,22 @@ export class KommoConversationsRepository {
       lastMessageAt: fields.lastMessageAt ?? null,
     };
 
-    // Update so envia os fields que vieram — nao sobrescreve com undefined
-    // (Prisma interpreta undefined como "nao mude"; explicito null = setar
-    // null). Montamos update conditional.
     const updateData: Prisma.KommoConversationUpdateInput = {};
-    if (fields.leadId !== undefined) updateData.leadId = fields.leadId;
-    if (fields.responsibleAgentId !== undefined)
-      updateData.responsibleAgentId = fields.responsibleAgentId;
-    if (fields.departmentId !== undefined)
-      updateData.departmentId = fields.departmentId;
+    if (fields.leadId !== undefined) {
+      updateData.lead = fields.leadId
+        ? { connect: { id: fields.leadId } }
+        : { disconnect: true };
+    }
+    if (fields.responsibleAgentId !== undefined) {
+      updateData.responsibleAgent = fields.responsibleAgentId
+        ? { connect: { id: fields.responsibleAgentId } }
+        : { disconnect: true };
+    }
+    if (fields.departmentId !== undefined) {
+      updateData.department = fields.departmentId
+        ? { connect: { id: fields.departmentId } }
+        : { disconnect: true };
+    }
     if (fields.status !== undefined) updateData.status = fields.status;
     if (fields.firstMessageAt !== undefined)
       updateData.firstMessageAt = fields.firstMessageAt;

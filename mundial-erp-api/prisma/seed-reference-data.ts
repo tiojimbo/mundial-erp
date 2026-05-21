@@ -8,7 +8,7 @@
  * Run: npx ts-node prisma/seed-reference-data.ts
  */
 
-import { PrismaClient } from '@prisma/client';
+import { Prisma, PrismaClient } from '@prisma/client';
 import { PrismaPg } from '@prisma/adapter-pg';
 
 const adapter = new PrismaPg({
@@ -161,17 +161,17 @@ async function main() {
   const builtinCustomTaskTypes = [
     {
       id: 'builtin-task',
-      name: 'Task',
-      namePlural: 'Tasks',
-      icon: 'CircleDot',
+      name: 'Tarefa',
+      namePlural: 'Tarefas',
+      icon: 'CircleDotIcon',
       color: '#6b7280',
       sortOrder: 0,
     },
     {
       id: 'builtin-milestone',
-      name: 'Milestone',
-      namePlural: 'Milestones',
-      icon: 'Flag',
+      name: 'Marco',
+      namePlural: 'Marcos',
+      icon: 'DiamondIcon',
       color: '#f59e0b',
       sortOrder: 1,
     },
@@ -202,6 +202,531 @@ async function main() {
     });
   }
   console.log(`  ✔ ${builtinCustomTaskTypes.length} builtin custom task types`);
+
+  // =========================================================================
+  // 2c. TASK TYPE TEMPLATES — builtins (M2/M3, Sprint 4 TTT-040)
+  // --------------------------------------------------------------------------
+  // Plano: .claude/plan/PLANO-TASK-TYPES-TEMPLATES.md §"Seeds — Detalhe Tecnico".
+  //
+  // Insere 2 builtins (Pedido + Requisicao de Estoque) seguindo o mesmo
+  // formato visual de builtin-task/builtin-milestone, ACRESCIDOS de:
+  //   - CustomFieldDefinitions tipadas (workspaceId NULL = global, isBuiltin=true)
+  //   - TaskTypeTemplate 1:1 (attachmentCategories + defaultDescriptionBlocks)
+  //   - TaskTypeTemplateField M:N ordenado (sortOrder estavel)
+  //
+  // IDs estaveis em todos os blocos garantem idempotencia perfeita: rodar 3x
+  // resulta no MESMO estado final, zero duplicatas. Se um seed e atualizado,
+  // o upsert reescreve apenas o registro afetado (sem cascata destrutiva).
+  // =========================================================================
+
+  // ---- Helpers tipados para evitar drift entre create/update ----
+  type FieldSpec = {
+    id: string;
+    key: string;
+    label: string;
+    type:
+      | 'TEXT'
+      | 'NUMBER'
+      | 'CURRENCY'
+      | 'DATE'
+      | 'DROPDOWN'
+      | 'CPF'
+      | 'CNPJ'
+      | 'URL'
+      | 'EMAIL'
+      | 'PHONE';
+    required: boolean;
+    config: Record<string, unknown> | null;
+    sortOrder: number;
+  };
+
+  type TemplateSeed = {
+    customTaskType: {
+      id: string;
+      name: string;
+      namePlural: string;
+      description: string;
+      icon: string;
+      color: string;
+      sortOrder: number;
+    };
+    fields: FieldSpec[];
+    template: {
+      id: string;
+      attachmentCategories: unknown;
+      defaultDescriptionBlocks: unknown;
+    };
+  };
+
+  // ---------------------------------------------------------------------------
+  // Seed A — builtin-order (Pedido)
+  // ---------------------------------------------------------------------------
+  const orderSeed: TemplateSeed = {
+    customTaskType: {
+      id: 'builtin-order',
+      name: 'Pedido',
+      namePlural: 'Pedidos',
+      description:
+        'Pedido de venda do processo Comercial — ciclo Orcamento -> Faturamento -> Producao -> Entrega.',
+      icon: 'ShoppingCart',
+      color: '#2563eb',
+      sortOrder: 2,
+    },
+    fields: [
+      {
+        id: 'cfd-order-order_number',
+        key: 'order_number',
+        label: 'Numero do pedido',
+        type: 'TEXT',
+        required: false,
+        config: { readOnly: true, hint: 'Gerado ao mover para FATURAR' },
+        sortOrder: 0,
+      },
+      {
+        id: 'cfd-order-client_cnpj',
+        key: 'client_cnpj',
+        label: 'CNPJ do cliente',
+        type: 'CNPJ',
+        required: false,
+        config: null,
+        sortOrder: 1,
+      },
+      {
+        id: 'cfd-order-client_cpf',
+        key: 'client_cpf',
+        label: 'CPF do cliente',
+        type: 'CPF',
+        required: false,
+        config: null,
+        sortOrder: 2,
+      },
+      {
+        id: 'cfd-order-client_name',
+        key: 'client_name',
+        label: 'Nome/Razao social',
+        type: 'TEXT',
+        required: true,
+        config: null,
+        sortOrder: 3,
+      },
+      {
+        id: 'cfd-order-client_email',
+        key: 'client_email',
+        label: 'E-mail',
+        type: 'EMAIL',
+        required: false,
+        config: null,
+        sortOrder: 4,
+      },
+      {
+        id: 'cfd-order-client_phone',
+        key: 'client_phone',
+        label: 'Telefone',
+        type: 'PHONE',
+        required: false,
+        config: null,
+        sortOrder: 5,
+      },
+      {
+        id: 'cfd-order-delivery_address',
+        key: 'delivery_address',
+        label: 'Endereco de entrega',
+        type: 'TEXT',
+        required: false,
+        config: null,
+        sortOrder: 6,
+      },
+      {
+        id: 'cfd-order-delivery_deadline',
+        key: 'delivery_deadline',
+        label: 'Prazo de entrega',
+        type: 'DATE',
+        required: false,
+        config: null,
+        sortOrder: 7,
+      },
+      {
+        id: 'cfd-order-proposal_validity_days',
+        key: 'proposal_validity_days',
+        label: 'Validade da proposta (dias)',
+        type: 'NUMBER',
+        required: false,
+        config: { min: 1, default: 7 },
+        sortOrder: 8,
+      },
+      {
+        id: 'cfd-order-subtotal',
+        key: 'subtotal',
+        label: 'Subtotal',
+        type: 'CURRENCY',
+        required: false,
+        config: null,
+        sortOrder: 9,
+      },
+      {
+        id: 'cfd-order-freight',
+        key: 'freight',
+        label: 'Frete',
+        type: 'CURRENCY',
+        required: false,
+        config: { default: 0 },
+        sortOrder: 10,
+      },
+      {
+        id: 'cfd-order-discount',
+        key: 'discount',
+        label: 'Desconto',
+        type: 'CURRENCY',
+        required: false,
+        config: { default: 0 },
+        sortOrder: 11,
+      },
+      {
+        id: 'cfd-order-total',
+        key: 'total',
+        label: 'Total',
+        type: 'CURRENCY',
+        required: true,
+        config: null,
+        sortOrder: 12,
+      },
+      {
+        id: 'cfd-order-paid_amount',
+        key: 'paid_amount',
+        label: 'Valor pago (entrada)',
+        type: 'CURRENCY',
+        required: false,
+        config: { hint: 'Minimo 50% do total para faturar' },
+        sortOrder: 13,
+      },
+      {
+        id: 'cfd-order-payment_method',
+        key: 'payment_method',
+        label: 'Forma de pagamento',
+        type: 'DROPDOWN',
+        required: false,
+        config: {
+          options: [
+            { value: 'pix', label: 'Pix' },
+            { value: 'dinheiro', label: 'Dinheiro' },
+            { value: 'cartao_credito', label: 'Cartao Credito' },
+            { value: 'cartao_debito', label: 'Cartao Debito' },
+            { value: 'boleto', label: 'Boleto' },
+            { value: 'transferencia', label: 'Transferencia' },
+          ],
+        },
+        sortOrder: 14,
+      },
+      {
+        id: 'cfd-order-should_produce',
+        key: 'should_produce',
+        label: 'Contem itens de fabricacao propria?',
+        type: 'DROPDOWN',
+        required: false,
+        config: {
+          options: [
+            { value: 'true', label: 'Sim' },
+            { value: 'false', label: 'Nao' },
+          ],
+        },
+        sortOrder: 15,
+      },
+      {
+        id: 'cfd-order-is_resale',
+        key: 'is_resale',
+        label: 'Contem itens de revenda?',
+        type: 'DROPDOWN',
+        required: false,
+        config: {
+          options: [
+            { value: 'true', label: 'Sim' },
+            { value: 'false', label: 'Nao' },
+          ],
+        },
+        sortOrder: 16,
+      },
+    ],
+    template: {
+      id: 'template-order',
+      attachmentCategories: [
+        {
+          slug: 'proposta',
+          label: 'Proposta assinada',
+          required: false,
+          mimeWhitelist: ['application/pdf'],
+        },
+        {
+          slug: 'comprovante',
+          label: 'Comprovante pagamento',
+          required: true,
+          mimeWhitelist: ['application/pdf', 'image/jpeg', 'image/png'],
+        },
+        {
+          slug: 'nota_fiscal',
+          label: 'Nota fiscal NF-e',
+          required: false,
+          mimeWhitelist: ['application/pdf', 'application/xml'],
+        },
+      ],
+      defaultDescriptionBlocks: [
+        {
+          type: 'heading',
+          props: { level: 2 },
+          content: [{ type: 'text', text: 'Itens do pedido' }],
+        },
+        { type: 'paragraph', content: [] },
+        {
+          type: 'heading',
+          props: { level: 2 },
+          content: [{ type: 'text', text: 'Entrega' }],
+        },
+        { type: 'paragraph', content: [] },
+        {
+          type: 'heading',
+          props: { level: 2 },
+          content: [{ type: 'text', text: 'Observacoes' }],
+        },
+        { type: 'paragraph', content: [] },
+      ],
+    },
+  };
+
+  // ---------------------------------------------------------------------------
+  // Seed B — builtin-stock-request (Requisicao de Estoque)
+  // ---------------------------------------------------------------------------
+  const stockRequestSeed: TemplateSeed = {
+    customTaskType: {
+      id: 'builtin-stock-request',
+      name: 'Requisicao de Estoque',
+      namePlural: 'Requisicoes de Estoque',
+      description:
+        'Requisicao interna ou de venda do processo Compras/Suprimentos — fluxo Pendente -> Aprovada -> Processada via scanner.',
+      icon: 'PackageOpen',
+      color: '#059669',
+      sortOrder: 3,
+    },
+    fields: [
+      {
+        id: 'cfd-stockreq-requisition_code',
+        key: 'requisition_code',
+        label: 'Codigo da requisicao',
+        type: 'TEXT',
+        required: false,
+        config: { readOnly: true, hint: 'Formato REQ-AAAAMMDD-NNN' },
+        sortOrder: 0,
+      },
+      {
+        id: 'cfd-stockreq-type',
+        key: 'type',
+        label: 'Tipo',
+        type: 'DROPDOWN',
+        required: true,
+        config: {
+          options: [
+            { value: 'VENDA', label: 'Venda' },
+            { value: 'INTERNO', label: 'Interno' },
+          ],
+        },
+        sortOrder: 1,
+      },
+      {
+        id: 'cfd-stockreq-linked_order_number',
+        key: 'linked_order_number',
+        label: 'N° do pedido vinculado',
+        type: 'TEXT',
+        required: false,
+        config: {
+          hint: 'Obrigatorio se tipo = Venda',
+          requiredWhen: { field: 'type', equals: 'VENDA' },
+        },
+        sortOrder: 2,
+      },
+      {
+        id: 'cfd-stockreq-client_name',
+        key: 'client_name',
+        label: 'Cliente vinculado',
+        type: 'TEXT',
+        required: false,
+        config: null,
+        sortOrder: 3,
+      },
+      {
+        id: 'cfd-stockreq-requester_area',
+        key: 'requester_area',
+        label: 'Area solicitante',
+        type: 'TEXT',
+        required: false,
+        config: null,
+        sortOrder: 4,
+      },
+      {
+        id: 'cfd-stockreq-requested_date',
+        key: 'requested_date',
+        label: 'Data de solicitacao',
+        type: 'DATE',
+        required: true,
+        config: null,
+        sortOrder: 5,
+      },
+      {
+        id: 'cfd-stockreq-processed_date',
+        key: 'processed_date',
+        label: 'Data de processamento',
+        type: 'DATE',
+        required: false,
+        config: null,
+        sortOrder: 6,
+      },
+    ],
+    template: {
+      id: 'template-stock-request',
+      attachmentCategories: [
+        {
+          slug: 'requisicao_pdf',
+          label: 'Requisicao PDF',
+          required: false,
+          mimeWhitelist: ['application/pdf'],
+        },
+        {
+          slug: 'comprovante_separacao',
+          label: 'Comprovante separacao',
+          required: false,
+          mimeWhitelist: ['image/jpeg', 'image/png', 'application/pdf'],
+        },
+      ],
+      defaultDescriptionBlocks: [
+        {
+          type: 'heading',
+          props: { level: 2 },
+          content: [{ type: 'text', text: 'Itens solicitados' }],
+        },
+        { type: 'paragraph', content: [] },
+        {
+          type: 'heading',
+          props: { level: 2 },
+          content: [{ type: 'text', text: 'Observacoes de separacao' }],
+        },
+        { type: 'paragraph', content: [] },
+      ],
+    },
+  };
+
+  const templateSeeds: TemplateSeed[] = [orderSeed, stockRequestSeed];
+
+  let totalCustomTypes = 0;
+  let totalDefinitions = 0;
+  let totalTemplates = 0;
+  let totalTemplateFields = 0;
+
+  for (const seed of templateSeeds) {
+    // CustomTaskType de template (Pedido, Requisicao). isBuiltin=false: sao
+    // pre-criados pelo seed mas podem ser editados/removidos pelo workspace.
+    // Apenas builtin-task/builtin-milestone (Tarefa/Marco) permanecem builtin.
+    await prisma.customTaskType.upsert({
+      where: { id: seed.customTaskType.id },
+      update: {
+        name: seed.customTaskType.name,
+        namePlural: seed.customTaskType.namePlural,
+        description: seed.customTaskType.description,
+        icon: seed.customTaskType.icon,
+        color: seed.customTaskType.color,
+        sortOrder: seed.customTaskType.sortOrder,
+        isBuiltin: false,
+        workspaceId: null,
+      },
+      create: {
+        id: seed.customTaskType.id,
+        name: seed.customTaskType.name,
+        namePlural: seed.customTaskType.namePlural,
+        description: seed.customTaskType.description,
+        icon: seed.customTaskType.icon,
+        color: seed.customTaskType.color,
+        sortOrder: seed.customTaskType.sortOrder,
+        isBuiltin: false,
+        workspaceId: null,
+      },
+    });
+    totalCustomTypes += 1;
+
+    // 2) CustomFieldDefinitions (workspaceId NULL, isBuiltin=true). IDs
+    //    estaveis (`cfd-<source>-<key>`) garantem idempotencia.
+    for (const f of seed.fields) {
+      const configValue: Prisma.InputJsonValue | typeof Prisma.JsonNull =
+        f.config === null
+          ? Prisma.JsonNull
+          : (f.config as Prisma.InputJsonValue);
+      await prisma.customFieldDefinition.upsert({
+        where: { id: f.id },
+        update: {
+          workspaceId: null,
+          key: f.key,
+          label: f.label,
+          type: f.type,
+          required: f.required,
+          config: configValue,
+          isBuiltin: true,
+          sortOrder: f.sortOrder,
+        },
+        create: {
+          id: f.id,
+          workspaceId: null,
+          key: f.key,
+          name: f.label,
+          label: f.label,
+          type: f.type,
+          required: f.required,
+          config: configValue,
+          isBuiltin: true,
+          sortOrder: f.sortOrder,
+        },
+      });
+      totalDefinitions += 1;
+    }
+
+    // 3) TaskTypeTemplate (1:1 com CustomTaskType).
+    await prisma.taskTypeTemplate.upsert({
+      where: { id: seed.template.id },
+      update: {
+        customTaskTypeId: seed.customTaskType.id,
+        attachmentCategories: seed.template.attachmentCategories as object,
+        defaultDescriptionBlocks: seed.template.defaultDescriptionBlocks as object,
+      },
+      create: {
+        id: seed.template.id,
+        customTaskTypeId: seed.customTaskType.id,
+        attachmentCategories: seed.template.attachmentCategories as object,
+        defaultDescriptionBlocks: seed.template.defaultDescriptionBlocks as object,
+      },
+    });
+    totalTemplates += 1;
+
+    // 4) TaskTypeTemplateFields (M:N) — chave composta (templateId, definitionId).
+    for (const f of seed.fields) {
+      await prisma.taskTypeTemplateField.upsert({
+        where: {
+          templateId_definitionId: {
+            templateId: seed.template.id,
+            definitionId: f.id,
+          },
+        },
+        update: {
+          sortOrder: f.sortOrder,
+          requiredOverride: null,
+        },
+        create: {
+          templateId: seed.template.id,
+          definitionId: f.id,
+          sortOrder: f.sortOrder,
+          requiredOverride: null,
+        },
+      });
+      totalTemplateFields += 1;
+    }
+  }
+
+  console.log(
+    `  ✔ ${totalCustomTypes} task type templates (custom types) + ${totalDefinitions} field definitions + ${totalTemplates} templates + ${totalTemplateFields} template fields`,
+  );
 
   // =========================================================================
   // 3. MAIN COMPANY (Mundial Telhas)

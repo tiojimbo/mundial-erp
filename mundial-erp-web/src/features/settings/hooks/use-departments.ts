@@ -28,6 +28,16 @@ export function useDepartment(id: string) {
   });
 }
 
+export const AREAS_KEY = ['areas'];
+
+export function useArea(id: string) {
+  return useQuery({
+    queryKey: [...AREAS_KEY, id],
+    queryFn: () => departmentsService.getAreaById(id),
+    enabled: !!id,
+  });
+}
+
 export function useCreateDepartment() {
   const queryClient = useQueryClient();
   return useMutation({

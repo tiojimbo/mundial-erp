@@ -6,44 +6,50 @@ import type {
   CreateAreaPayload,
   UpdateAreaPayload,
   AreaConfig,
+  AreaDetailConfig,
 } from '../types/settings.types';
 
 export const departmentsService = {
   async getAll(): Promise<DepartmentConfig[]> {
-    const { data } = await api.get<DepartmentConfig[]>('/departments');
+    const { data } = await api.get<DepartmentConfig[]>('/spaces');
     return data;
   },
 
   async getById(id: string): Promise<DepartmentConfig> {
-    const { data } = await api.get<DepartmentConfig>(`/departments/${id}`);
+    const { data } = await api.get<DepartmentConfig>(`/spaces/${id}`);
     return data;
   },
 
   async create(payload: CreateDepartmentPayload): Promise<DepartmentConfig> {
-    const { data } = await api.post<DepartmentConfig>('/departments', payload);
+    const { data } = await api.post<DepartmentConfig>('/spaces', payload);
     return data;
   },
 
   async update(id: string, payload: UpdateDepartmentPayload): Promise<DepartmentConfig> {
-    const { data } = await api.patch<DepartmentConfig>(`/departments/${id}`, payload);
+    const { data } = await api.put<DepartmentConfig>(`/spaces/${id}`, payload);
     return data;
   },
 
   async remove(id: string): Promise<void> {
-    await api.delete(`/departments/${id}`);
+    await api.delete(`/spaces/${id}`);
+  },
+
+  async getAreaById(id: string): Promise<AreaDetailConfig> {
+    const { data } = await api.get<AreaDetailConfig>(`/folders/${id}`);
+    return data;
   },
 
   async createArea(payload: CreateAreaPayload): Promise<AreaConfig> {
-    const { data } = await api.post<AreaConfig>('/areas', payload);
+    const { data } = await api.post<AreaConfig>('/folders', payload);
     return data;
   },
 
   async updateArea(id: string, payload: UpdateAreaPayload): Promise<AreaConfig> {
-    const { data } = await api.patch<AreaConfig>(`/areas/${id}`, payload);
+    const { data } = await api.put<AreaConfig>(`/folders/${id}`, payload);
     return data;
   },
 
   async removeArea(id: string): Promise<void> {
-    await api.delete(`/areas/${id}`);
+    await api.delete(`/folders/${id}`);
   },
 };

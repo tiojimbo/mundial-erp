@@ -4,21 +4,17 @@ import { taskLinksService } from '../services/task-links.service';
 import { taskQueryKeys } from '../lib/query-keys';
 import { useWorkspaceId } from '../lib/use-workspace-id';
 
-type Vars = { taskId: string; linksToId: string };
+type Vars = { taskId: string; linkId: string };
 
 export function useRemoveLink() {
   const qc = useQueryClient();
   const workspaceId = useWorkspaceId();
   return useMutation<void, Error, Vars>({
     mutationKey: [workspaceId, 'tasks', 'links', 'remove'],
-    mutationFn: ({ taskId, linksToId }) =>
-      taskLinksService.remove(taskId, linksToId),
-    onSuccess: (_data, { taskId, linksToId }) => {
+    mutationFn: ({ taskId, linkId }) => taskLinksService.remove(taskId, linkId),
+    onSuccess: (_data, { taskId }) => {
       qc.invalidateQueries({
         queryKey: taskQueryKeys.links(workspaceId, taskId),
-      });
-      qc.invalidateQueries({
-        queryKey: taskQueryKeys.links(workspaceId, linksToId),
       });
     },
     onError: (err) => {

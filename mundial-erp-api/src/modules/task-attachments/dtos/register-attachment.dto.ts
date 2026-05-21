@@ -1,9 +1,19 @@
-import { ApiProperty } from '@nestjs/swagger';
-import { IsInt, IsString, Matches, Max, MaxLength, Min } from 'class-validator';
+import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
+import {
+  IsInt,
+  IsOptional,
+  IsString,
+  Matches,
+  Max,
+  MaxLength,
+  Min,
+} from 'class-validator';
 import {
   ATTACHMENT_MAX_SIZE_BYTES,
   ATTACHMENT_MIME_WHITELIST_REGEX,
 } from './signed-url-request.dto';
+
+export const ATTACHMENT_CATEGORY_REGEX = /^[a-z0-9_-]+$/;
 
 export class RegisterAttachmentDto {
   @ApiProperty({ example: 'relatorio.pdf' })
@@ -25,9 +35,30 @@ export class RegisterAttachmentDto {
   @ApiProperty({
     example: 'ws_123/wi_456/abc-relatorio.pdf',
     description:
-      'StorageKey retornado pela signed URL request — deve bater com o request prévio.',
+      'StorageKey retornado pela signed URL request — deve bater com o request previo.',
   })
   @IsString()
   @MaxLength(512)
   storageKey!: string;
+
+  @ApiPropertyOptional({
+    example: 'comprovante',
+    maxLength: 64,
+    description:
+      'Slug da categoria do TaskTypeTemplate. Quando presente, o service valida contra `attachmentCategories` do template do CustomTaskType da task; slug fora do template => 400.',
+  })
+  @IsOptional()
+  @IsString()
+  @MaxLength(64)
+  @Matches(ATTACHMENT_CATEGORY_REGEX, {
+    message: 'category deve ser slug em kebab-case ou snake_case',
+  })
+  category?: string;
+}
+
+export class RegisterAttachmentLegacyDto extends RegisterAttachmentDto {
+  @ApiProperty({ description: 'Id da task (obrigatorio na rota legacy)' })
+  @IsString()
+  @MaxLength(64)
+  taskId!: string;
 }

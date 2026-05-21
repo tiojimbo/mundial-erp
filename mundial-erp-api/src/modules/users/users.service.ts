@@ -27,13 +27,14 @@ export class UsersService {
 
     const passwordHash = await bcrypt.hash(dto.password, BCRYPT_ROUNDS);
 
+    const dtoSpaceId = dto.spaceId ?? dto.departmentId;
     const user = await this.usersRepository.create({
       email: dto.email,
       name: dto.name,
       passwordHash,
       role: dto.role,
-      department: dto.departmentId
-        ? { connect: { id: dto.departmentId } }
+      space: dtoSpaceId
+        ? { connect: { id: dtoSpaceId } }
         : undefined,
     });
 
@@ -77,9 +78,10 @@ export class UsersService {
     if (dto.name !== undefined) updateData.name = dto.name;
     if (dto.role !== undefined) updateData.role = dto.role;
     if (dto.isActive !== undefined) updateData.isActive = dto.isActive;
-    if (dto.departmentId !== undefined) {
-      updateData.department = dto.departmentId
-        ? { connect: { id: dto.departmentId } }
+    const dtoSpaceId = dto.spaceId ?? dto.departmentId;
+    if (dtoSpaceId !== undefined) {
+      updateData.space = dtoSpaceId
+        ? { connect: { id: dtoSpaceId } }
         : { disconnect: true };
     }
     if (dto.password) {

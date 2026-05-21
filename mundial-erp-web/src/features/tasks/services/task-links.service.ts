@@ -1,31 +1,43 @@
 import { api } from '@/lib/api';
 import type { ApiResponse } from '@/types/api.types';
+import type { z } from 'zod';
+import type { taskLinkTypeSchema } from '../schemas/task.schema';
 import type { TaskLink } from '../types/task.types';
 
+export type TaskLinkType = z.infer<typeof taskLinkTypeSchema>;
+
+interface CreateLinkPayload {
+  taskToId: string;
+  type: TaskLinkType;
+}
+
+interface TaskLinksResponse {
+  links: TaskLink[];
+}
+
 /**
- * Links (related-to) — PLANO-TASKS.md §7.3.
- *
- * Rotas:
- * - GET    /tasks/:taskId/links
- * - POST   /tasks/:taskId/links/:linksToId
- * - DELETE /tasks/:taskId/links/:linksToId
+ * Links (Hoppe-style — HPP-083):
+ * - GET    /tasks/:taskId/links                  → { links: [{linkId,type,task}] }
+ * - POST   /tasks/:taskId/links  body {taskToId,type}
+ * - DELETE /tasks/:taskId/links/:linkId
  */
 export const taskLinksService = {
   async list(taskId: string): Promise<TaskLink[]> {
-    const { data } = await api.get<ApiResponse<TaskLink[]>>(
+    const { data } = await api.get<ApiResponse<TaskLinksResponse>>(
       `/tasks/${taskId}/links`,
     );
-    return data.data;
+    return data.data.links;
   },
 
-  async create(taskId: string, linksToId: string): Promise<TaskLink> {
+  async create(taskId: string, payload: CreateLinkPayload): Promise<TaskLink> {
     const { data } = await api.post<ApiResponse<TaskLink>>(
-      `/tasks/${taskId}/links/${linksToId}`,
+      `/tasks/${taskId}/links`,
+      payload,
     );
     return data.data;
   },
 
-  async remove(taskId: string, linksToId: string): Promise<void> {
-    await api.delete(`/tasks/${taskId}/links/${linksToId}`);
+  async remove(taskId: string, linkId: string): Promise<void> {
+    await api.delete(`/tasks/${taskId}/links/${linkId}`);
   },
 };

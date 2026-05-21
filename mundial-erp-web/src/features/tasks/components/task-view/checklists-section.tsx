@@ -3,6 +3,8 @@
 import { ListChecks } from 'lucide-react';
 
 import type { TaskDetail } from '../../types/task.types';
+import { useChecklists } from '../../hooks/use-checklists';
+import { useCreateChecklist } from '../../hooks/use-create-checklist';
 
 import { ChecklistPanel } from './checklist-panel';
 import { CollapsibleSection } from './collapsible-section';
@@ -18,7 +20,16 @@ export type ChecklistsSectionProps = {
 };
 
 export function ChecklistsSection({ task }: ChecklistsSectionProps) {
-  const checklists = task.checklists ?? [];
+  const checklistsQuery = useChecklists(task.id);
+  const checklists = checklistsQuery.data ?? [];
+  const createChecklist = useCreateChecklist();
+
+  const handleCreate = () => {
+    createChecklist.mutate({
+      taskId: task.id,
+      payload: { title: 'Novo checklist' },
+    });
+  };
 
   return (
     <CollapsibleSection
@@ -28,13 +39,13 @@ export function ChecklistsSection({ task }: ChecklistsSectionProps) {
       counter={checklists.length > 0 ? checklists.length : undefined}
     >
       {checklists.length === 0 ? (
-        <EmptyCardCta label="Criar checklist" />
+        <EmptyCardCta label="Criar checklist" onClick={handleCreate} />
       ) : (
         <div className="flex flex-col gap-2">
           {checklists.map((cl) => (
             <ChecklistPanel key={cl.id} checklist={cl} />
           ))}
-          <EmptyCardCta label="Criar checklist" />
+          <EmptyCardCta label="Criar checklist" onClick={handleCreate} />
         </div>
       )}
     </CollapsibleSection>

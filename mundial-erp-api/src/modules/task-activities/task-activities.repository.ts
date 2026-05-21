@@ -50,7 +50,7 @@ export class TaskActivitiesRepository {
       where: {
         id: taskId,
         deletedAt: null,
-        process: { department: { workspaceId } },
+        list: { space: { workspaceId } },
       },
       select: { id: true },
     });
@@ -66,7 +66,7 @@ export class TaskActivitiesRepository {
 
     const where: Prisma.WorkItemActivityWhereInput = {
       workItemId: taskId,
-      workItem: { process: { department: { workspaceId } } },
+      workItem: { list: { space: { workspaceId } } },
     };
 
     if (type === 'COMMENT') {
@@ -102,18 +102,18 @@ export class TaskActivitiesRepository {
   }
 
   /**
-   * Bulk lookup de `WorkflowStatus` pelos ids — usado pelo service para
-   * enriquecer payloads de STATUS_CHANGED/CREATED com `{ name, color, category }`.
+   * Bulk lookup de `Status` pelos ids — usado pelo service para
+   * enriquecer payloads de STATUS_CHANGED/CREATED com `{ name, color, type }`.
    */
   async findStatusesByIds(
     ids: string[],
   ): Promise<
-    { id: string; name: string; color: string; category: string }[]
+    { id: string; name: string; color: string; type: string }[]
   > {
     if (ids.length === 0) return [];
-    return this.prisma.workflowStatus.findMany({
+    return this.prisma.status.findMany({
       where: { id: { in: ids } },
-      select: { id: true, name: true, color: true, category: true },
+      select: { id: true, name: true, color: true, type: true },
     });
   }
 

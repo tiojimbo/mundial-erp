@@ -4,8 +4,10 @@ import {
   Injectable,
   NestInterceptor,
 } from '@nestjs/common';
+import { Reflector } from '@nestjs/core';
 import { Observable, map } from 'rxjs';
 import { Request } from 'express';
+import { SKIP_RESPONSE_TRANSFORM_KEY } from '../decorators/skip-response-transform.decorator';
 
 export interface PaginatedResult<T> {
   items: T[];
@@ -35,12 +37,23 @@ export interface ApiResponse<T> {
 @Injectable()
 export class ResponseInterceptor<T> implements NestInterceptor<
   T,
-  ApiResponse<T>
+  ApiResponse<T> | T
 > {
+  constructor(private readonly reflector: Reflector) {}
+
   intercept(
     context: ExecutionContext,
     next: CallHandler,
-  ): Observable<ApiResponse<T>> {
+  ): Observable<ApiResponse<T> | T> {
+    const skipTransform = this.reflector.getAllAndOverride<boolean>(
+      SKIP_RESPONSE_TRANSFORM_KEY,
+      [context.getHandler(), context.getClass()],
+    );
+
+    if (skipTransform) {
+      return next.handle();
+    }
+
     const request = context.switchToHttp().getRequest<Request>();
     const requestId = request.headers['x-request-id'] as string;
 

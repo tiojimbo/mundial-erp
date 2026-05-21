@@ -72,15 +72,20 @@ export class KommoMessagesRepository {
       account: { connect: { id: accountId } },
       conversation: { connect: { id: conversationId } },
       direction: fields.direction,
-      authorAgentId: fields.authorAgentId ?? null,
+      ...(fields.authorAgentId
+        ? { authorAgent: { connect: { id: fields.authorAgentId } } }
+        : {}),
       contentPreview: fields.contentPreview,
       contentHash: fields.contentHash,
       ...(fields.createdAt !== undefined ? { createdAt: fields.createdAt } : {}),
     };
 
     const updateData: Prisma.KommoMessageUpdateInput = {};
-    if (fields.authorAgentId !== undefined)
-      updateData.authorAgentId = fields.authorAgentId;
+    if (fields.authorAgentId !== undefined) {
+      updateData.authorAgent = fields.authorAgentId
+        ? { connect: { id: fields.authorAgentId } }
+        : { disconnect: true };
+    }
     // contentPreview/contentHash sao write-once na pratica; permitimos
     // override apenas se o caller explicitamente enviou algo diferente.
     // Caso comum: nao sobrescrever.

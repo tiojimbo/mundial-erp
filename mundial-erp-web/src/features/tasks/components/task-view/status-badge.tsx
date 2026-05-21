@@ -8,16 +8,16 @@ import { cn } from '@/lib/cn';
 import * as Popover from '@/components/ui/popover';
 import type { TaskStatus } from '../../types/task.types';
 
-type StatusCategory = TaskStatus['category'];
+type StatusType = TaskStatus['type'];
 
-const CATEGORY_ORDER: StatusCategory[] = [
+const TYPE_ORDER: StatusType[] = [
   'NOT_STARTED',
   'ACTIVE',
   'DONE',
   'CLOSED',
 ];
 
-const CATEGORY_LABEL: Record<StatusCategory, string> = {
+const TYPE_LABEL: Record<StatusType, string> = {
   NOT_STARTED: 'Não iniciado',
   ACTIVE: 'Ativo',
   DONE: 'Feito',
@@ -27,7 +27,7 @@ const CATEGORY_LABEL: Record<StatusCategory, string> = {
 function StatusIndicator({ status }: { status: TaskStatus }) {
   const color = status.color || 'oklch(55% 0.01 60)';
 
-  if (status.category === 'NOT_STARTED') {
+  if (status.type === 'NOT_STARTED') {
     return (
       <svg width="16" height="16" viewBox="0 0 24 24" className="mr-2 shrink-0">
         <circle
@@ -43,7 +43,7 @@ function StatusIndicator({ status }: { status: TaskStatus }) {
     );
   }
 
-  if (status.category === 'ACTIVE') {
+  if (status.type === 'ACTIVE') {
     const progress = 0.33;
     const angle = progress * 2 * Math.PI;
     const x = 12 + 8.5 * Math.sin(angle);
@@ -104,9 +104,9 @@ export function StatusBadge({
   const color = status.color || 'oklch(55% 0.01 60)';
 
   const grouped = React.useMemo(() => {
-    return CATEGORY_ORDER.map((cat) => ({
-      category: cat,
-      items: availableStatuses.filter((s) => s.category === cat),
+    return TYPE_ORDER.map((t) => ({
+      type: t,
+      items: availableStatuses.filter((s) => s.type === t),
     })).filter((g) => g.items.length > 0);
   }, [availableStatuses]);
 
@@ -157,10 +157,10 @@ export function StatusBadge({
                 <Command.Empty className="py-6 text-center text-[12px] text-muted-foreground">
                   Nenhum status encontrado.
                 </Command.Empty>
-                {grouped.map(({ category, items }) => (
+                {grouped.map(({ type, items }) => (
                   <Command.Group
-                    key={category}
-                    heading={CATEGORY_LABEL[category]}
+                    key={type}
+                    heading={TYPE_LABEL[type]}
                     className="[&_[cmdk-group-heading]]:px-2 [&_[cmdk-group-heading]]:py-1.5 [&_[cmdk-group-heading]]:text-[11px] [&_[cmdk-group-heading]]:text-muted-foreground"
                   >
                     {items.map((s) => {
@@ -168,7 +168,7 @@ export function StatusBadge({
                       return (
                         <Command.Item
                           key={s.id}
-                          value={`${s.category}-${s.name}`}
+                          value={`${s.type}-${s.name}`}
                           onSelect={() => {
                             onStatusChange?.(s);
                             setOpen(false);

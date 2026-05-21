@@ -221,7 +221,7 @@ export class WorkItemsService {
   ): Promise<WorkItemResponseDto> {
     const process = await this.workItemsRepository.findProcessById(
       workspaceId,
-      dto.processId,
+      dto.listId,
     );
     if (!process) {
       throw new NotFoundException('Processo não encontrado');
@@ -235,14 +235,14 @@ export class WorkItemsService {
       throw new NotFoundException('Status não encontrado');
     }
 
-    if (process.departmentId && status.departmentId !== process.departmentId) {
+    if (process.spaceId && status.spaceId !== process.spaceId) {
       throw new BadRequestException(
         'Status não pertence ao departamento do processo',
       );
     }
 
     const entity = await this.workItemsRepository.create(workspaceId, {
-      processId: dto.processId,
+      listId: dto.listId,
       title: dto.title,
       description: dto.description,
       statusId: dto.statusId,
@@ -270,7 +270,7 @@ export class WorkItemsService {
       {
         skip: filters.skip,
         take: filters.limit,
-        processId: filters.processId,
+        listId: filters.listId,
         statusId: filters.statusId,
         // DTO externo continua `assigneeId` (compat); mapeado internamente ao
         // campo Prisma renomeado `primaryAssigneeCache` (ADR-001).
@@ -291,12 +291,12 @@ export class WorkItemsService {
 
   async findGrouped(
     workspaceId: string,
-    processId: string,
+    listId: string,
     showClosed = false,
   ) {
     const process = await this.workItemsRepository.findProcessById(
       workspaceId,
-      processId,
+      listId,
     );
     if (!process) {
       throw new NotFoundException('Processo não encontrado');
@@ -305,7 +305,7 @@ export class WorkItemsService {
     const { items, statuses } =
       await this.workItemsRepository.findGroupedByStatus(
         workspaceId,
-        processId,
+        listId,
         showClosed,
       );
 
@@ -327,8 +327,8 @@ export class WorkItemsService {
         statusId: status.id,
         statusName: status.name,
         statusColor: status.color,
-        statusIcon: status.icon,
-        category: status.category,
+        statusIcon: null,
+        category: status.type,
         count: 0,
         items: [],
       });
@@ -341,8 +341,8 @@ export class WorkItemsService {
           statusId: item.statusId,
           statusName: item.status?.name ?? 'Desconhecido',
           statusColor: item.status?.color ?? '#gray',
-          statusIcon: item.status?.icon ?? null,
-          category: item.status?.category ?? 'NOT_STARTED',
+          statusIcon: null,
+          category: item.status?.type ?? 'NOT_STARTED',
           count: 0,
           items: [],
         };
@@ -409,20 +409,20 @@ export class WorkItemsService {
       await this.validateStatusForProcess(
         workspaceId,
         dto.statusId,
-        entity.processId,
+        entity.listId,
       );
       updateData.statusId = dto.statusId;
     }
 
-    if (dto.processId !== undefined && dto.processId !== entity.processId) {
+    if (dto.listId !== undefined && dto.listId !== entity.listId) {
       const process = await this.workItemsRepository.findProcessById(
         workspaceId,
-        dto.processId,
+        dto.listId,
       );
       if (!process) {
         throw new NotFoundException('Processo não encontrado');
       }
-      updateData.processId = dto.processId;
+      updateData.listId = dto.listId;
     }
 
     const updated = await this.workItemsRepository.update(
@@ -446,7 +446,7 @@ export class WorkItemsService {
     await this.validateStatusForProcess(
       workspaceId,
       dto.statusId,
-      entity.processId,
+      entity.listId,
     );
 
     const updateData: Record<string, any> = { statusId: dto.statusId };
@@ -456,13 +456,13 @@ export class WorkItemsService {
       dto.statusId,
     );
     if (newStatus) {
-      if (newStatus.category === 'DONE' && !entity.completedAt) {
+      if (newStatus.type === 'DONE' && !entity.completedAt) {
         updateData.completedAt = new Date();
       }
-      if (newStatus.category === 'CLOSED' && !entity.closedAt) {
+      if (newStatus.type === 'CLOSED' && !entity.closedAt) {
         updateData.closedAt = new Date();
       }
-      if (newStatus.category !== 'DONE' && newStatus.category !== 'CLOSED') {
+      if (newStatus.type !== 'DONE' && newStatus.type !== 'CLOSED') {
         updateData.completedAt = null;
         updateData.closedAt = null;
       }
@@ -501,7 +501,7 @@ export class WorkItemsService {
   private async validateStatusForProcess(
     workspaceId: string,
     statusId: string,
-    processId: string,
+    listId: string,
   ): Promise<void> {
     const status = await this.workItemsRepository.findStatusById(
       workspaceId,
@@ -513,13 +513,13 @@ export class WorkItemsService {
 
     const process = await this.workItemsRepository.findProcessById(
       workspaceId,
-      processId,
+      listId,
     );
     if (!process) {
       throw new NotFoundException('Processo não encontrado');
     }
 
-    if (process.departmentId && status.departmentId !== process.departmentId) {
+    if (process.spaceId && status.spaceId !== process.spaceId) {
       throw new BadRequestException(
         'Status não pertence ao departamento do processo',
       );

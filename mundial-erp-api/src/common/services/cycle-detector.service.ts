@@ -3,58 +3,26 @@ import type { Prisma } from '@prisma/client';
 import { CycleDetectionTimeoutException } from '../exceptions/cycle-detection-timeout.exception';
 import { DependencyGraphTooLargeException } from '../exceptions/dependency-graph-too-large.exception';
 
-/**
- * Cliente Prisma aceito pelo detector: tanto o `PrismaClient` direto quanto
- * um `Prisma.TransactionClient` ($transaction). Em ambos os casos precisamos
- * apenas dos delegates `workItemDependency` e `workItem`.
- */
-type CycleDetectorPrismaClient = Pick<
-  Prisma.TransactionClient,
-  'workItemDependency' | 'workItem'
->;
-
-export type CycleRelation = 'dependency' | 'subtask';
+type CycleDetectorPrismaClient = Pick<Prisma.TransactionClient, 'workItem'>;
 
 export interface DetectCycleParams {
-  /** Origem da aresta que se pretende criar (ex.: tarefa que bloqueia). */
   fromId: string;
-  /** Destino da aresta que se pretende criar (ex.: tarefa bloqueada). */
   toId: string;
-  /**
-   * - `dependency`: segue `WorkItemDependency.toTaskId` (edges saindo via
-   *   `WorkItem.dependenciesOut`). Detecta se criar aresta `from -> to`
-   *   fecharia um ciclo no grafo de dependencias.
-   * - `subtask`: segue `WorkItem.parentId` invertido (dado um node, pergunta
-   *   "quem sao meus filhos?"). Usado para validar se o `target` de um merge
-   *   e descendente de algum `source` (merge-cycle guard).
-   */
-  relation: CycleRelation;
-  /**
-   * Cliente Prisma (ou transaction client). Exigir injecao explicita permite
-   * o servico rodar dentro de qualquer `$transaction`.
-   */
   tx: CycleDetectorPrismaClient;
 }
 
-/**
- * Limites defensivos (DoS guard) — ver PLANO-TASKS.md §8.3 e agent-cto.md.
- * Publicos para testes/observabilidade.
- */
 export const CYCLE_DETECTOR_NODE_LIMIT = 1000;
 export const CYCLE_DETECTOR_TIMEOUT_MS = 2000;
 
 /**
- * BFS de deteccao de ciclo sobre o grafo de dependencias ou de subtasks.
+ * BFS de deteccao de ciclo na hierarquia de subtasks (parent/child).
+ * Usado por merge e operacoes que reorganizam a arvore de tasks.
  *
  * Contratos:
- *   - Parte de `toId`. Se alcancar `fromId`, retorna `true`.
- *   - Parada dura: 1000 nodes visitados -> {@link DependencyGraphTooLargeException}.
- *   - Parada temporal: 2s -> {@link CycleDetectionTimeoutException} (Promise.race).
- *   - Cold path (sem relacoes) retorna `false` sem bloquear o event-loop.
- *
- * Complexidade: O(V + E) no caminho feliz; limitada a O(1000) arestas
- * traversadas no pior caso pelo node-limit. Cada fetch e um roundtrip
- * batched em `IN (...)` quando ha fan-out.
+ *   - Parte de `toId` e segue `WorkItem.parentId` invertido (filhos diretos).
+ *   - Se alcancar `fromId`, retorna `true` (criar `from -> to` fecha ciclo).
+ *   - Limite duro: 1000 nodes -> {@link DependencyGraphTooLargeException}.
+ *   - Timeout: 2s -> {@link CycleDetectionTimeoutException}.
  */
 @Injectable()
 export class CycleDetectorService {
@@ -63,7 +31,6 @@ export class CycleDetectorService {
   async detectCycle(params: DetectCycleParams): Promise<boolean> {
     const { fromId, toId } = params;
 
-    // Caso trivial: a aresta `from -> from` ja e um ciclo.
     if (fromId === toId) {
       return true;
     }
@@ -76,7 +43,6 @@ export class CycleDetectorService {
       timer = setTimeout(() => {
         reject(new CycleDetectionTimeoutException(timeoutMs));
       }, timeoutMs);
-      // Evita segurar o event-loop no shutdown do Node.
       if (typeof timer.unref === 'function') {
         timer.unref();
       }
@@ -92,7 +58,7 @@ export class CycleDetectorService {
   }
 
   private async bfs(params: DetectCycleParams): Promise<boolean> {
-    const { fromId, toId, relation, tx } = params;
+    const { fromId, toId, tx } = params;
     const limit = CYCLE_DETECTOR_NODE_LIMIT;
     const visited = new Set<string>();
     const queue: string[] = [toId];
@@ -105,10 +71,9 @@ export class CycleDetectorService {
         throw new DependencyGraphTooLargeException(visited.size, limit);
       }
 
-      const neighbors = await this.fetchNeighbors(tx, relation, current);
+      const neighbors = await this.fetchChildren(tx, current);
       for (const neighborId of neighbors) {
         if (neighborId === fromId) {
-          // Alcancamos o `from` a partir do `to` -> criar `from -> to` fecha ciclo.
           return true;
         }
         if (!visited.has(neighborId)) {
@@ -124,21 +89,10 @@ export class CycleDetectorService {
     return false;
   }
 
-  private async fetchNeighbors(
+  private async fetchChildren(
     tx: CycleDetectorPrismaClient,
-    relation: CycleRelation,
     nodeId: string,
   ): Promise<string[]> {
-    if (relation === 'dependency') {
-      const rows = await tx.workItemDependency.findMany({
-        where: { fromTaskId: nodeId },
-        select: { toTaskId: true },
-      });
-      return rows.map((row) => row.toTaskId);
-    }
-
-    // relation === 'subtask' -> filhos diretos (children). Um ciclo ocorre se,
-    // descendo pela subtree, reencontramos o `fromId`.
     const rows = await tx.workItem.findMany({
       where: { parentId: nodeId, deletedAt: null },
       select: { id: true },

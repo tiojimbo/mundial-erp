@@ -13,7 +13,7 @@ import { TaskPriority, WorkItemType } from '@prisma/client';
 export class CreateWorkItemDto {
   @ApiProperty({ example: 'clxxxxxxxxxxxxxxxxxxxxxxxxx' })
   @IsString()
-  processId: string;
+  listId: string;
 
   @ApiProperty({ example: 'Implementar funcionalidade X' })
   @IsString()

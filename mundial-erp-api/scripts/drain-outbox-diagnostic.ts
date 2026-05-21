@@ -93,14 +93,14 @@ async function main() {
     select: {
       id: true,
       title: true,
-      process: { select: { department: { select: { workspaceId: true, name: true } } } },
+      list: { select: { space: { select: { workspaceId: true, name: true } } } },
     },
     orderBy: { createdAt: 'desc' },
   });
   console.log('\n[task -> workspace]');
   for (const t of tasksWs) {
-    const ws = t.process?.department?.workspaceId ?? 'NULL';
-    const dp = t.process?.department?.name ?? '?';
+    const ws = t.list?.space?.workspaceId ?? 'NULL';
+    const dp = t.list?.space?.name ?? '?';
     console.log(`  ${t.id} | ws=${ws} | dept=${dp} | ${t.title.slice(0, 40)}`);
   }
 
@@ -118,7 +118,7 @@ async function main() {
   const items = await prisma.workItemActivity.findMany({
     where: {
       workItemId: testTaskId,
-      workItem: { process: { department: { workspaceId: testWorkspaceId } } },
+      workItem: { list: { space: { workspaceId: testWorkspaceId } } },
     },
     orderBy: { createdAt: 'desc' },
     take: 20,

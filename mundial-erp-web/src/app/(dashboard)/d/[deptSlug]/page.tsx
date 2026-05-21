@@ -2,8 +2,8 @@
 
 import { useState } from 'react';
 import { useParams, useRouter } from 'next/navigation';
-import { RiStarLine, RiArrowDownSLine } from '@remixicon/react';
-import { ProcessListView } from '@/features/work-items/components/process-list-view';
+import { BreadcrumbTrail } from '@/components/layout/breadcrumb-trail';
+import { ProcessListView } from '@/features/processes/components/process-list-view';
 import { useDepartmentDetail } from '@/features/navigation/hooks/use-department-detail';
 import { useDepartmentSummaries } from '@/features/navigation/hooks/use-department-summaries';
 import type { ProcessSummary } from '@/features/navigation/types/process-summary.types';
@@ -42,26 +42,10 @@ export default function DepartmentPage() {
     <>
       <ProcessListView
         header={
-          <header className="flex items-center gap-[6px] px-10 py-4">
-            {department.icon && (
-              <span className="mr-0.5 text-base">{department.icon}</span>
-            )}
-            <span className="max-w-[300px] truncate text-[13px] font-semibold tracking-[-0.143px] text-text-strong-950">
-              {department.name}
-            </span>
-            <button
-              type="button"
-              className="flex items-center text-text-sub-600 transition-colors hover:text-text-strong-950"
-            >
-              <RiArrowDownSLine className="size-3.5" />
-            </button>
-            <button
-              type="button"
-              className="ml-1 text-text-sub-600 transition-colors hover:text-text-strong-950"
-            >
-              <RiStarLine className="size-3.5" />
-            </button>
-          </header>
+          <BreadcrumbTrail
+            items={[{ label: department.name }]}
+            favoriteTarget={{ entityType: 'SPACE', entityId: department.id }}
+          />
         }
         summaries={summaries}
         isSummariesLoading={isSummariesLoading}
@@ -74,6 +58,7 @@ export default function DepartmentPage() {
         departmentId={department.id}
         emptyMessage="Nenhum processo neste departamento."
         onCreateTask={() => setIsCreateOpen(true)}
+        customFieldsScope={{ kind: 'space', spaceId: department.id }}
       />
       <CreateTaskDialog
         open={isCreateOpen}

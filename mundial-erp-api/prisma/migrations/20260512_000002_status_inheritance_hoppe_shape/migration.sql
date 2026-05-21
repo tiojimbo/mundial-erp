@@ -1,0 +1,1 @@
+ALTER TYPE "StatusInheritance" RENAME VALUE 'OWN' TO 'CUSTOM';

@@ -8,6 +8,7 @@ import {
   Param,
   Patch,
   Post,
+  Put,
   Query,
 } from '@nestjs/common';
 import {
@@ -72,18 +73,14 @@ export class WorkItemsController {
   @Get('grouped')
   @Roles(Role.ADMIN, Role.MANAGER, Role.OPERATOR, Role.VIEWER)
   @ApiOperation({ summary: 'Listar work items agrupados por status' })
-  @ApiQuery({ name: 'processId', required: true })
+  @ApiQuery({ name: 'listId', required: true })
   @ApiQuery({ name: 'showClosed', required: false, type: Boolean })
   findGrouped(
     @WorkspaceId() workspaceId: string,
-    @Query('processId') processId: string,
+    @Query('listId') listId: string,
     @Query('showClosed') showClosed?: boolean,
   ) {
-    return this.workItemsService.findGrouped(
-      workspaceId,
-      processId,
-      showClosed,
-    );
+    return this.workItemsService.findGrouped(workspaceId, listId, showClosed);
   }
 
   @Get(':id')
@@ -95,6 +92,7 @@ export class WorkItemsController {
     return this.workItemsService.findById(workspaceId, id);
   }
 
+  @Put(':id')
   @Patch(':id')
   @Roles(Role.ADMIN, Role.MANAGER, Role.OPERATOR)
   @ApiOperation({ summary: 'Atualizar work item' })
@@ -107,6 +105,7 @@ export class WorkItemsController {
     return this.workItemsService.update(workspaceId, id, dto);
   }
 
+  @Put(':id/status')
   @Patch(':id/status')
   @Roles(Role.ADMIN, Role.MANAGER, Role.OPERATOR)
   @ApiOperation({ summary: 'Alterar status do work item' })

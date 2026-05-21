@@ -53,18 +53,22 @@ export function LinkedTasksSection({ task }: LinkedTasksSectionProps) {
         <ul className="flex flex-col gap-1">
           {links.map((link) => (
             <li
-              key={link.id}
+              key={link.linkId}
               className="flex items-center gap-2 rounded-lg border border-border/60 px-3 py-2 text-[13px] hover:bg-muted/40"
             >
               <Link2 className="h-3.5 w-3.5 text-muted-foreground" />
               <a
-                href={`/tasks/${link.toTaskId}`}
+                href={`/tasks/${link.task.id}`}
                 className="flex-1 truncate hover:underline"
               >
-                {link.toTaskId}
+                {link.task.title}
               </a>
               <span className="text-[11px] text-muted-foreground">
-                relacionada
+                {link.type === 'RELATES_TO'
+                  ? 'relacionada'
+                  : link.type === 'DUPLICATES'
+                    ? 'duplica'
+                    : 'duplicada por'}
               </span>
             </li>
           ))}

@@ -3,6 +3,7 @@ import {
   NotFoundException,
   BadRequestException,
 } from '@nestjs/common';
+import { EventEmitter2 } from '@nestjs/event-emitter';
 import { NotificationStatus } from '@prisma/client';
 import { NotificationsRepository } from './notifications.repository';
 import { NotificationResponseDto } from './dto/notification-response.dto';
@@ -10,24 +11,42 @@ import { NotificationsListResponseDto } from './dto/notification-counts.dto';
 import { CreateNotificationDto } from './dto/create-notification.dto';
 import { SnoozeNotificationDto } from './dto/snooze-notification.dto';
 import { BulkActionDto } from './dto/bulk-action.dto';
+import { NotificationQueryDto } from './dto/notification-query.dto';
 
 @Injectable()
 export class NotificationsService {
   constructor(
     private readonly notificationsRepository: NotificationsRepository,
+    private readonly eventEmitter: EventEmitter2,
   ) {}
 
   async findByView(
     userId: string,
-    view: string,
+    query: NotificationQueryDto,
   ): Promise<NotificationsListResponseDto> {
-    const [items, counts] = await Promise.all([
-      this.notificationsRepository.findByView(userId, view as any),
+    const skip = query.skip ?? 0;
+    const limit = query.limit ?? 20;
+    const [{ items, total }, counts] = await Promise.all([
+      this.notificationsRepository.findByView(userId, query.view as any, {
+        skip,
+        take: limit,
+      }),
       this.notificationsRepository.getCounts(userId),
     ]);
 
+    const page = Math.floor(skip / limit) + 1;
+    const totalPages = Math.max(1, Math.ceil(total / limit));
+
     return {
-      items: items.map(NotificationResponseDto.fromEntity),
+      notifications: items.map(NotificationResponseDto.fromEntity),
+      meta: {
+        total,
+        page,
+        limit,
+        totalPages,
+        hasNextPage: page < totalPages,
+        hasPreviousPage: page > 1,
+      },
       counts,
     };
   }
@@ -113,6 +132,11 @@ export class NotificationsService {
     await this.notificationsRepository.deleteAllCleared(userId);
   }
 
+  async remove(userId: string, id: string): Promise<void> {
+    await this.findAndValidateOwnership(userId, id);
+    await this.notificationsRepository.softDelete(id);
+  }
+
   async create(dto: CreateNotificationDto): Promise<NotificationResponseDto> {
     const notification = await this.notificationsRepository.create({
       user: { connect: { id: dto.userId } },
@@ -123,6 +147,11 @@ export class NotificationsService {
       entityId: dto.entityId,
       entityUrl: dto.entityUrl,
     });
-    return NotificationResponseDto.fromEntity(notification);
+    const response = NotificationResponseDto.fromEntity(notification);
+    this.eventEmitter.emit('notification.created', {
+      userId: dto.userId,
+      notification: response,
+    });
+    return response;
   }
 }

@@ -5,17 +5,20 @@ import {
   Injectable,
   Logger,
   NotFoundException,
+  Optional,
   forwardRef,
 } from '@nestjs/common';
-import { Prisma } from '@prisma/client';
+import { ConfigService } from '@nestjs/config';
+import { Prisma, TaskPriority } from '@prisma/client';
 import type Redis from 'ioredis';
 import { PrismaService } from '../../database/prisma.service';
 import { REDIS_CLIENT } from '../../common/redis/redis.constants';
 import { MergeCycleException } from '../../common/exceptions/merge-cycle.exception';
-import { TasksRepository } from './tasks.repository';
+import { TasksRepository, TASK_LIST_SELECT } from './tasks.repository';
 import { TaskFiltersDto } from './dtos/task-filters.dto';
 import { CreateTaskDto } from './dtos/create-task.dto';
 import { UpdateTaskDto } from './dtos/update-task.dto';
+import { AssignTaskDto } from './dtos/assign-task.dto';
 import { MergeTasksDto } from './dtos/merge-tasks.dto';
 import { TaskResponseDto } from './dtos/task-response.dto';
 import {
@@ -24,12 +27,17 @@ import {
   TaskWatcherSummaryDto,
 } from './dtos/task-detail-response.dto';
 import { TaskOutboxService } from '../task-outbox/task-outbox.service';
-import { TaskDependenciesRepository } from '../task-dependencies/task-dependencies.repository';
 import { TaskLinksRepository } from '../task-links/task-links.repository';
+import { TaskTypeTemplatesRepository } from '../task-type-templates/task-type-templates.repository';
+import {
+  TASK_TYPE_TEMPLATES_METRICS,
+  type TaskTypeTemplatesMetrics,
+} from '../task-type-templates/task-type-templates.metrics';
 import { AssigneesSyncService } from './services/assignees-sync.service';
 import { WatchersSyncService } from './services/watchers-sync.service';
 import { TagsSyncService } from './services/tags-sync.service';
 import { diffWorkItem } from './helpers/diff-work-item';
+import { TaskEventsPublisher } from '../automations/events/task-events.publisher';
 
 /**
  * Envelope canonico `{data, meta}` retornado por todas as rotas deste modulo.
@@ -64,6 +72,12 @@ export interface MergeResult {
 /** TTL do cache de idempotencia de merge (24h — §8.4). */
 const MERGE_IDEMPOTENCY_TTL_SECONDS = 24 * 60 * 60;
 
+/** Caps duros dos endpoints Hoppe agrupados (HPP-051..054). */
+const SPACE_GROUPED_CAP = 500;
+const LIST_GROUPED_CAP = 500;
+const SUBTASKS_CAP = 500;
+const MY_TASKS_CAP = 1000;
+
 @Injectable()
 export class TasksService {
   private readonly logger = new Logger(TasksService.name);
@@ -74,7 +88,6 @@ export class TasksService {
     // Escritas/leitoras vao sempre via repositories, recebendo `tx`.
     private readonly prisma: PrismaService,
     private readonly repository: TasksRepository,
-    private readonly depsRepository: TaskDependenciesRepository,
     private readonly linksRepository: TaskLinksRepository,
     @Inject(forwardRef(() => TaskOutboxService))
     private readonly outbox: TaskOutboxService,
@@ -82,6 +95,34 @@ export class TasksService {
     private readonly watchersSync: WatchersSyncService,
     private readonly tagsSync: TagsSyncService,
     @Inject(REDIS_CLIENT) private readonly redis: Redis,
+    /**
+     * Task Type Templates (M2 — TTT-031/TTT-032).
+     *
+     * `@Optional()` para preservar o construtor em testes unitarios que ja
+     * existem e instanciam `new TasksService(...)` posicionalmente sem
+     * conhecimento de M2. Sem o repository disponivel (e.g., specs de unidade
+     * legados), `create` cai no fluxo legado (sem template) — comportamento
+     * idempotente por design.
+     *
+     * `ConfigService` tambem opcional: a flag
+     * `FEATURE_TASK_TYPE_TEMPLATES_ENABLED` so e consultada quando o
+     * repository foi injetado, entao a ausencia de config equivale a flag
+     * OFF (fluxo legado).
+     */
+    @Optional()
+    private readonly taskTypeTemplatesRepository?: TaskTypeTemplatesRepository,
+    @Optional()
+    private readonly config?: ConfigService,
+    /**
+     * Sprint 5 (TTT-050) — incrementa contador apos commit do create
+     * quando template foi aplicado. `@Optional()` mantem retro-compat
+     * com testes que instanciam `new TasksService(...)` sem M2.
+     */
+    @Optional()
+    @Inject(TASK_TYPE_TEMPLATES_METRICS)
+    private readonly templatesMetrics?: TaskTypeTemplatesMetrics,
+    @Optional()
+    private readonly automationEvents?: TaskEventsPublisher,
   ) {}
 
   /**
@@ -90,7 +131,7 @@ export class TasksService {
    * Fluxo:
    *   1. Valida cross-tenant: process pertence ao workspace (404 se nao — §8.1).
    *   2. Resolve statusId: usa `dto.statusId` se fornecido, senao primeiro
-   *      `WorkflowStatus NOT_STARTED` do departamento do process.
+   *      `Status NOT_STARTED` do departamento do process.
    *   3. Valida datas: `dueDate >= startDate` (400 se invalido).
    *   4. Em `$transaction`:
    *      a. `repository.createTask(tx, ...)` — cria WorkItem via repository.
@@ -101,7 +142,7 @@ export class TasksService {
    *      d. `tagsSync.syncTags(tx, ...)` se houver.
    *      e. Enqueue outbox `CREATED`.
    *      f. Recarrega pelo select padrao (cache de assignee ja refletido).
-   *   5. Envelope `{ data, meta: { processId, taskId } }`.
+   *   5. Envelope `{ data, meta: { listId, taskId } }`.
    *
    * Budget de queries (best case sem colecoes): process-in-ws(1) + status(2)
    * + create(1) + outbox(1) + findBySelect(1) = 6. Com colecoes cheias:
@@ -109,31 +150,41 @@ export class TasksService {
    */
   async create(
     workspaceId: string,
-    processId: string,
     dto: CreateTaskDto,
     actorUserId: string,
   ): Promise<TaskResponseDto> {
-    // 1) Cross-tenant 404 antes de qualquer coisa (§8.1).
+    // HPP-061: listId vem do body (obrigatorio via DTO). Cross-tenant 404
+    // antes de qualquer coisa.
+    const listId = dto.listId;
     const process = await this.repository.findProcessInWorkspace(
       workspaceId,
-      processId,
+      listId,
     );
     if (!process) {
-      throw new NotFoundException('Process nao encontrado');
+      throw new NotFoundException('List nao encontrada');
     }
+
+    // Aliases Hoppe (gap 6): title <- name; parentId <- parentTaskId.
+    const title = dto.title ?? dto.name;
+    if (!title) {
+      throw new BadRequestException('title ou name e obrigatorio');
+    }
+    const parentId = dto.parentId ?? dto.parentTaskId ?? null;
 
     // 2) Resolve statusId (dto tem prioridade; fallback NOT_STARTED padrao).
     let statusId = dto.statusId;
     if (!statusId) {
       const defaultStatus =
-        await this.repository.findFirstStatusForProcess(processId);
+        await this.repository.findFirstStatusForProcess(listId);
       if (!defaultStatus) {
         throw new BadRequestException(
-          'Nenhum WorkflowStatus NOT_STARTED disponivel para este process',
+          'Nenhum Status NOT_STARTED disponivel para este process',
         );
       }
       statusId = defaultStatus.id;
     }
+
+    const customTypeId = dto.customTypeId ?? null;
 
     // 3) Datas: dueDate >= startDate (espelhando regra do update).
     if (dto.dueDate && dto.startDate && dto.dueDate < dto.startDate) {
@@ -141,29 +192,45 @@ export class TasksService {
     }
 
     // 4) Transacao atomica: create + colecoes + outbox.
+    let templateApplied = false;
     const row = await this.prisma.$transaction(async (tx) => {
+      // 4.0) Template defaults (TTT-032): se a flag esta ON E ha customTypeId,
+      // tentamos resolver o template pelo `customTypeId` e aplicar
+      // `defaultDescriptionBlocks` em `markdownContent` quando o cliente nao
+      // enviou descricao (ou enviou somente blocos vazios). Read-only do
+      // template — nada de mutacao em M2 aqui. Cross-tenant filtrado dentro
+      // do proprio repository (visibilidade via `customTaskType.workspaceId`).
+      // Falha de leitura nao pode quebrar create — degrada gracefully.
+      const resolved = await this.resolveMarkdownContentWithTemplate(
+        tx,
+        dto.markdownContent,
+        customTypeId ?? undefined,
+        workspaceId,
+      );
+      templateApplied = resolved.templateApplied;
+
       const created = await this.repository.createTask(tx, {
-        processId,
-        title: dto.title,
+        listId,
+        title,
         description: dto.description ?? null,
-        markdownContent: dto.markdownContent ?? null,
+        markdownContent: resolved.markdown,
         statusId,
         priority: dto.priority,
         dueDate: dto.dueDate ? new Date(dto.dueDate) : null,
         startDate: dto.startDate ? new Date(dto.startDate) : null,
         estimatedMinutes: dto.estimatedMinutes ?? null,
         points: dto.points ?? null,
-        customTypeId: dto.customTypeId ?? null,
-        parentId: dto.parentId ?? null,
+        customTypeId,
+        parentId,
         creatorId: actorUserId,
       });
 
       const taskId = created.id;
 
-      if (dto.assignees?.length) {
+      if (dto.assigneeIds?.length) {
         await this.assigneesSync.syncAssignees(tx, {
           taskId,
-          add: dto.assignees,
+          add: dto.assigneeIds,
           rem: [],
           actorUserId,
           workspaceId,
@@ -197,10 +264,10 @@ export class TasksService {
         eventType: 'CREATED',
         payload: {
           taskId,
-          processId,
+          listId,
           actorId: actorUserId,
           workspaceId,
-          title: dto.title,
+          title,
           statusId,
           priority: dto.priority ?? null,
           dueDate: dto.dueDate ? new Date(dto.dueDate).toISOString() : null,
@@ -208,7 +275,7 @@ export class TasksService {
             ? new Date(dto.startDate).toISOString()
             : null,
           points: dto.points ?? null,
-          customTypeId: dto.customTypeId ?? null,
+          customTypeId,
         },
         workspaceId,
       });
@@ -218,9 +285,37 @@ export class TasksService {
       return this.repository.findBySelect(taskId, tx);
     });
 
+    // Sprint 5 (TTT-050) — incrementa contador apos commit. Adapter Noop
+    // ou Prometheus dependendo de METRICS_TOKEN. Nunca quebra create.
+    if (templateApplied && customTypeId && this.templatesMetrics) {
+      this.templatesMetrics.templatesInstantiatedTotal({
+        customTypeId,
+        workspaceId,
+      });
+    }
+
     this.logger.log(
-      `task.created task=${row.id} process=${processId} ws=${workspaceId} actor=${actorUserId}`,
+      `task.created task=${row.id} process=${listId} ws=${workspaceId} actor=${actorUserId}`,
     );
+
+    this.automationEvents?.emitTaskCreated({
+      workspaceId,
+      taskId: row.id,
+      listId,
+      actorUserId,
+      parentTaskId: dto.parentId ?? null,
+      customTaskTypeId: customTypeId,
+    });
+    if (dto.parentId) {
+      this.automationEvents?.emitSubtaskCreated({
+        workspaceId,
+        taskId: row.id,
+        listId,
+        actorUserId,
+        parentTaskId: dto.parentId,
+        subtaskId: row.id,
+      });
+    }
 
     // O envelope `{data, meta}` e adicionado pelo `ResponseInterceptor` global
     // — service retorna apenas o DTO para nao duplicar wrap (seria `data.data`
@@ -249,6 +344,542 @@ export class TasksService {
         direction: filters.direction,
       },
     };
+  }
+
+  /**
+   * HPP-051 — `GET /tasks/space/:spaceId`. Retorna grupos por list, cada
+   * um com `{ list: { id, name, folder }, tasks[] }`. 1 query agregada;
+   * agrupamento em memoria.
+   */
+  async findBySpace(
+    workspaceId: string,
+    spaceId: string,
+  ): Promise<
+    Array<{
+      list: {
+        id: string;
+        name: string;
+        folder: { id: string; name: string } | null;
+      };
+      tasks: TaskResponseDto[];
+    }>
+  > {
+    const space = await this.prisma.space.findFirst({
+      where: { id: spaceId, workspaceId, deletedAt: null },
+      select: { id: true },
+    });
+    if (!space) {
+      throw new NotFoundException('Space nao encontrado');
+    }
+
+    const rows = await this.repository.findBySpaceGrouped(
+      workspaceId,
+      spaceId,
+      SPACE_GROUPED_CAP,
+    );
+    if (rows.length === SPACE_GROUPED_CAP) {
+      this.logger.warn(
+        `findBySpace cap atingido space=${spaceId} cap=${SPACE_GROUPED_CAP} ws=${workspaceId}`,
+      );
+    }
+
+    const groups = new Map<
+      string,
+      {
+        list: {
+          id: string;
+          name: string;
+          folder: { id: string; name: string } | null;
+        };
+        tasks: TaskResponseDto[];
+      }
+    >();
+    for (const row of rows) {
+      const list = row.list as {
+        id: string;
+        name: string;
+        folder: { id: string; name: string } | null;
+      };
+      if (!groups.has(list.id)) {
+        groups.set(list.id, {
+          list: { id: list.id, name: list.name, folder: list.folder ?? null },
+          tasks: [],
+        });
+      }
+      const taskRow = { ...row, processId: row.listId } as unknown as Record<
+        string,
+        unknown
+      >;
+      groups.get(list.id)!.tasks.push(TaskResponseDto.fromRow(taskRow));
+    }
+
+    return Array.from(groups.values());
+  }
+
+  /**
+   * HPP-052 — `GET /tasks/list?viewId=&level=`. Resolve escopo, busca tasks
+   * + statuses elegiveis, agrupa por status. Response Hoppe:
+   * `[{ group: { id, name, label, type:STATUS, ... }, tasks: [...] }]`.
+   */
+  async findByListGrouped(
+    workspaceId: string,
+    params: {
+      viewId?: string;
+      level?: string;
+      listId?: string;
+      folderId?: string;
+      spaceId?: string;
+    },
+  ): Promise<
+    Array<{
+      group: {
+        id: string;
+        name: string;
+        label: string;
+        type: 'STATUS';
+        collapsed: boolean;
+        field: 'statusId';
+        position: number;
+        viewId: string | null;
+        color: string;
+      };
+      tasks: TaskResponseDto[];
+    }>
+  > {
+    const scope = await this.resolveListGroupedScope(workspaceId, params);
+
+    const [taskRows, statuses] = await Promise.all([
+      this.repository.findByScope(
+        workspaceId,
+        { level: scope.level, id: scope.id },
+        LIST_GROUPED_CAP,
+      ),
+      this.repository.findStatusesForScope(workspaceId, scope),
+    ]);
+    if (taskRows.length === LIST_GROUPED_CAP) {
+      this.logger.warn(
+        `findByListGrouped cap atingido scope=${scope.level}:${scope.id} cap=${LIST_GROUPED_CAP} ws=${workspaceId}`,
+      );
+    }
+
+    const tasksByStatus = new Map<string, TaskResponseDto[]>();
+    for (const row of taskRows) {
+      const taskRow = { ...row, processId: row.listId } as unknown as Record<
+        string,
+        unknown
+      >;
+      const dto = TaskResponseDto.fromRow(taskRow);
+      const list = tasksByStatus.get(dto.statusId);
+      if (list) {
+        list.push(dto);
+      } else {
+        tasksByStatus.set(dto.statusId, [dto]);
+      }
+    }
+
+    return statuses.map((status) => ({
+      group: {
+        id: status.id,
+        name: status.name,
+        label: status.type,
+        type: 'STATUS' as const,
+        collapsed: false,
+        field: 'statusId' as const,
+        position: status.position,
+        viewId: params.viewId ?? null,
+        color: status.color,
+      },
+      tasks: tasksByStatus.get(status.id) ?? [],
+    }));
+  }
+
+  /**
+   * HPP-057 — `DELETE /tasks/:id/assignees/:userId`. Remove individual.
+   * Idempotente: usuario nao-assignee retorna 200 sem efeito (sync ignora P2025).
+   */
+  async removeAssignee(
+    workspaceId: string,
+    taskId: string,
+    userId: string,
+    actorId: string,
+  ): Promise<{ message: string }> {
+    const task = await this.repository.findExistenceRow(workspaceId, taskId);
+    if (!task) {
+      throw new NotFoundException('Task nao encontrada');
+    }
+    await this.prisma.$transaction(async (tx) => {
+      await this.assigneesSync.syncAssignees(tx, {
+        taskId,
+        add: [],
+        rem: [userId],
+        actorUserId: actorId,
+        workspaceId,
+      });
+    });
+    this.automationEvents?.emitAssigneeRemoved({
+      workspaceId,
+      taskId,
+      listId: task.listId,
+      actorUserId: actorId,
+      userId,
+    });
+    return { message: 'Assignee removido' };
+  }
+
+  /**
+   * HPP-056 — `PUT /tasks/:id/assign`. Substitui a lista completa.
+   * Body `{ assignees: [{ userId }, ...] }`. Lista vazia volta o creator.
+   * Calcula delta {add,rem} e aplica via AssigneesSyncService dentro de tx.
+   */
+  async assign(
+    workspaceId: string,
+    taskId: string,
+    dto: AssignTaskDto,
+    actorId: string,
+  ): Promise<
+    Array<{
+      id: string;
+      user: { id: string; name: string; email: string };
+      permission: string | null;
+      createdAt: Date;
+    }>
+  > {
+    const task = await this.repository.findAssignContext(workspaceId, taskId);
+    if (!task) {
+      throw new NotFoundException('Task nao encontrada');
+    }
+
+    const requested = Array.from(
+      new Set(dto.assignees.map((a) => a.userId)),
+    ).filter((id) => id.length > 0);
+    const target = requested.length === 0 ? [task.creatorId] : requested;
+    const targetSet = new Set(target);
+
+    // HPP-056 fix: read e diff DENTRO da tx para evitar race com syncs
+    // concorrentes. PostgreSQL default READ COMMITTED garante que o read
+    // veja somente commits anteriores ao inicio da tx; o syncAssignees
+    // ignora P2002/P2025 idempotentemente quando colide.
+    let addedIds: string[] = [];
+    let removedIds: string[] = [];
+    await this.prisma.$transaction(async (tx) => {
+      const currentIds = await this.repository.findAssigneeIds(taskId, tx);
+      const currentSet = new Set(currentIds);
+      const add = target.filter((id) => !currentSet.has(id));
+      const rem = currentIds.filter((id) => !targetSet.has(id));
+      if (add.length === 0 && rem.length === 0) return;
+      addedIds = add;
+      removedIds = rem;
+      await this.assigneesSync.syncAssignees(tx, {
+        taskId,
+        add,
+        rem,
+        actorUserId: actorId,
+        workspaceId,
+      });
+    });
+
+    for (const userId of addedIds) {
+      this.automationEvents?.emitTaskAssigned({
+        workspaceId,
+        taskId,
+        listId: task.listId,
+        actorUserId: actorId,
+        userId,
+      });
+    }
+    for (const userId of removedIds) {
+      this.automationEvents?.emitAssigneeRemoved({
+        workspaceId,
+        taskId,
+        listId: task.listId,
+        actorUserId: actorId,
+        userId,
+      });
+    }
+
+    return this.findAssignees(workspaceId, taskId);
+  }
+
+  /**
+   * HPP-055 — `GET /tasks/:id/assignees`. Response Hoppe:
+   * `[{ id: userId, user: { id, name, email }, permission, createdAt }]`.
+   * `permission` retorna null ate ter mapeamento (Member* em Sprints futuros).
+   */
+  async findAssignees(
+    workspaceId: string,
+    taskId: string,
+  ): Promise<
+    Array<{
+      id: string;
+      user: { id: string; name: string; email: string };
+      permission: string | null;
+      createdAt: Date;
+    }>
+  > {
+    const task = await this.repository.findExistenceRow(workspaceId, taskId);
+    if (!task) {
+      throw new NotFoundException('Task nao encontrada');
+    }
+    const rows = await this.repository.findAssignees(taskId);
+    return rows.map((row) => ({
+      id: row.userId,
+      user: row.user,
+      permission: null,
+      createdAt: row.assignedAt,
+    }));
+  }
+
+  /**
+   * HPP-054 — `GET /tasks/:id/subtasks`. Valida parent existe + tenant.
+   */
+  async findSubtasks(
+    workspaceId: string,
+    taskId: string,
+  ): Promise<TaskResponseDto[]> {
+    const parent = await this.repository.findExistenceRow(workspaceId, taskId);
+    if (!parent) {
+      throw new NotFoundException('Task nao encontrada');
+    }
+    const rows = await this.repository.findSubtasks(
+      workspaceId,
+      taskId,
+      SUBTASKS_CAP,
+    );
+    if (rows.length === SUBTASKS_CAP) {
+      this.logger.warn(
+        `findSubtasks cap atingido parent=${taskId} cap=${SUBTASKS_CAP} ws=${workspaceId}`,
+      );
+    }
+    return rows.map((row) =>
+      TaskResponseDto.fromRow({
+        ...row,
+        processId: row.listId,
+      } as unknown as Record<string, unknown>),
+    );
+  }
+
+  /**
+   * HPP-053 — `GET /tasks/my-tasks`. Tasks atribuidas ao caller distribuidas
+   * em buckets temporais. Single query + bucketing in-memory.
+   *
+   * `tz` (IANA, ex: America/Sao_Paulo) define o limite de "hoje" no fuso
+   * do usuario. Default UTC. Fuso invalido cai em UTC.
+   */
+  async findMyTasks(
+    workspaceId: string,
+    userId: string,
+    tz?: string,
+  ): Promise<{
+    overdue: TaskResponseDto[];
+    today: TaskResponseDto[];
+    upcoming: TaskResponseDto[];
+    noDate: TaskResponseDto[];
+    completed: TaskResponseDto[];
+    meta: { hasMore: boolean; cap: number; tz: string };
+  }> {
+    const rows = await this.repository.findMyTasks(
+      workspaceId,
+      userId,
+      MY_TASKS_CAP,
+    );
+    if (rows.length === MY_TASKS_CAP) {
+      this.logger.warn(
+        `findMyTasks cap atingido user=${userId} cap=${MY_TASKS_CAP} ws=${workspaceId}`,
+      );
+    }
+    const { startOfToday, startOfTomorrow, resolvedTz } =
+      this.computeTodayBoundsInTz(tz);
+
+    const buckets = {
+      overdue: [] as TaskResponseDto[],
+      today: [] as TaskResponseDto[],
+      upcoming: [] as TaskResponseDto[],
+      noDate: [] as TaskResponseDto[],
+      completed: [] as TaskResponseDto[],
+    };
+
+    for (const row of rows) {
+      const taskRow = { ...row, processId: row.listId } as unknown as Record<
+        string,
+        unknown
+      >;
+      const dto = TaskResponseDto.fromRow(taskRow);
+      const statusType = (row as { status?: { type?: string } }).status
+        ?.type;
+      if (
+        statusType === 'DONE' ||
+        statusType === 'CLOSED' ||
+        dto.completedAt !== null ||
+        dto.closedAt !== null
+      ) {
+        buckets.completed.push(dto);
+        continue;
+      }
+      if (!dto.dueDate) {
+        buckets.noDate.push(dto);
+        continue;
+      }
+      const due = new Date(dto.dueDate);
+      if (due < startOfToday) {
+        buckets.overdue.push(dto);
+      } else if (due < startOfTomorrow) {
+        buckets.today.push(dto);
+      } else {
+        buckets.upcoming.push(dto);
+      }
+    }
+
+    return {
+      ...buckets,
+      meta: {
+        hasMore: rows.length === MY_TASKS_CAP,
+        cap: MY_TASKS_CAP,
+        tz: resolvedTz,
+      },
+    };
+  }
+
+  /**
+   * Resolve "inicio de hoje" e "inicio de amanha" no fuso `tz` (IANA).
+   * Default UTC. Fuso invalido cai em UTC com warn no log.
+   */
+  private computeTodayBoundsInTz(tz?: string): {
+    startOfToday: Date;
+    startOfTomorrow: Date;
+    resolvedTz: string;
+  } {
+    const now = new Date();
+    const target = tz ?? 'UTC';
+    let parts: Intl.DateTimeFormatPart[];
+    try {
+      parts = new Intl.DateTimeFormat('en-CA', {
+        timeZone: target,
+        year: 'numeric',
+        month: '2-digit',
+        day: '2-digit',
+      }).formatToParts(now);
+    } catch {
+      this.logger.warn(`tz invalida "${target}", caindo em UTC`);
+      return this.computeTodayBoundsInTz('UTC');
+    }
+    const year = Number(parts.find((p) => p.type === 'year')?.value);
+    const month = Number(parts.find((p) => p.type === 'month')?.value);
+    const day = Number(parts.find((p) => p.type === 'day')?.value);
+    // Constroi meio-dia local no fuso e calcula o offset ate UTC para
+    // achar a virada de dia EM UTC. Meio-dia evita ambiguidade em DST.
+    const localNoonUtc = new Date(Date.UTC(year, month - 1, day, 12, 0, 0));
+    const fmt = new Intl.DateTimeFormat('en-US', {
+      timeZone: target,
+      hour: '2-digit',
+      hour12: false,
+    });
+    const localHour = Number(fmt.format(localNoonUtc));
+    const offsetHours = 12 - localHour; // ex: BRT (-3) -> 12 - 9 = 3
+    const startOfToday = new Date(
+      Date.UTC(year, month - 1, day, offsetHours, 0, 0),
+    );
+    const startOfTomorrow = new Date(
+      startOfToday.getTime() + 24 * 60 * 60 * 1000,
+    );
+    return { startOfToday, startOfTomorrow, resolvedTz: target };
+  }
+
+  private async resolveListGroupedScope(
+    workspaceId: string,
+    params: {
+      viewId?: string;
+      level?: string;
+      listId?: string;
+      folderId?: string;
+      spaceId?: string;
+    },
+  ): Promise<{
+    level: 'list' | 'folder' | 'space';
+    id: string;
+    spaceId: string;
+    folderId: string | null;
+  }> {
+    if (params.viewId) {
+      const view = await this.prisma.processView.findFirst({
+        where: { id: params.viewId, deletedAt: null },
+        select: {
+          id: true,
+          listId: true,
+          list: {
+            select: {
+              spaceId: true,
+              folderId: true,
+              space: { select: { id: true, workspaceId: true } },
+              folder: { select: { spaceId: true } },
+            },
+          },
+        },
+      });
+      if (!view || !view.list) {
+        throw new NotFoundException('View nao encontrada');
+      }
+      const spaceId =
+        view.list.spaceId ?? view.list.folder?.spaceId ?? null;
+      if (!spaceId || view.list.space?.workspaceId !== workspaceId) {
+        throw new NotFoundException('View nao encontrada');
+      }
+      return {
+        level: 'list',
+        id: view.listId,
+        spaceId,
+        folderId: view.list.folderId ?? null,
+      };
+    }
+
+    const level = params.level as 'list' | 'folder' | 'space' | undefined;
+    if (level === 'list' && params.listId) {
+      const list = await this.prisma.list.findFirst({
+        where: { id: params.listId, deletedAt: null },
+        select: {
+          id: true,
+          spaceId: true,
+          folderId: true,
+          space: { select: { id: true, workspaceId: true } },
+          folder: { select: { spaceId: true } },
+        },
+      });
+      const spaceId = list?.spaceId ?? list?.folder?.spaceId ?? null;
+      if (!list || !spaceId || list.space?.workspaceId !== workspaceId) {
+        throw new NotFoundException('List nao encontrada');
+      }
+      return { level: 'list', id: list.id, spaceId, folderId: list.folderId };
+    }
+
+    if (level === 'folder' && params.folderId) {
+      const folder = await this.prisma.folder.findFirst({
+        where: { id: params.folderId, deletedAt: null },
+        select: { id: true, spaceId: true, space: { select: { workspaceId: true } } },
+      });
+      if (!folder || folder.space.workspaceId !== workspaceId) {
+        throw new NotFoundException('Folder nao encontrado');
+      }
+      return {
+        level: 'folder',
+        id: folder.id,
+        spaceId: folder.spaceId,
+        folderId: folder.id,
+      };
+    }
+
+    if (level === 'space' && params.spaceId) {
+      const space = await this.prisma.space.findFirst({
+        where: { id: params.spaceId, workspaceId, deletedAt: null },
+        select: { id: true },
+      });
+      if (!space) {
+        throw new NotFoundException('Space nao encontrado');
+      }
+      return { level: 'space', id: space.id, spaceId: space.id, folderId: null };
+    }
+
+    throw new BadRequestException(
+      'Informe viewId ou level+(listId|folderId|spaceId)',
+    );
   }
 
   async findById(
@@ -308,9 +939,8 @@ export class TasksService {
       throw new NotFoundException('Task nao encontrada');
     }
 
-    // Proibicao critica ADR-001: nunca escrever `primaryAssigneeCache`
-    // diretamente. Assignees passam por `dto.assignees = { add, rem }` e
-    // a extension Prisma recalcula o cache.
+    // ADR-001: `primaryAssigneeCache` nunca e escrito direto pela aplicacao.
+    // HPP-059: assignees nao trafegam mais por aqui — use PUT /tasks/:id/assign.
     const data: Prisma.WorkItemUncheckedUpdateInput = {};
 
     if (dto.title !== undefined) data.title = dto.title;
@@ -329,7 +959,8 @@ export class TasksService {
     if (dto.customTypeId !== undefined)
       data.customTypeId = dto.customTypeId ?? null;
     if (dto.parentId !== undefined) data.parentId = dto.parentId ?? null;
-    if (dto.processId !== undefined) data.processId = dto.processId;
+    const targetListId = dto.listId ?? dto.processId;
+    if (targetListId !== undefined) data.listId = targetListId;
     if (dto.archived !== undefined) {
       data.archived = dto.archived;
       data.archivedAt = dto.archived ? new Date() : null;
@@ -361,15 +992,8 @@ export class TasksService {
           workspaceId,
         });
       }
-      if (dto.assignees) {
-        await this.assigneesSync.syncAssignees(tx, {
-          taskId,
-          add: dto.assignees.add ?? [],
-          rem: dto.assignees.rem ?? [],
-          actorUserId: actorId,
-          workspaceId,
-        });
-      }
+      // HPP-059: `assignees` removido do PUT /tasks/:id. Use o endpoint
+      // dedicado `PUT /tasks/:id/assign` (HPP-056) para substituir lista.
 
       // Escalar update delegado ao repository com `tx` — nunca `tx.workItem.*`
       // direto no service (Bravy regra 2 + 6: persistencia so via repository).
@@ -407,6 +1031,8 @@ export class TasksService {
       return this.repository.findBySelect(taskId, tx);
     });
 
+    this.emitAutomationDiffs(workspaceId, taskId, actorId, data, updated);
+
     return {
       data: TaskResponseDto.fromRow(
         updated as unknown as Record<string, unknown>,
@@ -415,19 +1041,212 @@ export class TasksService {
     };
   }
 
-  async remove(workspaceId: string, taskId: string): Promise<void> {
+  private emitAutomationDiffs(
+    workspaceId: string,
+    taskId: string,
+    actorId: string,
+    data: Prisma.WorkItemUncheckedUpdateInput,
+    updated: Record<string, unknown>,
+  ): void {
+    if (!this.automationEvents) return;
+
+    const listId = String(updated.listId ?? '');
+    const ctx = { workspaceId, taskId, listId, actorUserId: actorId };
+    const changedFields: string[] = [];
+
+    if (data.statusId !== undefined) {
+      changedFields.push('statusId');
+      this.automationEvents.emitTaskStatusChanged({
+        ...ctx,
+        before: null,
+        after: (data.statusId as string) ?? null,
+      });
+      const parentId = (updated.parentId as string | null | undefined) ?? null;
+      if (parentId) {
+        void this.checkAllSubtasksResolved(parentId, workspaceId, actorId);
+      }
+    }
+    if (data.priority !== undefined) {
+      changedFields.push('priority');
+      this.automationEvents.emitTaskPriorityChanged({
+        ...ctx,
+        before: null,
+        after: (data.priority as string) ?? null,
+      });
+    }
+    if (data.title !== undefined) {
+      changedFields.push('title');
+      this.automationEvents.emitTaskNameChanged({
+        ...ctx,
+        before: null,
+        after: (data.title as string) ?? null,
+      });
+    }
+    if (data.customTypeId !== undefined) {
+      changedFields.push('customTypeId');
+      this.automationEvents.emitTaskTypeChanged({
+        ...ctx,
+        before: null,
+        after: (data.customTypeId as string) ?? null,
+      });
+    }
+    if (data.dueDate !== undefined) {
+      changedFields.push('dueDate');
+      this.automationEvents.emitTaskDueDateChanged({
+        ...ctx,
+        before: null,
+        after: (data.dueDate as Date) ?? null,
+      });
+    }
+    if (data.startDate !== undefined) {
+      changedFields.push('startDate');
+      this.automationEvents.emitTaskStartDateChanged({
+        ...ctx,
+        before: null,
+        after: (data.startDate as Date) ?? null,
+      });
+    }
+    if (data.listId !== undefined) {
+      changedFields.push('listId');
+      this.automationEvents.emitTaskMovedToList({
+        ...ctx,
+        fromListId: '',
+        toListId: data.listId as string,
+      });
+    }
+    if (changedFields.length > 0) {
+      this.automationEvents.emitTaskUpdated({ ...ctx, changedFields });
+    }
+  }
+
+  private async checkAllSubtasksResolved(
+    parentId: string,
+    workspaceId: string,
+    actorUserId: string,
+  ): Promise<void> {
+    if (!this.automationEvents) return;
+    try {
+      const parent = await this.prisma.workItem.findFirst({
+        where: {
+          id: parentId,
+          deletedAt: null,
+          list: { space: { workspaceId } },
+        },
+        select: {
+          listId: true,
+          list: {
+            select: {
+              folderId: true,
+              spaceId: true,
+              folder: { select: { spaceId: true } },
+            },
+          },
+        },
+      });
+      if (!parent) return;
+
+      const siblings = await this.prisma.workItem.findMany({
+        where: { parentId, deletedAt: null },
+        select: { status: { select: { type: true } } },
+      });
+      if (siblings.length === 0) return;
+
+      const allResolved = siblings.every(
+        (s) => s.status.type === 'DONE' || s.status.type === 'CLOSED',
+      );
+      if (!allResolved) return;
+
+      this.automationEvents.emitAllSubtasksResolved({
+        workspaceId,
+        taskId: parentId,
+        listId: parent.listId,
+        folderId: parent.list.folderId ?? null,
+        spaceId: parent.list.spaceId ?? parent.list.folder?.spaceId ?? null,
+        actorUserId,
+        parentTaskId: parentId,
+      });
+    } catch (err) {
+      this.logger.warn(
+        `automation.all_subtasks_resolved_check_failed parent=${parentId}: ${(err as Error).message}`,
+      );
+    }
+  }
+
+  async remove(
+    workspaceId: string,
+    taskId: string,
+  ): Promise<{ message: string }> {
     // `updateMany` idempotente: se ja estava deletada, retorna count=0 sem
-    // erro. 204 sempre que a task for do workspace (ou se nao existir).
+    // erro. 200 estilo Hoppe (HPP-050) sempre que a task for do workspace.
     const existing = await this.repository.findExistenceRow(
       workspaceId,
       taskId,
     );
     if (!existing) {
-      // Cross-tenant/inexistente -> 404 (§8.1). Ja-deletada recai no ramo
-      // de soft-delete idempotente abaixo (existing.deletedAt != null).
       throw new NotFoundException('Task nao encontrada');
     }
     await this.repository.softDelete(workspaceId, taskId);
+    return { message: 'Task removida' };
+  }
+
+  async bulkUpdate(
+    workspaceId: string,
+    tasks: Array<{
+      id: string;
+      statusId?: string;
+      priority?: TaskPriority;
+      primaryAssigneeId?: string | null;
+      dueDate?: string | null;
+      startDate?: string | null;
+      listId?: string;
+      archived?: boolean;
+    }>,
+    _actorId: string,
+  ): Promise<TaskResponseDto[]> {
+    if (tasks.length === 0) return [];
+    const updated = await this.prisma.$transaction(
+      tasks.map((t) => {
+        const data: Prisma.WorkItemUncheckedUpdateInput = {};
+        if (t.statusId !== undefined) data.statusId = t.statusId;
+        if (t.priority !== undefined) data.priority = t.priority;
+        if (t.primaryAssigneeId !== undefined)
+          data.primaryAssigneeCache = t.primaryAssigneeId;
+        if (t.dueDate !== undefined)
+          data.dueDate = t.dueDate ? new Date(t.dueDate) : null;
+        if (t.startDate !== undefined)
+          data.startDate = t.startDate ? new Date(t.startDate) : null;
+        if (t.listId !== undefined) data.listId = t.listId;
+        if (t.archived !== undefined) data.archived = t.archived;
+        return this.prisma.workItem.update({
+          where: { id: t.id, list: { space: { workspaceId } } },
+          data,
+          select: TASK_LIST_SELECT,
+        });
+      }),
+    );
+    return updated.map((row) =>
+      TaskResponseDto.fromRow({
+        ...row,
+        processId: (row as { listId: string }).listId,
+      } as unknown as Record<string, unknown>),
+    );
+  }
+
+  async bulkDelete(
+    workspaceId: string,
+    taskIds: string[],
+    _actorId: string,
+  ): Promise<{ message: string; count: number }> {
+    if (taskIds.length === 0) return { message: 'Nenhuma task', count: 0 };
+    const result = await this.prisma.workItem.updateMany({
+      where: {
+        id: { in: taskIds },
+        list: { space: { workspaceId } },
+        deletedAt: null,
+      },
+      data: { deletedAt: new Date() },
+    });
+    return { message: 'Tasks removidas', count: result.count };
   }
 
   async archive(
@@ -586,15 +1405,6 @@ export class TasksService {
         tx,
       );
 
-      // 3.4) Arestas (deps + links) via repositories dos proprios modulos.
-      //   Encapsulamento correto: cada repo sabe como dedup seu proprio
-      //   unique `(fromTaskId, toTaskId)` sem que TasksService conheca
-      //   os delegates Prisma.
-      await this.depsRepository.moveEdgesForMerge(
-        sourceTaskIds,
-        targetTaskId,
-        tx,
-      );
       await this.linksRepository.moveEdgesForMerge(
         sourceTaskIds,
         targetTaskId,
@@ -704,10 +1514,7 @@ export class TasksService {
           'Cadeia de parentId excede o limite de profundidade',
         );
       }
-      const rows = await this.repository.findParentsForCycleCheck(
-        frontier,
-        tx,
-      );
+      const rows = await this.repository.findParentsForCycleCheck(frontier, tx);
       const nextFrontier: string[] = [];
       for (const r of rows) {
         if (visited.has(r.id)) continue;
@@ -722,6 +1529,146 @@ export class TasksService {
       }
       frontier = nextFrontier;
     }
+  }
+
+  /**
+   * Resolve o `markdownContent` final do create considerando o template
+   * vinculado ao `customTypeId` (TTT-032).
+   *
+   * Regras de aplicacao (todas devem ser true para sobrescrever):
+   *   1. Flag `FEATURE_TASK_TYPE_TEMPLATES_ENABLED` esta ON.
+   *   2. `customTypeId` foi informado pelo cliente.
+   *   3. `taskTypeTemplatesRepository` esta disponivel (modulo wireado).
+   *   4. Template existe e visivel ao workspace (cross-tenant 404 retorna null).
+   *   5. Template tem `defaultDescriptionBlocks` nao-vazio.
+   *   6. Cliente nao informou `markdownContent` — ou informou apenas conteudo
+   *      vazio (string em branco ou AST com paragrafos vazios).
+   *
+   * Em qualquer outro caso, retorna o valor original `dto.markdownContent`
+   * (ou `null` quando undefined). Comportamento sem template e identico ao
+   * fluxo legado, garantindo regressao zero (Sprint AC).
+   */
+  private async resolveMarkdownContentWithTemplate(
+    tx: Prisma.TransactionClient,
+    clientMarkdown: string | undefined,
+    customTypeId: string | undefined,
+    workspaceId: string,
+  ): Promise<{ markdown: string | null; templateApplied: boolean }> {
+    const fallback = clientMarkdown ?? null;
+
+    // Cliente passou descricao nao-vazia: respeita o input e nao toca template
+    // (princio "user input wins" — alinhado a §"Manutenibilidade" do PLANO).
+    if (clientMarkdown !== undefined && !this.isEmptyMarkdown(clientMarkdown)) {
+      return { markdown: fallback, templateApplied: false };
+    }
+
+    // Sem customTypeId nao ha template a resolver.
+    if (!customTypeId) {
+      return { markdown: fallback, templateApplied: false };
+    }
+
+    // Modulo nao wireado (testes legados) ou flag OFF: fluxo legado.
+    if (!this.taskTypeTemplatesRepository || !this.isTemplatesEnabled()) {
+      return { markdown: fallback, templateApplied: false };
+    }
+
+    // Leitura best-effort dentro da `tx` — em caso de falha (FK ausente,
+    // Prisma client nao gerado em test, etc.) caimos no fluxo legado para
+    // nao bloquear o create. Erros sao logados em nivel `warn`.
+    try {
+      const template =
+        await this.taskTypeTemplatesRepository.findByCustomTaskTypeId(
+          customTypeId,
+          workspaceId,
+        );
+      if (!template) return { markdown: fallback, templateApplied: false };
+      const blocks = template.defaultDescriptionBlocks;
+      if (blocks === null || blocks === undefined) {
+        // Template existe mas nao tem defaultDescriptionBlocks. Ainda conta
+        // como instanciacao (TTT-050) para refletir uso do template no
+        // create — outros side-effects (categorias de anexo) sao consumidos
+        // pelo frontend usando o GET de templates separadamente.
+        return { markdown: fallback, templateApplied: true };
+      }
+      // Serializa o AST como JSON. O frontend (M4) sabe parsear esta string
+      // de volta para BlockNote — espelha o contrato `bodyBlocks` ja em
+      // task-comments. Mantem `markdownContent` como String no banco
+      // (zero ALTER em WorkItem — instrucao do PLANO §Decisoes-Chave D2).
+      return { markdown: JSON.stringify(blocks), templateApplied: true };
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : String(err);
+      this.logger.warn(
+        `tasks.create: falha ao resolver template ` +
+          `(customTypeId=${customTypeId} ws=${workspaceId}): ${msg}`,
+      );
+      return { markdown: fallback, templateApplied: false };
+    }
+  }
+
+  /** Le a flag de templates do `ConfigService` (default OFF se ausente). */
+  private isTemplatesEnabled(): boolean {
+    if (!this.config) return false;
+    const value = this.config.get<boolean | string>(
+      'FEATURE_TASK_TYPE_TEMPLATES_ENABLED',
+      false,
+    );
+    return value === true || value === 'true';
+  }
+
+  /**
+   * Heuristica para identificar `markdownContent` "vazio". Cobre:
+   *   - string vazia ou whitespace.
+   *   - JSON-stringified BlockNote AST com somente paragrafos vazios
+   *     (e.g., `[{"type":"paragraph","content":[]}]`).
+   *
+   * Se nao for parseavel como JSON, fallback para verificacao de string
+   * (se nao tem caracteres alfanumericos -> vazio).
+   */
+  private isEmptyMarkdown(value: string): boolean {
+    const trimmed = value.trim();
+    if (trimmed.length === 0) return true;
+
+    // Tenta parsear como JSON BlockNote AST.
+    try {
+      const parsed: unknown = JSON.parse(trimmed);
+      if (Array.isArray(parsed)) {
+        return parsed.every((b) => this.isEmptyBlock(b));
+      }
+      if (
+        typeof parsed === 'object' &&
+        parsed !== null &&
+        'content' in (parsed as Record<string, unknown>) &&
+        Array.isArray((parsed as { content: unknown[] }).content)
+      ) {
+        return (parsed as { content: unknown[] }).content.every((b) =>
+          this.isEmptyBlock(b),
+        );
+      }
+      // JSON valido mas estrutura inesperada — assume nao-vazio (respeita input).
+      return false;
+    } catch {
+      // Nao e JSON: trata como markdown plano. So considera vazio se nao
+      // sobrar nada apos trim — ja coberto acima (return false aqui).
+      return false;
+    }
+  }
+
+  /** Determina se um bloco BlockNote e visualmente vazio (sem texto). */
+  private isEmptyBlock(block: unknown): boolean {
+    if (typeof block !== 'object' || block === null) return true;
+    const obj = block as { type?: unknown; content?: unknown };
+    // Paragrafo vazio: content ausente ou array sem entradas com texto.
+    if (obj.type === 'paragraph' || obj.type === undefined) {
+      const content = obj.content;
+      if (content === undefined || content === null) return true;
+      if (!Array.isArray(content) || content.length === 0) return true;
+      return content.every((node) => {
+        if (typeof node !== 'object' || node === null) return true;
+        const text = (node as { text?: unknown }).text;
+        return typeof text !== 'string' || text.trim().length === 0;
+      });
+    }
+    return false;
   }
 
   private buildMergeIdempotencyKey(

@@ -8,11 +8,14 @@ import { featureFlagsConfig } from './config/feature-flags.config';
 import { DatabaseModule } from './database/database.module';
 import { RedisModule } from './common/redis/redis.module';
 import { HealthModule } from './modules/health/health.module';
+import { MetricsModule } from './common/metrics/metrics.module';
 import { QueueModule } from './modules/queue/queue.module';
 import { SearchModule } from './modules/search/search.module';
 import { AuthModule } from './modules/auth/auth.module';
 import { UsersModule } from './modules/users/users.module';
 import { BpmModule } from './modules/bpm/bpm.module';
+import { StatusModule } from './modules/status/status.module';
+import { StatusTemplatesModule } from './modules/status-templates/status-templates.module';
 import { CompaniesModule } from './modules/companies/companies.module';
 import { ProductTypesModule } from './modules/product-types/product-types.module';
 import { StatesModule } from './modules/states/states.module';
@@ -45,8 +48,7 @@ import { InvoicesModule } from './modules/invoices/invoices.module';
 import { FinancialSummaryModule } from './modules/financial-summary/financial-summary.module';
 import { DashboardsModule } from './modules/dashboards/dashboards.module';
 import { ReportsModule } from './modules/reports/reports.module';
-import { JwtAuthGuard } from './modules/auth/guards';
-import { RolesGuard } from './modules/auth/guards';
+import { JwtAuthGuard, RolesGuard } from './modules/auth/guards';
 import { WorkspaceGuard } from './modules/workspaces/guards/workspace.guard';
 import { ResponseInterceptor } from './common/interceptors/response.interceptor';
 import { LoggingInterceptor } from './common/interceptors/logging.interceptor';
@@ -56,10 +58,15 @@ import { SyncModule } from './modules/sync/sync.module';
 import { AuditLogModule } from './modules/audit-log/audit-log.module';
 import { AuditInterceptor } from './common/interceptors/audit.interceptor';
 import { ChatModule } from './modules/chat/chat.module';
-import { ProcessViewsModule } from './modules/process-views/process-views.module';
+import { ViewsModule } from './modules/views/views.module';
 import { WorkItemsModule } from './modules/work-items/work-items.module';
 import { NotificationsModule } from './modules/notifications/notifications.module';
+import { RealtimeModule } from './modules/realtime/realtime.module';
 import { WorkspacesModule } from './modules/workspaces/workspaces.module';
+import { FavoritesModule } from './modules/favorites/favorites.module';
+import { SpacesModule } from './modules/spaces/spaces.module';
+import { FoldersModule } from './modules/folders/folders.module';
+import { ListsModule } from './modules/lists/lists.module';
 
 // Tasks feature (Sprints 1-7) — facade semantica sobre WorkItem.
 // Registrar APOS WorkItemsModule para honrar dependencia de providers
@@ -69,19 +76,45 @@ import { TaskOutboxModule } from './modules/task-outbox/task-outbox.module';
 import { CustomTaskTypesModule } from './modules/custom-task-types/custom-task-types.module';
 import { TaskTagsModule } from './modules/task-tags/task-tags.module';
 import { TaskWatchersModule } from './modules/task-watchers/task-watchers.module';
-import { TaskDependenciesModule } from './modules/task-dependencies/task-dependencies.module';
 import { TaskLinksModule } from './modules/task-links/task-links.module';
 import { TaskTemplatesModule } from './modules/task-templates/task-templates.module';
 import { TaskChecklistsModule } from './modules/task-checklists/task-checklists.module';
 import { TaskAttachmentsModule } from './modules/task-attachments/task-attachments.module';
 import { TaskCommentsModule } from './modules/task-comments/task-comments.module';
+import { TimeEntriesModule } from './modules/time-entries/time-entries.module';
 import { TaskActivitiesModule } from './modules/task-activities/task-activities.module';
+// Custom Fields (M1 — Sprint 1 TTT-011/TTT-012). Modulo autonomo: nao depende
+// de TaskTypeTemplate (M2). Gating via FEATURE_CUSTOM_FIELDS_WRITE_ENABLED
+// sera aplicado por TTT-013 (Mariana) com guard transversal proprio.
+import { CustomFieldsModule } from './modules/custom-fields/custom-fields.module';
+// Task Type Templates (M2 — Sprint 3 TTT-031/TTT-032/TTT-033). Templates 1:1
+// com CustomTaskType — read-only nesta release. Gated globalmente via
+// FEATURE_TASK_TYPE_TEMPLATES_ENABLED (TaskTypeTemplatesGuard responde 404
+// quando OFF). Importado APOS TasksModule porque exporta repository
+// consumido por `tasks.service.create` (Felipe — TTT-032). Wiring por
+// `forwardRef` nao foi necessario: dependencia e linear (Templates -> Tasks).
+import { TaskTypeTemplatesModule } from './modules/task-type-templates/task-type-templates.module';
+import { AutomationsModule } from './modules/automations/automations.module';
 import { FeatureFlagsModule } from './common/feature-flags/feature-flags.module';
 import { CommonModule } from './common/common.module';
 
-// Kommo integration (Sprint 1 — skeleton; webhook/worker/crons na proxima
-// rodada). Fornece `KommoApiClient` (HMAC validator + fachada OAuth stub).
+// Kommo integration (Sprint 1).
+//   - KommoApiClientModule: HMAC validator + fachada OAuth stub.
+//   - KommoAccountsModule (Larissa K1-2 + Rafael K1-6): CRUD KommoAccount,
+//     long-lived token (ADR-004), OAuth stubs, envelope encryption ADR-006.
+//   - KommoWebhooksModule (Rafael K1-5/K1-8): POST /webhooks/kommo/:workspaceId,
+//     HMAC + idempotencia + enqueue BullMQ (ADR-005).
+//   - KommoWorkersModule (Mateus K1-7): BullMQ processor + handlers MVP
+//     (incoming-chat-message). Wireado na Rodada 6 apos Mateus resolver
+//     tokens Symbol inconsistentes e Rafael integrar envelope encryption.
 import { KommoApiClientModule } from './modules/kommo-api-client/kommo-api-client.module';
+import { KommoAccountsModule } from './modules/kommo-accounts/kommo-accounts.module';
+//   - KommoReconciliationModule (Mateus K2-5): cron @5min idempotente +
+//     KommoSyncCheckpoint; cobre eventos perdidos pelo webhook.
+//   - KommoBackfillModule (Mateus K3-4 parcial): backfill 90d retomavel
+//     para KommoConversation; processor BullMQ.
+import { KommoReconciliationModule } from './modules/kommo-reconciliation/kommo-reconciliation.module';
+import { KommoBackfillModule } from './modules/kommo-backfill/kommo-backfill.module';
 
 @Module({
   imports: [
@@ -124,6 +157,9 @@ import { KommoApiClientModule } from './modules/kommo-api-client/kommo-api-clien
     // Health checks
     HealthModule,
 
+    // Prometheus metrics — `/metrics` (Bearer auth via METRICS_TOKEN). Sprint 5 TTT-050.
+    MetricsModule,
+
     // Event Emitter (for BPM engine)
     EventEmitterModule.forRoot(),
 
@@ -133,6 +169,8 @@ import { KommoApiClientModule } from './modules/kommo-api-client/kommo-api-clien
 
     // BPM (Motor de Processos)
     BpmModule,
+    StatusModule,
+    StatusTemplatesModule,
 
     // Companies (Empresas)
     CompaniesModule,
@@ -212,13 +250,16 @@ import { KommoApiClientModule } from './modules/kommo-api-client/kommo-api-clien
     ChatModule,
 
     // Process Views (Visualizações por Processo)
-    ProcessViewsModule,
+    ViewsModule,
 
     // Work Items (Itens de Processos LIST)
     WorkItemsModule,
 
     // Notifications (Notificacoes Inbox)
     NotificationsModule,
+
+    // Realtime (gateway Socket.IO /notifications — HPP-135)
+    RealtimeModule,
 
     // Tasks feature (paridade ClickUp — Sprints 1-7). Ordem logica:
     //   1. TaskOutboxModule primeiro (produtor transacional de eventos).
@@ -232,22 +273,49 @@ import { KommoApiClientModule } from './modules/kommo-api-client/kommo-api-clien
     TasksModule,
     TaskTagsModule,
     TaskWatchersModule,
-    TaskDependenciesModule,
     TaskLinksModule,
     TaskTemplatesModule,
     TaskChecklistsModule,
     TaskAttachmentsModule,
     TaskCommentsModule,
     TaskActivitiesModule,
+    TimeEntriesModule,
+
+    // Custom Fields (M1 — autonomo, M2 TaskTypeTemplate consome a interface).
+    CustomFieldsModule,
+
+    // Task Type Templates (M2 — TTT-031). Read-only por enquanto; consumido
+    // por `tasks.service.create` para aplicar `defaultDescriptionBlocks`
+    // quando feature flag esta ON. Importado apos `CustomFieldsModule`
+    // porque referencia `CustomFieldDefinition` via `TaskTypeTemplateField`
+    // (somente leitura — sem dependencia de provider).
+    TaskTypeTemplatesModule,
+
+    // Automations (HPP — Hoppe-style /ai/automation, substitui motor BPMN)
+    AutomationsModule,
 
     // Workspaces (Multi-tenancy — Squad Workspace F1.4)
     WorkspacesModule,
 
-    // Kommo integration (Squad Kommo — Sprint 1 skeleton). Gate global
-    // via `KOMMO_SYNC_ENABLED` + `KommoFeatureFlagGuard` (ja registrado
-    // em FeatureFlagsModule). Controllers de webhook/OAuth/management
-    // entram em rodada seguinte (depende de schema Prisma + OAuth flow).
+    // Hierarquia paridade Hoppe: Workspace > Space > Folder > List
+    SpacesModule,
+    FoldersModule,
+    ListsModule,
+
+    // Favorites (Hoppe-style /favorites — por usuario e workspace)
+    FavoritesModule,
+
+    // Kommo integration (Squad Kommo — Sprint 1 Etapa 1). Gate global
+    // via `KOMMO_SYNC_ENABLED` + `KommoFeatureFlagGuard` (registrado em
+    // FeatureFlagsModule). O webhook publico replica a checagem do flag
+    // inline no service porque `@Public()` faz o guard global skip.
+    //
+    // Ordem: ApiClient (puro) → Accounts (Repository compartilhado) →
+    // Webhooks (HMAC + enqueue) → Workers (processor + handlers).
     KommoApiClientModule,
+    KommoAccountsModule,
+    KommoReconciliationModule,
+    KommoBackfillModule,
   ],
   providers: [
     // Global guards (order: Throttler → JWT Auth → Workspace → Roles)

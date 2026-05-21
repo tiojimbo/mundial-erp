@@ -71,16 +71,34 @@ export class WorkspaceGuard implements CanActivate, OnModuleInit {
     if (skipWorkspace) return true;
 
     const request = context.switchToHttp().getRequest<{
-      user?: { sub?: string; workspaceId?: string };
+      user?: {
+        sub?: string;
+        workspaceId?: string;
+        workspaceRole?: string;
+      };
+      headers?: Record<string, string | string[] | undefined>;
     }>();
     const user = request.user;
-    if (!user?.sub || !user?.workspaceId) {
+    if (!user?.sub) {
       throw new ForbiddenException(
         'Workspace nao selecionado — chame POST /workspaces/:id/select',
       );
     }
 
-    const cacheKey = `wsguard:${user.sub}:${user.workspaceId}`;
+    const headerWs = this.readHeaderWorkspaceId(request.headers);
+    const resolvedWorkspaceId = headerWs ?? user.workspaceId;
+    if (!resolvedWorkspaceId) {
+      throw new ForbiddenException(
+        'Workspace nao selecionado — envie header workspace-id ou chame POST /workspaces/:id/select',
+      );
+    }
+
+    if (headerWs && headerWs !== user.workspaceId) {
+      user.workspaceRole = undefined;
+    }
+    user.workspaceId = resolvedWorkspaceId;
+
+    const cacheKey = `wsguard:${user.sub}:${resolvedWorkspaceId}`;
     const cached = this.getCached(cacheKey);
     if (cached !== null) {
       if (cached) return true;
@@ -92,7 +110,7 @@ export class WorkspaceGuard implements CanActivate, OnModuleInit {
     const member = await this.prisma.workspaceMember.findUnique({
       where: {
         workspaceId_userId: {
-          workspaceId: user.workspaceId,
+          workspaceId: resolvedWorkspaceId,
           userId: user.sub,
         },
       },
@@ -109,6 +127,17 @@ export class WorkspaceGuard implements CanActivate, OnModuleInit {
     }
 
     return true;
+  }
+
+  private readHeaderWorkspaceId(
+    headers: Record<string, string | string[] | undefined> | undefined,
+  ): string | undefined {
+    if (!headers) return undefined;
+    const raw = headers['workspace-id'];
+    const value = Array.isArray(raw) ? raw[0] : raw;
+    if (typeof value !== 'string') return undefined;
+    const trimmed = value.trim();
+    return trimmed.length > 0 ? trimmed : undefined;
   }
 
   private getCached(key: string): boolean | null {

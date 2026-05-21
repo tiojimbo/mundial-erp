@@ -168,6 +168,32 @@ export class ChannelsService {
     return ChannelResponseDto.fromEntity(entity, { activeMemberCount });
   }
 
+  async findByEntity(
+    type: string,
+    entityId: string,
+    workspaceId: string,
+    userId: string,
+  ): Promise<ChannelResponseDto> {
+    const entity = await this.channelsRepository.findByLocation(
+      type,
+      entityId,
+      workspaceId,
+    );
+    if (!entity) throw new NotFoundException('Canal nao encontrado');
+
+    if (entity.type !== 'PUBLIC') {
+      const isMember = await this.channelsRepository.isMember(
+        entity.id,
+        userId,
+      );
+      if (!isMember) throw new NotFoundException('Canal nao encontrado');
+    }
+
+    const activeMemberCount =
+      await this.channelsRepository.countActiveMembers(entity.id);
+    return ChannelResponseDto.fromEntity(entity, { activeMemberCount });
+  }
+
   async update(
     channelId: string,
     dto: UpdateChannelDto,

@@ -11,14 +11,6 @@ import type {
   UpdateTaskPayload,
 } from '../types/task.types';
 
-/**
- * Sprint 0 (TSK-102 foundation) — stub de service para `/api/v1/tasks`.
- * Metodos ja assinados e tipados; corpos retornam promessas que rejeitam
- * com TODO claro para evitar uso acidental antes da Sprint 1.
- *
- * Endpoints conforme PLANO-TASKS.md §7.1 e §7.2.
- */
-
 type TasksListResponse =
   | PaginatedResponse<Task>
   | CursorPaginatedResponse<Task>;
@@ -33,34 +25,18 @@ function buildTaskParams(filters?: TaskFilters): Record<string, unknown> {
   return params;
 }
 
-/**
- * Unwrap defensivo do envelope da API.
- *
- * Historico: services do squad Tasks retornaram por um periodo um envelope
- * proprio `{ data, meta }` ao mesmo tempo que o `ResponseInterceptor` global
- * aplicava o envelope canonico — resultado: `res.data.data.data` era o DTO
- * real, e `res.data.data.id` vinha `undefined`, quebrando navegacoes tipo
- * `router.push('/tasks/${task.id}')`.
- *
- * Este helper aceita ambos os shapes (single e double envelope) e extrai a
- * payload real, tornando a migracao do backend transparente para o cliente.
- */
 function unwrapEnvelope<T>(body: unknown): T {
-  const outer = (body as { data?: unknown })?.data;
-  if (
-    outer !== null &&
-    typeof outer === 'object' &&
-    'data' in outer &&
-    'meta' in outer
-  ) {
-    return (outer as { data: T }).data;
+  if (body === null || typeof body !== 'object') {
+    return body as T;
   }
-  return outer as T;
+  if ('data' in body && 'meta' in body) {
+    return (body as { data: T }).data;
+  }
+  return body as T;
 }
 
 export const tasksService = {
   async list(filters?: TaskFilters): Promise<TasksListResponse> {
-    // TODO Sprint 1 (TSK-110): habilitar chamada real quando endpoint existir.
     const { data } = await api.get<TasksListResponse>('/tasks', {
       params: buildTaskParams(filters),
     });
@@ -69,9 +45,6 @@ export const tasksService = {
 
   async getById(taskId: string, include?: string[]): Promise<Task> {
     if (!taskId || taskId === 'undefined') {
-      // Guard: evita ir ao backend com taskId invalido. Um `useTask('undefined')`
-      // indica bug upstream (callback chamado sem id resolvido); retorna erro
-      // claro em vez de consumir rate limit.
       throw new Error(`getById recebeu taskId invalido: "${taskId}"`);
     }
     const params: Record<string, unknown> = {};
@@ -81,49 +54,76 @@ export const tasksService = {
   },
 
   async create(payload: CreateTaskPayload): Promise<Task> {
-    // `processId` e path param — NAO pode ir no body (backend usa
-    // `ValidationPipe({forbidNonWhitelisted:true})` e o CreateTaskDto nao
-    // declara `processId`, entao prop extra vira 400).
     const { processId, ...body } = payload;
-    const res = await api.post<unknown>(
-      `/processes/${processId}/tasks`,
-      body,
-    );
+    const res = await api.post<unknown>('/tasks', {
+      listId: processId,
+      ...body,
+    });
     return unwrapEnvelope<Task>(res.data);
   },
 
   async update(taskId: string, payload: UpdateTaskPayload): Promise<Task> {
-    const { data } = await api.patch<ApiResponse<Task>>(
-      `/tasks/${taskId}`,
-      payload,
-    );
-    return data.data;
+    const res = await api.put<unknown>(`/tasks/${taskId}`, payload);
+    return unwrapEnvelope<Task>(res.data);
   },
 
   async remove(taskId: string): Promise<void> {
     await api.delete(`/tasks/${taskId}`);
   },
 
-  async archive(taskId: string): Promise<void> {
-    await api.post(`/tasks/${taskId}/archive`);
+  async findGroupedByList(listId: string): Promise<TasksGroupedResponse> {
+    const res = await api.get<unknown>(`/tasks/list`, {
+      params: { level: 'list', listId },
+    });
+    return unwrapEnvelope<TasksGroupedResponse>(res.data);
   },
 
-  async unarchive(taskId: string): Promise<void> {
-    await api.post(`/tasks/${taskId}/unarchive`);
+  async bulkUpdate(tasks: BulkUpdateTaskItem[]): Promise<Task[]> {
+    const res = await api.put<unknown>(`/tasks/bulk`, { tasks });
+    return unwrapEnvelope<Task[]>(res.data);
   },
 
-  async merge(
-    targetTaskId: string,
-    sourceTaskIds: string[],
-    idempotencyKey?: string,
-  ): Promise<Task> {
-    const headers: Record<string, string> = {};
-    if (idempotencyKey) headers['Idempotency-Key'] = idempotencyKey;
-    const { data } = await api.post<ApiResponse<Task>>(
-      `/tasks/${targetTaskId}/merge`,
-      { sourceTaskIds },
-      { headers },
-    );
-    return data.data;
+  async bulkDelete(taskIds: string[]): Promise<{ count: number }> {
+    const res = await api.delete<unknown>(`/tasks/bulk`, {
+      data: { taskIds },
+    });
+    return unwrapEnvelope<{ count: number }>(res.data);
+  },
+
+  async assign(taskId: string, userIds: string[]): Promise<Task> {
+    const res = await api.put<unknown>(`/tasks/${taskId}/assign`, {
+      assignees: userIds.map((userId) => ({ userId })),
+    });
+    return unwrapEnvelope<Task>(res.data);
   },
 };
+
+export type BulkUpdateTaskItem = {
+  id: string;
+  statusId?: string;
+  priority?: 'URGENT' | 'HIGH' | 'NORMAL' | 'LOW' | 'NONE';
+  primaryAssigneeId?: string | null;
+  dueDate?: string | null;
+  startDate?: string | null;
+  listId?: string;
+  archived?: boolean;
+};
+
+export type TasksGroupedGroup = {
+  id: string;
+  name: string;
+  label: 'NOT_STARTED' | 'ACTIVE' | 'DONE' | 'CLOSED';
+  type: 'STATUS';
+  collapsed: boolean;
+  field: 'statusId';
+  position: number;
+  viewId: string | null;
+  color: string;
+};
+
+export type TasksGroupedItem = {
+  group: TasksGroupedGroup;
+  tasks: Task[];
+};
+
+export type TasksGroupedResponse = TasksGroupedItem[];

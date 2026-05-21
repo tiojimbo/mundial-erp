@@ -1,53 +1,47 @@
-/**
- * TaskLinksService — PLANO-TASKS.md §7.3 (Links).
- *
- * Links sao "see-also" simetricos entre duas tasks do mesmo workspace.
- * Diferente de `Dependencies`, NAO ha grafo direcionado nem cycle detection:
- * qualquer par `{A,B}` pode ser ligado contanto que ambas pertencam ao mesmo
- * workspace. Duplicatas (inclusive na direcao inversa) sao idempotentes.
- */
-
 import {
   BadRequestException,
+  ConflictException,
   Injectable,
   Logger,
   NotFoundException,
 } from '@nestjs/common';
-import { Prisma } from '@prisma/client';
+import { LinkType, Prisma, StatusType } from '@prisma/client';
 import { PrismaService } from '../../database/prisma.service';
 import { TaskOutboxService } from '../task-outbox/task-outbox.service';
 import { TaskLinksRepository, type LinkEdge } from './task-links.repository';
+import { CreateLinkDto } from './dtos/create-link.dto';
 import {
-  TaskLinksResponseDto,
-  WorkItemLinkSummaryDto,
-  type WorkItemLinkSummaryShape,
+  DeleteLinkResponseDto,
+  LinkedTaskDto,
+  WorkItemLinkItemDto,
+  type LinkedTaskShape,
 } from './dtos/link-response.dto';
 
 const OUTBOX_EVENT_LINK_ADDED = 'LINK_ADDED' as const;
 const OUTBOX_EVENT_LINK_REMOVED = 'LINK_REMOVED' as const;
 
-function mapSummary(task: unknown): WorkItemLinkSummaryDto {
+function mapLinkedTask(task: unknown): LinkedTaskDto {
   const t = task as {
     id: string;
     title: string;
-    statusId: string;
-    priority: string | null;
-    dueDate: Date | null;
-    primaryAssigneeCache: string | null;
-    archived: boolean;
-    status: { category: string } | null;
+    status: { id: string; name: string; color: string; type: StatusType } | null;
+    customType: { id: string; name: string; icon: string | null } | null;
+    list: { id: string; name: string } | null;
   };
-  const shape: WorkItemLinkSummaryShape = {
+  const shape: LinkedTaskShape = {
     id: t.id,
     title: t.title,
-    statusId: t.statusId,
-    statusCategory: t.status?.category ?? null,
-    priority: t.priority,
-    dueDate: t.dueDate,
-    primaryAssigneeId: t.primaryAssigneeCache,
-    archived: t.archived,
+    status: t.status,
+    customType: t.customType,
+    list: t.list,
   };
-  return WorkItemLinkSummaryDto.fromEntity(shape);
+  return LinkedTaskDto.fromEntity(shape);
+}
+
+function inverseType(type: LinkType): LinkType {
+  if (type === LinkType.DUPLICATES) return LinkType.IS_DUPLICATED_BY;
+  if (type === LinkType.IS_DUPLICATED_BY) return LinkType.DUPLICATES;
+  return type;
 }
 
 @Injectable()
@@ -63,7 +57,7 @@ export class TaskLinksService {
   async findAll(
     workspaceId: string,
     taskId: string,
-  ): Promise<TaskLinksResponseDto> {
+  ): Promise<WorkItemLinkItemDto[]> {
     const task = await this.repository.findTaskInWorkspace(workspaceId, taskId);
     if (!task) {
       throw new NotFoundException('Tarefa nao encontrada');
@@ -74,133 +68,152 @@ export class TaskLinksService {
       this.repository.findIncoming(workspaceId, taskId),
     ]);
 
-    // UNION em memoria — deduplicamos por id do outro lado. Um par simetrico
-    // `A<->B` tem UMA linha no banco (uma direcao), entao na pratica nao deve
-    // haver duplicatas aqui; fazemos a desduplicacao defensivamente.
-    const seen = new Set<string>();
-    const links: WorkItemLinkSummaryDto[] = [];
+    const items: WorkItemLinkItemDto[] = [];
     for (const row of outgoing) {
-      const dto = mapSummary((row as { toTask: unknown }).toTask);
-      if (!seen.has(dto.id)) {
-        seen.add(dto.id);
-        links.push(dto);
-      }
+      const item = new WorkItemLinkItemDto();
+      item.id = row.id;
+      item.type = row.type;
+      item.linkedTask = mapLinkedTask((row as { toTask: unknown }).toTask);
+      items.push(item);
     }
     for (const row of incoming) {
-      const dto = mapSummary((row as { fromTask: unknown }).fromTask);
-      if (!seen.has(dto.id)) {
-        seen.add(dto.id);
-        links.push(dto);
-      }
+      const item = new WorkItemLinkItemDto();
+      item.id = row.id;
+      item.type = inverseType(row.type);
+      item.linkedTask = mapLinkedTask((row as { fromTask: unknown }).fromTask);
+      items.push(item);
     }
 
-    const response = new TaskLinksResponseDto();
-    response.links = links;
-    return response;
+    return items;
   }
 
   async create(
     workspaceId: string,
     taskId: string,
-    linksToId: string,
+    dto: CreateLinkDto,
     actorUserId: string,
-  ): Promise<void> {
-    if (taskId === linksToId) {
+  ): Promise<WorkItemLinkItemDto> {
+    if (taskId === dto.taskToId) {
       throw new BadRequestException('Uma task nao pode ser linkada a si mesma');
     }
 
-    const edge: LinkEdge = { fromTaskId: taskId, toTaskId: linksToId };
+    // Normaliza IS_DUPLICATED_BY: armazena sempre como DUPLICATES no sentido oposto.
+    let edge: LinkEdge;
+    if (dto.type === LinkType.IS_DUPLICATED_BY) {
+      edge = {
+        fromTaskId: dto.taskToId,
+        toTaskId: taskId,
+        type: LinkType.DUPLICATES,
+      };
+    } else {
+      edge = {
+        fromTaskId: taskId,
+        toTaskId: dto.taskToId,
+        type: dto.type,
+      };
+    }
 
-    await this.prisma.$transaction(async (tx) => {
+    const created = await this.prisma.$transaction(async (tx) => {
       const [fromTask, toTask] = await Promise.all([
         this.repository.findTaskInWorkspace(workspaceId, taskId, tx),
-        this.repository.findTaskInWorkspace(workspaceId, linksToId, tx),
+        this.repository.findTaskInWorkspace(workspaceId, dto.taskToId, tx),
       ]);
       if (!fromTask || !toTask) {
         throw new NotFoundException('Tarefa nao encontrada');
       }
 
-      // Link e simetrico: checagem em ambas as direcoes para idempotencia.
-      const existing = await this.repository.findEdgeAnyDirection(
-        taskId,
-        linksToId,
+      const existing = await this.repository.findEdgePair(
+        edge.fromTaskId,
+        edge.toTaskId,
+        edge.type,
         tx,
       );
       if (existing) {
-        // No-op — link ja existe.
-        return;
+        throw new ConflictException('Este link ja existe');
       }
 
       try {
-        await this.repository.createEdge(edge, tx);
+        const row = await this.repository.createEdge(edge, tx);
+        await this.outbox.enqueue(tx, {
+          aggregateId: taskId,
+          eventType: OUTBOX_EVENT_LINK_ADDED,
+          payload: {
+            fromTaskId: edge.fromTaskId,
+            toTaskId: edge.toTaskId,
+            type: edge.type,
+            actorId: actorUserId,
+          },
+          workspaceId,
+        });
+        return row;
       } catch (error) {
         if (
           error instanceof Prisma.PrismaClientKnownRequestError &&
           error.code === 'P2002'
         ) {
-          // Race — outro request criou no intervalo. Idempotente.
-          return;
+          throw new ConflictException('Este link ja existe');
         }
         throw error;
       }
-
-      await this.outbox.enqueue(tx, {
-        aggregateId: taskId,
-        eventType: OUTBOX_EVENT_LINK_ADDED,
-        payload: {
-          fromTaskId: taskId,
-          toTaskId: linksToId,
-          actorId: actorUserId,
-        },
-        workspaceId,
-      });
     });
 
+    if (!created) {
+      throw new BadRequestException('Falha ao criar link');
+    }
+
     this.logger.log(
-      `task-link.created from=${taskId} to=${linksToId} actor=${actorUserId}`,
+      `task-link.created from=${edge.fromTaskId} to=${edge.toTaskId} type=${edge.type} actor=${actorUserId}`,
     );
+
+    // Resposta na perspectiva da task consultada.
+    const isOutgoingForCaller = created.fromTaskId === taskId;
+    const otherTaskId = isOutgoingForCaller ? created.toTaskId : created.fromTaskId;
+    const perspectivedType = isOutgoingForCaller
+      ? created.type
+      : inverseType(created.type);
+
+    const otherTask = await this.prisma.workItem.findUnique({
+      where: { id: otherTaskId },
+      select: {
+        id: true,
+        title: true,
+        status: { select: { id: true, name: true, color: true, type: true } },
+        customType: { select: { id: true, name: true, icon: true } },
+        list: { select: { id: true, name: true } },
+      },
+    });
+
+    const item = new WorkItemLinkItemDto();
+    item.id = created.id;
+    item.type = perspectivedType;
+    item.linkedTask = mapLinkedTask(otherTask);
+    return item;
   }
 
   async remove(
     workspaceId: string,
     taskId: string,
-    linksToId: string,
+    linkId: string,
     actorUserId: string,
-  ): Promise<void> {
+  ): Promise<DeleteLinkResponseDto> {
     await this.prisma.$transaction(async (tx) => {
-      const [fromTask, toTask] = await Promise.all([
-        this.repository.findTaskInWorkspace(workspaceId, taskId, tx),
-        this.repository.findTaskInWorkspace(workspaceId, linksToId, tx),
-      ]);
-      if (!fromTask || !toTask) {
-        throw new NotFoundException('Tarefa nao encontrada');
+      const link = await this.repository.findEdgeById(workspaceId, linkId, tx);
+      if (!link) {
+        throw new NotFoundException('Link nao encontrado');
+      }
+      if (link.fromTaskId !== taskId && link.toTaskId !== taskId) {
+        throw new NotFoundException('Link nao encontrado');
       }
 
-      const existing = await this.repository.findEdgeAnyDirection(
-        taskId,
-        linksToId,
-        tx,
-      );
-      if (!existing) {
-        // Idempotencia: remover link inexistente e no-op.
-        return;
-      }
-
-      // A aresta real no banco tem UMA direcao; removemos na direcao correta.
-      await this.repository.deleteEdge(
-        {
-          fromTaskId: existing.fromTaskId,
-          toTaskId: existing.toTaskId,
-        },
-        tx,
-      );
+      await this.repository.deleteEdgeById(linkId, tx);
 
       await this.outbox.enqueue(tx, {
         aggregateId: taskId,
         eventType: OUTBOX_EVENT_LINK_REMOVED,
         payload: {
-          fromTaskId: existing.fromTaskId,
-          toTaskId: existing.toTaskId,
+          fromTaskId: link.fromTaskId,
+          toTaskId: link.toTaskId,
+          type: link.type,
           actorId: actorUserId,
         },
         workspaceId,
@@ -208,7 +221,9 @@ export class TaskLinksService {
     });
 
     this.logger.log(
-      `task-link.removed from=${taskId} to=${linksToId} actor=${actorUserId}`,
+      `task-link.removed linkId=${linkId} taskId=${taskId} actor=${actorUserId}`,
     );
+
+    return { message: 'Link removido com sucesso' };
   }
 }

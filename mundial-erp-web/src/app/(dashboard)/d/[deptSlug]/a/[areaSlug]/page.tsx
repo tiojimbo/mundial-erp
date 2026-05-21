@@ -2,13 +2,9 @@
 
 import { useState } from 'react';
 import { useParams, useRouter } from 'next/navigation';
-import Link from 'next/link';
-import {
-  RiStarLine,
-  RiArrowDownSLine,
-  RiFolderOpenLine,
-} from '@remixicon/react';
-import { ProcessListView } from '@/features/work-items/components/process-list-view';
+import { Folder } from 'lucide-react';
+import { BreadcrumbTrail } from '@/components/layout/breadcrumb-trail';
+import { ProcessListView } from '@/features/processes/components/process-list-view';
 import { useAreaDetail } from '@/features/navigation/hooks/use-area-detail';
 import { useAreaSummaries } from '@/features/navigation/hooks/use-area-summaries';
 import { CreateTaskDialog } from '@/features/tasks/components/create-task-dialog';
@@ -46,33 +42,13 @@ export default function AreaPage() {
     <>
       <ProcessListView
         header={
-          <header className="flex items-center gap-[6px] px-10 py-4">
-            <Link
-              href={`/d/${area.departmentSlug}`}
-              className="max-w-[200px] truncate text-[13px] font-normal tracking-[-0.143px] text-text-sub-600 transition-colors hover:text-text-strong-950"
-            >
-              {area.departmentName}
-            </Link>
-            <span className="text-[12px] tracking-[-0.143px] text-text-sub-600/40">
-              /
-            </span>
-            <RiFolderOpenLine className="size-4 text-text-sub-600" />
-            <span className="max-w-[200px] truncate text-[13px] font-semibold tracking-[-0.143px] text-text-strong-950">
-              {area.name}
-            </span>
-            <button
-              type="button"
-              className="flex items-center text-text-sub-600 transition-colors hover:text-text-strong-950"
-            >
-              <RiArrowDownSLine className="size-3.5" />
-            </button>
-            <button
-              type="button"
-              className="ml-1 text-text-sub-600 transition-colors hover:text-text-strong-950"
-            >
-              <RiStarLine className="size-3.5" />
-            </button>
-          </header>
+          <BreadcrumbTrail
+            items={[
+              { label: area.departmentName, href: `/d/${area.departmentSlug}` },
+              { label: area.name, icon: Folder },
+            ]}
+            favoriteTarget={{ entityType: 'FOLDER', entityId: area.id }}
+          />
         }
         summaries={summaries}
         isSummariesLoading={isSummariesLoading}
@@ -81,6 +57,7 @@ export default function AreaPage() {
         departmentId={area.departmentId}
         emptyMessage="Nenhum processo nesta área."
         onCreateTask={() => setIsCreateOpen(true)}
+        customFieldsScope={{ kind: 'folder', folderId: area.id }}
       />
       <CreateTaskDialog
         open={isCreateOpen}

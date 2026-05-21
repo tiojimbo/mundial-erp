@@ -32,4 +32,9 @@ export class CreateUserDto {
   @IsOptional()
   @IsString()
   departmentId?: string;
+
+  @ApiPropertyOptional({ description: 'Alias Hoppe de departmentId.' })
+  @IsOptional()
+  @IsString()
+  spaceId?: string;
 }

@@ -8,6 +8,7 @@ import {
   Param,
   Patch,
   Post,
+  Put,
   Query,
 } from '@nestjs/common';
 import { ParseCuidPipe } from '../../../common/pipes/parse-cuid.pipe';
@@ -25,6 +26,7 @@ import { CreateDmDto } from './dto/create-dm.dto';
 import { UpdateChannelDto } from './dto/update-channel.dto';
 import { AddMembersDto } from './dto/add-members.dto';
 import { ListChannelsQueryDto } from './dto/list-channels-query.dto';
+import { FindChannelByEntityQueryDto } from './dto/find-channel-by-entity-query.dto';
 import { ChannelResponseDto } from './dto/channel-response.dto';
 import { CursorPaginationDto } from '../../../common/dtos/cursor-pagination.dto';
 import { CurrentUser } from '../../auth/decorators';
@@ -86,6 +88,26 @@ export class ChannelsController {
     return this.channelsService.findAll(query, userId);
   }
 
+  @Get('entity')
+  @ApiOperation({
+    summary:
+      'Buscar canal por entidade pai (Hoppe-style ?type=space|folder|list|task&entityId=)',
+  })
+  @ApiResponse({ status: 200, type: ChannelResponseDto })
+  @ApiResponse({ status: 404, description: 'Canal nao encontrado' })
+  findByEntity(
+    @Query() query: FindChannelByEntityQueryDto,
+    @CurrentUser('sub') userId: string,
+    @WorkspaceId() workspaceId: string,
+  ) {
+    return this.channelsService.findByEntity(
+      query.type,
+      query.entityId,
+      workspaceId,
+      userId,
+    );
+  }
+
   @Get(':channelId')
   @ApiOperation({ summary: 'Buscar canal por ID (ClickUp #4)' })
   @ApiResponse({ status: 200, type: ChannelResponseDto })
@@ -97,6 +119,7 @@ export class ChannelsController {
     return this.channelsService.findById(channelId, userId);
   }
 
+  @Put(':channelId')
   @Patch(':channelId')
   @ApiOperation({ summary: 'Atualizar canal (ClickUp #5)' })
   @ApiResponse({ status: 200, type: ChannelResponseDto })
@@ -166,6 +189,7 @@ export class ChannelsController {
     return this.channelsService.removeMember(channelId, targetUserId, userId);
   }
 
+  @Put(':channelId/members/:targetUserId/role')
   @Patch(':channelId/members/:targetUserId/role')
   @ApiOperation({ summary: 'Alterar role de membro (somente OWNER)' })
   @ApiResponse({ status: 200 })

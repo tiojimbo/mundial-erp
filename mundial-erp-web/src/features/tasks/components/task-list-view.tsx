@@ -4,7 +4,6 @@ import { useCallback, useEffect, useMemo, useState } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { toast } from 'sonner';
 import {
-  RiArchiveLine,
   RiCloseLine,
   RiDeleteBin6Line,
   RiFilter3Line,
@@ -15,7 +14,6 @@ import {
 import { cn } from '@/lib/cn';
 import { useDebounce } from '@/hooks/use-debounce';
 import { useInfiniteTasks } from '../hooks/use-infinite-tasks';
-import { useArchiveTask } from '../hooks/use-archive-task';
 import { useDeleteTask } from '../hooks/use-delete-task';
 import { useUpdateTask } from '../hooks/use-update-task';
 import { useTags } from '../hooks/use-tags';
@@ -128,7 +126,6 @@ export function TaskListView({
   const tags = useTags();
   const customTypes = useCustomTaskTypes();
 
-  const archiveTask = useArchiveTask();
   const deleteTask = useDeleteTask();
   const updateTask = useUpdateTask();
 
@@ -182,18 +179,7 @@ export function TaskListView({
     [router, urlFilters],
   );
 
-  const handleBulkArchive = useCallback(async () => {
-    if (selectedIds.length === 0) return;
-    const result = await runBulkInBatches(selectedIds, (id) =>
-      archiveTask.mutateAsync(id),
-    );
-    toast.success(
-      `${result.ok} tarefa(s) arquivada(s)${result.failed.length > 0 ? ` (${result.failed.length} falha(s))` : ''}`,
-    );
-    setSelected(new Set());
-  }, [archiveTask, selectedIds]);
-
-  const handleBulkDelete = useCallback(async () => {
+const handleBulkDelete = useCallback(async () => {
     if (selectedIds.length === 0) return;
     const confirmed =
       typeof window !== 'undefined' &&
@@ -365,14 +351,6 @@ export function TaskListView({
           <div className="flex flex-wrap items-center gap-2">
             <button
               type="button"
-              onClick={handleBulkArchive}
-              className="inline-flex h-8 items-center gap-1 rounded-md border border-stroke-soft-200 px-3 text-label-xs text-text-sub-600 hover:bg-bg-weak-50"
-            >
-              <RiArchiveLine className="size-4" aria-hidden />
-              Arquivar
-            </button>
-            <button
-              type="button"
               onClick={handleBulkDelete}
               className="inline-flex h-8 items-center gap-1 rounded-md border border-error-base px-3 text-label-xs text-error-base hover:bg-error-lighter"
             >
@@ -405,6 +383,8 @@ function toTaskRow(task: Task): TaskTableRowData {
     href: `/tasks/${task.id}`,
     title: task.title,
     statusColor: task.status.color,
+    typeIcon: task.customType?.icon ?? null,
+    typeLabel: task.customType?.value ?? null,
     startDate: task.startDate,
     dueDate: task.dueDate,
     assignees: task.assignees.map((a) => ({
@@ -524,7 +504,7 @@ function CustomTypeFilter({
   value,
   onChange,
 }: {
-  options: Array<{ id: string; name: string }>;
+  options: Array<{ id: string; value: string }>;
   value: string[];
   onChange: (next: string[]) => void;
 }): JSX.Element {
@@ -556,7 +536,7 @@ function CustomTypeFilter({
               )}
               aria-pressed={selected}
             >
-              {option.name}
+              {option.value}
             </button>
           );
         })}

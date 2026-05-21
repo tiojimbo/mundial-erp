@@ -1,20 +1,13 @@
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 import { TaskTemplateScope } from '@prisma/client';
 
-/**
- * Shape de `WorkItemTemplate` — contrato de resposta (Sprint 6).
- *
- * O model Prisma `WorkItemTemplate` e criado pela Migration 3 (`tasks_advanced`).
- * Mesmo padrao defensivo das dependencias/links/tags: `fromEntity` aceita um
- * shape tipado aqui e mapeia para o DTO.
- */
 export interface WorkItemTemplateShape {
   id: string;
   workspaceId: string;
   name: string;
   scope: TaskTemplateScope;
-  departmentId: string | null;
-  processId: string | null;
+  spaceId: string | null;
+  listId: string | null;
   payload: Record<string, unknown>;
   subtaskCount: number;
   checklistCount: number;
@@ -40,8 +33,14 @@ export class TemplateResponseDto {
   @ApiPropertyOptional()
   departmentId!: string | null;
 
+  @ApiPropertyOptional({ description: 'Alias Hoppe de departmentId.' })
+  spaceId!: string | null;
+
   @ApiPropertyOptional()
   processId!: string | null;
+
+  @ApiPropertyOptional({ description: 'Alias Hoppe de processId.' })
+  listId!: string | null;
 
   @ApiProperty({ type: Object })
   payload!: Record<string, unknown>;
@@ -72,8 +71,10 @@ export class TemplateResponseDto {
     dto.workspaceId = entity.workspaceId;
     dto.name = entity.name;
     dto.scope = entity.scope;
-    dto.departmentId = entity.departmentId;
-    dto.processId = entity.processId;
+    dto.departmentId = entity.spaceId;
+    dto.spaceId = entity.spaceId;
+    dto.processId = entity.listId;
+    dto.listId = entity.listId;
     dto.payload = entity.payload;
     dto.subtaskCount = entity.subtaskCount;
     dto.checklistCount = entity.checklistCount;

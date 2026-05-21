@@ -40,8 +40,8 @@ export function InboxClient() {
   );
 
   const filteredItems = useMemo(() => {
-    if (!data?.items) return [];
-    let items = data.items;
+    if (!data?.notifications) return [];
+    let items = data.notifications;
 
     if (filters.types?.length) {
       items = items.filter((n) => filters.types!.includes(n.type));
@@ -51,7 +51,7 @@ export function InboxClient() {
     }
 
     return items;
-  }, [data?.items, filters]);
+  }, [data?.notifications, filters]);
 
   return (
     <div className='flex h-full flex-col'>

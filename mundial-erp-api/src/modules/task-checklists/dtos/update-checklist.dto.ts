@@ -2,12 +2,12 @@ import { ApiPropertyOptional } from '@nestjs/swagger';
 import { IsInt, IsOptional, IsString, MaxLength, Min, MinLength } from 'class-validator';
 
 export class UpdateChecklistDto {
-  @ApiPropertyOptional({ example: 'Novo nome' })
+  @ApiPropertyOptional({ example: 'Novo titulo' })
   @IsOptional()
   @IsString()
   @MinLength(1)
   @MaxLength(200)
-  name?: string;
+  title?: string;
 
   @ApiPropertyOptional({ example: 1 })
   @IsOptional()

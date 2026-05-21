@@ -14,10 +14,12 @@ export interface TaskTagFindManyParams {
   skip?: number;
   take?: number;
   search?: string;
+  spaceId?: string;
 }
 
 export interface CreateTaskTagData {
   workspaceId: string;
+  spaceId: string;
   name: string;
   nameLower: string;
   color?: string | null;
@@ -34,6 +36,7 @@ export interface UpdateTaskTagData {
 const TASK_TAG_SELECT = {
   id: true,
   workspaceId: true,
+  spaceId: true,
   name: true,
   nameLower: true,
   color: true,
@@ -41,6 +44,7 @@ const TASK_TAG_SELECT = {
   createdAt: true,
   updatedAt: true,
   deletedAt: true,
+  _count: { select: { links: true } },
 } as const;
 
 @Injectable()
@@ -48,12 +52,16 @@ export class TaskTagsRepository {
   constructor(private readonly prisma: PrismaService) {}
 
   async findMany(workspaceId: string, params: TaskTagFindManyParams) {
-    const { skip = 0, take = 20, search } = params;
+    const { skip = 0, take = 20, search, spaceId } = params;
 
     const where: Prisma.WorkItemTagWhereInput = {
       workspaceId,
       deletedAt: null,
     };
+
+    if (spaceId) {
+      where.spaceId = spaceId;
+    }
 
     if (search) {
       where.nameLower = { contains: search.toLowerCase() };
@@ -91,6 +99,7 @@ export class TaskTagsRepository {
     return this.prisma.workItemTag.create({
       data: {
         workspaceId: data.workspaceId,
+        spaceId: data.spaceId,
         name: data.name,
         nameLower: data.nameLower,
         color: data.color ?? null,
@@ -126,7 +135,7 @@ export class TaskTagsRepository {
       where: {
         id: taskId,
         deletedAt: null,
-        process: { department: { workspaceId } },
+        list: { space: { workspaceId } },
       },
       select: { id: true },
     });

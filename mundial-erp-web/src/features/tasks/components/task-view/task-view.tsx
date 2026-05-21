@@ -4,9 +4,12 @@ import { useEffect, useMemo, useState } from 'react';
 import { ChevronsLeft } from 'lucide-react';
 
 import { cn } from '@/lib/cn';
+import { useWorkspaceStore } from '@/stores/workspace.store';
 import { useTasksStore } from '../../stores/tasks.store';
 import { useTask } from '../../hooks/use-task';
 import { useTaskSse } from '../../hooks/use-task-sse';
+import { useTaskTypeTemplate } from '../../hooks/use-task-type-template';
+import { useUpdateTask } from '../../hooks/use-update-task';
 import type { TaskDetail } from '../../types/task.types';
 import { DEFAULT_ACTIVITY_FILTERS } from '../../schemas/activity-filters.schema';
 
@@ -16,7 +19,6 @@ import { TaskPropertyGrid } from './task-property-grid';
 import { TaskDescription } from './task-description';
 import { CustomFieldsSection } from './custom-fields-section';
 import { LinkedTasksSection } from './linked-tasks-section';
-import { TimeTrackingSection } from './time-tracking-section';
 import { SubtasksSection } from './subtasks-section';
 import { ChecklistsSection } from './checklists-section';
 import { AttachmentsSection } from './attachments-section';
@@ -106,6 +108,25 @@ export function TaskView({ taskId }: TaskViewProps) {
       'assignees',
     ],
   });
+  const updateTask = useUpdateTask();
+
+  // TTT-041 — busca lazy do template do CustomTaskType da task. `null` quando
+  // a task nao tem `customTypeId` ou quando o backend ainda nao tem template.
+  // O hook ja faz `enabled: false` nesse caso (vide use-task-type-template).
+  const workspaceId = useWorkspaceStore(
+    (state) => state.currentWorkspace?.id ?? '',
+  );
+  const { data: template } = useTaskTypeTemplate(
+    task?.customTypeId ?? null,
+    workspaceId,
+  );
+
+  const definitionIds = useMemo(() => {
+    if (!template) return null;
+    return [...template.fields]
+      .sort((a, b) => a.sortOrder - b.sortOrder)
+      .map((f) => f.definitionId);
+  }, [template]);
 
   if (isLoading) {
     return <TaskViewSkeleton />;
@@ -156,14 +177,28 @@ export function TaskView({ taskId }: TaskViewProps) {
           <TaskDescription
             value={task.markdownContent ?? task.description ?? ''}
             aria-label='Descricao da tarefa'
+            onChange={(next) =>
+              updateTask.mutate({
+                taskId: task.id,
+                payload: { markdownContent: next, description: next },
+              })
+            }
           />
 
-          <CustomFieldsSection taskId={task.id} />
+          <CustomFieldsSection
+            taskId={task.id}
+            definitionIds={definitionIds}
+            listId={task.processId}
+            taskTypeName={task.customType?.value ?? null}
+            taskTypeId={task.customType?.id ?? null}
+          />
           <LinkedTasksSection task={task as TaskDetail} />
-          <TimeTrackingSection task={task as TaskDetail} />
           <SubtasksSection task={task as TaskDetail} />
           <ChecklistsSection task={task as TaskDetail} />
-          <AttachmentsSection task={task as TaskDetail} />
+          <AttachmentsSection
+            task={task as TaskDetail}
+            categories={template?.attachmentCategories ?? null}
+          />
         </div>
       </section>
 

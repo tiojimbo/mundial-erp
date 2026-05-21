@@ -16,6 +16,9 @@ import {
 } from '@remixicon/react';
 import { cn } from '@/lib/cn';
 import { useCreateTask } from '../hooks/use-create-task';
+import { useCustomTaskTypes } from '../hooks/use-custom-task-types';
+import { useProcess } from '@/features/settings/hooks/use-processes';
+import { useTaskTypeTemplate } from '../hooks/use-task-type-template';
 import {
   createTaskFormSchema,
   type CreateTaskFormData,
@@ -24,6 +27,7 @@ import type { CreateTaskPayload } from '../types/task.types';
 import { useDepartmentSummaries } from '@/features/navigation/hooks/use-department-summaries';
 import { useAreaSummaries } from '@/features/navigation/hooks/use-area-summaries';
 import type { ProcessSummary } from '@/features/navigation/types/process-summary.types';
+import { useWorkspaceStore } from '@/stores/workspace.store';
 
 /**
  * Dialog para criar uma Task a partir de um dos tres contextos de
@@ -85,6 +89,24 @@ export function CreateTaskDialog({
   const titleId = useId();
   const descId = useId();
 
+  // TTT-042 — selecao opcional de CustomTaskType + preview lazy do template.
+  // Nao toca no schema (`createTaskFormSchema`) — `customTypeId` vai direto
+  // ao payload em `onSubmit`. `null` = sem tipo selecionado (fluxo legado).
+  const [selectedCustomTypeId, setSelectedCustomTypeId] = useState<
+    string | null
+  >(null);
+  const customTypesQuery = useCustomTaskTypes();
+  const lockedProcessQuery = useProcess(lockedProcessId ?? '');
+  const defaultTaskTypeId =
+    lockedProcessQuery.data?.defaultTaskTypeId ?? null;
+  const workspaceId = useWorkspaceStore(
+    (state) => state.currentWorkspace?.id ?? '',
+  );
+  const { data: typeTemplate, isFetching: isFetchingTemplate } =
+    useTaskTypeTemplate(selectedCustomTypeId, workspaceId);
+  const selectedCustomType =
+    customTypesQuery.data?.find((t) => t.id === selectedCustomTypeId) ?? null;
+
   const {
     register,
     handleSubmit,
@@ -114,8 +136,9 @@ export function CreateTaskDialog({
         priority: 'NORMAL',
         dueDate: '',
       });
+      setSelectedCustomTypeId(defaultTaskTypeId);
     }
-  }, [open, lockedProcessId, reset]);
+  }, [open, lockedProcessId, defaultTaskTypeId, reset]);
 
   const isLocked = Boolean(lockedProcessId);
   const useDepartment = !isLocked && Boolean(departmentId);
@@ -219,6 +242,8 @@ export function CreateTaskDialog({
       dueDate: values.dueDate
         ? new Date(`${values.dueDate}T23:59:59.000Z`).toISOString()
         : undefined,
+      // TTT-042 — propaga `customTypeId` quando o usuario selecionou um tipo.
+      ...(selectedCustomTypeId ? { customTypeId: selectedCustomTypeId } : {}),
       // `statusId` propositalmente omitido — o backend resolve automaticamente
       // com o primeiro status NOT_STARTED do workflow do processo.
     };
@@ -267,7 +292,9 @@ export function CreateTaskDialog({
                   id={titleId}
                   className="text-label-sm text-text-strong-950"
                 >
-                  Nova tarefa
+                  {lockedProcessQuery.data?.defaultTaskType?.value
+                    ? `Nova ${lockedProcessQuery.data.defaultTaskType.value}`
+                    : 'Nova tarefa'}
                 </Dialog.Title>
                 <Dialog.Description
                   id={descId}
@@ -416,6 +443,49 @@ export function CreateTaskDialog({
                     {errors.title.message}
                   </p>
                 )}
+              </div>
+
+              {/* TTT-042 — Custom task type (opcional) + preview do template */}
+              <div className="space-y-1.5">
+                <label
+                  htmlFor="create-task-custom-type"
+                  className="text-label-sm text-text-strong-950"
+                >
+                  Tipo de tarefa{' '}
+                  <span className="text-text-soft-400">(opcional)</span>
+                </label>
+                <div className="relative">
+                  <select
+                    id="create-task-custom-type"
+                    value={selectedCustomTypeId ?? ''}
+                    onChange={(e) =>
+                      setSelectedCustomTypeId(e.target.value || null)
+                    }
+                    disabled={
+                      customTypesQuery.isLoading ||
+                      !customTypesQuery.data ||
+                      customTypesQuery.data.length === 0
+                    }
+                    className="h-9 w-full appearance-none rounded-lg border border-stroke-soft-200 bg-bg-white-0 pl-3 pr-9 text-paragraph-sm text-text-strong-950 shadow-regular-xs outline-none transition-colors hover:bg-bg-weak-50 focus-visible:border-stroke-strong-950 focus-visible:ring-2 focus-visible:ring-stroke-strong-950/30 disabled:cursor-not-allowed disabled:opacity-60"
+                  >
+                    <option value="">Padrao (Tarefa)</option>
+                    {(customTypesQuery.data ?? []).map((t) => (
+                      <option key={t.id} value={t.id}>
+                        {t.value}
+                      </option>
+                    ))}
+                  </select>
+                  <RiArrowDownSLine
+                    aria-hidden
+                    className="pointer-events-none absolute right-2.5 top-1/2 size-4 -translate-y-1/2 text-text-sub-600"
+                  />
+                </div>
+
+                <CustomTypeTemplatePreview
+                  selectedTypeName={selectedCustomType?.value ?? null}
+                  template={typeTemplate ?? null}
+                  isFetching={isFetchingTemplate}
+                />
               </div>
 
               {/* Description */}
@@ -671,5 +741,123 @@ function ProcessCombobox({
         </div>
       )}
     </div>
+  );
+}
+
+/**
+ * Sprint 4 (TTT-042) — Preview lazy do template do CustomTaskType selecionado.
+ *
+ * Estados:
+ *   - Sem tipo selecionado            => `null` (nao renderiza nada).
+ *   - Tipo sem template no backend    => mensagem informativa "Tipo padrao,
+ *                                        sem template configurado".
+ *   - Carregando                      => skeleton compacto.
+ *   - Template carregado              => contador de campos, contador de
+ *                                        categorias (com obrigatorias),
+ *                                        flag de descricao default e chips
+ *                                        com cada categoria.
+ */
+type CustomTypeTemplatePreviewProps = {
+  selectedTypeName: string | null;
+  template:
+    | import('../hooks/use-task-type-template').TaskTypeTemplate
+    | null;
+  isFetching: boolean;
+};
+
+function CustomTypeTemplatePreview({
+  selectedTypeName,
+  template,
+  isFetching,
+}: CustomTypeTemplatePreviewProps) {
+  if (!selectedTypeName) return null;
+
+  if (isFetching) {
+    return (
+      <div
+        aria-busy="true"
+        className="rounded-lg border border-stroke-soft-200 bg-bg-weak-50 px-3 py-2 text-paragraph-xs text-text-sub-600"
+      >
+        Carregando template do tipo...
+      </div>
+    );
+  }
+
+  if (!template) {
+    return (
+      <div className="rounded-lg border border-stroke-soft-200 bg-bg-weak-50 px-3 py-2 text-paragraph-xs text-text-sub-600">
+        Tipo <strong>{selectedTypeName}</strong> sem template configurado — a
+        tarefa sera criada como padrao.
+      </div>
+    );
+  }
+
+  const fieldsCount = template.fields.length;
+  const categories = template.attachmentCategories ?? [];
+  const requiredCategories = categories.filter((c) => c.required).length;
+  const hasDefaultDescription = Boolean(template.defaultDescriptionBlocks);
+
+  return (
+    <section
+      aria-label={`Resumo do template ${selectedTypeName}`}
+      className="space-y-2 rounded-lg border border-stroke-soft-200 bg-bg-weak-50 px-3 py-2.5 text-paragraph-xs text-text-sub-600"
+    >
+      <p className="font-medium text-text-strong-950">
+        Este tipo possui template:
+      </p>
+      <ul className="space-y-1">
+        {fieldsCount > 0 && (
+          <li>
+            <span aria-hidden="true">[campos]</span> {fieldsCount} campo
+            {fieldsCount === 1 ? '' : 's'} personalizado
+            {fieldsCount === 1 ? '' : 's'}
+          </li>
+        )}
+        {categories.length > 0 && (
+          <li>
+            <span aria-hidden="true">[anexos]</span> {categories.length}{' '}
+            categoria{categories.length === 1 ? '' : 's'} de anexo
+            {requiredCategories > 0
+              ? ` (${requiredCategories} obrigatoria${
+                  requiredCategories === 1 ? '' : 's'
+                })`
+              : ''}
+          </li>
+        )}
+        {hasDefaultDescription && (
+          <li>
+            <span aria-hidden="true">[descricao]</span> Descricao padrao sera
+            aplicada
+          </li>
+        )}
+      </ul>
+
+      {categories.length > 0 && (
+        <ul
+          aria-label="Categorias de anexo"
+          className="flex flex-wrap gap-1.5 pt-1"
+        >
+          {categories.map((cat) => (
+            <li key={cat.slug}>
+              <span
+                className={cn(
+                  'inline-flex items-center gap-1 rounded-full border px-2 py-0.5 text-[11px]',
+                  cat.required
+                    ? 'border-error-base bg-error-lighter text-error-dark'
+                    : 'border-stroke-soft-200 bg-bg-white-0 text-text-sub-600',
+                )}
+              >
+                {cat.label}
+                {cat.required && (
+                  <span aria-hidden="true" className="opacity-80">
+                    (obrig.)
+                  </span>
+                )}
+              </span>
+            </li>
+          ))}
+        </ul>
+      )}
+    </section>
   );
 }

@@ -40,6 +40,11 @@ export class CreateTemplateDto {
   @IsString()
   departmentId?: string;
 
+  @ApiPropertyOptional({ description: 'Alias Hoppe de departmentId.' })
+  @IsOptional()
+  @IsString()
+  spaceId?: string;
+
   @ApiPropertyOptional({
     description:
       'Process do template (obrigatorio se scope=PROCESS). Deve pertencer ao workspace.',
@@ -47,6 +52,11 @@ export class CreateTemplateDto {
   @IsOptional()
   @IsString()
   processId?: string;
+
+  @ApiPropertyOptional({ description: 'Alias Hoppe de processId.' })
+  @IsOptional()
+  @IsString()
+  listId?: string;
 
   @ApiProperty({
     description:

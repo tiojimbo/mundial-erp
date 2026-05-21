@@ -39,8 +39,8 @@ function NavLink({ item, isActive }: { item: NavItem; isActive: boolean }) {
       className={cn(
         'flex items-center gap-2 rounded-lg px-3 py-2 text-paragraph-sm transition-colors',
         isActive
-          ? 'bg-bg-soft-200 font-medium text-text-strong-950'
-          : 'text-text-sub-600 hover:bg-bg-weak-50',
+          ? 'bg-sidebar-accent font-medium text-sidebar-foreground'
+          : 'text-sidebar-foreground hover:bg-sidebar-accent',
       )}
     >
       <item.icon className='size-4' />
@@ -60,13 +60,13 @@ export function SettingsSidebar() {
   return (
     <aside
       role='complementary'
-      className='flex w-60 shrink-0 flex-col border-r border-stroke-soft-200 bg-bg-white-0'
+      className='flex w-60 shrink-0 flex-col border-r border-sidebar-border bg-sidebar'
     >
       {/* Back link */}
       <div className='px-3 py-4'>
         <Link
           href='/inicio'
-          className='flex items-center gap-1 text-paragraph-sm text-text-sub-600 transition-colors hover:text-text-strong-950'
+          className='flex items-center gap-1 text-paragraph-sm text-sidebar-foreground transition-colors hover:text-sidebar-foreground/80'
         >
           <RiArrowLeftSLine className='size-4' />
           Voltar ao espaço de trabalho
@@ -76,7 +76,7 @@ export function SettingsSidebar() {
       {/* Navigation */}
       <nav className='flex flex-1 flex-col gap-1 px-3'>
         {/* Workspace group */}
-        <span className='mb-1 mt-2 px-3 text-subheading-2xs uppercase text-text-soft-400'>
+        <span className='mb-1 mt-2 px-3 text-subheading-2xs uppercase text-sidebar-foreground'>
           {workspaceName}
         </span>
         {hubItems.map((item) => (
@@ -88,10 +88,10 @@ export function SettingsSidebar() {
         ))}
 
         {/* Separator */}
-        <div className='my-3 border-t border-stroke-soft-200' />
+        <div className='my-3 border-t border-sidebar-border' />
 
         {/* Personal group */}
-        <span className='mb-1 px-3 text-subheading-2xs uppercase text-text-soft-400'>
+        <span className='mb-1 px-3 text-subheading-2xs uppercase text-sidebar-foreground'>
           {userName}
         </span>
         {personalItems.map((item) => (
@@ -109,7 +109,7 @@ export function SettingsSidebar() {
         <button
           type='button'
           onClick={logout}
-          className='mb-4 flex items-center gap-2 rounded-lg px-3 py-2 text-paragraph-sm text-text-sub-600 transition-colors hover:bg-bg-weak-50'
+          className='mb-4 flex items-center gap-2 rounded-lg px-3 py-2 text-paragraph-sm text-sidebar-foreground transition-colors hover:bg-sidebar-accent'
         >
           <RiLogoutBoxRLine className='size-4' />
           Sair

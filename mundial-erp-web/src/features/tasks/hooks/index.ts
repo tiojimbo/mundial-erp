@@ -12,9 +12,6 @@ export { useCreateTask } from './use-create-task';
 export { useUpdateTask } from './use-update-task';
 export { useUpdateTaskStatus } from './use-update-task-status';
 export { useDeleteTask } from './use-delete-task';
-export { useArchiveTask } from './use-archive-task';
-export { useUnarchiveTask } from './use-unarchive-task';
-export { useMergeTasks } from './use-merge-tasks';
 
 // Tags.
 export { useTags } from './use-tags';
@@ -23,16 +20,6 @@ export { useUpdateTag } from './use-update-tag';
 export { useDeleteTag } from './use-delete-tag';
 export { useAttachTag } from './use-attach-tag';
 export { useDetachTag } from './use-detach-tag';
-
-// Watchers.
-export { useWatchers } from './use-watchers';
-export { useAddWatcher } from './use-add-watcher';
-export { useRemoveWatcher } from './use-remove-watcher';
-
-// Dependencies.
-export { useDependencies } from './use-dependencies';
-export { useAddDependency } from './use-add-dependency';
-export { useRemoveDependency } from './use-remove-dependency';
 
 // Links.
 export { useLinks } from './use-links';
@@ -44,7 +31,6 @@ export { useChecklists } from './use-checklists';
 export { useCreateChecklist } from './use-create-checklist';
 export { useUpdateChecklistItem } from './use-update-checklist-item';
 export { useResolveChecklistItem } from './use-resolve-checklist-item';
-export { useReorderChecklist } from './use-reorder-checklist';
 
 // Attachments.
 export { useAttachments } from './use-attachments';

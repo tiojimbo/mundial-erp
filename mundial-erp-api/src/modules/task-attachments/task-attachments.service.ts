@@ -28,10 +28,13 @@ import { TaskAttachmentsRepository } from './task-attachments.repository';
 import { S3AdapterService } from '../../common/adapters/s3-adapter.service';
 import { FileTypeDetectorService } from '../../common/adapters/file-type-detector.service';
 import { TaskOutboxService } from '../task-outbox/task-outbox.service';
+import { TaskTypeTemplatesService } from '../task-type-templates/task-type-templates.service';
+import { assertCategoryAllowed } from './task-attachments.category-validator';
 import {
   ATTACHMENT_MAX_SIZE_BYTES,
   ATTACHMENT_MIME_WHITELIST_REGEX,
   SignedUrlRequestDto,
+  normalizeSignedUrlInput,
 } from './dtos/signed-url-request.dto';
 import { RegisterAttachmentDto } from './dtos/register-attachment.dto';
 import {
@@ -71,6 +74,13 @@ export class TaskAttachmentsService {
     private readonly outbox: TaskOutboxService,
     @InjectQueue(CLAMAV_SCAN_QUEUE)
     private readonly scanQueue: Queue<ClamAvScanJobData>,
+    /**
+     * TTT-043 — usado APENAS para validar `dto.category` contra
+     * `attachmentCategories` do template do CustomTaskType da task. Se a
+     * task nao tem template ou nao define categorias, qualquer `category`
+     * enviado e rejeitado (400).
+     */
+    private readonly taskTypeTemplates: TaskTypeTemplatesService,
   ) {}
 
   async createSignedUrl(
@@ -82,34 +92,35 @@ export class TaskAttachmentsService {
     if (!task) {
       throw new NotFoundException('Tarefa nao encontrada');
     }
-    // Validacao defensiva alem do DTO — nunca confie so no decorator.
-    // Validacao de input => 400, nao 403 (agent-cto: 403 e para permissao negada).
-    if (!ATTACHMENT_MIME_WHITELIST_REGEX.test(dto.mimeType)) {
+    const input = normalizeSignedUrlInput(dto);
+    if (!ATTACHMENT_MIME_WHITELIST_REGEX.test(input.mimeType)) {
       throw new BadRequestException('mimeType fora da whitelist');
     }
-    if (dto.sizeBytes <= 0 || dto.sizeBytes > ATTACHMENT_MAX_SIZE_BYTES) {
+    if (input.sizeBytes <= 0 || input.sizeBytes > ATTACHMENT_MAX_SIZE_BYTES) {
       throw new BadRequestException('sizeBytes fora do limite (25MB)');
     }
 
-    const sanitized = sanitizeFilename(dto.filename);
+    const sanitized = sanitizeFilename(input.filename);
     const storageKey = `${workspaceId}/${taskId}/${randomUUID()}-${sanitized}`;
 
     const signed = await this.s3.getSignedPutUrl({
       key: storageKey,
-      contentType: dto.mimeType,
-      contentLength: dto.sizeBytes,
+      contentType: input.mimeType,
+      contentLength: input.sizeBytes,
       expiresInSeconds: SIGNED_URL_TTL_SECONDS,
     });
 
     this.logger.log(
-      // Nao logar URL completa — expira em 300s mas ainda e credencial.
       `attachments.signed-url workspace=${workspaceId} task=${taskId} key=${storageKey} ttl=${SIGNED_URL_TTL_SECONDS}s`,
     );
 
     const response = new SignedUrlResponseDto();
     response.url = signed.url;
+    response.uploadUrl = signed.url;
     response.storageKey = storageKey;
+    response.fileKey = storageKey;
     response.expiresAt = signed.expiresAt;
+    response.expiresIn = SIGNED_URL_TTL_SECONDS;
     return response;
   }
 
@@ -138,6 +149,16 @@ export class TaskAttachmentsService {
       dto.mimeType,
     );
 
+    // TTT-043 — valida slug `category` contra template (fora da $transaction
+    // para evitar manter a tx aberta enquanto consultamos Redis/banco do
+    // template; em caso de falha de validacao o usuario nunca chega ao insert).
+    await assertCategoryAllowed(
+      this.taskTypeTemplates,
+      workspaceId,
+      task.customTypeId ?? null,
+      dto.category,
+    );
+
     // Insert + outbox enqueue em $transaction unica (ADR-003). O enqueue do
     // scan na fila BullMQ fica FORA da tx — workers externos nao compartilham
     // o tx do Prisma, e o attachment precisa ja estar commitado para ser
@@ -151,6 +172,7 @@ export class TaskAttachmentsService {
           sizeBytes: dto.sizeBytes,
           storageKey: dto.storageKey,
           uploadedBy: actorUserId,
+          category: dto.category ?? null,
         },
         tx,
       );
@@ -164,6 +186,9 @@ export class TaskAttachmentsService {
           filename: dto.filename,
           mimeType: dto.mimeType,
           sizeBytes: dto.sizeBytes,
+          // TTT-043 — categoria do anexo (slug do template). Null para anexos
+          // sem categoria; consumidores devem aceitar `category` opcional.
+          category: dto.category ?? null,
           actorId: actorUserId,
         },
         workspaceId,

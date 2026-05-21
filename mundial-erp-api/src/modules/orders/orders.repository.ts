@@ -162,7 +162,6 @@ export class OrdersRepository {
         productionOrders: { where: { deletedAt: null } },
         separationOrders: { where: { deletedAt: null } },
         accountsReceivable: { where: { deletedAt: null } },
-        processInstances: true,
       },
     });
   }

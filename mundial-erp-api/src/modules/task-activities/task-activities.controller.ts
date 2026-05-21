@@ -11,6 +11,7 @@ import { ActivityFiltersDto } from './dtos/activity-filters.dto';
 import { ActivitiesListResponseDto } from './dtos/activity-response.dto';
 import { Roles } from '../auth/decorators';
 import { WorkspaceId } from '../workspaces/decorators/workspace-id.decorator';
+import { SkipResponseTransform } from '../../common/decorators/skip-response-transform.decorator';
 
 @ApiTags('Task Activities')
 @ApiBearerAuth()
@@ -18,10 +19,12 @@ import { WorkspaceId } from '../workspaces/decorators/workspace-id.decorator';
 export class TaskActivitiesController {
   constructor(private readonly service: TaskActivitiesService) {}
 
-  @Get('tasks/:taskId/activities')
+  @Get('tasks-activities/:taskId')
+  @SkipResponseTransform()
   @Roles(Role.ADMIN, Role.MANAGER, Role.OPERATOR, Role.VIEWER)
   @ApiOperation({
-    summary: 'Feed de atividades da tarefa (paginado, orderBy createdAt DESC)',
+    summary:
+      'Feed de atividades da tarefa (paginado, orderBy createdAt DESC, path Hoppe)',
   })
   @ApiResponse({ status: 200, type: ActivitiesListResponseDto })
   findByTask(

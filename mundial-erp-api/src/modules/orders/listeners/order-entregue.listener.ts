@@ -7,7 +7,6 @@ import { PrismaService } from '../../../database/prisma.service';
  * Listener: Status → ENTREGUE
  *
  * - Registra 2a parcela AR como PAID
- * - Encerra ProcessInstances vinculadas
  */
 @Injectable()
 export class OrderEntregueListener {
@@ -53,20 +52,6 @@ export class OrderEntregueListener {
       );
     }
 
-    // Encerrar ProcessInstances vinculadas
-    await this.prisma.processInstance.updateMany({
-      where: {
-        orderId: event.orderId,
-        status: 'ACTIVE',
-      },
-      data: {
-        status: 'COMPLETED',
-        completedAt: new Date(),
-      },
-    });
-
-    this.logger.log(
-      `Pedido ${order.orderNumber} ENTREGUE. AR quitado e ProcessInstances encerradas.`,
-    );
+    this.logger.log(`Pedido ${order.orderNumber} ENTREGUE. AR quitado.`);
   }
 }

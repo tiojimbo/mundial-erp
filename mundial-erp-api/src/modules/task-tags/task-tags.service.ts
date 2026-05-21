@@ -4,6 +4,7 @@ import {
   Injectable,
   Logger,
   NotFoundException,
+  Optional,
   forwardRef,
 } from '@nestjs/common';
 import { Prisma } from '@prisma/client';
@@ -14,6 +15,7 @@ import { UpdateTaskTagDto } from './dtos/update-task-tag.dto';
 import { TaskTagFiltersDto } from './dtos/task-tag-filters.dto';
 import { TaskTagResponseDto } from './dtos/task-tag-response.dto';
 import { TaskOutboxService } from '../task-outbox/task-outbox.service';
+import { TaskEventsPublisher } from '../automations/events/task-events.publisher';
 
 /**
  * Eventos de outbox emitidos por este servico. Espelham os valores de
@@ -32,7 +34,35 @@ export class TaskTagsService {
     // forwardRef para evitar ciclo eventual entre task-tags e task-outbox
     @Inject(forwardRef(() => TaskOutboxService))
     private readonly outbox: TaskOutboxService,
+    @Optional()
+    private readonly automationEvents?: TaskEventsPublisher,
   ) {}
+
+  private async loadTaskContext(taskId: string, workspaceId: string): Promise<{
+    listId: string;
+    folderId: string | null;
+    spaceId: string | null;
+  } | null> {
+    const row = await this.prisma.workItem.findFirst({
+      where: { id: taskId, deletedAt: null, list: { space: { workspaceId } } },
+      select: {
+        listId: true,
+        list: {
+          select: {
+            folderId: true,
+            spaceId: true,
+            folder: { select: { spaceId: true } },
+          },
+        },
+      },
+    });
+    if (!row) return null;
+    return {
+      listId: row.listId,
+      folderId: row.list.folderId ?? null,
+      spaceId: row.list.spaceId ?? row.list.folder?.spaceId ?? null,
+    };
+  }
 
   /**
    * Normaliza nome para unicidade case-insensitive.
@@ -47,6 +77,7 @@ export class TaskTagsService {
       skip: filters.skip,
       take: filters.limit,
       search: filters.search,
+      spaceId: filters.spaceId,
     });
     return {
       items: items.map((entity) => TaskTagResponseDto.fromEntity(entity)),
@@ -63,6 +94,7 @@ export class TaskTagsService {
     try {
       const entity = await this.repository.create({
         workspaceId,
+        spaceId: dto.spaceId,
         name: dto.name.trim(),
         nameLower,
         color: dto.color,
@@ -191,6 +223,21 @@ export class TaskTagsService {
     this.logger.log(
       `task-tag.attached task=${taskId} tag=${tagId} actor=${actorUserId}`,
     );
+
+    if (this.automationEvents) {
+      const ctx = await this.loadTaskContext(taskId, workspaceId);
+      if (ctx) {
+        this.automationEvents.emitTagAdded({
+          workspaceId,
+          taskId,
+          listId: ctx.listId,
+          folderId: ctx.folderId,
+          spaceId: ctx.spaceId,
+          actorUserId,
+          tagId,
+        });
+      }
+    }
   }
 
   async detach(
@@ -232,5 +279,20 @@ export class TaskTagsService {
     this.logger.log(
       `task-tag.detached task=${taskId} tag=${tagId} actor=${actorUserId}`,
     );
+
+    if (this.automationEvents) {
+      const ctx = await this.loadTaskContext(taskId, workspaceId);
+      if (ctx) {
+        this.automationEvents.emitTagRemoved({
+          workspaceId,
+          taskId,
+          listId: ctx.listId,
+          folderId: ctx.folderId,
+          spaceId: ctx.spaceId,
+          actorUserId,
+          tagId,
+        });
+      }
+    }
   }
 }

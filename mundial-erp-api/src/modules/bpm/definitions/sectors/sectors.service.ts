@@ -8,13 +8,13 @@ import { CreateSectorDto } from './dto/create-sector.dto';
 import { UpdateSectorDto } from './dto/update-sector.dto';
 import { SectorResponseDto } from './dto/sector-response.dto';
 import { PaginationDto } from '../../../../common/dtos/pagination.dto';
-import { DepartmentsRepository } from '../departments/departments.repository';
+import { SpacesRepository } from '../../../spaces/spaces.repository';
 
 @Injectable()
 export class SectorsService {
   constructor(
     private readonly sectorsRepository: SectorsRepository,
-    private readonly departmentsRepository: DepartmentsRepository,
+    private readonly spacesRepository: SpacesRepository,
   ) {}
 
   private generateSlug(name: string): string {
@@ -26,15 +26,12 @@ export class SectorsService {
       .replace(/(^-|-$)/g, '');
   }
 
-  private async assertDepartmentInWorkspace(
+  private async assertSpaceInWorkspace(
     workspaceId: string,
-    departmentId: string,
+    spaceId: string,
   ) {
-    const dept = await this.departmentsRepository.findById(
-      workspaceId,
-      departmentId,
-    );
-    if (!dept) {
+    const space = await this.spacesRepository.findById(workspaceId, spaceId);
+    if (!space) {
       throw new NotFoundException('Departamento não encontrado');
     }
   }
@@ -43,7 +40,7 @@ export class SectorsService {
     workspaceId: string,
     dto: CreateSectorDto,
   ): Promise<SectorResponseDto> {
-    await this.assertDepartmentInWorkspace(workspaceId, dto.departmentId);
+    await this.assertSpaceInWorkspace(workspaceId, dto.spaceId);
 
     const slug = this.generateSlug(dto.name);
 
@@ -55,7 +52,7 @@ export class SectorsService {
     const entity = await this.sectorsRepository.create(workspaceId, {
       name: dto.name,
       slug,
-      department: { connect: { id: dto.departmentId } },
+      space: { connect: { id: dto.spaceId } },
     });
 
     return SectorResponseDto.fromEntity(entity);
@@ -105,9 +102,9 @@ export class SectorsService {
         throw new ConflictException('Setor com este nome já existe');
       }
     }
-    if (dto.departmentId !== undefined) {
-      await this.assertDepartmentInWorkspace(workspaceId, dto.departmentId);
-      updateData.department = { connect: { id: dto.departmentId } };
+    if (dto.spaceId !== undefined) {
+      await this.assertSpaceInWorkspace(workspaceId, dto.spaceId);
+      updateData.space = { connect: { id: dto.spaceId } };
     }
 
     const updated = await this.sectorsRepository.update(

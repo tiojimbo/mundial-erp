@@ -19,8 +19,8 @@ export const TEMPLATE_SELECT = {
   workspaceId: true,
   name: true,
   scope: true,
-  departmentId: true,
-  processId: true,
+  spaceId: true,
+  listId: true,
   payload: true,
   subtaskCount: true,
   checklistCount: true,
@@ -34,8 +34,8 @@ export interface TemplateFindManyParams {
   skip?: number;
   take?: number;
   scope?: TaskTemplateScope;
-  departmentId?: string;
-  processId?: string;
+  spaceId?: string;
+  listId?: string;
   search?: string;
 }
 
@@ -43,8 +43,8 @@ export interface CreateTemplateData {
   workspaceId: string;
   name: string;
   scope: TaskTemplateScope;
-  departmentId: string | null;
-  processId: string | null;
+  spaceId: string | null;
+  listId: string | null;
   payload: Prisma.InputJsonValue;
   subtaskCount: number;
   checklistCount: number;
@@ -54,8 +54,8 @@ export interface CreateTemplateData {
 export interface UpdateTemplateData {
   name?: string;
   scope?: TaskTemplateScope;
-  departmentId?: string | null;
-  processId?: string | null;
+  spaceId?: string | null;
+  listId?: string | null;
   payload?: Prisma.InputJsonValue;
   subtaskCount?: number;
   checklistCount?: number;
@@ -72,8 +72,8 @@ export class TaskTemplatesRepository {
       skip = 0,
       take = 20,
       scope,
-      departmentId,
-      processId,
+      spaceId,
+      listId,
       search,
     } = params;
 
@@ -83,8 +83,8 @@ export class TaskTemplatesRepository {
     };
 
     if (scope) where.scope = scope;
-    if (departmentId) where.departmentId = departmentId;
-    if (processId) where.processId = processId;
+    if (spaceId) where.spaceId = spaceId;
+    if (listId) where.listId = listId;
     if (search && search.length > 0) {
       where.name = { contains: search, mode: 'insensitive' };
     }
@@ -135,8 +135,8 @@ export class TaskTemplatesRepository {
         workspaceId: data.workspaceId,
         name: data.name,
         scope: data.scope,
-        departmentId: data.departmentId,
-        processId: data.processId,
+        spaceId: data.spaceId,
+        listId: data.listId,
         payload: data.payload,
         subtaskCount: data.subtaskCount,
         checklistCount: data.checklistCount,
@@ -175,41 +175,41 @@ export class TaskTemplatesRepository {
    */
   async findProcessInWorkspace(
     workspaceId: string,
-    processId: string,
+    listId: string,
     tx?: Prisma.TransactionClient,
   ) {
     const db: Db = tx ?? this.prisma;
-    return db.process.findFirst({
+    return db.list.findFirst({
       where: {
-        id: processId,
+        id: listId,
         deletedAt: null,
-        department: { workspaceId },
+        space: { workspaceId },
       },
-      select: { id: true, departmentId: true },
+      select: { id: true, spaceId: true },
     });
   }
 
   /**
-   * Primeiro `WorkflowStatus` NOT_STARTED do departamento do process. Usado
+   * Primeiro `Status` NOT_STARTED do departamento do process. Usado
    * quando o caller de `instantiate` nao informa `statusId`.
    */
   async findDefaultStatusForProcess(
-    processId: string,
+    listId: string,
     tx?: Prisma.TransactionClient,
   ) {
     const db: Db = tx ?? this.prisma;
-    const process = await db.process.findUnique({
-      where: { id: processId },
-      select: { departmentId: true },
+    const process = await db.list.findUnique({
+      where: { id: listId },
+      select: { spaceId: true },
     });
-    if (!process?.departmentId) return null;
-    return db.workflowStatus.findFirst({
+    if (!process?.spaceId) return null;
+    return db.status.findFirst({
       where: {
-        departmentId: process.departmentId,
-        category: 'NOT_STARTED',
+        spaceId: process.spaceId,
+        type: 'NOT_STARTED',
         deletedAt: null,
       },
-      orderBy: [{ sortOrder: 'asc' }, { createdAt: 'asc' }],
+      orderBy: [{ position: 'asc' }, { createdAt: 'asc' }],
       select: { id: true },
     });
   }
@@ -237,7 +237,7 @@ export class TaskTemplatesRepository {
             orderBy: { position: 'asc' as const },
             select: {
               id: true,
-              name: true,
+              title: true,
               parentId: true,
               position: true,
             },
@@ -251,7 +251,7 @@ export class TaskTemplatesRepository {
       where: {
         id: taskId,
         deletedAt: null,
-        process: { department: { workspaceId } },
+        list: { space: { workspaceId } },
       },
       select: {
         id: true,

@@ -14,7 +14,7 @@ export class ActivitiesRepository {
     return this.prisma.activity.findFirst({
       where: { id, deletedAt: null },
       include: {
-        process: { select: { id: true, name: true, slug: true } },
+        list: { select: { id: true, name: true, slug: true } },
         tasks: { where: { deletedAt: null }, orderBy: { sortOrder: 'asc' } },
       },
     });
@@ -35,7 +35,7 @@ export class ActivitiesRepository {
         take,
         orderBy: { sortOrder: 'asc' },
         include: {
-          process: { select: { id: true, name: true } },
+          list: { select: { id: true, name: true } },
         },
       }),
       this.prisma.activity.count({ where: { deletedAt: null } }),

@@ -3,6 +3,7 @@ import {
   Controller,
   Delete,
   Get,
+  Header,
   HttpCode,
   HttpStatus,
   Param,
@@ -18,7 +19,10 @@ import { Role } from '@prisma/client';
 import { Throttle } from '@nestjs/throttler';
 import { TaskAttachmentsService } from './task-attachments.service';
 import { SignedUrlRequestDto } from './dtos/signed-url-request.dto';
-import { RegisterAttachmentDto } from './dtos/register-attachment.dto';
+import {
+  RegisterAttachmentDto,
+  RegisterAttachmentLegacyDto,
+} from './dtos/register-attachment.dto';
 import {
   AttachmentResponseDto,
   DownloadUrlResponseDto,
@@ -28,38 +32,49 @@ import { CurrentUser, Roles } from '../auth/decorators';
 import type { JwtPayload } from '../auth/decorators';
 import { WorkspaceId } from '../workspaces/decorators/workspace-id.decorator';
 
-/**
- * Controller de WorkItemAttachment (PLANO §7.3, §8.10).
- *
- * Fluxo de upload em 3 etapas:
- *   1) POST /tasks/:taskId/attachments/signed-url — obtem signed PUT URL (TTL 300s).
- *   2) Cliente faz PUT direto no bucket privado.
- *   3) POST /tasks/:taskId/attachments — registra metadata + enfileira scan.
- */
-@ApiTags('Task Attachments')
+@ApiTags('Attachments')
 @ApiBearerAuth()
 @Controller()
 export class TaskAttachmentsController {
   constructor(private readonly service: TaskAttachmentsService) {}
 
-  @Post('tasks/:taskId/attachments/signed-url')
-  @Roles(Role.ADMIN, Role.MANAGER, Role.OPERATOR)
-  @Throttle({ default: { limit: 30, ttl: 60_000 } })
-  @ApiOperation({ summary: 'Obter signed URL PUT para upload (TTL 300s)' })
-  @ApiResponse({ status: 201, type: SignedUrlResponseDto })
-  createSignedUrl(
-    @WorkspaceId() workspaceId: string,
-    @Param('taskId') taskId: string,
-    @Body() dto: SignedUrlRequestDto,
-  ): Promise<SignedUrlResponseDto> {
-    return this.service.createSignedUrl(workspaceId, taskId, dto);
-  }
-
-  @Post('tasks/:taskId/attachments')
+  @Post('attachments/presigned-url')
   @Roles(Role.ADMIN, Role.MANAGER, Role.OPERATOR)
   @Throttle({ default: { limit: 30, ttl: 60_000 } })
   @ApiOperation({
-    summary: 'Registrar anexo pos-upload (scanStatus=PENDING ate ClamAV liberar)',
+    summary: 'Obter presigned URL PUT para upload (TTL 300s).',
+  })
+  @ApiResponse({ status: 201, type: SignedUrlResponseDto })
+  createSignedUrl(
+    @WorkspaceId() workspaceId: string,
+    @Body() dto: SignedUrlRequestDto,
+  ): Promise<SignedUrlResponseDto> {
+    return this.service.createSignedUrl(workspaceId, dto.taskId, dto);
+  }
+
+  @Post('attachments/signed-url')
+  @Header('Deprecation', 'true')
+  @Header('Link', '</attachments/presigned-url>; rel="successor-version"')
+  @Roles(Role.ADMIN, Role.MANAGER, Role.OPERATOR)
+  @Throttle({ default: { limit: 30, ttl: 60_000 } })
+  @ApiOperation({
+    summary: 'DEPRECATED. Alias de POST /attachments/presigned-url.',
+    deprecated: true,
+  })
+  @ApiResponse({ status: 201, type: SignedUrlResponseDto })
+  createSignedUrlLegacy(
+    @WorkspaceId() workspaceId: string,
+    @Body() dto: SignedUrlRequestDto,
+  ): Promise<SignedUrlResponseDto> {
+    return this.service.createSignedUrl(workspaceId, dto.taskId, dto);
+  }
+
+  @Post('attachments/tasks/:taskId')
+  @Roles(Role.ADMIN, Role.MANAGER, Role.OPERATOR)
+  @Throttle({ default: { limit: 30, ttl: 60_000 } })
+  @ApiOperation({
+    summary:
+      'Registrar anexo pos-upload (taskId no path). scanStatus=PENDING ate ClamAV liberar.',
   })
   @ApiResponse({ status: 201, type: AttachmentResponseDto })
   register(
@@ -71,9 +86,28 @@ export class TaskAttachmentsController {
     return this.service.register(workspaceId, taskId, dto, user.sub);
   }
 
-  @Get('tasks/:taskId/attachments')
+  @Post('attachments')
+  @Header('Deprecation', 'true')
+  @Header('Link', '</attachments/tasks/{taskId}>; rel="successor-version"')
+  @Roles(Role.ADMIN, Role.MANAGER, Role.OPERATOR)
+  @Throttle({ default: { limit: 30, ttl: 60_000 } })
+  @ApiOperation({
+    summary:
+      'DEPRECATED. Use POST /attachments/tasks/:taskId. Aceita taskId no body.',
+    deprecated: true,
+  })
+  @ApiResponse({ status: 201, type: AttachmentResponseDto })
+  registerLegacy(
+    @WorkspaceId() workspaceId: string,
+    @Body() dto: RegisterAttachmentLegacyDto,
+    @CurrentUser() user: JwtPayload,
+  ): Promise<AttachmentResponseDto> {
+    return this.service.register(workspaceId, dto.taskId, dto, user.sub);
+  }
+
+  @Get('tasks/:taskId/documents')
   @Roles(Role.ADMIN, Role.MANAGER, Role.OPERATOR, Role.VIEWER)
-  @ApiOperation({ summary: 'Listar anexos da tarefa' })
+  @ApiOperation({ summary: 'Listar anexos da tarefa (paridade Hoppe)' })
   findByTask(
     @WorkspaceId() workspaceId: string,
     @Param('taskId') taskId: string,
@@ -81,10 +115,42 @@ export class TaskAttachmentsController {
     return this.service.findByTask(workspaceId, taskId);
   }
 
-  @Get('task-attachments/:id/download-url')
+  @Get('attachments/tasks/:taskId')
+  @Header('Deprecation', 'true')
+  @Header('Link', '</tasks/{taskId}/documents>; rel="successor-version"')
+  @Roles(Role.ADMIN, Role.MANAGER, Role.OPERATOR, Role.VIEWER)
+  @ApiOperation({
+    summary: 'DEPRECATED. Use GET /tasks/:taskId/documents (paridade Hoppe).',
+    deprecated: true,
+  })
+  findByTaskAttachmentsPath(
+    @WorkspaceId() workspaceId: string,
+    @Param('taskId') taskId: string,
+  ): Promise<AttachmentResponseDto[]> {
+    return this.service.findByTask(workspaceId, taskId);
+  }
+
+  @Get('attachments/task/:taskId')
+  @Header('Deprecation', 'true')
+  @Header('Link', '</tasks/{taskId}/documents>; rel="successor-version"')
+  @Roles(Role.ADMIN, Role.MANAGER, Role.OPERATOR, Role.VIEWER)
+  @ApiOperation({
+    summary: 'DEPRECATED. Use GET /tasks/:taskId/documents (paridade Hoppe).',
+    deprecated: true,
+  })
+  findByTaskLegacy(
+    @WorkspaceId() workspaceId: string,
+    @Param('taskId') taskId: string,
+  ): Promise<AttachmentResponseDto[]> {
+    return this.service.findByTask(workspaceId, taskId);
+  }
+
+  @Get('attachments/:id/download-url')
   @Roles(Role.ADMIN, Role.MANAGER, Role.OPERATOR, Role.VIEWER)
   @Throttle({ default: { limit: 60, ttl: 60_000 } })
-  @ApiOperation({ summary: 'Signed GET URL (TTL 300s) — exige scanStatus=CLEAN' })
+  @ApiOperation({
+    summary: 'Signed GET URL (TTL 300s) — exige scanStatus=CLEAN',
+  })
   @ApiResponse({ status: 200, type: DownloadUrlResponseDto })
   @ApiResponse({ status: 403, description: 'Scan PENDING ou INFECTED' })
   getDownloadUrl(
@@ -94,7 +160,7 @@ export class TaskAttachmentsController {
     return this.service.getDownloadUrl(workspaceId, id);
   }
 
-  @Delete('task-attachments/:id')
+  @Delete('attachments/:id')
   @Roles(Role.ADMIN, Role.MANAGER)
   @HttpCode(HttpStatus.NO_CONTENT)
   @ApiOperation({ summary: 'Remover anexo (Manager+) — soft delete + S3' })

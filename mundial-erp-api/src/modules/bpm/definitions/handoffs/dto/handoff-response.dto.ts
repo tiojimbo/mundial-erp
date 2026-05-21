@@ -34,16 +34,16 @@ export class HandoffResponseDto {
 
   static fromEntity(
     entity: Handoff & {
-      fromProcess?: { name: string };
-      toProcess?: { name: string };
+      fromList?: { name: string };
+      toList?: { name: string };
     },
   ): HandoffResponseDto {
     const dto = new HandoffResponseDto();
     dto.id = entity.id;
-    dto.fromProcessId = entity.fromProcessId;
-    dto.fromProcessName = entity.fromProcess?.name;
-    dto.toProcessId = entity.toProcessId;
-    dto.toProcessName = entity.toProcess?.name;
+    dto.fromProcessId = entity.fromListId;
+    dto.fromProcessName = entity.fromList?.name;
+    dto.toProcessId = entity.toListId;
+    dto.toProcessName = entity.toList?.name;
     dto.triggerOnStatus = entity.triggerOnStatus;
     dto.validationRules = entity.validationRules;
     dto.autoAdvance = entity.autoAdvance;

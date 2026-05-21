@@ -33,7 +33,7 @@ export function useCreateTask() {
             root === 'department-summaries' ||
             root === 'process-summary' ||
             root === 'sidebar-tree' ||
-            root === 'work-items'
+            root === 'tasks'
           );
         },
       });

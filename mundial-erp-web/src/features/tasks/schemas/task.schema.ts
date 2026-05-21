@@ -74,16 +74,11 @@ export const taskFiltersSchema = z
   })
   .strict();
 
-/**
- * `WorkflowStatus` exposto como parte do `Task` de listagem.
- * Campos minimos conforme select obrigatorio.
- */
 export const taskStatusSchema = z.object({
   id: z.string().uuid(),
   name: z.string(),
-  category: z.enum(['NOT_STARTED', 'ACTIVE', 'DONE', 'CLOSED']),
+  type: z.enum(['NOT_STARTED', 'ACTIVE', 'DONE', 'CLOSED']),
   color: z.string(),
-  icon: z.string().nullable(),
 });
 
 export const taskAssigneeSchema = z.object({
@@ -104,11 +99,22 @@ export const taskTagSchema = z.object({
  */
 export const customTaskTypeSchema = z.object({
   id: z.string().uuid(),
-  name: z.string(),
+  value: z.string(),
+  pluralName: z.string().nullable().optional(),
+  description: z.string().nullable().optional(),
   icon: z.string().nullable(),
   color: z.string().nullable(),
   workspaceId: z.string().uuid().nullable(),
+  spaceId: z.string().uuid().nullable().optional(),
   isBuiltin: z.boolean(),
+  creator: z
+    .object({
+      id: z.string().uuid(),
+      name: z.string().nullable(),
+      email: z.string(),
+    })
+    .nullable()
+    .optional(),
 });
 
 /**
@@ -199,11 +205,27 @@ export const taskDependenciesBundleSchema = z.object({
   waitingOn: z.array(taskDependencySchema),
 });
 
+export const taskLinkTypeSchema = z.enum([
+  'RELATES_TO',
+  'DUPLICATES',
+  'IS_DUPLICATED_BY',
+]);
+
+const taskLinkTaskSummarySchema = z.object({
+  id: z.string(),
+  title: z.string(),
+  statusId: z.string(),
+  statusType: z.string().nullable().optional(),
+  priority: z.string().nullable().optional(),
+  dueDate: z.string().nullable().optional(),
+  primaryAssigneeId: z.string().nullable().optional(),
+  archived: z.boolean().optional(),
+});
+
 export const taskLinkSchema = z.object({
-  id: z.string().uuid(),
-  fromTaskId: z.string().uuid(),
-  toTaskId: z.string().uuid(),
-  createdAt: z.string().datetime(),
+  linkId: z.string(),
+  type: taskLinkTypeSchema,
+  task: taskLinkTaskSummarySchema,
 });
 
 export const taskWatcherSchema = z.object({
@@ -223,6 +245,13 @@ export const taskAttachmentSchema = z.object({
   scanStatus: z.enum(['PENDING', 'CLEAN', 'INFECTED', 'ERROR']),
   uploadedById: z.string().uuid(),
   uploadedByName: z.string().nullable(),
+  category: z.string().nullable(),
+  createdAt: z.string().datetime(),
+});
+
+export const commentReactionSchema = z.object({
+  emoji: z.string(),
+  userId: z.string().uuid(),
   createdAt: z.string().datetime(),
 });
 
@@ -231,10 +260,11 @@ export const taskCommentSchema = z.object({
   taskId: z.string().uuid(),
   authorId: z.string().uuid(),
   authorName: z.string().nullable(),
-  body: z.string(),
-  bodyBlocks: z.unknown().nullable(),
+  content: z.string(),
+  contentBlocks: z.unknown().nullable(),
   editedAt: z.string().datetime().nullable(),
   createdAt: z.string().datetime(),
+  reactions: z.array(commentReactionSchema).default([]),
 });
 
 export const taskActivitySchema = z.object({
@@ -263,6 +293,20 @@ export const taskTemplateSchema = z.object({
   createdById: z.string().uuid(),
   createdAt: z.string().datetime(),
   updatedAt: z.string().datetime(),
+});
+
+/**
+ * `TaskTypeTemplate` (M2 — PLANO-TASK-TYPES-TEMPLATES §Decisoes-Chave D1).
+ *
+ * Template funcional 1:1 com `CustomTaskType`. O endpoint
+ * `GET /task-type-templates` retorna lista enxuta apenas com os campos
+ * necessarios para detectar quais tipos possuem template configurado
+ * (TTT-044). Campos pesados (`fields`, `attachmentCategories`) ficam
+ * acessiveis via `GET /task-type-templates/:customTaskTypeId`.
+ */
+export const taskTypeTemplateSummarySchema = z.object({
+  id: z.string(),
+  customTaskTypeId: z.string(),
 });
 
 export const taskTimeInStatusSchema = z.object({
@@ -354,8 +398,14 @@ export const mergeTasksSchema = z.object({
 });
 
 export const createTagSchema = z.object({
+  // spaceId e obrigatorio na API (HPP-085). Tipado como opcional aqui pra
+  // nao quebrar /settings/task-tags durante a transicao — caller passando
+  // sem spaceId vai receber 400 do backend. Tornar required quando a page
+  // tiver seletor de space.
+  spaceId: z.string().min(1).optional(),
   name: z.string().trim().min(1),
   color: z.string().trim().min(1),
+  bgColor: z.string().trim().optional(),
 });
 
 export const updateTagSchema = createTagSchema.partial();
@@ -416,16 +466,23 @@ export const attachmentUploadSchema = z.object({
   fileName: z.string().trim().min(1),
   mimeType: z.string().trim().min(1),
   sizeBytes: z.number().int().nonnegative(),
+  category: z
+    .string()
+    .trim()
+    .regex(/^[a-z0-9_-]+$/)
+    .max(64)
+    .nullable()
+    .optional(),
 });
 
 export const commentCreateSchema = z.object({
-  body: z.string().trim().min(1),
-  bodyBlocks: z.unknown().optional(),
+  content: z.string().trim().min(1),
+  contentBlocks: z.unknown().optional(),
 });
 
 export const commentUpdateSchema = z.object({
-  body: z.string().trim().min(1).optional(),
-  bodyBlocks: z.unknown().optional(),
+  content: z.string().trim().min(1).optional(),
+  contentBlocks: z.unknown().optional(),
 });
 
 export const createTemplateSchema = z.object({

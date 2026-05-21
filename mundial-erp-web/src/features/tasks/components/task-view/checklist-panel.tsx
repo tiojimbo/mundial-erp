@@ -21,7 +21,8 @@ export type ChecklistPanelProps = {
   onToggleItem?: (itemId: string, completed: boolean) => void;
 };
 
-function flatten(items: TaskChecklistItem[]): TaskChecklistItem[] {
+function flatten(items: TaskChecklistItem[] | undefined): TaskChecklistItem[] {
+  if (!Array.isArray(items)) return [];
   return items.reduce<TaskChecklistItem[]>((acc, it) => {
     acc.push(it);
     if (it.children && Array.isArray(it.children)) {

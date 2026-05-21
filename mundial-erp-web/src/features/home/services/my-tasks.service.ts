@@ -4,7 +4,7 @@ import type { MyTasksResponse } from '../types/my-tasks.types';
 
 export const myTasksService = {
   async getMyTasks(): Promise<MyTasksResponse> {
-    const { data } = await api.get<ApiResponse<MyTasksResponse>>('/work-items/my-tasks');
+    const { data } = await api.get<ApiResponse<MyTasksResponse>>('/tasks/my-tasks');
     return data.data;
   },
 };

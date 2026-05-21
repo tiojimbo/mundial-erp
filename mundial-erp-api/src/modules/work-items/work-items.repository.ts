@@ -10,7 +10,7 @@ import { PrismaService } from '../../database/prisma.service';
 export interface WorkItemFindManyParams {
   skip?: number;
   take?: number;
-  processId?: string;
+  listId?: string;
   statusId?: string;
   primaryAssigneeCache?: string;
   priority?: TaskPriority;
@@ -42,7 +42,7 @@ export class WorkItemsRepository {
       where: {
         id,
         deletedAt: null,
-        process: { department: { workspaceId } },
+        list: { space: { workspaceId } },
       },
       include: {
         status: true,
@@ -59,7 +59,7 @@ export class WorkItemsRepository {
     const {
       skip = 0,
       take = 20,
-      processId,
+      listId,
       statusId,
       primaryAssigneeCache,
       priority,
@@ -71,10 +71,10 @@ export class WorkItemsRepository {
 
     const where: Prisma.WorkItemWhereInput = {
       deletedAt: null,
-      process: { department: { workspaceId } },
+      list: { space: { workspaceId } },
     };
 
-    if (processId) where.processId = processId;
+    if (listId) where.listId = listId;
     if (statusId) where.statusId = statusId;
     if (primaryAssigneeCache)
       where.primaryAssigneeCache = primaryAssigneeCache;
@@ -112,12 +112,12 @@ export class WorkItemsRepository {
 
   async findGroupedByStatus(
     workspaceId: string,
-    processId: string,
+    listId: string,
     showClosed = false,
   ) {
     const where: Prisma.WorkItemWhereInput = {
-      processId,
-      process: { department: { workspaceId } },
+      listId,
+      list: { space: { workspaceId } },
       deletedAt: null,
       parentId: null,
     };
@@ -132,18 +132,18 @@ export class WorkItemsRepository {
       include: { status: true },
     });
 
-    const process = await this.prisma.process.findFirst({
-      where: { id: processId, department: { workspaceId } },
-      select: { departmentId: true },
+    const process = await this.prisma.list.findFirst({
+      where: { id: listId, space: { workspaceId } },
+      select: { spaceId: true },
     });
 
-    const statuses = await this.prisma.workflowStatus.findMany({
+    const statuses = await this.prisma.status.findMany({
       where: {
-        departmentId: process?.departmentId ?? undefined,
-        department: { workspaceId },
+        spaceId: process?.spaceId ?? undefined,
+        space: { workspaceId },
         deletedAt: null,
       },
-      orderBy: { sortOrder: 'asc' },
+      orderBy: { position: 'asc' },
     });
 
     return { items, statuses };
@@ -188,7 +188,7 @@ export class WorkItemsRepository {
         // (join WorkItemAssignee); cache continua servindo o hot path.
         primaryAssigneeCache: userId,
         deletedAt: null,
-        process: { department: { workspaceId } },
+        list: { space: { workspaceId } },
       },
       orderBy: [
         { dueDate: 'asc' },
@@ -197,12 +197,12 @@ export class WorkItemsRepository {
       ],
       include: {
         status: true,
-        process: {
+        list: {
           select: {
             id: true,
             name: true,
-            departmentId: true,
-            department: { select: { name: true } },
+            spaceId: true,
+            space: { select: { name: true } },
           },
         },
         primaryAssignee: {
@@ -212,28 +212,28 @@ export class WorkItemsRepository {
     });
   }
 
-  async findProcessById(workspaceId: string, processId: string) {
-    return this.prisma.process.findFirst({
+  async findProcessById(workspaceId: string, listId: string) {
+    return this.prisma.list.findFirst({
       where: {
-        id: processId,
+        id: listId,
         deletedAt: null,
         OR: [
-          { department: { workspaceId } },
-          { area: { department: { workspaceId } } },
+          { space: { workspaceId } },
+          { folder: { space: { workspaceId } } },
         ],
       },
-      select: { id: true, departmentId: true },
+      select: { id: true, spaceId: true },
     });
   }
 
   async findStatusById(workspaceId: string, statusId: string) {
-    return this.prisma.workflowStatus.findFirst({
+    return this.prisma.status.findFirst({
       where: {
         id: statusId,
         deletedAt: null,
-        department: { workspaceId },
+        space: { workspaceId },
       },
-      select: { id: true, departmentId: true, category: true },
+      select: { id: true, spaceId: true, type: true },
     });
   }
 }

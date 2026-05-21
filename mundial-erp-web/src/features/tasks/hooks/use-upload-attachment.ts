@@ -8,6 +8,12 @@ import type { TaskAttachment } from '../types/task.types';
 type Vars = {
   taskId: string;
   file: File;
+  /**
+   * TTT-043 — slug da categoria do TaskTypeTemplate. Quando presente, o
+   * backend valida contra `attachmentCategories` do template; chip da UI
+   * passa a ficar verde ao detectar `attachments.some(a => a.category === slug)`.
+   */
+  category?: string | null;
   /** Opcional — usado em onProgress no callsite (axios `onUploadProgress` pode ser adicionado aqui quando necessario). */
   onProgress?: (fraction: number) => void;
 };
@@ -27,7 +33,7 @@ export function useUploadAttachment() {
 
   return useMutation<TaskAttachment, Error, Vars>({
     mutationKey: [workspaceId, 'tasks', 'attachments', 'upload'],
-    mutationFn: async ({ taskId, file, onProgress }) => {
+    mutationFn: async ({ taskId, file, category, onProgress }) => {
       // Step 1: signed URL.
       const signed = await taskAttachmentsService.requestSignedUrl(taskId, {
         fileName: file.name,
@@ -40,12 +46,13 @@ export function useUploadAttachment() {
       await taskAttachmentsService.uploadToSignedUrl(signed.uploadUrl, file);
       onProgress?.(0.8);
 
-      // Step 3: register.
+      // Step 3: register (inclui `category` quando vier do chip).
       const registered = await taskAttachmentsService.register(taskId, {
         storageKey: signed.storageKey,
         fileName: file.name,
         mimeType: file.type || 'application/octet-stream',
         sizeBytes: file.size,
+        category: category ?? null,
       });
       onProgress?.(1);
       return registered;

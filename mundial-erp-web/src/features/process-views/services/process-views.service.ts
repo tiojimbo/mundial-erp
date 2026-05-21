@@ -8,21 +8,21 @@ import type {
 export const processViewsService = {
   async list(processId: string): Promise<ProcessView[]> {
     const { data } = await api.get<PaginatedResponse<ProcessView>>(
-      '/process-views',
-      { params: { processId, limit: 100 } },
+      '/views',
+      { params: { listId: processId, limit: 100 } },
     );
     return data.data;
   },
 
   async create(payload: CreateProcessViewPayload): Promise<ProcessView> {
     const { data } = await api.post<ApiResponse<ProcessView>>(
-      '/process-views',
+      '/views',
       payload,
     );
     return data.data;
   },
 
   async delete(id: string): Promise<void> {
-    await api.delete(`/process-views/${id}`);
+    await api.delete(`/views/${id}`);
   },
 };

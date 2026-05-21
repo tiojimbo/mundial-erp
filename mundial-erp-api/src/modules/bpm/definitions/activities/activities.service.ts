@@ -33,7 +33,7 @@ export class ActivitiesService {
     const entity = await this.activitiesRepository.create({
       name: dto.name,
       slug,
-      process: { connect: { id: dto.processId } },
+      list: { connect: { id: dto.listId } },
       ownerRole: dto.ownerRole,
       inputDescription: dto.inputDescription,
       outputDescription: dto.outputDescription,
@@ -86,8 +86,8 @@ export class ActivitiesService {
         throw new ConflictException('Atividade com este nome já existe');
       }
     }
-    if (dto.processId !== undefined) {
-      updateData.process = { connect: { id: dto.processId } };
+    if (dto.listId !== undefined) {
+      updateData.process = { connect: { id: dto.listId } };
     }
     if (dto.ownerRole !== undefined) updateData.ownerRole = dto.ownerRole;
     if (dto.inputDescription !== undefined)

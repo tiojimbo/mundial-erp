@@ -8,18 +8,31 @@ export interface CustomTaskTypeFindManyParams {
   search?: string;
 }
 
-/**
- * Repositorio de CustomTaskType — queries com `select` explicito (CTO note #4)
- * e filtro multi-tenant `workspaceId IS NULL OR workspaceId = :ws` (§8.1).
- */
+const BASE_SELECT = {
+  id: true,
+  workspaceId: true,
+  spaceId: true,
+  creatorId: true,
+  name: true,
+  namePlural: true,
+  description: true,
+  icon: true,
+  color: true,
+  avatarUrl: true,
+  isBuiltin: true,
+  sortOrder: true,
+  createdAt: true,
+  updatedAt: true,
+  deletedAt: true,
+  creator: {
+    select: { id: true, name: true, email: true },
+  },
+} as const;
+
 @Injectable()
 export class CustomTaskTypesRepository {
   constructor(private readonly prisma: PrismaService) {}
 
-  /**
-   * Builder de where multi-tenant: aceita builtins globais (workspaceId NULL)
-   * e privados do workspace atual.
-   */
   private buildVisibilityWhere(
     workspaceId: string,
   ): Prisma.CustomTaskTypeWhereInput {
@@ -51,31 +64,33 @@ export class CustomTaskTypesRepository {
         where,
         skip,
         take,
-        orderBy: [
-          { isBuiltin: 'desc' },
-          { sortOrder: 'asc' },
-          { name: 'asc' },
-        ],
-        select: {
-          id: true,
-          workspaceId: true,
-          name: true,
-          namePlural: true,
-          description: true,
-          icon: true,
-          color: true,
-          avatarUrl: true,
-          isBuiltin: true,
-          sortOrder: true,
-          createdAt: true,
-          updatedAt: true,
-          deletedAt: true,
-        },
+        orderBy: [{ isBuiltin: 'desc' }, { sortOrder: 'asc' }, { name: 'asc' }],
+        select: BASE_SELECT,
       }),
       this.prisma.customTaskType.count({ where }),
     ]);
 
     return { items, total };
+  }
+
+  async findManyBySpace(workspaceId: string, spaceId: string) {
+    return this.prisma.customTaskType.findMany({
+      where: {
+        workspaceId,
+        spaceId,
+        deletedAt: null,
+      },
+      orderBy: [{ sortOrder: 'asc' }, { name: 'asc' }],
+      select: BASE_SELECT,
+    });
+  }
+
+  async findAllForWorkspaceFlat(workspaceId: string) {
+    return this.prisma.customTaskType.findMany({
+      where: this.buildVisibilityWhere(workspaceId),
+      orderBy: [{ createdAt: 'asc' }, { id: 'asc' }],
+      select: BASE_SELECT,
+    });
   }
 
   async create(
@@ -86,11 +101,15 @@ export class CustomTaskTypesRepository {
       description?: string | null;
       icon?: string | null;
       color?: string | null;
+      spaceId?: string | null;
+      creatorId?: string | null;
     },
   ) {
     return this.prisma.customTaskType.create({
       data: {
         workspaceId,
+        spaceId: data.spaceId ?? null,
+        creatorId: data.creatorId ?? null,
         name: data.name,
         namePlural: data.namePlural ?? null,
         description: data.description ?? null,
@@ -98,21 +117,7 @@ export class CustomTaskTypesRepository {
         color: data.color ?? null,
         isBuiltin: false,
       },
-      select: {
-        id: true,
-        workspaceId: true,
-        name: true,
-        namePlural: true,
-        description: true,
-        icon: true,
-        color: true,
-        avatarUrl: true,
-        isBuiltin: true,
-        sortOrder: true,
-        createdAt: true,
-        updatedAt: true,
-        deletedAt: true,
-      },
+      select: BASE_SELECT,
     });
   }
 
@@ -134,21 +139,82 @@ export class CustomTaskTypesRepository {
         id,
         ...this.buildVisibilityWhere(workspaceId),
       },
+      select: BASE_SELECT,
+    });
+  }
+
+  async update(
+    id: string,
+    data: {
+      name?: string;
+      namePlural?: string | null;
+      description?: string | null;
+      icon?: string | null;
+      color?: string | null;
+    },
+  ) {
+    return this.prisma.customTaskType.update({
+      where: { id },
+      data,
+      select: BASE_SELECT,
+    });
+  }
+
+  async softDeleteWithCascadeNull(id: string) {
+    await this.prisma.$transaction([
+      this.prisma.workItem.updateMany({
+        where: { customTypeId: id, deletedAt: null },
+        data: { customTypeId: null },
+      }),
+      this.prisma.space.updateMany({
+        where: { defaultTaskTypeId: id, deletedAt: null },
+        data: { defaultTaskTypeId: null },
+      }),
+      this.prisma.folder.updateMany({
+        where: { defaultTaskTypeId: id, deletedAt: null },
+        data: { defaultTaskTypeId: null },
+      }),
+      this.prisma.list.updateMany({
+        where: { defaultTaskTypeId: id, deletedAt: null },
+        data: { defaultTaskTypeId: null },
+      }),
+      this.prisma.customFieldDefinition.updateMany({
+        where: { customTaskTypeId: id, deletedAt: null },
+        data: { customTaskTypeId: null },
+      }),
+      this.prisma.customTaskType.update({
+        where: { id },
+        data: { deletedAt: new Date() },
+        select: { id: true },
+      }),
+    ]);
+  }
+
+  async findByIdIncludingDeleted(id: string, workspaceId: string) {
+    return this.prisma.customTaskType.findFirst({
+      where: {
+        id,
+        OR: [{ workspaceId: null }, { workspaceId }],
+      },
       select: {
         id: true,
         workspaceId: true,
-        name: true,
-        namePlural: true,
-        description: true,
-        icon: true,
-        color: true,
-        avatarUrl: true,
+        spaceId: true,
         isBuiltin: true,
-        sortOrder: true,
-        createdAt: true,
-        updatedAt: true,
         deletedAt: true,
       },
     });
   }
+
+  async spaceBelongsToWorkspace(
+    workspaceId: string,
+    spaceId: string,
+  ): Promise<boolean> {
+    const space = await this.prisma.space.findFirst({
+      where: { id: spaceId, workspaceId, deletedAt: null },
+      select: { id: true },
+    });
+    return space !== null;
+  }
+
 }

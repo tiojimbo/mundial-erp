@@ -6,21 +6,21 @@ type ListEnvelope = { data: CustomTaskType[]; meta: unknown };
 type DetailEnvelope = { data: CustomTaskType; meta: unknown };
 
 export interface CreateCustomTaskTypePayload {
-  name: string;
-  namePlural?: string;
+  value: string;
+  pluralName?: string;
   description?: string;
   icon?: string;
   color?: string;
 }
 
-/**
- * Service para `/api/v1/custom-task-types` (PLANO-TASKS.md §7.3).
- *
- * Nota: o service do backend ja monta `{ data, meta }` e o `ResponseInterceptor`
- * global envelopa novamente — por isso precisamos desempacotar dois niveis
- * (`data.data.data`). Ate o backend remover o envelope duplo, manter este
- * unwrap aqui.
- */
+export interface UpdateCustomTaskTypePayload {
+  value?: string;
+  pluralName?: string | null;
+  description?: string | null;
+  icon?: string;
+  color?: string | null;
+}
+
 export const customTaskTypesService = {
   async list(): Promise<CustomTaskType[]> {
     const { data } = await api.get<ApiResponse<ListEnvelope>>(
@@ -36,11 +36,33 @@ export const customTaskTypesService = {
     return data.data.data;
   },
 
-  async create(payload: CreateCustomTaskTypePayload): Promise<CustomTaskType> {
-    const { data } = await api.post<ApiResponse<CustomTaskType>>(
-      '/custom-task-types',
-      payload,
-    );
+  async create(
+    spaceId: string | null,
+    payload: CreateCustomTaskTypePayload,
+  ): Promise<CustomTaskType> {
+    const url = spaceId
+      ? `/spaces/${spaceId}/task-types`
+      : '/custom-task-types';
+    const { data } = await api.post<ApiResponse<CustomTaskType>>(url, payload);
     return data.data;
+  },
+
+  async update(
+    spaceId: string | null,
+    taskTypeId: string,
+    payload: UpdateCustomTaskTypePayload,
+  ): Promise<CustomTaskType> {
+    const url = spaceId
+      ? `/spaces/${spaceId}/task-types/${taskTypeId}`
+      : `/custom-task-types/${taskTypeId}`;
+    const { data } = await api.put<ApiResponse<CustomTaskType>>(url, payload);
+    return data.data;
+  },
+
+  async remove(spaceId: string | null, taskTypeId: string): Promise<void> {
+    const url = spaceId
+      ? `/spaces/${spaceId}/task-types/${taskTypeId}`
+      : `/custom-task-types/${taskTypeId}`;
+    await api.delete(url);
   },
 };

@@ -127,4 +127,22 @@ export class WorkspacesRepository {
 
     return { membersUsed, guestsUsed };
   }
+
+  async findChannelOrganization(workspaceId: string, userId: string) {
+    return this.prisma.userChannelOrganization.findUnique({
+      where: { userId_workspaceId: { userId, workspaceId } },
+    });
+  }
+
+  async upsertChannelOrganization(
+    workspaceId: string,
+    userId: string,
+    organizationData: Prisma.InputJsonValue,
+  ) {
+    return this.prisma.userChannelOrganization.upsert({
+      where: { userId_workspaceId: { userId, workspaceId } },
+      create: { userId, workspaceId, organizationData },
+      update: { organizationData },
+    });
+  }
 }

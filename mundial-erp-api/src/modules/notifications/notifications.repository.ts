@@ -54,11 +54,23 @@ export class NotificationsRepository {
     }
   }
 
-  async findByView(userId: string, view: NotificationView) {
-    return this.prisma.notification.findMany({
-      where: this.buildViewWhere(userId, view),
-      orderBy: { createdAt: 'desc' },
-    });
+  async findByView(
+    userId: string,
+    view: NotificationView,
+    params: { skip?: number; take?: number } = {},
+  ) {
+    const { skip = 0, take = 20 } = params;
+    const where = this.buildViewWhere(userId, view);
+    const [items, total] = await Promise.all([
+      this.prisma.notification.findMany({
+        where,
+        orderBy: { createdAt: 'desc' },
+        skip,
+        take,
+      }),
+      this.prisma.notification.count({ where }),
+    ]);
+    return { items, total };
   }
 
   async getCounts(userId: string) {

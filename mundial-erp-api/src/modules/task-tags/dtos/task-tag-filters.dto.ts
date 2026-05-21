@@ -8,4 +8,9 @@ export class TaskTagFiltersDto extends PaginationDto {
   @IsString()
   @MaxLength(50)
   search?: string;
+
+  @ApiPropertyOptional()
+  @IsOptional()
+  @IsString()
+  spaceId?: string;
 }

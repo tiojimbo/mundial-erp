@@ -48,6 +48,18 @@ export function useUpdateProcess(id: string) {
   });
 }
 
+export function useUpdateProcessStatusInherit(id: string) {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (payload: {
+      statusInheritance: 'SPACE' | 'FOLDER' | 'CUSTOM';
+    }) => processesService.updateStatusInherit(id, payload),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: PROCESSES_KEY });
+    },
+  });
+}
+
 export function useDeleteProcess() {
   const queryClient = useQueryClient();
   return useMutation({

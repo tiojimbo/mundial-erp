@@ -1,21 +1,25 @@
 'use client';
 
+import { useState } from 'react';
 import Link from 'next/link';
 import {
-  RiNotification3Line,
   RiLogoutBoxRLine,
   RiMenuLine,
   RiSearchLine,
   RiSettings4Line,
 } from '@remixicon/react';
+import { Zap } from 'lucide-react';
 import * as Avatar from '@/components/ui/avatar';
 import * as Dropdown from '@/components/ui/dropdown';
+import * as Tooltip from '@/components/ui/tooltip';
+import { AutomationsModal } from '@/features/automations/components/automations-modal';
 import { useAuth } from '@/providers/auth-provider';
 import { useSidebarStore } from '@/stores/sidebar.store';
 
 export function Header() {
   const { user, logout } = useAuth();
   const { toggleMobileSidebar } = useSidebarStore();
+  const [automationsOpen, setAutomationsOpen] = useState(false);
 
   return (
     <header className='flex shrink-0 items-center px-2'>
@@ -50,16 +54,28 @@ export function Header() {
         </button>
       </div>
 
-      {/* Right — notifications + avatar */}
+      {/* Right — automações + avatar */}
       <div className='flex items-center gap-2'>
-        {/* Notifications */}
-        <button
-          type='button'
-          className='relative rounded-lg p-2 text-text-sub-600 transition-colors hover:bg-sidebar-accent hover:text-text-strong-950'
-        >
-          <RiNotification3Line className='size-5' />
-          <span className='absolute right-1.5 top-1.5 size-2 rounded-full bg-error-base' />
-        </button>
+        {/* Automações */}
+        <Tooltip.Root>
+          <Tooltip.Trigger asChild>
+            <button
+              type='button'
+              onClick={() => setAutomationsOpen(true)}
+              aria-label='Automações'
+              className='inline-flex h-7 items-center gap-1.5 rounded-md px-2.5 text-label-xs text-text-sub-600 transition-colors hover:bg-sidebar-accent hover:text-text-strong-950'
+            >
+              <Zap className='size-3.5' />
+              <span className='hidden sm:inline'>Automações</span>
+            </button>
+          </Tooltip.Trigger>
+          <Tooltip.Content>Automações</Tooltip.Content>
+        </Tooltip.Root>
+
+        <AutomationsModal
+          open={automationsOpen}
+          onOpenChange={setAutomationsOpen}
+        />
 
         {/* Avatar + Dropdown */}
         <Dropdown.Root>
@@ -74,32 +90,41 @@ export function Header() {
               </Avatar.Root>
             </button>
           </Dropdown.Trigger>
-          <Dropdown.Content align='end' className='w-56 rounded-md'>
+          <Dropdown.Content
+            align='end'
+            className='w-56 rounded-md bg-sidebar text-sidebar-foreground ring-sidebar-border'
+          >
             {/* User info */}
             <div className='px-3 py-2'>
-              <p className='text-label-sm text-text-strong-950'>
+              <p className='text-label-sm text-sidebar-foreground'>
                 {user?.name}
               </p>
-              <p className='text-paragraph-xs text-text-sub-600'>
+              <p className='text-paragraph-xs text-sidebar-foreground'>
                 {user?.email}
               </p>
             </div>
 
-            <Dropdown.Separator />
+            <Dropdown.Separator className='-mx-2 my-1 h-px bg-sidebar-border' />
 
             {/* Configurações */}
-            <Dropdown.Item asChild>
+            <Dropdown.Item
+              asChild
+              className='text-sidebar-foreground data-[highlighted]:bg-sidebar-accent data-[highlighted]:text-sidebar-accent-foreground'
+            >
               <Link href='/configuracoes'>
-                <Dropdown.ItemIcon as={RiSettings4Line} />
+                <Dropdown.ItemIcon as={RiSettings4Line} className='text-sidebar-foreground' />
                 Configurações
               </Link>
             </Dropdown.Item>
 
-            <Dropdown.Separator />
+            <Dropdown.Separator className='-mx-2 my-1 h-px bg-sidebar-border' />
 
             {/* Logout */}
-            <Dropdown.Item onClick={logout}>
-              <Dropdown.ItemIcon as={RiLogoutBoxRLine} />
+            <Dropdown.Item
+              onClick={logout}
+              className='text-sidebar-foreground data-[highlighted]:bg-sidebar-accent data-[highlighted]:text-sidebar-accent-foreground'
+            >
+              <Dropdown.ItemIcon as={RiLogoutBoxRLine} className='text-sidebar-foreground' />
               Sair
             </Dropdown.Item>
           </Dropdown.Content>

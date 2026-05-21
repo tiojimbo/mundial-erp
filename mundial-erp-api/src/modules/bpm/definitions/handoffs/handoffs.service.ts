@@ -19,11 +19,10 @@ export class HandoffsService {
   ) {}
 
   async create(dto: CreateHandoffDto): Promise<HandoffResponseDto> {
-    // W4: Validate no duplicate handoff for same from/to process pair
     const existing = await this.prisma.handoff.findFirst({
       where: {
-        fromProcessId: dto.fromProcessId,
-        toProcessId: dto.toProcessId,
+        fromListId: dto.fromProcessId,
+        toListId: dto.toProcessId,
         deletedAt: null,
       },
     });
@@ -34,8 +33,8 @@ export class HandoffsService {
     }
 
     const entity = await this.handoffsRepository.create({
-      fromProcess: { connect: { id: dto.fromProcessId } },
-      toProcess: { connect: { id: dto.toProcessId } },
+      fromList: { connect: { id: dto.fromProcessId } },
+      toList: { connect: { id: dto.toProcessId } },
       triggerOnStatus: dto.triggerOnStatus,
       validationRules: dto.validationRules
         ? (dto.validationRules as Prisma.InputJsonValue)
@@ -73,10 +72,10 @@ export class HandoffsService {
 
     const updateData: Prisma.HandoffUpdateInput = {};
     if (dto.fromProcessId !== undefined) {
-      updateData.fromProcess = { connect: { id: dto.fromProcessId } };
+      updateData.fromList = { connect: { id: dto.fromProcessId } };
     }
     if (dto.toProcessId !== undefined) {
-      updateData.toProcess = { connect: { id: dto.toProcessId } };
+      updateData.toList = { connect: { id: dto.toProcessId } };
     }
     if (dto.triggerOnStatus !== undefined)
       updateData.triggerOnStatus = dto.triggerOnStatus;

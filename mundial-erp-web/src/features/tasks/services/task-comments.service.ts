@@ -10,16 +10,6 @@ import type {
   CommentUpdateDto,
 } from '../types/task.types';
 
-/**
- * Comments — PLANO-TASKS.md §7.3.
- *
- * Rotas:
- * - GET    /tasks/:taskId/comments         (paginado)
- * - POST   /tasks/:taskId/comments         body {body, bodyBlocks?}
- * - PATCH  /task-comments/:commentId
- * - DELETE /task-comments/:commentId
- */
-
 type CommentsListResponse =
   | PaginatedResponse<TaskComment>
   | CursorPaginatedResponse<TaskComment>;
@@ -36,7 +26,7 @@ export const taskCommentsService = {
     params?: TaskCommentsListParams,
   ): Promise<CommentsListResponse> {
     const { data } = await api.get<CommentsListResponse>(
-      `/tasks/${taskId}/comments`,
+      `/comments/task/${taskId}`,
       { params },
     );
     return data;
@@ -47,8 +37,8 @@ export const taskCommentsService = {
     payload: CommentCreateDto,
   ): Promise<TaskComment> {
     const { data } = await api.post<ApiResponse<TaskComment>>(
-      `/tasks/${taskId}/comments`,
-      payload,
+      '/comments',
+      { taskId, ...payload },
     );
     return data.data;
   },
@@ -57,14 +47,27 @@ export const taskCommentsService = {
     commentId: string,
     payload: CommentUpdateDto,
   ): Promise<TaskComment> {
-    const { data } = await api.patch<ApiResponse<TaskComment>>(
-      `/task-comments/${commentId}`,
+    const { data } = await api.put<ApiResponse<TaskComment>>(
+      `/comments/${commentId}`,
       payload,
     );
     return data.data;
   },
 
   async remove(commentId: string): Promise<void> {
-    await api.delete(`/task-comments/${commentId}`);
+    await api.delete(`/comments/${commentId}`);
+  },
+
+  async toggleReaction(
+    commentId: string,
+    emoji: string,
+  ): Promise<{ action: 'added' | 'removed'; emoji: string }> {
+    const { data } = await api.post<{
+      action: 'added' | 'removed';
+      emoji: string;
+      commentId: string;
+      userId: string;
+    }>(`/comments/${commentId}/reactions`, { emoji });
+    return { action: data.action, emoji: data.emoji };
   },
 };

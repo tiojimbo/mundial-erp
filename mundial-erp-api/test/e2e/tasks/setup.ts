@@ -201,7 +201,7 @@ export const createTestProcess = async (
   const prisma = app.get(PrismaService);
   const suffix = uniqueId('p');
 
-  const department = await prisma.department.create({
+  const space = await prisma.space.create({
     data: {
       workspaceId,
       name: `Dept ${suffix}`,
@@ -209,40 +209,40 @@ export const createTestProcess = async (
     },
   });
 
-  const area = await prisma.area.create({
+  const folder = await prisma.folder.create({
     data: {
       name: `Area ${suffix}`,
       slug: `area-${suffix}`,
-      departmentId: department.id,
+      spaceId: space.id,
     },
   });
 
-  const defaultStatus = await prisma.workflowStatus.create({
+  const defaultStatus = await prisma.status.create({
     data: {
       name: 'To Do',
-      category: 'NOT_STARTED',
+      type: 'NOT_STARTED',
       color: '#94a3b8',
-      departmentId: department.id,
-      areaId: area.id,
-      isDefault: true,
+      spaceId: space.id,
+      folderId: folder.id,
+      position: 0,
     },
   });
 
-  const processRecord = await prisma.process.create({
+  const list = await prisma.list.create({
     data: {
       name: `Process ${suffix}`,
       slug: `process-${suffix}`,
-      departmentId: department.id,
-      areaId: area.id,
+      spaceId: space.id,
+      folderId: folder.id,
       processType: 'LIST',
       status: 'ACTIVE',
     },
   });
 
   return {
-    processId: processRecord.id,
-    departmentId: department.id,
-    areaId: area.id,
+    processId: list.id,
+    departmentId: space.id,
+    areaId: folder.id,
     defaultStatusId: defaultStatus.id,
   };
 };
@@ -262,7 +262,7 @@ export const createTestTask = async (
 
   const task = await prisma.workItem.create({
     data: {
-      processId: processContext.processId,
+      listId: processContext.processId,
       statusId: processContext.defaultStatusId,
       title: overrides.title ?? `Task ${uniqueId('t')}`,
       creatorId: creatorUserId,
@@ -294,45 +294,45 @@ export const cleanupWorkspace = async (
   const now = new Date();
 
   await prisma.$transaction(async (tx) => {
-    const departments = await tx.department.findMany({
+    const spaces = await tx.space.findMany({
       where: { workspaceId },
       select: { id: true },
     });
-    const departmentIds = departments.map((d) => d.id);
+    const spaceIds = spaces.map((s) => s.id);
 
-    if (departmentIds.length > 0) {
-      const processes = await tx.process.findMany({
-        where: { departmentId: { in: departmentIds } },
+    if (spaceIds.length > 0) {
+      const lists = await tx.list.findMany({
+        where: { spaceId: { in: spaceIds } },
         select: { id: true },
       });
-      const processIds = processes.map((p) => p.id);
+      const listIds = lists.map((p) => p.id);
 
-      if (processIds.length > 0) {
+      if (listIds.length > 0) {
         await tx.workItem.updateMany({
-          where: { processId: { in: processIds } },
+          where: { listId: { in: listIds } },
           data: { deletedAt: now },
         });
       }
 
-      await tx.workflowStatus.updateMany({
-        where: { departmentId: { in: departmentIds } },
+      await tx.status.updateMany({
+        where: { spaceId: { in: spaceIds } },
         data: { deletedAt: now },
       });
 
-      if (processIds.length > 0) {
-        await tx.process.updateMany({
-          where: { id: { in: processIds } },
+      if (listIds.length > 0) {
+        await tx.list.updateMany({
+          where: { id: { in: listIds } },
           data: { deletedAt: now },
         });
       }
 
-      await tx.area.updateMany({
-        where: { departmentId: { in: departmentIds } },
+      await tx.folder.updateMany({
+        where: { spaceId: { in: spaceIds } },
         data: { deletedAt: now },
       });
 
-      await tx.department.updateMany({
-        where: { id: { in: departmentIds } },
+      await tx.space.updateMany({
+        where: { id: { in: spaceIds } },
         data: { deletedAt: now },
       });
     }
@@ -343,4 +343,130 @@ export const cleanupWorkspace = async (
       data: { deletedAt: now },
     });
   });
+};
+
+// ============================================================================
+// Helpers Hoppe-aligned (novos specs E2E pos-deprecacao WorkItem direto)
+// ----------------------------------------------------------------------------
+// Diretrizes (memorias project_erp_workitem_deprecation + frontend_api_scope):
+//   - Usar nomenclatura Space/Folder/List (sem department/area/process).
+//   - Criar tasks SO via POST /api/v1/tasks. Proibido prisma.workItem.create
+//     em novos specs — WorkItem sera removido apos paridade Hoppe.
+//   - Helpers legados (createTestProcess, createTestTask) permanecem para os
+//     specs ativos antigos ate migracao.
+// ============================================================================
+
+export interface TestListContext {
+  spaceId: string;
+  folderId: string;
+  listId: string;
+  defaultStatusId: string;
+}
+
+export interface CreateTaskViaApiPayload {
+  title?: string;
+  markdownContent?: string;
+  description?: string;
+  customTypeId?: string;
+  statusId?: string;
+  priority?: 'NONE' | 'LOW' | 'NORMAL' | 'HIGH' | 'URGENT';
+  assigneeIds?: string[];
+}
+
+export interface CreatedTaskViaApi {
+  taskId: string;
+  markdownContent: string | null;
+  customTypeId: string | null;
+  raw: Record<string, unknown>;
+}
+
+export const createTestListContext = async (
+  app: INestApplication<App>,
+  workspaceId: string,
+): Promise<TestListContext> => {
+  const prisma = app.get(PrismaService);
+  const suffix = uniqueId('ctx');
+
+  const space = await prisma.space.create({
+    data: {
+      workspaceId,
+      name: `Space ${suffix}`,
+      slug: `space-${suffix}`,
+    },
+  });
+
+  const folder = await prisma.folder.create({
+    data: {
+      name: `Folder ${suffix}`,
+      slug: `folder-${suffix}`,
+      spaceId: space.id,
+    },
+  });
+
+  const defaultStatus = await prisma.status.create({
+    data: {
+      name: 'To Do',
+      type: 'NOT_STARTED',
+      color: '#94a3b8',
+      spaceId: space.id,
+      folderId: folder.id,
+      position: 0,
+    },
+  });
+
+  const list = await prisma.list.create({
+    data: {
+      name: `List ${suffix}`,
+      slug: `list-${suffix}`,
+      spaceId: space.id,
+      folderId: folder.id,
+      processType: 'LIST',
+      status: 'ACTIVE',
+    },
+  });
+
+  return {
+    spaceId: space.id,
+    folderId: folder.id,
+    listId: list.id,
+    defaultStatusId: defaultStatus.id,
+  };
+};
+
+export const createTaskViaApi = async (
+  app: INestApplication<App>,
+  ctx: Pick<TestListContext, 'listId'>,
+  token: string,
+  payload: CreateTaskViaApiPayload = {},
+): Promise<CreatedTaskViaApi> => {
+  const res = await request(app.getHttpServer())
+    .post('/api/v1/tasks')
+    .set('Authorization', `Bearer ${token}`)
+    .send({
+      title: payload.title ?? `Task ${uniqueId('t')}`,
+      listId: ctx.listId,
+      ...(payload.markdownContent !== undefined && {
+        markdownContent: payload.markdownContent,
+      }),
+      ...(payload.description !== undefined && {
+        description: payload.description,
+      }),
+      ...(payload.customTypeId !== undefined && {
+        customTypeId: payload.customTypeId,
+      }),
+      ...(payload.statusId !== undefined && { statusId: payload.statusId }),
+      ...(payload.priority !== undefined && { priority: payload.priority }),
+      ...(payload.assigneeIds !== undefined && {
+        assigneeIds: payload.assigneeIds,
+      }),
+    })
+    .expect(201);
+
+  const body = res.body as Record<string, unknown>;
+  return {
+    taskId: body.id as string,
+    markdownContent: (body.markdownContent as string | null) ?? null,
+    customTypeId: (body.customTypeId as string | null) ?? null,
+    raw: body,
+  };
 };

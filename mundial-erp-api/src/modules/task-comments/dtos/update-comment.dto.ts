@@ -13,10 +13,10 @@ export class UpdateCommentDto {
   @IsString()
   @MinLength(1)
   @MaxLength(10_000)
-  body?: string;
+  content?: string;
 
   @ApiPropertyOptional()
   @IsOptional()
   @IsObject()
-  bodyBlocks?: Record<string, unknown>;
+  contentBlocks?: Record<string, unknown>;
 }

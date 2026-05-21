@@ -9,7 +9,7 @@ import { TaskFiltersDto } from './dtos/task-filters.dto';
  */
 export const TASK_LIST_SELECT = {
   id: true,
-  processId: true,
+  listId: true,
   title: true,
   description: true,
   statusId: true,
@@ -32,13 +32,23 @@ export const TASK_LIST_SELECT = {
   timeSpentSeconds: true,
   createdAt: true,
   updatedAt: true,
+  customType: {
+    select: {
+      id: true,
+      name: true,
+      namePlural: true,
+      icon: true,
+      color: true,
+      workspaceId: true,
+      isBuiltin: true,
+    },
+  },
   status: {
     select: {
       id: true,
       name: true,
-      category: true,
+      type: true,
       color: true,
-      icon: true,
     },
   },
 } satisfies Prisma.WorkItemSelect;
@@ -53,23 +63,26 @@ function buildWhere(
 ): Prisma.WorkItemWhereInput {
   const where: Prisma.WorkItemWhereInput = {
     // 1a linha: tenant isolation.
-    process: { department: { workspaceId } },
+    list: { space: { workspaceId } },
     deletedAt: null,
   };
 
-  if (filters.processIds?.length) {
-    where.processId = { in: filters.processIds };
+  const listIds = filters.listIds ?? filters.processIds;
+  const folderIds = filters.folderIds ?? filters.areaIds;
+  const spaceIds = filters.spaceIds ?? filters.departmentIds;
+  if (listIds?.length) {
+    where.listId = { in: listIds };
   }
-  if (filters.areaIds?.length) {
-    where.process = {
-      ...(where.process as Prisma.ProcessWhereInput),
-      areaId: { in: filters.areaIds },
+  if (folderIds?.length) {
+    where.list = {
+      ...(where.list as Prisma.ListWhereInput),
+      folderId: { in: folderIds },
     };
   }
-  if (filters.departmentIds?.length) {
-    where.process = {
-      ...(where.process as Prisma.ProcessWhereInput),
-      department: { workspaceId, id: { in: filters.departmentIds } },
+  if (spaceIds?.length) {
+    where.list = {
+      ...(where.list as Prisma.ListWhereInput),
+      space: { workspaceId, id: { in: spaceIds } },
     };
   }
   if (filters.statuses?.length) {
@@ -235,9 +248,19 @@ export class TasksRepository {
         select: {
           id: true,
           name: true,
-          category: true,
+          type: true,
           color: true,
+        },
+      },
+      customType: {
+        select: {
+          id: true,
+          name: true,
+          namePlural: true,
           icon: true,
+          color: true,
+          workspaceId: true,
+          isBuiltin: true,
         },
       },
     };
@@ -254,10 +277,6 @@ export class TasksRepository {
         where: { deletedAt: null },
         orderBy: { position: 'asc' },
       };
-    }
-    if (includes.has('dependencies')) {
-      include.dependenciesOut = true;
-      include.dependenciesIn = true;
     }
     if (includes.has('links')) {
       include.linksFrom = true;
@@ -283,23 +302,36 @@ export class TasksRepository {
       where: {
         id: taskId,
         deletedAt: null,
-        process: { department: { workspaceId } },
+        list: { space: { workspaceId } },
       },
       include,
     });
   }
 
-  /** Carrega assignees (join) com user embedded. */
-  async findAssignees(taskId: string) {
-    return this.prisma.workItemAssignee.findMany({
+  /** Carrega assignees (join) com user embedded. Aceita `tx` opcional. */
+  async findAssignees(taskId: string, tx?: Prisma.TransactionClient) {
+    return this.client(tx).workItemAssignee.findMany({
       where: { workItemId: taskId },
       select: {
         userId: true,
         isPrimary: true,
+        assignedAt: true,
         user: { select: { id: true, name: true, email: true } },
       },
       orderBy: [{ isPrimary: 'desc' }, { assignedAt: 'asc' }],
     });
+  }
+
+  /** IDs dos assignees atuais para diff transacional (HPP-056 race fix). */
+  async findAssigneeIds(
+    taskId: string,
+    tx?: Prisma.TransactionClient,
+  ): Promise<string[]> {
+    const rows = await this.client(tx).workItemAssignee.findMany({
+      where: { workItemId: taskId },
+      select: { userId: true },
+    });
+    return rows.map((r) => r.userId);
   }
 
   /** Carrega watchers (join) com user embedded. */
@@ -319,13 +351,13 @@ export class TasksRepository {
     return this.prisma.workItem.findFirst({
       where: {
         id: taskId,
-        process: { department: { workspaceId } },
+        list: { space: { workspaceId } },
       },
       select: {
         id: true,
         archived: true,
         deletedAt: true,
-        processId: true,
+        listId: true,
         statusId: true,
         mergedIntoId: true,
       },
@@ -387,7 +419,7 @@ export class TasksRepository {
       where: {
         id: taskId,
         deletedAt: null,
-        process: { department: { workspaceId } },
+        list: { space: { workspaceId } },
       },
       select: {
         id: true,
@@ -420,7 +452,7 @@ export class TasksRepository {
       where: {
         id: taskId,
         deletedAt: null,
-        process: { department: { workspaceId } },
+        list: { space: { workspaceId } },
       },
       data: { deletedAt: new Date() },
     });
@@ -454,7 +486,7 @@ export class TasksRepository {
     return tx.workItem.findMany({
       where: {
         id: { in: ids },
-        process: { department: { workspaceId } },
+        list: { space: { workspaceId } },
       },
       select: {
         id: true,
@@ -586,48 +618,48 @@ export class TasksRepository {
   }
 
   /**
-   * Assert-only: retorna `{ id, departmentId }` se o process pertence ao
+   * Assert-only: retorna `{ id, spaceId }` se o process pertence ao
    * workspace (via `department.workspaceId`). Usado em `create` para 404
    * cross-tenant cedo (PLANO §7.2, §8.1). Espelha o padrao ja estabelecido
    * em `TaskTemplatesRepository.findProcessInWorkspace`.
    */
   async findProcessInWorkspace(
     workspaceId: string,
-    processId: string,
+    listId: string,
     tx?: Prisma.TransactionClient,
   ) {
-    return this.client(tx).process.findFirst({
+    return this.client(tx).list.findFirst({
       where: {
-        id: processId,
+        id: listId,
         deletedAt: null,
-        department: { workspaceId },
+        space: { workspaceId },
       },
-      select: { id: true, departmentId: true },
+      select: { id: true, spaceId: true },
     });
   }
 
   /**
-   * Primeiro `WorkflowStatus` com `category=NOT_STARTED` do departamento do
+   * Primeiro `Status` com `type=NOT_STARTED` do departamento do
    * process. Usado quando o caller de `create` nao informa `statusId`.
-   * Budget: 2 queries (process -> department, workflow_status).
+   * Budget: 2 queries (process -> department, status).
    */
   async findFirstStatusForProcess(
-    processId: string,
+    listId: string,
     tx?: Prisma.TransactionClient,
   ) {
     const db = this.client(tx);
-    const process = await db.process.findUnique({
-      where: { id: processId },
-      select: { departmentId: true },
+    const process = await db.list.findUnique({
+      where: { id: listId },
+      select: { spaceId: true },
     });
-    if (!process?.departmentId) return null;
-    return db.workflowStatus.findFirst({
+    if (!process?.spaceId) return null;
+    return db.status.findFirst({
       where: {
-        departmentId: process.departmentId,
-        category: 'NOT_STARTED',
+        spaceId: process.spaceId,
+        type: 'NOT_STARTED',
         deletedAt: null,
       },
-      orderBy: [{ sortOrder: 'asc' }, { createdAt: 'asc' }],
+      orderBy: [{ position: 'asc' }, { createdAt: 'asc' }],
       select: { id: true },
     });
   }
@@ -641,7 +673,7 @@ export class TasksRepository {
   async createTask(
     tx: Prisma.TransactionClient,
     input: {
-      processId: string;
+      listId: string;
       title: string;
       description?: string | null;
       markdownContent?: string | null;
@@ -657,7 +689,7 @@ export class TasksRepository {
     },
   ) {
     const data: Prisma.WorkItemUncheckedCreateInput = {
-      processId: input.processId,
+      listId: input.listId,
       title: input.title,
       statusId: input.statusId,
       creatorId: input.creatorId,
@@ -695,10 +727,253 @@ export class TasksRepository {
     const rows = await this.prisma.workItem.findMany({
       where: {
         id: { in: taskIds },
-        process: { department: { workspaceId } },
+        list: { space: { workspaceId } },
       },
       select: { id: true },
     });
     return rows.map((r) => r.id);
+  }
+
+  /**
+   * HPP-056 — Carrega `creatorId` da task (alem do existence guard) para o
+   * fallback "lista vazia recoloca creator". Tenant via `space.workspaceId`.
+   */
+  async findAssignContext(workspaceId: string, taskId: string) {
+    return this.prisma.workItem.findFirst({
+      where: {
+        id: taskId,
+        deletedAt: null,
+        list: { space: { workspaceId } },
+      },
+      select: { id: true, creatorId: true, listId: true },
+    });
+  }
+
+  /**
+   * HPP-054 — `GET /tasks/:id/subtasks`. Retorna tasks filhas
+   * (parentId = :id) ativas. Indice `idx_work_items_parent`.
+   */
+  async findSubtasks(workspaceId: string, parentId: string, take: number) {
+    return this.prisma.workItem.findMany({
+      where: {
+        parentId,
+        deletedAt: null,
+        list: {
+          OR: [
+            { space: { workspaceId } },
+            { folder: { space: { workspaceId } } },
+          ],
+        },
+      },
+      select: TASK_LIST_SELECT,
+      orderBy: [{ sortOrder: 'asc' }, { createdAt: 'asc' }],
+      take,
+    });
+  }
+
+  /**
+   * HPP-053 — `GET /tasks/my-tasks`. Retorna tasks atribuidas ao usuario
+   * dentro do workspace, ativas (nao arquivadas / nao deletadas). O service
+   * distribui em buckets temporais. Hard cap `take: 1000`.
+   */
+  async findMyTasks(workspaceId: string, userId: string, take: number) {
+    return this.prisma.workItem.findMany({
+      where: {
+        deletedAt: null,
+        archived: false,
+        assignees: { some: { userId } },
+        list: {
+          OR: [
+            { space: { workspaceId } },
+            { folder: { space: { workspaceId } } },
+          ],
+        },
+      },
+      select: TASK_LIST_SELECT,
+      orderBy: [{ dueDate: 'asc' }, { sortOrder: 'asc' }],
+      take,
+    });
+  }
+
+  /**
+   * HPP-052 — Tasks por escopo `list|folder|space`. Single query com filtro
+   * Prisma traduzindo o nivel para `list.id|list.folderId|list.spaceId`.
+   * Tenant isolation via `space.workspaceId` em todos os ramos.
+   */
+  async findByScope(
+    workspaceId: string,
+    scope: { level: 'list' | 'folder' | 'space'; id: string },
+    take: number,
+  ) {
+    const where: Prisma.WorkItemWhereInput = { deletedAt: null };
+    if (scope.level === 'list') {
+      where.listId = scope.id;
+      where.list = {
+        OR: [
+          { space: { workspaceId } },
+          { folder: { space: { workspaceId } } },
+        ],
+      };
+    } else if (scope.level === 'folder') {
+      where.list = {
+        folderId: scope.id,
+        folder: { space: { workspaceId } },
+      };
+    } else {
+      where.list = {
+        OR: [
+          { spaceId: scope.id, space: { workspaceId } },
+          { folder: { spaceId: scope.id, space: { workspaceId } } },
+        ],
+      };
+    }
+    return this.prisma.workItem.findMany({
+      where,
+      select: TASK_LIST_SELECT,
+      orderBy: [{ statusId: 'asc' }, { sortOrder: 'asc' }],
+      take,
+    });
+  }
+
+  /**
+   * HPP-052 — Statuses elegiveis ao escopo. Inclui statuses do space e os
+   * do folder (se aplicavel). Tenant isolation via `space.workspaceId`.
+   */
+  async findStatusesForScope(
+    workspaceId: string,
+    scope: {
+      level: 'list' | 'folder' | 'space';
+      id: string;
+      spaceId: string;
+      folderId: string | null;
+    },
+  ) {
+    const where = await this.resolveStatusWhere(workspaceId, scope);
+    return this.prisma.status.findMany({
+      where,
+      select: {
+        id: true,
+        name: true,
+        color: true,
+        type: true,
+        position: true,
+      },
+      orderBy: { position: 'asc' },
+    });
+  }
+
+  private async resolveStatusWhere(
+    workspaceId: string,
+    scope: {
+      level: 'list' | 'folder' | 'space';
+      id: string;
+      spaceId: string;
+      folderId: string | null;
+    },
+  ): Promise<Prisma.StatusWhereInput> {
+    const base: Prisma.StatusWhereInput = {
+      deletedAt: null,
+      OR: [
+        { space: { workspaceId } },
+        { folder: { space: { workspaceId } } },
+        {
+          list: {
+            OR: [
+              { space: { workspaceId } },
+              { folder: { space: { workspaceId } } },
+            ],
+          },
+        },
+      ],
+    };
+
+    if (scope.level === 'list') {
+      const list = await this.prisma.list.findUnique({
+        where: { id: scope.id },
+        select: {
+          spaceId: true,
+          folderId: true,
+          statusInheritance: true,
+          folder: {
+            select: { spaceId: true, statusInheritance: true },
+          },
+        },
+      });
+      if (!list) return { ...base, listId: scope.id };
+      if (list.statusInheritance === 'CUSTOM') {
+        return { ...base, listId: scope.id };
+      }
+      if (list.statusInheritance === 'SPACE') {
+        return {
+          ...base,
+          spaceId: list.spaceId,
+          folderId: null,
+          listId: null,
+        };
+      }
+      const folder = list.folder;
+      if (folder && folder.statusInheritance === 'CUSTOM' && list.folderId) {
+        return { ...base, folderId: list.folderId, listId: null };
+      }
+      const spaceId = folder?.spaceId ?? list.spaceId;
+      return { ...base, spaceId, folderId: null, listId: null };
+    }
+
+    if (scope.level === 'folder') {
+      const folder = await this.prisma.folder.findUnique({
+        where: { id: scope.id },
+        select: { spaceId: true, statusInheritance: true },
+      });
+      if (folder?.statusInheritance === 'CUSTOM') {
+        return { ...base, folderId: scope.id, listId: null };
+      }
+      return {
+        ...base,
+        spaceId: folder?.spaceId ?? scope.spaceId,
+        folderId: null,
+        listId: null,
+      };
+    }
+
+    return {
+      ...base,
+      spaceId: scope.spaceId,
+      folderId: null,
+      listId: null,
+    };
+  }
+
+  /**
+   * HPP-051 — Tasks de um space agrupadas por list. Single query com OR
+   * cobrindo lista direta (`list.spaceId`) e lista em folder
+   * (`list.folder.spaceId`). Tenant isolation via `space.workspaceId` em
+   * ambos os ramos. Limite duro `take: 500` evita dataset ilimitado.
+   */
+  async findBySpaceGrouped(
+    workspaceId: string,
+    spaceId: string,
+    take: number,
+  ) {
+    return this.prisma.workItem.findMany({
+      where: {
+        deletedAt: null,
+        OR: [
+          { list: { spaceId, space: { workspaceId } } },
+          { list: { folder: { spaceId, space: { workspaceId } } } },
+        ],
+      },
+      select: {
+        ...TASK_LIST_SELECT,
+        list: {
+          select: {
+            id: true,
+            name: true,
+            folder: { select: { id: true, name: true } },
+          },
+        },
+      },
+      orderBy: [{ listId: 'asc' }, { sortOrder: 'asc' }],
+      take,
+    });
   }
 }

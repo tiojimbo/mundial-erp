@@ -6,8 +6,8 @@ import {
   HttpCode,
   HttpStatus,
   Param,
-  Patch,
   Post,
+  Put,
   Query,
 } from '@nestjs/common';
 import {
@@ -23,26 +23,23 @@ import { CreateTaskTagDto } from './dtos/create-task-tag.dto';
 import { UpdateTaskTagDto } from './dtos/update-task-tag.dto';
 import { TaskTagResponseDto } from './dtos/task-tag-response.dto';
 import { TaskTagFiltersDto } from './dtos/task-tag-filters.dto';
+import { AttachTagDto } from './dtos/attach-tag.dto';
 import { CurrentUser, Roles } from '../auth/decorators';
 import type { JwtPayload } from '../auth/decorators';
 import { WorkspaceId } from '../workspaces/decorators/workspace-id.decorator';
 
 /**
- * Controller de `WorkItemTag`.
- *
- * Usa prefixos distintos no nivel de metodo (via `@Get('/task-tags')` etc.)
- * ao inves de um prefixo global, porque o recurso tem duas familias de URLs:
- * CRUD em `/task-tags` e attach/detach em `/tasks/:taskId/tags/:tagId`.
- *
- * PLANO-TASKS.md §7.3: Tags.
+ * Controller de `WorkItemTag` no padrao Hoppe:
+ * - `/tags` CRUD (HPP-085)
+ * - `/tags/task/:taskId` attach/detach (HPP-086)
  */
-@ApiTags('Task Tags')
+@ApiTags('Tags')
 @ApiBearerAuth()
 @Controller()
 export class TaskTagsController {
   constructor(private readonly service: TaskTagsService) {}
 
-  @Get('task-tags')
+  @Get('tags')
   @Roles(Role.ADMIN, Role.MANAGER, Role.OPERATOR, Role.VIEWER)
   @ApiOperation({ summary: 'Listar tags do workspace' })
   findAll(
@@ -52,9 +49,9 @@ export class TaskTagsController {
     return this.service.findAll(workspaceId, filters);
   }
 
-  @Post('task-tags')
+  @Post('tags')
   @Roles(Role.ADMIN, Role.MANAGER, Role.OPERATOR)
-  @ApiOperation({ summary: 'Criar tag' })
+  @ApiOperation({ summary: 'Criar tag (spaceId obrigatorio)' })
   @ApiResponse({ status: 201, type: TaskTagResponseDto })
   @ApiResponse({ status: 409, description: 'Nome ja existe (case-insensitive)' })
   create(
@@ -64,7 +61,7 @@ export class TaskTagsController {
     return this.service.create(workspaceId, dto);
   }
 
-  @Patch('task-tags/:id')
+  @Put('tags/:id')
   @Roles(Role.ADMIN, Role.MANAGER, Role.OPERATOR)
   @ApiOperation({ summary: 'Editar tag' })
   @ApiResponse({ status: 200, type: TaskTagResponseDto })
@@ -76,7 +73,7 @@ export class TaskTagsController {
     return this.service.update(workspaceId, id, dto);
   }
 
-  @Delete('task-tags/:id')
+  @Delete('tags/:id')
   @Roles(Role.ADMIN, Role.MANAGER)
   @HttpCode(HttpStatus.NO_CONTENT)
   @ApiOperation({ summary: 'Remover tag (soft delete)' })
@@ -85,7 +82,7 @@ export class TaskTagsController {
     return this.service.remove(workspaceId, id);
   }
 
-  @Post('tasks/:taskId/tags/:tagId')
+  @Post('tags/task/:taskId')
   @Roles(Role.ADMIN, Role.MANAGER, Role.OPERATOR)
   @HttpCode(HttpStatus.NO_CONTENT)
   @Throttle({ default: { limit: 30, ttl: 60_000 } })
@@ -95,13 +92,13 @@ export class TaskTagsController {
   attach(
     @WorkspaceId() workspaceId: string,
     @Param('taskId') taskId: string,
-    @Param('tagId') tagId: string,
+    @Body() dto: AttachTagDto,
     @CurrentUser() user: JwtPayload,
   ) {
-    return this.service.attach(workspaceId, taskId, tagId, user.sub);
+    return this.service.attach(workspaceId, taskId, dto.tagId, user.sub);
   }
 
-  @Delete('tasks/:taskId/tags/:tagId')
+  @Delete('tags/task/:taskId/:tagId')
   @Roles(Role.ADMIN, Role.MANAGER, Role.OPERATOR)
   @HttpCode(HttpStatus.NO_CONTENT)
   @Throttle({ default: { limit: 30, ttl: 60_000 } })

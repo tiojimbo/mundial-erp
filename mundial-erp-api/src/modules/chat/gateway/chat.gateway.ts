@@ -85,37 +85,37 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
 
   @OnEvent(CHAT_EVENTS.MESSAGE_CREATED)
   onMessageCreated(payload: MessageCreatedPayload) {
-    this.server
-      .to(`channel:${payload.channelId}`)
-      .emit('message:new', payload.message);
+    const room = `channel:${payload.channelId}`;
+    this.server.to(room).emit('message:new', payload.message);
+    this.server.to(room).emit('chat:message:new', payload.message);
   }
 
   @OnEvent(CHAT_EVENTS.MESSAGE_UPDATED)
   onMessageUpdated(payload: MessageUpdatedPayload) {
-    this.server
-      .to(`channel:${payload.channelId}`)
-      .emit('message:updated', payload.message);
+    const room = `channel:${payload.channelId}`;
+    this.server.to(room).emit('message:updated', payload.message);
+    this.server.to(room).emit('chat:message:updated', payload.message);
   }
 
   @OnEvent(CHAT_EVENTS.MESSAGE_DELETED)
   onMessageDeleted(payload: MessageDeletedPayload) {
-    this.server
-      .to(`channel:${payload.channelId}`)
-      .emit('message:deleted', payload);
+    const room = `channel:${payload.channelId}`;
+    this.server.to(room).emit('message:deleted', payload);
+    this.server.to(room).emit('chat:message:deleted', payload);
   }
 
   @OnEvent(CHAT_EVENTS.REACTION_ADDED)
   onReactionAdded(payload: ReactionPayload) {
-    this.server
-      .to(`channel:${payload.channelId}`)
-      .emit('reaction:added', payload);
+    const room = `channel:${payload.channelId}`;
+    this.server.to(room).emit('reaction:added', payload);
+    this.server.to(room).emit('chat:reaction:added', payload);
   }
 
   @OnEvent(CHAT_EVENTS.REACTION_REMOVED)
   onReactionRemoved(payload: ReactionPayload) {
-    this.server
-      .to(`channel:${payload.channelId}`)
-      .emit('reaction:removed', payload);
+    const room = `channel:${payload.channelId}`;
+    this.server.to(room).emit('reaction:removed', payload);
+    this.server.to(room).emit('chat:reaction:removed', payload);
   }
 
   @OnEvent(CHAT_EVENTS.CHANNEL_MEMBERS_ADDED)

@@ -1,24 +1,43 @@
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
-import { CustomTaskType } from '@prisma/client';
 
-/**
- * Resposta publica de um CustomTaskType. Builtins (isBuiltin=true, workspaceId=null)
- * sao visiveis globalmente; tipos privados so para o workspace dono.
- * Ver PLANO-TASKS.md §5.3 e §8.1.
- */
+type CreatorEmbed = { id: string; name: string; email: string } | null;
+
+type CustomTaskTypeEntityLike = {
+  id: string;
+  workspaceId: string | null;
+  spaceId: string | null;
+  creatorId: string | null;
+  name: string;
+  namePlural: string | null;
+  description: string | null;
+  icon: string | null;
+  color: string | null;
+  avatarUrl: string | null;
+  isBuiltin: boolean;
+  sortOrder: number;
+  createdAt: Date;
+  updatedAt: Date;
+  creator?: { id: string; name: string; email: string } | null;
+};
+
 export class CustomTaskTypeResponseDto {
   @ApiProperty()
   id!: string;
 
-  /** NULL quando builtin global. */
   @ApiPropertyOptional({ nullable: true })
   workspaceId!: string | null;
 
-  @ApiProperty()
-  name!: string;
+  @ApiPropertyOptional({ nullable: true })
+  spaceId!: string | null;
 
   @ApiPropertyOptional({ nullable: true })
-  namePlural!: string | null;
+  creatorId!: string | null;
+
+  @ApiProperty()
+  value!: string;
+
+  @ApiPropertyOptional({ nullable: true })
+  pluralName!: string | null;
 
   @ApiPropertyOptional({ nullable: true })
   description!: string | null;
@@ -44,12 +63,19 @@ export class CustomTaskTypeResponseDto {
   @ApiProperty({ type: String, format: 'date-time' })
   updatedAt!: Date;
 
-  static fromEntity(entity: CustomTaskType): CustomTaskTypeResponseDto {
+  @ApiPropertyOptional({ nullable: true })
+  creator!: CreatorEmbed;
+
+  static fromEntity(
+    entity: CustomTaskTypeEntityLike,
+  ): CustomTaskTypeResponseDto {
     const dto = new CustomTaskTypeResponseDto();
     dto.id = entity.id;
     dto.workspaceId = entity.workspaceId;
-    dto.name = entity.name;
-    dto.namePlural = entity.namePlural;
+    dto.spaceId = entity.spaceId;
+    dto.creatorId = entity.creatorId;
+    dto.value = entity.name;
+    dto.pluralName = entity.namePlural;
     dto.description = entity.description;
     dto.icon = entity.icon;
     dto.color = entity.color;
@@ -58,6 +84,7 @@ export class CustomTaskTypeResponseDto {
     dto.sortOrder = entity.sortOrder;
     dto.createdAt = entity.createdAt;
     dto.updatedAt = entity.updatedAt;
+    dto.creator = entity.creator ?? null;
     return dto;
   }
 }

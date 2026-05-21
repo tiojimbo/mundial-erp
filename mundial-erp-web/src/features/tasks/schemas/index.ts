@@ -15,6 +15,7 @@ export {
   taskDependencySchema,
   taskDependenciesBundleSchema,
   taskLinkSchema,
+  taskLinkTypeSchema,
   taskWatcherSchema,
   taskAttachmentSchema,
   taskCommentSchema,

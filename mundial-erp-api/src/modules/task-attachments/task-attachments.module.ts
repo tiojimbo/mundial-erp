@@ -15,6 +15,7 @@ import { Module, forwardRef } from '@nestjs/common';
 import { BullModule } from '@nestjs/bullmq';
 import { NotificationsModule } from '../notifications/notifications.module';
 import { TaskOutboxModule } from '../task-outbox/task-outbox.module';
+import { TaskTypeTemplatesModule } from '../task-type-templates/task-type-templates.module';
 import { TaskAttachmentsController } from './task-attachments.controller';
 import { TaskAttachmentsService } from './task-attachments.service';
 import { TaskAttachmentsRepository } from './task-attachments.repository';
@@ -26,6 +27,10 @@ import { CLAMAV_SCAN_QUEUE } from './workers/clamav-scan.constants';
     BullModule.registerQueue({ name: CLAMAV_SCAN_QUEUE }),
     NotificationsModule,
     forwardRef(() => TaskOutboxModule),
+    // TTT-043 — service valida `category` contra attachmentCategories do
+    // template do CustomTaskType da task. Repository (read direto) ja e
+    // exportado por TaskTypeTemplatesModule e usado abaixo no service.
+    TaskTypeTemplatesModule,
   ],
   controllers: [TaskAttachmentsController],
   providers: [

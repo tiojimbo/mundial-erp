@@ -61,9 +61,7 @@ class TaskAttachmentsServiceStub {
 
   validateMime(mimeType: string): void {
     if (!MIME_WHITELIST.includes(mimeType)) {
-      throw new BadRequestException(
-        `MIME type nao permitido: ${mimeType}`,
-      );
+      throw new BadRequestException(`MIME type nao permitido: ${mimeType}`);
     }
   }
 
@@ -104,7 +102,9 @@ describe('TaskAttachmentsService (unit, stub)', () => {
   let service: TaskAttachmentsServiceStub;
 
   beforeEach(() => {
-    s3 = { getSignedPutUrl: jest.fn().mockResolvedValue('https://s3.mock/put') };
+    s3 = {
+      getSignedPutUrl: jest.fn().mockResolvedValue('https://s3.mock/put'),
+    };
     service = new TaskAttachmentsServiceStub(s3);
   });
 

@@ -20,7 +20,7 @@ export type SubtaskRowProps = {
 };
 
 export function SubtaskRow({ task, onToggleComplete }: SubtaskRowProps) {
-  const done = task.status.category === 'DONE';
+  const done = task.status.type === 'DONE';
   return (
     <div className="flex items-center gap-2 rounded-lg border border-border/60 px-3 py-2 transition-colors duration-150 hover:bg-muted/40">
       <button

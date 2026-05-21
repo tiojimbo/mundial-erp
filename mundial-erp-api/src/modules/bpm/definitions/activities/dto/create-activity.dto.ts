@@ -22,7 +22,7 @@ export class CreateActivityDto {
   @ApiProperty({ description: 'ID do processo' })
   @IsString()
   @MinLength(1)
-  processId: string;
+  listId: string;
 
   @ApiProperty({ enum: Role, example: Role.OPERATOR })
   @IsEnum(Role)

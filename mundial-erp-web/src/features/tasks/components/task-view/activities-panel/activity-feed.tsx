@@ -3,12 +3,12 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 
 import { useActivities } from '../../../hooks/use-activities';
+import { useComments } from '../../../hooks/use-comments';
 import type {
-  PaginatedResponse,
-  CursorPaginatedResponse,
-} from '@/types/api.types';
-import type { TaskActivitiesListParams } from '../../../services/task-activities.service';
-import type { TaskActivity } from '../../../types/task.types';
+  ActivitiesListResponse,
+  TaskActivitiesListParams,
+} from '../../../services/task-activities.service';
+import type { TaskActivity, TaskComment } from '../../../types/task.types';
 
 import { ActivityItem } from './activity-item';
 
@@ -29,35 +29,30 @@ export type ActivityFeedProps = {
   params?: Omit<TaskActivitiesListParams, 'cursor' | 'page'>;
 };
 
-type ActivitiesPage =
-  | PaginatedResponse<TaskActivity>
-  | CursorPaginatedResponse<TaskActivity>;
-
-function flattenPages(
-  pages: ReadonlyArray<ActivitiesPage> | undefined,
-): TaskActivity[] {
-  if (!pages) return [];
-  const out: TaskActivity[] = [];
-  for (const p of pages) {
-    const items = Array.isArray(p?.data) ? p.data : [];
-    for (const item of items) out.push(item);
-  }
-  return out;
-}
-
-type InfiniteLike = { pages?: ReadonlyArray<ActivitiesPage> };
-
 export function ActivityFeed({
   taskId,
   activities: controlled,
   params,
 }: ActivityFeedProps) {
   const query = useActivities(taskId, params, controlled === undefined);
+  const commentsQuery = useComments(taskId, undefined, controlled === undefined);
   const activities = useMemo(() => {
     if (controlled !== undefined) return controlled;
-    const infinite = query.data as InfiniteLike | undefined;
-    return flattenPages(infinite?.pages);
+    return (query.data as ActivitiesListResponse | undefined)?.items ?? [];
   }, [controlled, query.data]);
+
+  const commentsById = useMemo(() => {
+    const raw = commentsQuery.data as
+      | { items?: TaskComment[] }
+      | TaskComment[]
+      | undefined;
+    const list: TaskComment[] = Array.isArray(raw)
+      ? raw
+      : (raw?.items ?? []);
+    const map = new Map<string, TaskComment>();
+    for (const c of list) map.set(c.id, c);
+    return map;
+  }, [commentsQuery.data]);
 
   const [newIds, setNewIds] = useState<Set<string>>(new Set());
   const prevIdsRef = useRef<Set<string>>(new Set());
@@ -115,7 +110,13 @@ export function ActivityFeed({
       className='flex-1 space-y-2 overflow-y-auto px-4 py-3'
     >
       {activities.map((a) => (
-        <ActivityItem key={a.id} activity={a} isNew={newIds.has(a.id)} />
+        <ActivityItem
+          key={a.id}
+          activity={a}
+          isNew={newIds.has(a.id)}
+          taskId={taskId}
+          commentsById={commentsById}
+        />
       ))}
     </ul>
   );

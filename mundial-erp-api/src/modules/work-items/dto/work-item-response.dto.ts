@@ -1,9 +1,9 @@
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 import {
-  StatusCategory,
+  Status,
+  StatusType,
   TaskPriority,
   WorkItem,
-  WorkflowStatus,
   WorkItemType,
 } from '@prisma/client';
 
@@ -14,8 +14,8 @@ export class WorkItemStatusDto {
   @ApiProperty()
   name: string;
 
-  @ApiProperty({ enum: StatusCategory })
-  category: StatusCategory;
+  @ApiProperty({ enum: StatusType })
+  category: StatusType;
 
   @ApiProperty()
   color: string;
@@ -29,7 +29,7 @@ export class WorkItemResponseDto {
   id: string;
 
   @ApiProperty()
-  processId: string;
+  listId: string;
 
   @ApiProperty()
   title: string;
@@ -91,11 +91,11 @@ export class WorkItemResponseDto {
   updatedAt: Date;
 
   static fromEntity(
-    entity: WorkItem & { status?: WorkflowStatus },
+    entity: WorkItem & { status?: Status },
   ): WorkItemResponseDto {
     const dto = new WorkItemResponseDto();
     dto.id = entity.id;
-    dto.processId = entity.processId;
+    dto.listId = entity.listId;
     dto.title = entity.title;
     dto.description = entity.description;
     dto.statusId = entity.statusId;
@@ -103,9 +103,9 @@ export class WorkItemResponseDto {
       dto.status = {
         id: entity.status.id,
         name: entity.status.name,
-        category: entity.status.category,
+        category: entity.status.type,
         color: entity.status.color,
-        icon: entity.status.icon,
+        icon: null,
       };
     }
     dto.itemType = entity.itemType;

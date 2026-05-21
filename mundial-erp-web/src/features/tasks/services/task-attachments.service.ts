@@ -7,19 +7,10 @@ import type {
   AttachmentUploadDto,
 } from '../types/task.types';
 
-/**
- * Attachments — PLANO-TASKS.md §7.3 e §8.10.
- *
- * Fluxo:
- * 1. POST /tasks/:taskId/attachments/signed-url  → uploadUrl (TTL 5 min, PUT)
- * 2. PUT  uploadUrl (client → storage direto)    → 200 OK
- * 3. POST /tasks/:taskId/attachments             → registrar pos-upload
- * 4. Download: GET /tasks/:taskId/attachments/:attachmentId/download-url (bloqueado se scan != CLEAN)
- */
 export const taskAttachmentsService = {
   async list(taskId: string): Promise<TaskAttachment[]> {
     const { data } = await api.get<ApiResponse<TaskAttachment[]>>(
-      `/tasks/${taskId}/attachments`,
+      `/tasks/${taskId}/documents`,
     );
     return data.data;
   },
@@ -29,8 +20,8 @@ export const taskAttachmentsService = {
     payload: AttachmentSignedUrlRequest,
   ): Promise<AttachmentSignedUrlResponse> {
     const { data } = await api.post<ApiResponse<AttachmentSignedUrlResponse>>(
-      `/tasks/${taskId}/attachments/signed-url`,
-      payload,
+      '/attachments/presigned-url',
+      { taskId, ...payload },
     );
     return data.data;
   },
@@ -40,27 +31,23 @@ export const taskAttachmentsService = {
     payload: AttachmentUploadDto,
   ): Promise<TaskAttachment> {
     const { data } = await api.post<ApiResponse<TaskAttachment>>(
-      `/tasks/${taskId}/attachments`,
+      `/attachments/tasks/${taskId}`,
       payload,
     );
     return data.data;
   },
 
-  async getDownloadUrl(taskId: string, attachmentId: string): Promise<string> {
+  async getDownloadUrl(_taskId: string, attachmentId: string): Promise<string> {
     const { data } = await api.get<ApiResponse<{ url: string }>>(
-      `/tasks/${taskId}/attachments/${attachmentId}/download-url`,
+      `/attachments/${attachmentId}/download-url`,
     );
     return data.data.url;
   },
 
-  async remove(taskId: string, attachmentId: string): Promise<void> {
-    await api.delete(`/tasks/${taskId}/attachments/${attachmentId}`);
+  async remove(_taskId: string, attachmentId: string): Promise<void> {
+    await api.delete(`/attachments/${attachmentId}`);
   },
 
-  /**
-   * Upload direto a uma signed-url PUT (S3-compatible). Usa fetch nativo
-   * porque axios inclui headers extras que podem invalidar a assinatura.
-   */
   async uploadToSignedUrl(
     uploadUrl: string,
     file: File,

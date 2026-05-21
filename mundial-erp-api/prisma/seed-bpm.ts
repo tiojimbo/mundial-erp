@@ -9,7 +9,7 @@
  */
 
 import 'dotenv/config';
-import { PrismaClient, Role, OrderStatus, ProcessStatus, ProcessType, StatusCategory } from '@prisma/client';
+import { PrismaClient, Role, OrderStatus, ProcessStatus, ProcessType, StatusType } from '@prisma/client';
 import { PrismaPg } from '@prisma/adapter-pg';
 
 const adapter = new PrismaPg({ connectionString: process.env.DATABASE_URL! });
@@ -33,19 +33,19 @@ async function syncTasks(activityId: string, descriptions: string[]) {
 }
 
 // ---------------------------------------------------------------------------
-// Helper: upsert a handoff (find by fromProcessId+toProcessId, create or update)
+// Helper: upsert a handoff (find by fromListId+toListId, create or update)
 // ---------------------------------------------------------------------------
 async function upsertHandoff(data: {
-  fromProcessId: string;
-  toProcessId: string;
+  fromListId: string;
+  toListId: string;
   triggerOnStatus: OrderStatus | null;
   autoAdvance: boolean;
   validationRules: object;
 }) {
   const existing = await prisma.handoff.findFirst({
     where: {
-      fromProcessId: data.fromProcessId,
-      toProcessId: data.toProcessId,
+      fromListId: data.fromListId,
+      toListId: data.toListId,
     },
   });
 
@@ -81,10 +81,10 @@ async function main() {
 
   const departments: Record<string, string> = {};
   for (const d of deptData) {
-    const dept = await prisma.department.upsert({
+    const dept = await prisma.space.upsert({
       where: { slug: d.slug },
-      update: { name: d.name, sortOrder: d.sortOrder, icon: d.icon, color: d.color, isDefault: true, isProtected: true },
-      create: { name: d.name, slug: d.slug, sortOrder: d.sortOrder, icon: d.icon, color: d.color, isDefault: true, isProtected: true },
+      update: { name: d.name, position: d.sortOrder, icon: d.icon, color: d.color, isDefault: true, isProtected: true },
+      create: { name: d.name, slug: d.slug, position: d.sortOrder, icon: d.icon, color: d.color, isDefault: true, isProtected: true },
     });
     departments[d.slug] = dept.id;
   }
@@ -110,11 +110,11 @@ async function main() {
   for (const s of sectorData) {
     const sector = await prisma.sector.upsert({
       where: { slug: s.slug },
-      update: { name: s.name, departmentId: departments[s.deptSlug] },
+      update: { name: s.name, spaceId: departments[s.deptSlug] },
       create: {
         name: s.name,
         slug: s.slug,
-        departmentId: departments[s.deptSlug],
+        spaceId: departments[s.deptSlug],
       },
     });
     sectors[s.slug] = sector.id;
@@ -138,10 +138,10 @@ async function main() {
 
   const areas: Record<string, string> = {};
   for (const a of areaData) {
-    const area = await prisma.area.upsert({
+    const area = await prisma.folder.upsert({
       where: { slug: a.slug },
-      update: { name: a.name, departmentId: departments[a.deptSlug], sortOrder: a.sortOrder, isDefault: true },
-      create: { name: a.name, slug: a.slug, departmentId: departments[a.deptSlug], sortOrder: a.sortOrder, isDefault: true },
+      update: { name: a.name, spaceId: departments[a.deptSlug], position: a.sortOrder, isDefault: true },
+      create: { name: a.name, slug: a.slug, spaceId: departments[a.deptSlug], position: a.sortOrder, isDefault: true },
     });
     areas[a.slug] = area.id;
   }
@@ -151,25 +151,24 @@ async function main() {
   // 2c. WORKFLOW STATUSES (per department — 4 default statuses each)
   // =========================================================================
   const defaultStatuses = [
-    { name: 'Para Fazer', category: StatusCategory.NOT_STARTED, color: '#94a3b8', sortOrder: 1 },
-    { name: 'Em Andamento', category: StatusCategory.ACTIVE, color: '#3b82f6', sortOrder: 1 },
-    { name: 'Concluído', category: StatusCategory.DONE, color: '#22c55e', sortOrder: 1 },
-    { name: 'Finalizado', category: StatusCategory.CLOSED, color: '#16a34a', sortOrder: 1 },
+    { name: 'Para Fazer', type: StatusType.NOT_STARTED, color: '#94a3b8', position: 1 },
+    { name: 'Em Andamento', type: StatusType.ACTIVE, color: '#3b82f6', position: 1 },
+    { name: 'Concluído', type: StatusType.DONE, color: '#22c55e', position: 1 },
+    { name: 'Finalizado', type: StatusType.CLOSED, color: '#16a34a', position: 1 },
   ];
 
   for (const deptSlug of Object.keys(departments)) {
     const deptId = departments[deptSlug];
-    const existingStatuses = await prisma.workflowStatus.count({ where: { departmentId: deptId } });
+    const existingStatuses = await prisma.status.count({ where: { spaceId: deptId } });
     if (existingStatuses === 0) {
       for (const status of defaultStatuses) {
-        await prisma.workflowStatus.create({
+        await prisma.status.create({
           data: {
             name: status.name,
-            category: status.category,
+            type: status.type,
             color: status.color,
-            sortOrder: status.sortOrder,
-            departmentId: deptId,
-            isDefault: true,
+            position: status.position,
+            spaceId: deptId,
           },
         });
       }
@@ -200,30 +199,30 @@ async function main() {
 
   const processes: Record<string, string> = {};
   for (const p of processData) {
-    const proc = await prisma.process.upsert({
+    const proc = await prisma.list.upsert({
       where: { slug: p.slug },
       update: {
         name: p.name,
         sectorId: sectors[p.sectorSlug],
-        departmentId: departments[p.deptSlug],
-        areaId: areas[p.areaSlug],
+        spaceId: departments[p.deptSlug],
+        folderId: areas[p.areaSlug],
         processType: ProcessType.BPM,
         featureRoute: p.featureRoute,
         isProtected: true,
         status: ProcessStatus.ACTIVE,
-        sortOrder: p.sortOrder,
+        position: p.sortOrder,
       },
       create: {
         name: p.name,
         slug: p.slug,
         sectorId: sectors[p.sectorSlug],
-        departmentId: departments[p.deptSlug],
-        areaId: areas[p.areaSlug],
+        spaceId: departments[p.deptSlug],
+        folderId: areas[p.areaSlug],
         processType: ProcessType.BPM,
         featureRoute: p.featureRoute,
         isProtected: true,
         status: ProcessStatus.ACTIVE,
-        sortOrder: p.sortOrder,
+        position: p.sortOrder,
       },
     });
     processes[p.slug] = proc.id;
@@ -604,16 +603,16 @@ async function main() {
   let taskCount = 0;
 
   for (const a of activities) {
-    const processId = processes[a.processSlug];
-    if (!processId) {
-      throw new Error(`Process not found for slug: ${a.processSlug}`);
+    const listId = processes[a.processSlug];
+    if (!listId) {
+      throw new Error(`List not found for slug: ${a.processSlug}`);
     }
 
     const activity = await prisma.activity.upsert({
       where: { slug: a.slug },
       update: {
         name: a.name,
-        processId,
+        listId,
         ownerRole: a.ownerRole,
         inputDescription: a.inputDescription,
         outputDescription: a.outputDescription,
@@ -625,7 +624,7 @@ async function main() {
       create: {
         name: a.name,
         slug: a.slug,
-        processId,
+        listId,
         ownerRole: a.ownerRole,
         inputDescription: a.inputDescription,
         outputDescription: a.outputDescription,
@@ -650,8 +649,8 @@ async function main() {
 
   // Handoff 1: Comercial → Financeiro (trigger: FATURAR)
   await upsertHandoff({
-    fromProcessId: processes['processo-pedidos'],
-    toProcessId: processes['conciliacao-faturamento-processo'],
+    fromListId: processes['processo-pedidos'],
+    toListId: processes['conciliacao-faturamento-processo'],
     triggerOnStatus: OrderStatus.FATURAR,
     autoAdvance: true,
     validationRules: {
@@ -667,8 +666,8 @@ async function main() {
 
   // Handoff 2: Financeiro → Produção (trigger: FATURADO)
   await upsertHandoff({
-    fromProcessId: processes['conciliacao-faturamento-processo'],
-    toProcessId: processes['producao-pedido-processo'],
+    fromListId: processes['conciliacao-faturamento-processo'],
+    toListId: processes['producao-pedido-processo'],
     triggerOnStatus: OrderStatus.FATURADO,
     autoAdvance: true,
     validationRules: {
@@ -678,8 +677,8 @@ async function main() {
 
   // Handoff 3: Compras → Financeiro (no OrderStatus trigger)
   await upsertHandoff({
-    fromProcessId: processes['cotacao-compra-mp'],
-    toProcessId: processes['contas-pagar-processo'],
+    fromListId: processes['cotacao-compra-mp'],
+    toListId: processes['contas-pagar-processo'],
     triggerOnStatus: null,
     autoAdvance: false,
     validationRules: {

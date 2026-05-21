@@ -10,8 +10,8 @@ export class HandoffsRepository {
     return this.prisma.handoff.create({
       data,
       include: {
-        fromProcess: { select: { id: true, name: true } },
-        toProcess: { select: { id: true, name: true } },
+        fromList: { select: { id: true, name: true } },
+        toList: { select: { id: true, name: true } },
       },
     });
   }
@@ -20,8 +20,8 @@ export class HandoffsRepository {
     return this.prisma.handoff.findFirst({
       where: { id, deletedAt: null },
       include: {
-        fromProcess: { select: { id: true, name: true, slug: true } },
-        toProcess: { select: { id: true, name: true, slug: true } },
+        fromList: { select: { id: true, name: true, slug: true } },
+        toList: { select: { id: true, name: true, slug: true } },
       },
     });
   }
@@ -35,8 +35,8 @@ export class HandoffsRepository {
         take,
         orderBy: { createdAt: 'asc' },
         include: {
-          fromProcess: { select: { id: true, name: true } },
-          toProcess: { select: { id: true, name: true } },
+          fromList: { select: { id: true, name: true } },
+          toList: { select: { id: true, name: true } },
         },
       }),
       this.prisma.handoff.count({ where: { deletedAt: null } }),
@@ -49,8 +49,8 @@ export class HandoffsRepository {
       where: { id },
       data,
       include: {
-        fromProcess: { select: { id: true, name: true } },
-        toProcess: { select: { id: true, name: true } },
+        fromList: { select: { id: true, name: true } },
+        toList: { select: { id: true, name: true } },
       },
     });
   }

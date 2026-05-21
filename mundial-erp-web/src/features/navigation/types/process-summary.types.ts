@@ -1,6 +1,6 @@
-export type StatusCategory = 'NOT_STARTED' | 'ACTIVE' | 'DONE' | 'CLOSED';
+export type StatusType = 'NOT_STARTED' | 'ACTIVE' | 'DONE' | 'CLOSED';
 
-export type WorkItemSummary = {
+export type TaskItemSummary = {
   id: string;
   title: string;
   statusId: string;
@@ -10,15 +10,17 @@ export type WorkItemSummary = {
   startDate: string | null;
   dueDate: string | null;
   sortOrder: number;
+  typeIcon: string | null;
+  typeName: string | null;
 };
 
 export type StatusGroupSummary = {
   statusId: string;
   statusName: string;
   statusColor: string;
-  statusCategory: StatusCategory;
+  statusType: StatusType;
   count: number;
-  items: WorkItemSummary[];
+  items: TaskItemSummary[];
 };
 
 export type ProcessSummaryList = {

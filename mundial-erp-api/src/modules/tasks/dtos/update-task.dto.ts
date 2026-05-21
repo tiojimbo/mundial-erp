@@ -39,12 +39,12 @@ export class AddRemoveIdsDto {
 }
 
 /**
- * `PATCH /tasks/:taskId` (PLANO-TASKS.md §7.1).
- * Todos campos opcionais (partial update). Mutacoes de colecao via `AddRemoveIdsDto`.
+ * `PUT /tasks/:taskId` (HPP-050/059, partial body estilo Hoppe).
+ * Todos campos opcionais. Mutacoes de colecao via `AddRemoveIdsDto`.
  *
- * NOTE sobre assignees (ADR-001): a aplicacao NUNCA seta `primaryAssigneeCache`
- * diretamente; a Prisma extension recalcula a partir de `WorkItemAssignee[]`.
- * Portanto o unico caminho aceito aqui e `assignees: { add, rem }`.
+ * HPP-059: `assignees, assigneeIds, addAssigneeIds, assigneeId` sao
+ * rejeitados pelo ValidationPipe global (forbidNonWhitelisted). Use
+ * `PUT /tasks/:id/assign` para substituir assignees.
  */
 export class UpdateTaskDto {
   @ApiPropertyOptional()
@@ -120,11 +120,10 @@ export class UpdateTaskDto {
   @IsString()
   processId?: string;
 
-  @ApiPropertyOptional({ type: AddRemoveIdsDto })
+  @ApiPropertyOptional({ description: 'Alias Hoppe de processId.' })
   @IsOptional()
-  @ValidateNested()
-  @Type(() => AddRemoveIdsDto)
-  assignees?: AddRemoveIdsDto;
+  @IsString()
+  listId?: string;
 
   @ApiPropertyOptional({ type: AddRemoveIdsDto })
   @IsOptional()

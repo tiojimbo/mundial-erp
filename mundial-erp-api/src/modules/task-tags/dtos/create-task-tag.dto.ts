@@ -1,5 +1,12 @@
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
-import { IsOptional, IsString, Matches, MaxLength, MinLength } from 'class-validator';
+import {
+  IsOptional,
+  IsString,
+  Length,
+  Matches,
+  MaxLength,
+  MinLength,
+} from 'class-validator';
 
 /**
  * Regex de cor hexadecimal aceitando `#RGB`, `#RRGGBB` ou `#RRGGBBAA`.
@@ -8,6 +15,11 @@ import { IsOptional, IsString, Matches, MaxLength, MinLength } from 'class-valid
 const HEX_COLOR_REGEX = /^#(?:[0-9a-fA-F]{3}|[0-9a-fA-F]{6}|[0-9a-fA-F]{8})$/;
 
 export class CreateTaskTagDto {
+  @ApiProperty({ description: 'Space onde a tag pertence (obrigatorio Hoppe-style)' })
+  @IsString()
+  @Length(1, 64)
+  spaceId!: string;
+
   @ApiProperty({ minLength: 3, maxLength: 50, example: 'urgent' })
   @IsString()
   @MinLength(3)

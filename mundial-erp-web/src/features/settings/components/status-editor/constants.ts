@@ -1,4 +1,4 @@
-export type StatusCategory = 'NOT_STARTED' | 'ACTIVE' | 'DONE' | 'CLOSED';
+export type StatusType = 'NOT_STARTED' | 'ACTIVE' | 'DONE' | 'CLOSED';
 
 export const PALETTE = [
   '#6B21A8','#4338CA','#2563EB','#0F766E','#10B981','#22C55E','#FACC15','#F97316',
@@ -8,7 +8,7 @@ export const PALETTE = [
 export type PaletteColor = (typeof PALETTE)[number];
 
 export interface StatusGroupConfig {
-  key: StatusCategory;
+  key: StatusType;
   label: string;
   tip: string;
   canAdd: boolean;

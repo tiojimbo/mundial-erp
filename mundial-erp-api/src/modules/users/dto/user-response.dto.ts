@@ -18,7 +18,7 @@ export class UserResponseDto {
   isActive: boolean;
 
   @ApiPropertyOptional()
-  departmentId: string | null;
+  spaceId: string | null;
 
   @ApiProperty()
   createdAt: Date;
@@ -33,7 +33,7 @@ export class UserResponseDto {
     dto.name = user.name;
     dto.role = user.role;
     dto.isActive = user.isActive;
-    dto.departmentId = user.departmentId;
+    dto.spaceId = user.spaceId;
     dto.createdAt = user.createdAt;
     dto.updatedAt = user.updatedAt;
     return dto;

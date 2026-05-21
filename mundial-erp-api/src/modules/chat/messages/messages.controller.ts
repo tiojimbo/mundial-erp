@@ -8,6 +8,7 @@ import {
   Param,
   Patch,
   Post,
+  Put,
   Query,
 } from '@nestjs/common';
 import { ParseCuidPipe } from '../../../common/pipes/parse-cuid.pipe';
@@ -71,6 +72,7 @@ export class ChannelMessagesController {
 export class MessagesController {
   constructor(private readonly messagesService: MessagesService) {}
 
+  @Put(':messageId')
   @Patch(':messageId')
   @ApiOperation({ summary: 'Editar mensagem (ClickUp #12)' })
   @ApiResponse({ status: 200, type: MessageResponseDto })

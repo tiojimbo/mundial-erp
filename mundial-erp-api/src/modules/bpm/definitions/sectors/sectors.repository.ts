@@ -20,10 +20,10 @@ export class SectorsRepository {
       where: {
         id,
         deletedAt: null,
-        department: { workspaceId },
+        space: { workspaceId },
       },
       include: {
-        department: { select: { id: true, name: true, slug: true } },
+        space: { select: { id: true, name: true, slug: true } },
       },
     });
   }
@@ -33,7 +33,7 @@ export class SectorsRepository {
       where: {
         slug,
         deletedAt: null,
-        department: { workspaceId },
+        space: { workspaceId },
       },
     });
   }
@@ -45,7 +45,7 @@ export class SectorsRepository {
     const { skip = 0, take = 20 } = params;
     const where: Prisma.SectorWhereInput = {
       deletedAt: null,
-      department: { workspaceId },
+      space: { workspaceId },
     };
     const [items, total] = await Promise.all([
       this.prisma.sector.findMany({
@@ -54,7 +54,7 @@ export class SectorsRepository {
         take,
         orderBy: { name: 'asc' },
         include: {
-          department: { select: { id: true, name: true } },
+          space: { select: { id: true, name: true } },
         },
       }),
       this.prisma.sector.count({ where }),

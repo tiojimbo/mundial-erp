@@ -1,34 +1,19 @@
-/**
- * Repositorio de `WorkItemLink`.
- *
- * IMPORTANTE: o model `WorkItemLink` vem da Migration 3 (`tasks_advanced`).
- * Ate que a migration seja aplicada e `prisma generate` rode, os delegates
- * `workItemLink` nao existem em runtime e os erros de compilacao sao
- * esperados (mesmo padrao de task-dependencies).
- *
- * A listagem usa UNION via duas queries: arestas `from=:taskId` e
- * `to=:taskId`. Simetria assim fica em camada de servico ao inves de depender
- * de uma view materializada (PLANO-TASKS.md §7.3).
- */
-
 import { Injectable } from '@nestjs/common';
-import type { Prisma } from '@prisma/client';
+import { LinkType, type Prisma } from '@prisma/client';
 import { PrismaService } from '../../database/prisma.service';
 
 const WORK_ITEM_SUMMARY_SELECT = {
   id: true,
   title: true,
-  statusId: true,
-  priority: true,
-  dueDate: true,
-  primaryAssigneeCache: true,
-  archived: true,
-  status: { select: { category: true } },
+  status: { select: { id: true, name: true, color: true, type: true } },
+  customType: { select: { id: true, name: true, icon: true } },
+  list: { select: { id: true, name: true } },
 } as const;
 
 export interface LinkEdge {
   fromTaskId: string;
   toTaskId: string;
+  type: LinkType;
 }
 
 @Injectable()
@@ -48,70 +33,101 @@ export class TaskLinksRepository {
       where: {
         id: taskId,
         deletedAt: null,
-        process: { department: { workspaceId } },
+        list: { space: { workspaceId } },
       },
       select: { id: true },
     });
   }
 
-  /** Arestas saindo: `fromTaskId = taskId`. */
   async findOutgoing(workspaceId: string, taskId: string) {
     return this.prisma.workItemLink.findMany({
       where: {
         fromTaskId: taskId,
         fromTask: {
           deletedAt: null,
-          process: { department: { workspaceId } },
+          list: { space: { workspaceId } },
         },
         toTask: {
           deletedAt: null,
-          process: { department: { workspaceId } },
+          list: { space: { workspaceId } },
         },
       },
       select: {
+        id: true,
+        type: true,
         toTask: { select: WORK_ITEM_SUMMARY_SELECT },
       },
     });
   }
 
-  /** Arestas chegando: `toTaskId = taskId`. */
   async findIncoming(workspaceId: string, taskId: string) {
     return this.prisma.workItemLink.findMany({
       where: {
         toTaskId: taskId,
         fromTask: {
           deletedAt: null,
-          process: { department: { workspaceId } },
+          list: { space: { workspaceId } },
         },
         toTask: {
           deletedAt: null,
-          process: { department: { workspaceId } },
+          list: { space: { workspaceId } },
         },
       },
       select: {
+        id: true,
+        type: true,
         fromTask: { select: WORK_ITEM_SUMMARY_SELECT },
       },
     });
   }
 
   /**
-   * Procura a aresta em qualquer direcao — links sao simetricos, entao criar
-   * `A<->B` via rota `POST /tasks/A/links/B` ou `POST /tasks/B/links/A` deve
-   * ser idempotente.
+   * Idempotencia: o `WorkItemLink` tem unique em `[fromTaskId, toTaskId, type]`.
+   * Pra RELATES_TO (simetrico) checamos as duas direcoes; pra DUPLICATES e
+   * IS_DUPLICATED_BY a direcao importa, entao olhamos so o par exato.
    */
-  async findEdgeAnyDirection(
-    taskA: string,
-    taskB: string,
+  async findEdgePair(
+    fromTaskId: string,
+    toTaskId: string,
+    type: LinkType,
+    tx?: Prisma.TransactionClient,
+  ) {
+    if (type === LinkType.RELATES_TO) {
+      return this.client(tx).workItemLink.findFirst({
+        where: {
+          type,
+          OR: [
+            { fromTaskId, toTaskId },
+            { fromTaskId: toTaskId, toTaskId: fromTaskId },
+          ],
+        },
+        select: { id: true, fromTaskId: true, toTaskId: true, type: true },
+      });
+    }
+    return this.client(tx).workItemLink.findFirst({
+      where: { fromTaskId, toTaskId, type },
+      select: { id: true, fromTaskId: true, toTaskId: true, type: true },
+    });
+  }
+
+  async findEdgeById(
+    workspaceId: string,
+    linkId: string,
     tx?: Prisma.TransactionClient,
   ) {
     return this.client(tx).workItemLink.findFirst({
       where: {
-        OR: [
-          { fromTaskId: taskA, toTaskId: taskB },
-          { fromTaskId: taskB, toTaskId: taskA },
-        ],
+        id: linkId,
+        fromTask: {
+          deletedAt: null,
+          list: { space: { workspaceId } },
+        },
+        toTask: {
+          deletedAt: null,
+          list: { space: { workspaceId } },
+        },
       },
-      select: { fromTaskId: true, toTaskId: true },
+      select: { id: true, fromTaskId: true, toTaskId: true, type: true },
     });
   }
 
@@ -120,27 +136,19 @@ export class TaskLinksRepository {
       data: {
         fromTaskId: edge.fromTaskId,
         toTaskId: edge.toTaskId,
+        type: edge.type,
       },
-      select: { fromTaskId: true, toTaskId: true },
+      select: { id: true, fromTaskId: true, toTaskId: true, type: true },
     });
   }
 
-  async deleteEdge(edge: LinkEdge, tx?: Prisma.TransactionClient) {
-    return this.client(tx).workItemLink.delete({
-      where: {
-        fromTaskId_toTaskId: {
-          fromTaskId: edge.fromTaskId,
-          toTaskId: edge.toTaskId,
-        },
-      },
-      select: { fromTaskId: true, toTaskId: true },
-    });
+  async deleteEdgeById(linkId: string, tx?: Prisma.TransactionClient) {
+    await this.client(tx).workItemLink.deleteMany({ where: { id: linkId } });
   }
 
   /**
    * Move links das sources para o target durante merge (§8.4), deduplicando
-   * e removendo self-refs. Mesmo contrato de `moveEdgesForMerge` em
-   * TaskDependenciesRepository — `TasksService.merge` chama os dois.
+   * e removendo self-refs.
    */
   async moveEdgesForMerge(
     sourceIds: string[],
@@ -150,27 +158,48 @@ export class TaskLinksRepository {
     const client = this.client(tx);
     const targetOut = await client.workItemLink.findMany({
       where: { fromTaskId: targetId },
-      select: { toTaskId: true },
+      select: { toTaskId: true, type: true },
     });
     const targetIn = await client.workItemLink.findMany({
       where: { toTaskId: targetId },
-      select: { fromTaskId: true },
+      select: { fromTaskId: true, type: true },
     });
-    const targetOutSet = new Set(targetOut.map((r) => r.toTaskId));
-    const targetInSet = new Set(targetIn.map((r) => r.fromTaskId));
+    const targetOutSet = new Set(
+      targetOut.map((r) => `${r.toTaskId}:${r.type}`),
+    );
+    const targetInSet = new Set(
+      targetIn.map((r) => `${r.fromTaskId}:${r.type}`),
+    );
 
-    await client.workItemLink.deleteMany({
-      where: {
-        fromTaskId: { in: sourceIds },
-        toTaskId: { in: [targetId, ...Array.from(targetOutSet)] },
-      },
+    const sourceOut = await client.workItemLink.findMany({
+      where: { fromTaskId: { in: sourceIds } },
+      select: { id: true, toTaskId: true, type: true },
     });
-    await client.workItemLink.deleteMany({
-      where: {
-        toTaskId: { in: sourceIds },
-        fromTaskId: { in: [targetId, ...Array.from(targetInSet)] },
-      },
+    const sourceIn = await client.workItemLink.findMany({
+      where: { toTaskId: { in: sourceIds } },
+      select: { id: true, fromTaskId: true, type: true },
     });
+
+    const outDuplicateIds = sourceOut
+      .filter(
+        (r) =>
+          r.toTaskId === targetId ||
+          targetOutSet.has(`${r.toTaskId}:${r.type}`),
+      )
+      .map((r) => r.id);
+    const inDuplicateIds = sourceIn
+      .filter(
+        (r) =>
+          r.fromTaskId === targetId ||
+          targetInSet.has(`${r.fromTaskId}:${r.type}`),
+      )
+      .map((r) => r.id);
+
+    if (outDuplicateIds.length || inDuplicateIds.length) {
+      await client.workItemLink.deleteMany({
+        where: { id: { in: [...outDuplicateIds, ...inDuplicateIds] } },
+      });
+    }
 
     await client.workItemLink.updateMany({
       where: { fromTaskId: { in: sourceIds } },
