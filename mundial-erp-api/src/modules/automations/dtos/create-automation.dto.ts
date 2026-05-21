@@ -6,10 +6,12 @@ import {
   IsArray,
   IsBoolean,
   IsEnum,
+  IsNotEmpty,
   IsOptional,
   IsString,
   MaxLength,
   MinLength,
+  ValidateIf,
   ValidateNested,
 } from 'class-validator';
 import { AutomationActionDto } from './automation-action.dto';
@@ -38,10 +40,11 @@ export class CreateAutomationDto {
 
   @ApiPropertyOptional({
     description:
-      'ID do recurso de escopo (space/folder/list). Omitido quando scopeType=WORKSPACE.',
+      'ID do recurso de escopo (space/folder/list). Obrigatório quando scopeType ≠ WORKSPACE.',
   })
-  @IsOptional()
+  @ValidateIf((o) => o.scopeType !== 'WORKSPACE')
   @IsString()
+  @IsNotEmpty({ message: 'scopeId é obrigatório quando scopeType ≠ WORKSPACE' })
   scopeId?: string;
 
   @ApiProperty({
@@ -70,15 +73,20 @@ export class CreateAutomationDto {
   isActive?: boolean;
 
   @ApiPropertyOptional({
-    description: 'Cron expression (apenas quando trigger=CRON)',
+    description: 'Cron expression (obrigatório quando trigger=CRON)',
     example: '0 9 * * 1-5',
   })
-  @IsOptional()
+  @ValidateIf((o) => o.trigger === 'CRON')
   @IsString()
+  @IsNotEmpty({ message: 'cronExpression é obrigatório quando trigger=CRON' })
   cronExpression?: string;
 
-  @ApiPropertyOptional({ description: 'IANA timezone', example: 'America/Sao_Paulo' })
-  @IsOptional()
+  @ApiPropertyOptional({
+    description: 'IANA timezone (obrigatório quando trigger=CRON)',
+    example: 'America/Sao_Paulo',
+  })
+  @ValidateIf((o) => o.trigger === 'CRON')
   @IsString()
+  @IsNotEmpty({ message: 'timezone é obrigatório quando trigger=CRON' })
   timezone?: string;
 }

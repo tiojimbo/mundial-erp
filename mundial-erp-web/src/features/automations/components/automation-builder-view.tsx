@@ -1,6 +1,8 @@
 'use client';
 
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo } from 'react';
+import { Controller, useFieldArray, useForm } from 'react-hook-form';
+import { zodResolver } from '@hookform/resolvers/zod';
 import {
   RiArrowLeftLine,
   RiArrowRightLine,
@@ -12,6 +14,8 @@ import {
 import * as Dialog from '@radix-ui/react-dialog';
 import { cn } from '@/lib/cn';
 import { useCurrentWorkspace } from '@/features/workspaces/hooks/use-current-workspace';
+import { useDepartments } from '@/features/settings/hooks/use-departments';
+import { useProcesses } from '@/features/settings/hooks/use-processes';
 import {
   useAutomationActions,
   useAutomationStatuses,
@@ -19,9 +23,15 @@ import {
   useCreateAutomation,
   useUpdateAutomation,
 } from '../hooks/use-automations';
+import {
+  BR_TIMEZONES,
+  automationBuilderSchema,
+  type AutomationBuilderFormData,
+} from '../schemas/automation-builder.schema';
 import type {
   Automation,
   AutomationAction,
+  AutomationScopeType,
   CreateAutomationPayload,
 } from '../types/automation.types';
 
@@ -59,11 +69,9 @@ type ExtendedActionDef = {
   params?: ActionParamDef[];
 };
 
-type DraftAction = {
-  id: string;
-  type: string;
-  params: Record<string, unknown>;
-};
+type StatusOption = { id: string; name: string; color: string | null };
+
+type ScopeOption = { id: string; label: string };
 
 export type AutomationBuilderViewProps = {
   editing?: Automation | null;
@@ -73,6 +81,46 @@ export type AutomationBuilderViewProps = {
 
 const fieldCls =
   'block h-9 w-full rounded-md border border-stroke-soft-200 bg-bg-white-0 px-3 text-paragraph-sm text-text-strong-950 focus:border-stroke-strong-950 focus:outline-none';
+
+const SCOPE_LABELS: Record<AutomationScopeType, string> = {
+  WORKSPACE: 'Workspace inteiro',
+  SPACE: 'Departamento',
+  FOLDER: 'Área',
+  LIST: 'Processo',
+};
+
+function buildDefaults(
+  editing: Automation | null | undefined,
+): AutomationBuilderFormData {
+  if (editing) {
+    return {
+      name: editing.name,
+      description: editing.description ?? '',
+      trigger: editing.trigger,
+      cronExpression: editing.cronExpression ?? '',
+      timezone: editing.timezone ?? 'America/Sao_Paulo',
+      scopeType: editing.scopeType,
+      scopeId: editing.scopeId ?? undefined,
+      actions:
+        editing.compiledActions.length > 0
+          ? editing.compiledActions.map((a) => ({
+              type: a.type,
+              params: a.params,
+            }))
+          : [{ type: '', params: {} }],
+    };
+  }
+  return {
+    name: '',
+    description: '',
+    trigger: '',
+    cronExpression: '',
+    timezone: 'America/Sao_Paulo',
+    scopeType: 'WORKSPACE',
+    scopeId: undefined,
+    actions: [{ type: '', params: {} }],
+  };
+}
 
 export function AutomationBuilderView({
   editing,
@@ -85,35 +133,46 @@ export function AutomationBuilderView({
   const statuses = useAutomationStatuses();
   const createMutation = useCreateAutomation();
   const updateMutation = useUpdateAutomation();
+  const departments = useDepartments();
+  const processes = useProcesses();
 
   const actions = (actionsQuery.data ?? []) as ExtendedActionDef[];
 
-  const [name, setName] = useState('');
-  const [description, setDescription] = useState('');
-  const [trigger, setTrigger] = useState<string>('');
-  const [draftActions, setDraftActions] = useState<DraftAction[]>([
-    { id: crypto.randomUUID(), type: '', params: {} },
-  ]);
+  const form = useForm<AutomationBuilderFormData>({
+    resolver: zodResolver(automationBuilderSchema),
+    defaultValues: buildDefaults(editing),
+    mode: 'onChange',
+  });
+
+  const {
+    control,
+    register,
+    handleSubmit,
+    watch,
+    setValue,
+    reset,
+    formState: { isValid: rhfValid },
+  } = form;
+
+  const { fields, append, remove, update } = useFieldArray({
+    control,
+    name: 'actions',
+  });
 
   useEffect(() => {
-    if (editing) {
-      setName(editing.name);
-      setDescription(editing.description ?? '');
-      setTrigger(editing.trigger);
-      setDraftActions(
-        editing.compiledActions.map((a) => ({
-          id: crypto.randomUUID(),
-          type: a.type,
-          params: a.params,
-        })),
-      );
-    } else {
-      setName('');
-      setDescription('');
-      setTrigger('');
-      setDraftActions([{ id: crypto.randomUUID(), type: '', params: {} }]);
-    }
-  }, [editing]);
+    reset(buildDefaults(editing));
+  }, [editing, reset]);
+
+  const trigger = watch('trigger');
+  const scopeType = watch('scopeType');
+  const scopeId = watch('scopeId');
+  const name = watch('name');
+  const description = watch('description');
+  const draftActions = watch('actions');
+
+  useEffect(() => {
+    setValue('scopeId', undefined, { shouldValidate: true });
+  }, [scopeType, setValue]);
 
   const triggersByCategory = useMemo(() => {
     const data = triggers.data ?? [];
@@ -126,7 +185,7 @@ export function AutomationBuilderView({
     return [...map.entries()];
   }, [triggers.data]);
 
-  const allStatuses = useMemo(() => {
+  const allStatuses = useMemo<StatusOption[]>(() => {
     if (!statuses.data) return [];
     return [
       ...statuses.data.spaces.flatMap((s) =>
@@ -143,11 +202,54 @@ export function AutomationBuilderView({
           color: st.color,
         })),
       ),
+      ...statuses.data.lists.flatMap((l) =>
+        l.statuses.map((st) => ({
+          id: st.id,
+          name: `${l.name} / ${st.name}`,
+          color: st.color,
+        })),
+      ),
     ];
   }, [statuses.data]);
 
-  const isValid = useMemo(() => {
-    if (!trigger || !name.trim()) return false;
+  const folderOptions = useMemo<ScopeOption[]>(() => {
+    const list: ScopeOption[] = [];
+    for (const d of departments.data ?? []) {
+      for (const a of d.areas ?? []) {
+        list.push({ id: a.id, label: `${d.name} / ${a.name}` });
+      }
+    }
+    return list;
+  }, [departments.data]);
+
+  const spaceOptions = useMemo<ScopeOption[]>(
+    () =>
+      (departments.data ?? []).map((d) => ({ id: d.id, label: d.name })),
+    [departments.data],
+  );
+
+  const listOptions = useMemo<ScopeOption[]>(() => {
+    const deptById = new Map<string, string>();
+    for (const d of departments.data ?? []) deptById.set(d.id, d.name);
+    return (processes.data ?? []).map((p) => {
+      const deptName = deptById.get(p.departmentId);
+      const areaName = p.area?.name;
+      const prefix = [deptName, areaName].filter(Boolean).join(' / ');
+      return {
+        id: p.id,
+        label: prefix ? `${prefix} / ${p.name}` : p.name,
+      };
+    });
+  }, [processes.data, departments.data]);
+
+  const scopeOptions = useMemo<ScopeOption[]>(() => {
+    if (scopeType === 'SPACE') return spaceOptions;
+    if (scopeType === 'FOLDER') return folderOptions;
+    if (scopeType === 'LIST') return listOptions;
+    return [];
+  }, [scopeType, spaceOptions, folderOptions, listOptions]);
+
+  const allParamsRequiredFilled = useMemo(() => {
     return draftActions.every((a) => {
       if (!a.type) return false;
       const meta = actions.find((x) => x.id === a.type);
@@ -161,7 +263,9 @@ export function AutomationBuilderView({
             a.params[p.name] !== null,
         );
     });
-  }, [trigger, name, draftActions, actions]);
+  }, [draftActions, actions]);
+
+  const isValid = rhfValid && allParamsRequiredFilled;
 
   const triggerLabel =
     (triggers.data ?? []).find((t) => t.id === trigger)?.label ?? '...';
@@ -169,38 +273,34 @@ export function AutomationBuilderView({
     ? actions.find((a) => a.id === draftActions[0].type)?.label ?? '...'
     : '...';
 
-  const addAction = () =>
-    setDraftActions((prev) => [
-      ...prev,
-      { id: crypto.randomUUID(), type: '', params: {} },
-    ]);
+  const setActionType = (index: number, type: string) => {
+    update(index, { type, params: {} });
+  };
 
-  const removeAction = (id: string) =>
-    setDraftActions((prev) => prev.filter((a) => a.id !== id));
+  const setActionParam = (index: number, paramName: string, value: unknown) => {
+    const current = draftActions[index];
+    if (!current) return;
+    update(index, {
+      type: current.type,
+      params: { ...current.params, [paramName]: value },
+    });
+  };
 
-  const setActionType = (id: string, type: string) =>
-    setDraftActions((prev) =>
-      prev.map((a) => (a.id === id ? { ...a, type, params: {} } : a)),
-    );
-
-  const setActionParam = (id: string, paramName: string, value: unknown) =>
-    setDraftActions((prev) =>
-      prev.map((a) =>
-        a.id === id ? { ...a, params: { ...a.params, [paramName]: value } } : a,
-      ),
-    );
-
-  const handleSave = () => {
-    if (!isValid) return;
+  const onSubmit = (data: AutomationBuilderFormData) => {
+    if (!allParamsRequiredFilled) return;
+    const isCron = data.trigger === 'CRON';
     const payload: CreateAutomationPayload = {
-      name: name.trim(),
-      description: description.trim() || undefined,
-      trigger,
-      compiledActions: draftActions.map<AutomationAction>((a) => ({
+      name: data.name.trim(),
+      description: data.description?.trim() || undefined,
+      trigger: data.trigger,
+      compiledActions: data.actions.map<AutomationAction>((a) => ({
         type: a.type,
         params: a.params,
       })),
-      scopeType: 'WORKSPACE',
+      scopeType: data.scopeType,
+      scopeId: data.scopeType === 'WORKSPACE' ? undefined : data.scopeId,
+      cronExpression: isCron ? data.cronExpression?.trim() : undefined,
+      timezone: isCron ? data.timezone : undefined,
       isActive: editing?.isActive ?? true,
     };
 
@@ -219,7 +319,7 @@ export function AutomationBuilderView({
   const workspaceInitial = workspaceLabel[0]?.toUpperCase() ?? 'W';
 
   return (
-    <>
+    <form onSubmit={handleSubmit(onSubmit)} className='contents'>
       {/* Header */}
       <div className='flex shrink-0 items-start gap-3 border-b border-stroke-soft-200 px-6 py-4'>
         <button
@@ -232,8 +332,7 @@ export function AutomationBuilderView({
         </button>
         <div className='min-w-0 flex-1'>
           <input
-            value={name}
-            onChange={(e) => setName(e.target.value)}
+            {...register('name')}
             placeholder='Dê um nome à automação...'
             className='block w-full border-none bg-transparent p-0 text-label-sm text-text-strong-950 placeholder:text-text-soft-400 focus:outline-none'
           />
@@ -259,72 +358,195 @@ export function AutomationBuilderView({
 
       {/* Body */}
       <div className='flex min-h-0 flex-1 overflow-auto'>
-        <div className='mx-auto flex w-full max-w-[820px] items-start gap-0 px-6 py-8'>
-          {/* Trigger column */}
-          <div className='flex-1 space-y-0'>
-            <div className='flex items-center justify-between rounded-t-lg bg-bg-weak-50 px-4 py-3'>
-              <div className='flex items-center gap-2'>
-                <RiFlashlightLine className='size-4 fill-[#ffb900] text-[#ffb900]' />
-                <span className='text-label-sm text-text-strong-950'>
-                  Gatilho
-                </span>
-              </div>
+        <div className='mx-auto flex w-full max-w-[820px] flex-col gap-4 px-6 py-8'>
+          {/* Scope picker */}
+          <div className='space-y-0'>
+            <div className='flex items-center gap-2 rounded-t-lg bg-bg-weak-50 px-4 py-3'>
+              <span className='text-label-sm text-text-strong-950'>
+                Escopo
+              </span>
             </div>
             <div className='space-y-3 rounded-b-lg border border-t-0 border-stroke-soft-200 px-4 py-4'>
-              <select
-                value={trigger}
-                onChange={(e) => setTrigger(e.target.value)}
-                className={fieldCls}
-              >
-                <option value=''>Selecione um gatilho...</option>
-                {triggersByCategory.map(([category, items]) => (
-                  <optgroup key={category} label={category.toUpperCase()}>
-                    {items.map((t) => (
-                      <option key={t.id} value={t.id}>
-                        {t.label}
-                      </option>
-                    ))}
-                  </optgroup>
-                ))}
-              </select>
-            </div>
-          </div>
-
-          {/* Arrow */}
-          <div className='flex shrink-0 items-center px-4 pt-3'>
-            <RiArrowRightLine className='size-5 text-text-sub-600' />
-          </div>
-
-          {/* Actions column */}
-          <div className='flex-1 space-y-0'>
-            <div className='flex items-center gap-2 rounded-lg bg-bg-weak-50 px-4 py-3'>
-              <RiSettings4Line className='size-4 text-information-base' />
-              <span className='text-label-sm text-text-strong-950'>Ações</span>
-            </div>
-
-            {draftActions.map((da) => (
-              <div key={da.id} className='relative mt-3'>
-                <ActionCard
-                  draft={da}
-                  catalog={actions}
-                  statuses={allStatuses}
-                  canRemove={draftActions.length > 1}
-                  onTypeChange={(t) => setActionType(da.id, t)}
-                  onParamChange={(p, v) => setActionParam(da.id, p, v)}
-                  onRemove={() => removeAction(da.id)}
-                />
+              <div className='grid grid-cols-1 gap-3 sm:grid-cols-2'>
+                <div>
+                  <p className='mb-1 text-paragraph-xs text-text-sub-600'>
+                    Aplicar em
+                  </p>
+                  <Controller
+                    control={control}
+                    name='scopeType'
+                    render={({ field }) => (
+                      <select
+                        value={field.value}
+                        onChange={(e) =>
+                          field.onChange(
+                            e.target.value as AutomationScopeType,
+                          )
+                        }
+                        className={fieldCls}
+                      >
+                        {(
+                          Object.keys(SCOPE_LABELS) as AutomationScopeType[]
+                        ).map((s) => (
+                          <option key={s} value={s}>
+                            {SCOPE_LABELS[s]}
+                          </option>
+                        ))}
+                      </select>
+                    )}
+                  />
+                </div>
+                {scopeType !== 'WORKSPACE' && (
+                  <div>
+                    <p className='mb-1 text-paragraph-xs text-text-sub-600'>
+                      {SCOPE_LABELS[scopeType]} *
+                    </p>
+                    <Controller
+                      control={control}
+                      name='scopeId'
+                      render={({ field }) => (
+                        <select
+                          value={field.value ?? ''}
+                          onChange={(e) =>
+                            field.onChange(e.target.value || undefined)
+                          }
+                          className={fieldCls}
+                        >
+                          <option value=''>
+                            {scopeOptions.length === 0
+                              ? 'Carregando...'
+                              : 'Selecione...'}
+                          </option>
+                          {scopeOptions.map((o) => (
+                            <option key={o.id} value={o.id}>
+                              {o.label}
+                            </option>
+                          ))}
+                        </select>
+                      )}
+                    />
+                  </div>
+                )}
               </div>
-            ))}
+            </div>
+          </div>
 
-            <div className='flex justify-center pt-3'>
-              <button
-                type='button'
-                onClick={addAction}
-                aria-label='Adicionar ação'
-                className='flex size-7 items-center justify-center rounded-full border border-stroke-soft-200 text-text-sub-600 transition-colors hover:border-stroke-strong-950 hover:bg-bg-weak-50'
-              >
-                <span className='text-lg leading-none'>+</span>
-              </button>
+          <div className='flex items-start gap-0'>
+            {/* Trigger column */}
+            <div className='flex-1 space-y-0'>
+              <div className='flex items-center justify-between rounded-t-lg bg-bg-weak-50 px-4 py-3'>
+                <div className='flex items-center gap-2'>
+                  <RiFlashlightLine className='size-4 fill-[#ffb900] text-[#ffb900]' />
+                  <span className='text-label-sm text-text-strong-950'>
+                    Gatilho
+                  </span>
+                </div>
+              </div>
+              <div className='space-y-3 rounded-b-lg border border-t-0 border-stroke-soft-200 px-4 py-4'>
+                <Controller
+                  control={control}
+                  name='trigger'
+                  render={({ field }) => (
+                    <select
+                      value={field.value}
+                      onChange={(e) => field.onChange(e.target.value)}
+                      className={fieldCls}
+                    >
+                      <option value=''>Selecione um gatilho...</option>
+                      {triggersByCategory.map(([category, items]) => (
+                        <optgroup
+                          key={category}
+                          label={category.toUpperCase()}
+                        >
+                          {items.map((t) => (
+                            <option key={t.id} value={t.id}>
+                              {t.label}
+                            </option>
+                          ))}
+                        </optgroup>
+                      ))}
+                    </select>
+                  )}
+                />
+
+                {trigger === 'CRON' && (
+                  <>
+                    <div>
+                      <p className='mb-1 text-paragraph-xs text-text-sub-600'>
+                        Expressão CRON *
+                      </p>
+                      <input
+                        type='text'
+                        {...register('cronExpression')}
+                        placeholder='0 9 * * 1-5'
+                        className={cn(fieldCls, 'font-mono text-paragraph-xs')}
+                      />
+                    </div>
+                    <div>
+                      <p className='mb-1 text-paragraph-xs text-text-sub-600'>
+                        Timezone
+                      </p>
+                      <Controller
+                        control={control}
+                        name='timezone'
+                        render={({ field }) => (
+                          <select
+                            value={field.value ?? 'America/Sao_Paulo'}
+                            onChange={(e) => field.onChange(e.target.value)}
+                            className={fieldCls}
+                          >
+                            {BR_TIMEZONES.map((tz) => (
+                              <option key={tz} value={tz}>
+                                {tz}
+                              </option>
+                            ))}
+                          </select>
+                        )}
+                      />
+                    </div>
+                  </>
+                )}
+              </div>
+            </div>
+
+            {/* Arrow */}
+            <div className='flex shrink-0 items-center px-4 pt-3'>
+              <RiArrowRightLine className='size-5 text-text-sub-600' />
+            </div>
+
+            {/* Actions column */}
+            <div className='flex-1 space-y-0'>
+              <div className='flex items-center gap-2 rounded-lg bg-bg-weak-50 px-4 py-3'>
+                <RiSettings4Line className='size-4 text-information-base' />
+                <span className='text-label-sm text-text-strong-950'>
+                  Ações
+                </span>
+              </div>
+
+              {fields.map((field, index) => (
+                <div key={field.id} className='relative mt-3'>
+                  <ActionCard
+                    draft={draftActions[index] ?? { type: '', params: {} }}
+                    catalog={actions}
+                    statuses={allStatuses}
+                    canRemove={fields.length > 1}
+                    onTypeChange={(t) => setActionType(index, t)}
+                    onParamChange={(p, v) => setActionParam(index, p, v)}
+                    onRemove={() => remove(index)}
+                  />
+                </div>
+              ))}
+
+              <div className='flex justify-center pt-3'>
+                <button
+                  type='button'
+                  onClick={() => append({ type: '', params: {} })}
+                  aria-label='Adicionar ação'
+                  className='flex size-7 items-center justify-center rounded-full border border-stroke-soft-200 text-text-sub-600 transition-colors hover:border-stroke-strong-950 hover:bg-bg-weak-50'
+                >
+                  <span className='text-lg leading-none'>+</span>
+                </button>
+              </div>
             </div>
           </div>
         </div>
@@ -345,11 +567,19 @@ export function AutomationBuilderView({
             </span>
           </div>
           <input
-            value={description}
-            onChange={(e) => setDescription(e.target.value)}
+            {...register('description')}
             placeholder='Adicione uma descrição...'
             className='block h-auto w-full border-none bg-transparent p-0 text-center text-paragraph-xs text-text-sub-600 placeholder:text-text-soft-400 focus:outline-none'
           />
+          <p className='text-paragraph-xs text-text-soft-400'>
+            {name.length > 0 ? '' : 'Defina o nome no topo'}
+            {scopeType !== 'WORKSPACE' && !scopeId
+              ? ` · Escolha o ${SCOPE_LABELS[scopeType].toLowerCase()}`
+              : ''}
+            {description && description.length > 200
+              ? ' · Descrição muito longa'
+              : ''}
+          </p>
         </div>
         <div className='flex items-center justify-end gap-2 border-t border-stroke-soft-200 px-6 py-3'>
           <button
@@ -360,9 +590,8 @@ export function AutomationBuilderView({
             Cancelar
           </button>
           <button
-            type='button'
+            type='submit'
             disabled={!isValid || isPending}
-            onClick={handleSave}
             className={cn(
               'inline-flex h-8 items-center rounded-md px-3 text-paragraph-sm text-static-white',
               isValid && !isPending
@@ -374,7 +603,7 @@ export function AutomationBuilderView({
           </button>
         </div>
       </div>
-    </>
+    </form>
   );
 }
 
@@ -387,9 +616,9 @@ function ActionCard({
   onParamChange,
   onRemove,
 }: {
-  draft: DraftAction;
+  draft: { type: string; params: Record<string, unknown> };
   catalog: ExtendedActionDef[];
-  statuses: Array<{ id: string; name: string; color: string | null }>;
+  statuses: StatusOption[];
   canRemove: boolean;
   onTypeChange: (type: string) => void;
   onParamChange: (paramName: string, value: unknown) => void;
@@ -450,7 +679,7 @@ function ParamField({
   param: ActionParamDef;
   value: unknown;
   onChange: (v: unknown) => void;
-  statuses: Array<{ id: string; name: string; color: string | null }>;
+  statuses: StatusOption[];
 }) {
   const label = humanize(param.name);
 

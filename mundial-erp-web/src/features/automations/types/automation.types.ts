@@ -62,15 +62,15 @@ export type AutomationActionDef = {
 export type AutomationStatusRow = {
   id: string;
   name: string;
-  category: string;
+  type: string;
   color: string | null;
-  icon: string | null;
-  sortOrder: number;
-  isDefault: boolean;
-  spaceId: string;
+  position: number;
+  spaceId: string | null;
   folderId: string | null;
-  space: { id: string; name: string };
+  listId: string | null;
+  space: { id: string; name: string } | null;
   folder: { id: string; name: string; spaceId: string } | null;
+  list: { id: string; name: string; folderId: string | null } | null;
 };
 
 export type AutomationStatusesByScope = {
@@ -83,6 +83,12 @@ export type AutomationStatusesByScope = {
     id: string;
     name: string;
     spaceId: string;
+    statuses: AutomationStatusRow[];
+  }>;
+  lists: Array<{
+    id: string;
+    name: string;
+    folderId: string | null;
     statuses: AutomationStatusRow[];
   }>;
 };
