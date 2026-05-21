@@ -1,7 +1,31 @@
 'use client';
 
 import { useEffect, useMemo, useState } from 'react';
-import { Plus, Settings, Settings2, X } from 'lucide-react';
+import type { LucideIcon } from 'lucide-react';
+import {
+  AtSign,
+  Calendar,
+  CheckSquare,
+  ChevronDown,
+  CircleDollarSign,
+  Clock,
+  FileDigit,
+  Hash,
+  LayoutGrid,
+  Link as LinkIcon,
+  Link2,
+  Percent,
+  Phone,
+  Plus,
+  Settings2,
+  Sigma,
+  Star,
+  Tag,
+  Type,
+  User as UserIcon,
+  Users,
+  X,
+} from 'lucide-react';
 import { toast } from 'sonner';
 
 import * as Modal from '@/components/ui/modal';
@@ -31,6 +55,17 @@ import { NumberField } from '@/features/custom-fields/components/fields/number-f
 import { PhoneField } from '@/features/custom-fields/components/fields/phone-field';
 import { TextField } from '@/features/custom-fields/components/fields/text-field';
 import { UrlField } from '@/features/custom-fields/components/fields/url-field';
+import { CheckboxField } from '@/features/custom-fields/components/fields/checkbox-field';
+import { SelectField } from '@/features/custom-fields/components/fields/select-field';
+import { LabelField } from '@/features/custom-fields/components/fields/label-field';
+import { RatingField } from '@/features/custom-fields/components/fields/rating-field';
+import { PercentageField } from '@/features/custom-fields/components/fields/percentage-field';
+import { DurationField } from '@/features/custom-fields/components/fields/duration-field';
+import { UserField } from '@/features/custom-fields/components/fields/user-field';
+import { TeamField } from '@/features/custom-fields/components/fields/team-field';
+import { PeopleField } from '@/features/custom-fields/components/fields/people-field';
+import { RelationshipField } from '@/features/custom-fields/components/fields/relationship-field';
+import { RollupField } from '@/features/custom-fields/components/fields/rollup-field';
 
 import { CollapsibleSection } from './collapsible-section';
 import { EmptyCardCta } from './empty-card-cta';
@@ -112,6 +147,30 @@ const BUCKET_LABEL: Record<BucketKey, string> = {
   list: 'Campos desta lista',
   folder: 'Herdados da pasta',
   space: 'Herdados do departamento',
+};
+
+const TYPE_ICON: Partial<Record<CustomFieldType, LucideIcon>> = {
+  TEXT: Type,
+  NUMBER: Hash,
+  CURRENCY: CircleDollarSign,
+  DATE: Calendar,
+  DROPDOWN: ChevronDown,
+  SELECT: ChevronDown,
+  URL: LinkIcon,
+  EMAIL: AtSign,
+  PHONE: Phone,
+  CPF: FileDigit,
+  CNPJ: FileDigit,
+  CHECKBOX: CheckSquare,
+  LABEL: Tag,
+  RATING: Star,
+  PERCENTAGE: Percent,
+  DURATION: Clock,
+  USER: UserIcon,
+  TEAM: Users,
+  PEOPLE: Users,
+  RELATIONSHIP: Link2,
+  ROLLUP: Sigma,
 };
 
 export function CustomFieldsSection({
@@ -211,7 +270,13 @@ export function CustomFieldsSection({
     <CollapsibleSection
       sectionKey='custom-fields'
       title='Campos personalizados'
-      counter={allVisible.length || null}
+      counter={
+        allVisible.length > 0 ? (
+          <span className='bg-muted text-muted-foreground rounded-full px-1.5 py-0.5 text-[10px] leading-none tabular-nums'>
+            {allVisible.length}
+          </span>
+        ) : null
+      }
       actions={
         <>
           {writeEnabled && listId ? (
@@ -308,31 +373,52 @@ function FieldSubgroup({
   onOpenSettings,
 }: FieldSubgroupProps) {
   return (
-    <div className='flex flex-col gap-2'>
-      <div className='flex items-center gap-1.5 text-left text-[11px] font-semibold uppercase tracking-wide text-muted-foreground'>
-        {label}
-      </div>
-      <div className='flex flex-col gap-3'>
-        {defs.map((definition) => (
-          <div key={definition.id} className='group/fr flex items-start gap-2'>
-            <div className='min-w-0 flex-1'>
-              <FieldRow
-                definition={definition}
-                entry={valueMap.get(definition.id) ?? null}
-                readOnly={readOnly}
-                onChange={(next) => onChange(definition.id, next)}
-              />
-            </div>
-            <button
-              type='button'
-              aria-label={`Configurações do campo ${definition.name}`}
-              onClick={() => onOpenSettings(definition.id)}
-              className='mt-5 inline-flex h-5 w-5 shrink-0 cursor-pointer items-center justify-center rounded text-muted-foreground opacity-0 transition-opacity hover:bg-muted group-hover/fr:opacity-100 focus-visible:opacity-100'
-            >
-              <Settings className='h-3 w-3' />
-            </button>
-          </div>
-        ))}
+    <div className='relative'>
+      <div className='pb-1'>
+        <div className='mb-1 flex items-center gap-1.5 px-1 pt-1'>
+          <LayoutGrid className='h-3 w-3 text-muted-foreground/40' aria-hidden='true' />
+          <span className='text-muted-foreground/50 text-[10px] font-semibold tracking-widest uppercase'>
+            {label}
+          </span>
+        </div>
+        <div>
+          {defs.map((definition) => {
+            const Icon = TYPE_ICON[definition.type] ?? Hash;
+            return (
+              <div
+                key={definition.id}
+                className='group/row border-border/40 hover:bg-accent/30 -mb-px flex min-h-[34px] items-center border-y transition-colors'
+              >
+                <div
+                  className='flex items-center gap-2 pl-2 pr-2'
+                  style={{ width: 220, minWidth: 220 }}
+                >
+                  <Icon className='h-3.5 w-3.5 shrink-0 text-muted-foreground/60' aria-hidden='true' />
+                  <span className='text-muted-foreground truncate text-[13px] normal-case'>
+                    {definition.name}
+                  </span>
+                  <button
+                    type='button'
+                    aria-label={`Configurações do campo ${definition.name}`}
+                    onClick={() => onOpenSettings(definition.id)}
+                    className='ml-auto flex h-5 w-5 shrink-0 cursor-pointer items-center justify-center rounded text-muted-foreground/40 opacity-0 transition-opacity hover:bg-accent group-hover/row:opacity-100 focus-visible:opacity-100'
+                  >
+                    <Settings2 className='h-3 w-3' />
+                  </button>
+                </div>
+                <div className='flex min-w-0 flex-1 items-center px-3 py-1'>
+                  <FieldRow
+                    definition={definition}
+                    entry={valueMap.get(definition.id) ?? null}
+                    readOnly={readOnly}
+                    onChange={(next) => onChange(definition.id, next)}
+                    inline
+                  />
+                </div>
+              </div>
+            );
+          })}
+        </div>
       </div>
     </div>
   );
@@ -343,6 +429,7 @@ type FieldRowProps = {
   entry: CustomFieldValue | null;
   readOnly: boolean;
   onChange: (next: CustomFieldRawValue) => void;
+  inline?: boolean;
 };
 
 /**
@@ -352,12 +439,25 @@ type FieldRowProps = {
  * (Henrique nao publicou ainda) — usa direto os componentes atomicos
  * `<TextField/>`, `<DropdownField/>`, etc., que ja estao prontos.
  */
-function FieldRow({ definition, entry, readOnly, onChange }: FieldRowProps) {
+function FieldRow({ definition, entry, readOnly, onChange, inline }: FieldRowProps) {
   const rawValue = entry?.value ?? null;
   const value: string | number | null =
     typeof rawValue === 'string' || typeof rawValue === 'number'
       ? rawValue
       : null;
+  const boolValue: boolean | null =
+    typeof rawValue === 'boolean'
+      ? rawValue
+      : rawValue === 'true'
+        ? true
+        : rawValue === 'false'
+          ? false
+          : null;
+  const arrayValue: string[] | null = Array.isArray(rawValue)
+    ? rawValue.filter((v): v is string => typeof v === 'string')
+    : null;
+  const numberValue: number | null =
+    typeof rawValue === 'number' ? rawValue : null;
 
   switch (definition.type) {
     case 'TEXT':
@@ -367,6 +467,7 @@ function FieldRow({ definition, entry, readOnly, onChange }: FieldRowProps) {
           value={value}
           readOnly={readOnly}
           onChange={onChange}
+          inline={inline}
         />
       );
     case 'NUMBER':
@@ -376,6 +477,7 @@ function FieldRow({ definition, entry, readOnly, onChange }: FieldRowProps) {
           value={value}
           readOnly={readOnly}
           onChange={onChange}
+          inline={inline}
         />
       );
     case 'CURRENCY':
@@ -385,6 +487,7 @@ function FieldRow({ definition, entry, readOnly, onChange }: FieldRowProps) {
           value={value}
           readOnly={readOnly}
           onChange={onChange}
+          inline={inline}
         />
       );
     case 'DATE':
@@ -394,6 +497,7 @@ function FieldRow({ definition, entry, readOnly, onChange }: FieldRowProps) {
           value={value === null ? null : String(value)}
           readOnly={readOnly}
           onChange={onChange}
+          inline={inline}
         />
       );
     case 'DROPDOWN':
@@ -403,6 +507,7 @@ function FieldRow({ definition, entry, readOnly, onChange }: FieldRowProps) {
           value={value === null ? null : String(value)}
           readOnly={readOnly}
           onChange={onChange}
+          inline={inline}
         />
       );
     case 'CPF':
@@ -412,6 +517,7 @@ function FieldRow({ definition, entry, readOnly, onChange }: FieldRowProps) {
           value={value === null ? null : String(value)}
           readOnly={readOnly}
           onChange={onChange}
+          inline={inline}
         />
       );
     case 'CNPJ':
@@ -421,6 +527,7 @@ function FieldRow({ definition, entry, readOnly, onChange }: FieldRowProps) {
           value={value === null ? null : String(value)}
           readOnly={readOnly}
           onChange={onChange}
+          inline={inline}
         />
       );
     case 'URL':
@@ -430,6 +537,7 @@ function FieldRow({ definition, entry, readOnly, onChange }: FieldRowProps) {
           value={value === null ? null : String(value)}
           readOnly={readOnly}
           onChange={onChange}
+          inline={inline}
         />
       );
     case 'EMAIL':
@@ -439,6 +547,7 @@ function FieldRow({ definition, entry, readOnly, onChange }: FieldRowProps) {
           value={value === null ? null : String(value)}
           readOnly={readOnly}
           onChange={onChange}
+          inline={inline}
         />
       );
     case 'PHONE':
@@ -448,12 +557,120 @@ function FieldRow({ definition, entry, readOnly, onChange }: FieldRowProps) {
           value={value === null ? null : String(value)}
           readOnly={readOnly}
           onChange={onChange}
+          inline={inline}
+        />
+      );
+    case 'CHECKBOX':
+      return (
+        <CheckboxField
+          definition={definition}
+          value={boolValue}
+          readOnly={readOnly}
+          onChange={onChange}
+          inline={inline}
+        />
+      );
+    case 'SELECT':
+      return (
+        <SelectField
+          definition={definition}
+          value={value === null ? null : String(value)}
+          readOnly={readOnly}
+          onChange={onChange}
+          inline={inline}
+        />
+      );
+    case 'LABEL':
+      return (
+        <LabelField
+          definition={definition}
+          value={value === null ? null : String(value)}
+          readOnly={readOnly}
+          onChange={onChange}
+          inline={inline}
+        />
+      );
+    case 'RATING':
+      return (
+        <RatingField
+          definition={definition}
+          value={numberValue}
+          readOnly={readOnly}
+          onChange={onChange}
+          inline={inline}
+        />
+      );
+    case 'PERCENTAGE':
+      return (
+        <PercentageField
+          definition={definition}
+          value={numberValue}
+          readOnly={readOnly}
+          onChange={onChange}
+          inline={inline}
+        />
+      );
+    case 'DURATION':
+      return (
+        <DurationField
+          definition={definition}
+          value={numberValue}
+          readOnly={readOnly}
+          onChange={onChange}
+          inline={inline}
+        />
+      );
+    case 'USER':
+      return (
+        <UserField
+          definition={definition}
+          value={value === null ? null : String(value)}
+          readOnly={readOnly}
+          onChange={onChange}
+          inline={inline}
+        />
+      );
+    case 'TEAM':
+      return (
+        <TeamField
+          definition={definition}
+          value={value === null ? null : String(value)}
+          readOnly={readOnly}
+          onChange={onChange}
+          inline={inline}
+        />
+      );
+    case 'PEOPLE':
+      return (
+        <PeopleField
+          definition={definition}
+          value={arrayValue}
+          readOnly={readOnly}
+          onChange={onChange}
+          inline={inline}
+        />
+      );
+    case 'RELATIONSHIP':
+      return (
+        <RelationshipField
+          definition={definition}
+          value={arrayValue}
+          readOnly={readOnly}
+          onChange={onChange}
+          inline={inline}
+        />
+      );
+    case 'ROLLUP':
+      return (
+        <RollupField
+          definition={definition}
+          value={value}
+          readOnly={readOnly}
+          onChange={onChange}
+          inline={inline}
         />
       );
     default:
-      // Tipos novos (SELECT, CHECKBOX, etc.) ainda nao renderizados nesta
-      // task-view legada. Sprint 6 (UI Manager) substitui este dispatcher
-      // pelo CustomFieldEditor central que cobre os 21 tipos.
       return null;
   }
 }

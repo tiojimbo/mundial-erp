@@ -42,6 +42,7 @@ import {
   type ManagerView,
 } from '../../hooks/use-custom-fields-manager-state';
 import { ManagerAddExistingFieldDialog } from './manager-add-existing-field-dialog';
+import { ManagerLocationCell } from './manager-location-cell';
 import type {
   CustomFieldType,
   ManagerCustomFieldItem,
@@ -69,12 +70,6 @@ const TYPE_LABEL: Record<CustomFieldType, string> = {
   RELATIONSHIP: 'Relacionamento',
   ROLLUP: 'Rollup',
   LABEL: 'Etiqueta',
-};
-
-const LOC_TYPE_LABEL: Record<'list' | 'folder' | 'space', string> = {
-  list: 'Lista',
-  folder: 'Pasta',
-  space: 'Departamento',
 };
 
 const TYPE_ICON: Record<
@@ -507,7 +502,6 @@ export function ManagerFieldsTable({
                   onSelectDef={onSelectDef}
                   collapsed={collapsed.has(type)}
                   onToggleType={() => toggleType(type)}
-                  locationNameMap={locationNameMap}
                   onCreate={() => onOpenCreate(type)}
                   nameSort={nameSort}
                   selectedIds={selectedIds}
@@ -569,7 +563,6 @@ interface FieldsTypeGroupProps {
   onSelectDef: (id: string) => void;
   collapsed: boolean;
   onToggleType: () => void;
-  locationNameMap: Map<string, string>;
   onCreate: () => void;
   nameSort: 'asc' | 'desc';
   selectedIds: Set<string>;
@@ -583,7 +576,6 @@ function FieldsTypeGroup({
   onSelectDef,
   collapsed,
   onToggleType,
-  locationNameMap,
   onCreate,
   nameSort,
   selectedIds,
@@ -706,25 +698,8 @@ function FieldsTypeGroup({
                   {formatDate(item.createdAt)}
                 </span>
               </td>
-              <td className="relative py-1.5 pr-4">
-                {item.locations.length > 0 ? (
-                  <div className="flex flex-wrap items-center gap-1">
-                    {item.locations.map((loc) => (
-                      <span
-                        key={`${loc.type}-${loc.id}`}
-                        className="text-foreground inline-flex items-center gap-1 rounded-md border px-2 py-0.5 text-paragraph-xs font-normal"
-                      >
-                        <List className="h-3 w-3" />
-                        <span className="max-w-[100px] truncate">
-                          {locationNameMap.get(loc.id) ??
-                            LOC_TYPE_LABEL[loc.type]}
-                        </span>
-                      </span>
-                    ))}
-                  </div>
-                ) : (
-                  <span className="text-muted-foreground text-paragraph-xs">—</span>
-                )}
+              <td className="relative py-1.5 pr-4" onClick={(e) => e.stopPropagation()}>
+                <ManagerLocationCell def={item} />
               </td>
               <td className="py-1.5" onClick={(e) => e.stopPropagation()}>
                 <button

@@ -645,6 +645,7 @@ const config = {
         'accordion-up': 'accordion-up 0.2s ease-out',
         'collapsible-down': 'collapsible-down 0.15s ease-out',
         'collapsible-up': 'collapsible-up 0.15s ease-out',
+        'feature-in': 'feature-in 600ms ease-out',
       },
       keyframes: {
         'accordion-down': {
@@ -668,6 +669,10 @@ const config = {
             opacity: '1',
           },
           to: { height: '0', opacity: '0' },
+        },
+        'feature-in': {
+          '0%': { opacity: '0', transform: 'translateY(12px) scale(0.96)' },
+          '100%': { opacity: '1', transform: 'translateY(0) scale(1)' },
         },
       },
     },

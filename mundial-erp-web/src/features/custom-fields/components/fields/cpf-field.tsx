@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import type { BaseFieldProps } from './field-base';
-import { inputClass } from './field-base';
+import { inputClass, inputClassInline } from './field-base';
 import { FieldShell } from './field-shell';
 import { maskCpf } from './masks';
 import { useDebouncedOnChange } from './use-debounced-onchange';
@@ -21,6 +21,7 @@ export function CpfField({
   onChange,
   readOnly,
   error,
+  inline,
 }: BaseFieldProps<string | null>) {
   const initial = value === null || value === undefined ? '' : maskCpf(String(value));
   const [localValue, setLocalValue] = useState<string>(initial);
@@ -37,6 +38,7 @@ export function CpfField({
       definition={definition}
       error={error}
       hint={definition.config?.hint}
+      showLabel={!inline}
     >
       {(controlProps) => (
         <input
@@ -44,11 +46,11 @@ export function CpfField({
           type="text"
           inputMode="numeric"
           autoComplete="off"
-          className={inputClass}
+          className={inline ? inputClassInline : inputClass}
           value={localValue}
           readOnly={isReadOnly}
           maxLength={14}
-          placeholder="000.000.000-00"
+          placeholder={inline ? '-' : '000.000.000-00'}
           onChange={(event) => {
             const next = maskCpf(event.target.value);
             setLocalValue(next);

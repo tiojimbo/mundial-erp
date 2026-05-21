@@ -105,7 +105,7 @@ export class CustomFieldDefinitionsService {
     };
 
     const isWorkspaceLevel = (entity: (typeof all)[number]): boolean =>
-      entity.workspaceId !== null &&
+      (entity.workspaceId === workspaceId || entity.workspaceId === null) &&
       !entity.customTaskTypeId &&
       listIdsOf(entity).size === 0 &&
       folderIdsOf(entity).size === 0 &&
@@ -203,7 +203,7 @@ export class CustomFieldDefinitionsService {
       return s;
     };
     const isWorkspaceLevel = (entity: (typeof all)[number]): boolean =>
-      entity.workspaceId !== null &&
+      (entity.workspaceId === workspaceId || entity.workspaceId === null) &&
       !entity.customTaskTypeId &&
       listIdsOf(entity).size === 0 &&
       folderIdsOf(entity).size === 0 &&
@@ -324,7 +324,7 @@ export class CustomFieldDefinitionsService {
         description: dto.description ?? null,
         type: dto.type,
         required: dto.required ?? false,
-        options: (dto.options as Prisma.InputJsonValue) ?? [],
+        options: (dto.options as unknown as Prisma.InputJsonValue) ?? [],
         config: (dto.config as Prisma.InputJsonValue) ?? null,
         defaultValue:
           dto.defaultValue === undefined
@@ -430,7 +430,7 @@ export class CustomFieldDefinitionsService {
       options:
         dto.options === undefined
           ? undefined
-          : (dto.options as Prisma.InputJsonValue),
+          : (dto.options as unknown as Prisma.InputJsonValue),
       config:
         dto.config === undefined
           ? undefined

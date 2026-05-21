@@ -37,9 +37,9 @@ export class CustomFieldValueResponseDto {
 
   @ApiPropertyOptional({
     description:
-      'Valor escalar dispatcheado pelo type da definition: string|number|Date|null.',
+      'Valor escalar dispatcheado pelo type da definition: string|number|boolean|Date|string[]|null.',
   })
-  value!: string | number | Date | null;
+  value!: string | number | boolean | Date | string[] | null;
 
   @ApiProperty()
   createdAt!: Date;
@@ -68,12 +68,20 @@ export class CustomFieldValueResponseDto {
 
 function pickScalarValue(
   entity: CustomFieldValueWithDefinition,
-): string | number | Date | null {
+): string | number | boolean | Date | string[] | null {
+  if (entity.valueBoolean !== null) return entity.valueBoolean;
   if (entity.valueDate !== null) return entity.valueDate;
   if (entity.valueNumber !== null) {
     return decimalToNumber(entity.valueNumber);
   }
   if (entity.valueText !== null) return entity.valueText;
+  const json = entity.valueJson;
+  if (json !== null && json !== undefined) {
+    if (Array.isArray(json)) {
+      return json.filter((v): v is string => typeof v === 'string');
+    }
+    return json as unknown as string;
+  }
   return null;
 }
 

@@ -43,8 +43,6 @@ export { CustomFieldsSection } from './custom-fields-section';
 export type { CustomFieldsSectionProps } from './custom-fields-section';
 export { LinkedTasksSection } from './linked-tasks-section';
 export type { LinkedTasksSectionProps } from './linked-tasks-section';
-export { TimeTrackingSection } from './time-tracking-section';
-export type { TimeTrackingSectionProps } from './time-tracking-section';
 export { SubtasksSection } from './subtasks-section';
 export type { SubtasksSectionProps } from './subtasks-section';
 export { SubtaskRow } from './subtask-row';

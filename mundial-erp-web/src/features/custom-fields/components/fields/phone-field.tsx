@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import type { BaseFieldProps } from './field-base';
-import { inputClass } from './field-base';
+import { inputClass, inputClassInline } from './field-base';
 import { FieldShell } from './field-shell';
 import { maskPhone } from './masks';
 import { useDebouncedOnChange } from './use-debounced-onchange';
@@ -19,6 +19,7 @@ export function PhoneField({
   onChange,
   readOnly,
   error,
+  inline,
 }: BaseFieldProps<string | null>) {
   const initial = value === null || value === undefined ? '' : maskPhone(String(value));
   const [localValue, setLocalValue] = useState<string>(initial);
@@ -35,6 +36,7 @@ export function PhoneField({
       definition={definition}
       error={error}
       hint={definition.config?.hint}
+      showLabel={!inline}
     >
       {(controlProps) => (
         <input
@@ -42,11 +44,11 @@ export function PhoneField({
           type="tel"
           inputMode="tel"
           autoComplete="tel-national"
-          className={inputClass}
+          className={inline ? inputClassInline : inputClass}
           value={localValue}
           readOnly={isReadOnly}
           maxLength={16}
-          placeholder="(11) 91234-5678"
+          placeholder={inline ? '-' : '(11) 91234-5678'}
           onChange={(event) => {
             const next = maskPhone(event.target.value);
             setLocalValue(next);

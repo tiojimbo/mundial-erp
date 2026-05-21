@@ -19,7 +19,10 @@
       "Bash(awk 'NR>=600')",
       "Bash(awk 'NR>=500 && NR<700')",
       "Bash(python3 -c ' *)",
-      "mcp__playwright__browser_close"
+      "mcp__playwright__browser_close",
+      "Bash(lsof *)",
+      "Bash(ps *)",
+      "Bash(curl -s -o /dev/null -w \"API health: %{http_code}\\\\n\" http://localhost:3003/api/v1/health)"
     ]
   }
 }

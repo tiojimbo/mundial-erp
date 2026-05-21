@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import type { BaseFieldProps } from './field-base';
-import { inputClass } from './field-base';
+import { inputClass, inputClassInline } from './field-base';
 import { FieldShell } from './field-shell';
 import { maskCnpj } from './masks';
 import { useDebouncedOnChange } from './use-debounced-onchange';
@@ -19,6 +19,7 @@ export function CnpjField({
   onChange,
   readOnly,
   error,
+  inline,
 }: BaseFieldProps<string | null>) {
   const initial = value === null || value === undefined ? '' : maskCnpj(String(value));
   const [localValue, setLocalValue] = useState<string>(initial);
@@ -35,6 +36,7 @@ export function CnpjField({
       definition={definition}
       error={error}
       hint={definition.config?.hint}
+      showLabel={!inline}
     >
       {(controlProps) => (
         <input
@@ -42,11 +44,11 @@ export function CnpjField({
           type="text"
           inputMode="numeric"
           autoComplete="off"
-          className={inputClass}
+          className={inline ? inputClassInline : inputClass}
           value={localValue}
           readOnly={isReadOnly}
           maxLength={18}
-          placeholder="00.000.000/0000-00"
+          placeholder={inline ? '-' : '00.000.000/0000-00'}
           onChange={(event) => {
             const next = maskCnpj(event.target.value);
             setLocalValue(next);

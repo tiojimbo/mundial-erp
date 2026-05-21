@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import type { BaseFieldProps } from './field-base';
-import { inputClass } from './field-base';
+import { inputClass, inputClassInline } from './field-base';
 import { FieldShell } from './field-shell';
 import { useDebouncedOnChange } from './use-debounced-onchange';
 
@@ -28,6 +28,7 @@ export function CurrencyField({
   onChange,
   readOnly,
   error,
+  inline,
 }: BaseFieldProps<number | string | null>) {
   const initial = value === null || value === undefined ? '' : String(value);
   const [localValue, setLocalValue] = useState<string>(initial);
@@ -44,31 +45,54 @@ export function CurrencyField({
       definition={definition}
       error={error}
       hint={definition.config?.hint}
+      showLabel={!inline}
     >
-      {(controlProps) => (
-        <div className="relative">
-          <span
-            aria-hidden="true"
-            className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-xs text-muted-foreground"
-          >
-            R$
-          </span>
-          <input
-            {...controlProps}
-            type="text"
-            inputMode="decimal"
-            className={`${inputClass} pl-9`}
-            value={localValue}
-            readOnly={isReadOnly}
-            placeholder="0,00"
-            onChange={(event) => {
-              const next = event.target.value;
-              setLocalValue(next);
-              debounced(parseCurrency(next));
-            }}
-          />
-        </div>
-      )}
+      {(controlProps) => {
+        if (inline) {
+          return (
+            <div className="flex w-full items-center gap-1.5">
+              <input
+                {...controlProps}
+                type="text"
+                inputMode="numeric"
+                className={inputClassInline}
+                value={localValue}
+                readOnly={isReadOnly}
+                placeholder="-"
+                onChange={(event) => {
+                  const next = event.target.value;
+                  setLocalValue(next);
+                  debounced(parseCurrency(next));
+                }}
+              />
+            </div>
+          );
+        }
+        return (
+          <div className="relative">
+            <span
+              aria-hidden="true"
+              className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-xs text-muted-foreground"
+            >
+              R$
+            </span>
+            <input
+              {...controlProps}
+              type="text"
+              inputMode="decimal"
+              className={`${inputClass} pl-9`}
+              value={localValue}
+              readOnly={isReadOnly}
+              placeholder="0,00"
+              onChange={(event) => {
+                const next = event.target.value;
+                setLocalValue(next);
+                debounced(parseCurrency(next));
+              }}
+            />
+          </div>
+        );
+      }}
     </FieldShell>
   );
 }

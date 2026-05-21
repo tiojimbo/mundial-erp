@@ -1,43 +1,33 @@
 'use client';
 
-import { useEffect, useState } from 'react';
-import * as Select from '@radix-ui/react-select';
-import { Check, ChevronDown } from 'lucide-react';
+import { useMemo, useState } from 'react';
+import * as Popover from '@radix-ui/react-popover';
+import { Command } from 'cmdk';
+import { Plus, Search } from 'lucide-react';
 
 import { cn } from '@/lib/cn';
 import type { BaseFieldProps } from './field-base';
-import { inputClass } from './field-base';
+import { inputClass, inputClassInline } from './field-base';
 import { FieldShell } from './field-shell';
-import { useDebouncedOnChange } from './use-debounced-onchange';
 
-/**
- * Sprint 2 (TTT-021) — Editor DROPDOWN.
- *
- * Picker com chips coloridos (paridade Hoppe). Acessibilidade via Radix Select
- * (keyboard, screen reader, focus). Empty/clear via item sentinela `__none__`
- * — Radix nao aceita value="" em Item.
- */
+type DropdownOption = { value: string; label: string };
 
-const NONE_VALUE = '__none__';
-
-const FALLBACK_PALETTE = [
-  '#7C4DFF',
-  '#F06292',
-  '#42A5F5',
-  '#66BB6A',
-  '#FFA726',
-  '#26C6DA',
-  '#EC407A',
-  '#AB47BC',
-  '#FFCA28',
-  '#8D6E63',
-];
-
-type DropdownOption = { value: string; label: string; color?: string };
-
-function resolveColor(opt: DropdownOption, idx: number): string {
-  if (opt.color && opt.color.length > 0) return opt.color;
-  return FALLBACK_PALETTE[idx % FALLBACK_PALETTE.length];
+function extractOptions(definition: BaseFieldProps['definition']): DropdownOption[] {
+  const rawRoot = (Array.isArray(definition.options) ? definition.options : []) as unknown[];
+  const rawConfig = (Array.isArray(definition.config?.options) ? definition.config!.options : []) as unknown[];
+  const raw: unknown[] = rawRoot.length > 0 ? rawRoot : rawConfig;
+  const out: DropdownOption[] = [];
+  for (const o of raw) {
+    if (typeof o === 'string') {
+      out.push({ value: o, label: o });
+      continue;
+    }
+    if (typeof o === 'object' && o !== null && typeof (o as { value?: unknown }).value === 'string') {
+      const op = o as { value: string; label?: string };
+      out.push({ value: op.value, label: op.label ?? op.value });
+    }
+  }
+  return out;
 }
 
 export function DropdownField({
@@ -46,122 +36,144 @@ export function DropdownField({
   onChange,
   readOnly,
   error,
+  inline,
 }: BaseFieldProps<string | null>) {
-  const initial = value === null || value === undefined ? '' : String(value);
-  const [localValue, setLocalValue] = useState<string>(initial);
-  const debounced = useDebouncedOnChange<string | null>(onChange);
-
-  useEffect(() => {
-    setLocalValue(value === null || value === undefined ? '' : String(value));
-  }, [value]);
-
   const isReadOnly = readOnly || definition.config?.readOnly === true;
-  const options = (definition.config?.options ?? []) as DropdownOption[];
+  const [open, setOpen] = useState(false);
+  const options = useMemo(() => extractOptions(definition), [definition]);
 
   if (options.length === 0) {
     return (
-      <FieldShell definition={definition} error={error}>
+      <FieldShell definition={definition} error={error} showLabel={!inline}>
         {(controlProps) => (
           <input
             {...controlProps}
-            type='text'
-            className={inputClass}
-            value=''
+            type="text"
+            className={inline ? inputClassInline : inputClass}
+            value=""
             disabled
-            placeholder='Sem opcoes configuradas'
+            placeholder="Sem opcoes configuradas"
           />
         )}
       </FieldShell>
     );
   }
 
-  const selectedIdx = options.findIndex((o) => o.value === localValue);
-  const selected = selectedIdx >= 0 ? options[selectedIdx] : null;
-  const selectedColor = selected ? resolveColor(selected, selectedIdx) : null;
+  const selected = options.find((o) => o.value === value) ?? null;
+
+  if (!inline) {
+    return (
+      <FieldShell definition={definition} error={error} hint={definition.config?.hint} showLabel>
+        {(controlProps) => (
+          <select
+            {...controlProps}
+            className={inputClass}
+            value={typeof value === 'string' ? value : ''}
+            disabled={isReadOnly}
+            onChange={(e) => onChange(e.target.value.length === 0 ? null : e.target.value)}
+          >
+            <option value="">{definition.required ? 'Selecione' : 'Sem valor'}</option>
+            {options.map((opt) => (
+              <option key={opt.value} value={opt.value}>{opt.label}</option>
+            ))}
+          </select>
+        )}
+      </FieldShell>
+    );
+  }
 
   return (
-    <FieldShell
-      definition={definition}
-      error={error}
-      hint={definition.config?.hint}
-    >
+    <FieldShell definition={definition} error={error} showLabel={false}>
       {(controlProps) => (
-        <Select.Root
-          value={localValue.length > 0 ? localValue : undefined}
-          disabled={isReadOnly}
-          onValueChange={(next) => {
-            const resolved = next === NONE_VALUE ? '' : next;
-            setLocalValue(resolved);
-            debounced(resolved.length === 0 ? null : resolved);
-          }}
-        >
-          <Select.Trigger
-            {...controlProps}
-            className={cn(
-              inputClass,
-              'flex items-center justify-between gap-2 text-left disabled:opacity-50',
-            )}
-          >
-            <Select.Value
-              placeholder={definition.required ? 'Selecione' : 'Sem valor'}
+        <Popover.Root open={open} onOpenChange={setOpen}>
+          <Popover.Trigger asChild>
+            <button
+              {...controlProps}
+              type="button"
+              disabled={isReadOnly}
+              className="flex w-full cursor-pointer items-center focus:outline-none disabled:cursor-not-allowed disabled:opacity-60"
             >
-              {selected ? (
-                <span className='flex min-w-0 items-center gap-2'>
-                  <span
-                    aria-hidden='true'
-                    className='size-3 shrink-0 rounded-full'
-                    style={{ backgroundColor: selectedColor ?? undefined }}
-                  />
-                  <span className='truncate'>{selected.label}</span>
-                </span>
-              ) : null}
-            </Select.Value>
-            <Select.Icon>
-              <ChevronDown className='h-3.5 w-3.5 text-muted-foreground' />
-            </Select.Icon>
-          </Select.Trigger>
-
-          <Select.Portal>
-            <Select.Content
-              position='popper'
+              <span
+                className={cn(
+                  'truncate text-[13px]',
+                  selected ? 'text-foreground' : 'text-muted-foreground/60',
+                )}
+              >
+                {selected ? selected.label : '-'}
+              </span>
+            </button>
+          </Popover.Trigger>
+          <Popover.Portal>
+            <Popover.Content
+              align="start"
               sideOffset={4}
-              className='bg-popover z-50 min-w-[var(--radix-select-trigger-width)] overflow-hidden rounded-md border shadow-regular-md'
+              className="bg-popover text-popover-foreground z-[200] w-[200px] rounded-md border p-0 shadow-md outline-none"
             >
-              <Select.Viewport className='max-h-72 overflow-auto p-1'>
-                {!definition.required ? (
-                  <Select.Item
-                    value={NONE_VALUE}
-                    className='hover:bg-accent data-[highlighted]:bg-accent flex w-full cursor-pointer items-center gap-2 rounded-md px-2 py-1.5 text-left text-paragraph-sm outline-none'
+              <Command className="bg-popover text-popover-foreground flex h-full w-full flex-col overflow-hidden rounded-md">
+                <div className="flex h-9 items-center gap-2 border-b px-3">
+                  <Search className="size-4 shrink-0 opacity-50" />
+                  <Command.Input
+                    placeholder="Pesquisar..."
+                    className="placeholder:text-muted-foreground h-9 w-full bg-transparent py-3 text-sm outline-none"
+                  />
+                </div>
+                <Command.List className="max-h-[300px] scroll-py-1 overflow-x-hidden overflow-y-auto">
+                  <Command.Empty className="text-muted-foreground px-3 py-6 text-center text-xs">
+                    Nenhuma opção
+                  </Command.Empty>
+                  <Command.Group className="w-full overflow-hidden p-2 py-1">
+                    {!definition.required && (
+                      <Command.Item
+                        value="-"
+                        onSelect={() => {
+                          onChange(null);
+                          setOpen(false);
+                        }}
+                        className={cn(
+                          'data-[selected=true]:bg-accent data-[selected=true]:text-accent-foreground',
+                          'text-muted-foreground relative rounded-sm outline-hidden select-none',
+                          'flex cursor-pointer items-center gap-2 px-3 py-1.5 text-xs',
+                        )}
+                      >
+                        <span className="flex-1 truncate">–</span>
+                      </Command.Item>
+                    )}
+                    {options.map((opt) => {
+                      const isSelected = opt.value === value;
+                      return (
+                        <Command.Item
+                          key={opt.value}
+                          value={opt.label}
+                          onSelect={() => {
+                            onChange(isSelected ? null : opt.value);
+                            setOpen(false);
+                          }}
+                          className={cn(
+                            'data-[selected=true]:bg-accent data-[selected=true]:text-accent-foreground',
+                            'relative rounded-sm outline-hidden select-none',
+                            'flex cursor-pointer items-center gap-2 px-3 py-1.5 text-xs',
+                            isSelected && 'font-medium',
+                          )}
+                        >
+                          <span className="flex-1 truncate">{opt.label}</span>
+                        </Command.Item>
+                      );
+                    })}
+                  </Command.Group>
+                </Command.List>
+                <div className="border-t p-2">
+                  <button
+                    type="button"
+                    className="text-muted-foreground hover:bg-accent hover:text-accent-foreground flex w-full items-center gap-2 rounded-sm px-2 py-1.5 text-xs"
                   >
-                    <span aria-hidden='true' className='size-3 shrink-0' />
-                    <Select.ItemText>Sem valor</Select.ItemText>
-                  </Select.Item>
-                ) : null}
-                {options.map((opt, idx) => {
-                  const color = resolveColor(opt, idx);
-                  const isSelected = opt.value === localValue;
-                  return (
-                    <Select.Item
-                      key={opt.value}
-                      value={opt.value}
-                      className='hover:bg-accent data-[highlighted]:bg-accent flex w-full cursor-pointer items-center gap-2 rounded-md px-2 py-1.5 text-left text-paragraph-sm outline-none'
-                    >
-                      <span
-                        aria-hidden='true'
-                        className='size-3 shrink-0 rounded-full'
-                        style={{ backgroundColor: color }}
-                      />
-                      <Select.ItemText>{opt.label}</Select.ItemText>
-                      {isSelected ? (
-                        <Check className='ml-auto h-3.5 w-3.5 shrink-0' />
-                      ) : null}
-                    </Select.Item>
-                  );
-                })}
-              </Select.Viewport>
-            </Select.Content>
-          </Select.Portal>
-        </Select.Root>
+                    <Plus className="h-3.5 w-3.5" />
+                    Criar nova opção
+                  </button>
+                </div>
+              </Command>
+            </Popover.Content>
+          </Popover.Portal>
+        </Popover.Root>
       )}
     </FieldShell>
   );

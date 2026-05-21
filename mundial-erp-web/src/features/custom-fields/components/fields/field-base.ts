@@ -21,19 +21,22 @@ export interface BaseFieldProps<T = unknown> {
   onChange: (next: T) => void;
   readOnly?: boolean;
   error?: string;
+  inline?: boolean;
 }
 
 export const inputClass = cn(
-  // base
   'h-9 w-full rounded-md border border-input bg-background px-3 text-sm text-foreground',
   'transition-colors',
-  // placeholder
   'placeholder:text-muted-foreground/60',
-  // focus
   'outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-1',
-  // disabled / readonly
   'disabled:cursor-not-allowed disabled:opacity-60',
   'read-only:cursor-default read-only:bg-muted/40',
-  // error
   'aria-[invalid=true]:border-destructive aria-[invalid=true]:focus-visible:ring-destructive',
+);
+
+export const inputClassInline = cn(
+  'h-full w-full bg-transparent text-[13px] text-foreground',
+  'outline-none placeholder:text-muted-foreground/60',
+  'disabled:cursor-not-allowed disabled:opacity-60',
+  'read-only:cursor-default',
 );

@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import type { BaseFieldProps } from './field-base';
-import { inputClass } from './field-base';
+import { inputClass, inputClassInline } from './field-base';
 import { FieldShell } from './field-shell';
 import { useDebouncedOnChange } from './use-debounced-onchange';
 
@@ -21,6 +21,7 @@ export function NumberField({
   onChange,
   readOnly,
   error,
+  inline,
 }: BaseFieldProps<number | string | null>) {
   const initial = value === null || value === undefined ? '' : String(value);
   const [localValue, setLocalValue] = useState<string>(initial);
@@ -37,18 +38,19 @@ export function NumberField({
       definition={definition}
       error={error}
       hint={definition.config?.hint}
+      showLabel={!inline}
     >
       {(controlProps) => (
         <input
           {...controlProps}
           type="number"
           inputMode="decimal"
-          className={inputClass}
+          className={inline ? inputClassInline : inputClass}
           value={localValue}
           readOnly={isReadOnly}
           min={definition.config?.min}
           max={definition.config?.max}
-          placeholder={definition.name}
+          placeholder={inline ? '-' : definition.name}
           onChange={(event) => {
             const next = event.target.value;
             setLocalValue(next);

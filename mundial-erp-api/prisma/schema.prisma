@@ -509,7 +509,7 @@ model Space {
   id                String     @id @default(cuid())
   workspaceId       String?    @map("workspace_id")
   name              String
-  slug              String     @unique
+  slug              String
   description       String?
   icon              String?
   color             String?
@@ -539,6 +539,7 @@ model Space {
   tags              WorkItemTag[]
   workItemTemplates WorkItemTemplate[]      @relation("TemplateSpace")
 
+  @@unique([workspaceId, slug])
   @@index([workspaceId])
   @@index([workspaceId, deletedAt], name: "idx_spaces_ws_deleted")
   @@map("spaces")
@@ -562,7 +563,7 @@ model Sector {
 model Folder {
   id                String            @id @default(cuid())
   name              String
-  slug              String            @unique
+  slug              String
   description       String?
   spaceId           String            @map("space_id")
   isPrivate         Boolean           @default(false) @map("is_private")
@@ -588,6 +589,7 @@ model Folder {
   customFields    CustomFieldDefinition[] @relation("CustomFieldOnFolder")
   customFieldLinks CustomFieldFolder[]
 
+  @@unique([spaceId, slug])
   @@index([spaceId], name: "idx_folders_space")
   @@map("folders")
 }
@@ -595,7 +597,7 @@ model Folder {
 model List {
   id                String            @id @default(cuid())
   name              String
-  slug              String            @unique
+  slug              String
   description       String?
   sectorId          String?           @map("sector_id")
   spaceId           String?           @map("space_id")
@@ -631,6 +633,7 @@ model List {
   workItemTemplates WorkItemTemplate[]      @relation("TemplateList")
   statuses          Status[]                @relation("ListStatuses")
 
+  @@unique([spaceId, slug])
   @@index([spaceId], name: "idx_lists_space")
   @@index([folderId], name: "idx_lists_folder")
   @@map("lists")

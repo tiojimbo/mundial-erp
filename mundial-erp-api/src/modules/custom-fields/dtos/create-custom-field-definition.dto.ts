@@ -1,5 +1,6 @@
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 import { CustomFieldType } from '@prisma/client';
+import { Type } from 'class-transformer';
 import {
   IsArray,
   IsBoolean,
@@ -12,7 +13,9 @@ import {
   Matches,
   MaxLength,
   Min,
+  ValidateNested,
 } from 'class-validator';
+import { DropdownOptionDto } from './dropdown-option.dto';
 
 const KEY_REGEX = /^[a-z][a-z0-9_]*$/;
 
@@ -62,13 +65,15 @@ export class CreateCustomFieldDefinitionDto {
 
   @ApiPropertyOptional({
     description:
-      'Options Hoppe-style na raiz. Array de strings (preferencial) ou objetos {value,label}. Obrigatorio para LABEL.',
-    type: 'array',
-    items: { oneOf: [{ type: 'string' }, { type: 'object' }] },
+      'Options Hoppe-style na raiz. Array de objetos {value, label?, color?}. Obrigatorio para LABEL.',
+    type: () => DropdownOptionDto,
+    isArray: true,
   })
   @IsOptional()
   @IsArray()
-  options?: unknown[];
+  @ValidateNested({ each: true })
+  @Type(() => DropdownOptionDto)
+  options?: DropdownOptionDto[];
 
   @ApiPropertyOptional()
   @IsOptional()

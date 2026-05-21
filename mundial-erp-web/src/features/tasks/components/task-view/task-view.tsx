@@ -19,7 +19,6 @@ import { TaskPropertyGrid } from './task-property-grid';
 import { TaskDescription } from './task-description';
 import { CustomFieldsSection } from './custom-fields-section';
 import { LinkedTasksSection } from './linked-tasks-section';
-import { TimeTrackingSection } from './time-tracking-section';
 import { SubtasksSection } from './subtasks-section';
 import { ChecklistsSection } from './checklists-section';
 import { AttachmentsSection } from './attachments-section';
@@ -194,7 +193,6 @@ export function TaskView({ taskId }: TaskViewProps) {
             taskTypeId={task.customType?.id ?? null}
           />
           <LinkedTasksSection task={task as TaskDetail} />
-          <TimeTrackingSection task={task as TaskDetail} />
           <SubtasksSection task={task as TaskDetail} />
           <ChecklistsSection task={task as TaskDetail} />
           <AttachmentsSection

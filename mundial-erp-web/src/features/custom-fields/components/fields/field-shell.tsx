@@ -62,6 +62,18 @@ export function FieldShell({
     .filter(Boolean)
     .join(' ');
 
+  if (!showLabel) {
+    return (
+      <>
+        {children({
+          id,
+          'aria-invalid': Boolean(error),
+          'aria-describedby': undefined,
+        })}
+      </>
+    );
+  }
+
   return (
     <div className="flex flex-col gap-1">
       {showLabel ? (
