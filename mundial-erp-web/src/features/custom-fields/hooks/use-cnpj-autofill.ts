@@ -2,7 +2,7 @@
 
 import { useRef } from 'react';
 import { useCnpjLookup } from './use-cnpj-lookup';
-import { usePatchCustomFieldValue } from './use-custom-field-values';
+import { useBulkPatchCustomFieldValues } from './use-custom-field-values';
 import type {
   CnpjAutofillSource,
   CnpjLookupResult,
@@ -42,7 +42,7 @@ const CNPJ_AUTOFILL_MAP: {
 
 export function useCnpjAutofill(taskId: string) {
   const cnpjLookup = useCnpjLookup();
-  const patchMutation = usePatchCustomFieldValue();
+  const bulkPatch = useBulkPatchCustomFieldValues();
   const lastLookedUpRef = useRef<string | null>(null);
 
   return function trigger(
@@ -57,15 +57,16 @@ export function useCnpjAutofill(taskId: string) {
 
     cnpjLookup.mutate(digits, {
       onSuccess: (result) => {
+        const values: { definitionId: string; value: string | number }[] = [];
         for (const { source, targetDefinitionId } of CNPJ_AUTOFILL_MAP) {
           const value = readPath(result, source);
           if (value === null || value === undefined) continue;
-          patchMutation.mutate({
-            taskId,
-            customFieldId: targetDefinitionId,
+          values.push({
+            definitionId: targetDefinitionId,
             value: typeof value === 'number' ? value : String(value),
           });
         }
+        if (values.length > 0) bulkPatch.mutate({ taskId, values });
       },
     });
   };

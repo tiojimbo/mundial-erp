@@ -133,6 +133,34 @@ export function useClearCustomFieldValue() {
   });
 }
 
+export function useBulkPatchCustomFieldValues() {
+  const qc = useQueryClient();
+  const workspaceId = useWorkspaceStore(
+    (state) => state.currentWorkspace?.id ?? '',
+  );
+
+  return useMutation({
+    mutationKey: [workspaceId, 'custom-field-values', 'bulk-patch'],
+    mutationFn: ({
+      taskId,
+      values,
+    }: {
+      taskId: string;
+      values: { definitionId: string; value: CustomFieldRawValue }[];
+    }) => customFieldValuesService.setValuesBulk(taskId, values),
+
+    onSettled: (_data, _err, { taskId }) => {
+      qc.invalidateQueries({
+        queryKey: customFieldValuesQueryKeys.byTask(workspaceId, taskId),
+      });
+    },
+
+    onError: (err: Error) => {
+      toast.error(err.message || 'Erro ao preencher campos personalizados');
+    },
+  });
+}
+
 function toScalarOptimistic(
   value: CustomFieldRawValue,
   reference: CustomFieldValue,

@@ -1,12 +1,14 @@
 import {
   ConflictException,
   Injectable,
+  Logger,
   NotFoundException,
   UnauthorizedException,
 } from '@nestjs/common';
-import { Prisma } from '@prisma/client';
+import { Prisma, WorkspaceMemberRole } from '@prisma/client';
 import * as bcrypt from 'bcrypt';
 import { UsersRepository } from './users.repository';
+import { MembersRepository } from '../workspaces/members/members.repository';
 import { CreateUserDto } from './dto/create-user.dto';
 import { UpdateUserDto } from './dto/update-user.dto';
 import { UpdateMeDto } from './dto/update-me.dto';
@@ -17,9 +19,17 @@ const BCRYPT_ROUNDS = 12;
 
 @Injectable()
 export class UsersService {
-  constructor(private readonly usersRepository: UsersRepository) {}
+  private readonly logger = new Logger(UsersService.name);
 
-  async create(dto: CreateUserDto): Promise<UserResponseDto> {
+  constructor(
+    private readonly usersRepository: UsersRepository,
+    private readonly membersRepository: MembersRepository,
+  ) {}
+
+  async create(
+    dto: CreateUserDto,
+    actorId: string,
+  ): Promise<UserResponseDto> {
     const existing = await this.usersRepository.findByEmail(dto.email);
     if (existing) {
       throw new ConflictException('Email já cadastrado');
@@ -38,7 +48,30 @@ export class UsersService {
         : undefined,
     });
 
+    await this.addToActorWorkspaces(user.id, actorId);
+
     return UserResponseDto.fromEntity(user);
+  }
+
+  private async addToActorWorkspaces(
+    userId: string,
+    actorId: string,
+  ): Promise<void> {
+    try {
+      const workspaceIds =
+        await this.membersRepository.findWorkspaceIdsByUser(actorId);
+      for (const workspaceId of workspaceIds) {
+        await this.membersRepository.create({
+          workspaceId,
+          userId,
+          role: WorkspaceMemberRole.MEMBER,
+        });
+      }
+    } catch (error) {
+      this.logger.warn(
+        `Falha ao vincular usuario ${userId} aos workspaces do ator ${actorId}: ${String(error)}`,
+      );
+    }
   }
 
   async findAll(pagination: PaginationDto) {

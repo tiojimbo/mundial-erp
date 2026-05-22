@@ -11,5 +11,5 @@ export class CreateDmDto {
   @IsArray()
   @ArrayMaxSize(14)
   @IsString({ each: true })
-  userIds?: string[];
+  participantIds?: string[];
 }

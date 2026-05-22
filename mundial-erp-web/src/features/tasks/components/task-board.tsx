@@ -144,8 +144,9 @@ function BoardTaskCard({
   draggableHandleProps,
 }: BoardTaskCardProps): JSX.Element {
   const dateLabel = formatDateRange(task.startDate, task.dueDate);
-  const visibleAssignees = task.assignees.slice(0, 3);
-  const extraAssignees = Math.max(0, task.assignees.length - visibleAssignees.length);
+  const assignees = task.assignees ?? [];
+  const visibleAssignees = assignees.slice(0, 3);
+  const extraAssignees = Math.max(0, assignees.length - visibleAssignees.length);
 
   return (
     <div
@@ -183,7 +184,7 @@ function BoardTaskCard({
           className="flex -space-x-1"
           aria-label={
             visibleAssignees.length > 0
-              ? `${task.assignees.length} responsável(is)`
+              ? `${assignees.length} responsável(is)`
               : 'Sem responsável'
           }
         >
@@ -405,6 +406,7 @@ export function TaskBoard({
   // de contagem/posição atualizando em tempo real.
   const [previewTasks, setPreviewTasks] = useState<Task[]>(tasks);
   const isDraggingRef = useRef(false);
+  const dragOriginStatusRef = useRef<string | null>(null);
   useEffect(() => {
     if (!isDraggingRef.current) setPreviewTasks(tasks);
   }, [tasks]);
@@ -428,6 +430,7 @@ export function TaskBoard({
     if (!data) return;
     const task = tasks.find((t) => t.id === data.taskId) ?? null;
     isDraggingRef.current = true;
+    dragOriginStatusRef.current = task?.statusId ?? data.statusId;
     setActiveTask(task);
   };
 
@@ -509,7 +512,9 @@ export function TaskBoard({
     }
 
     const taskId = activeData.taskId;
-    const originalStatusId = activeData.statusId;
+    // activeData.statusId muta durante o arrasto (o card e re-registrado no
+    // dnd-kit com o destino a cada onDragOver); a origem real vem do ref.
+    const originalStatusId = dragOriginStatusRef.current ?? activeData.statusId;
     // O preview já está no destino graças ao `onDragOver`; pegamos o statusId
     // final direto de lá para persistir.
     const finalTask = previewTasks.find((t) => t.id === taskId);

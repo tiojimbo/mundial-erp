@@ -34,4 +34,20 @@ export const customFieldValuesService = {
     );
     return data.data;
   },
+
+  async setValuesBulk(
+    taskId: string,
+    values: { definitionId: string; value: CustomFieldRawValue }[],
+  ): Promise<{
+    updated: CustomFieldValue[];
+    failed: { definitionId: string; reason: string }[];
+  }> {
+    const { data } = await api.put<
+      ApiResponse<{
+        updated: CustomFieldValue[];
+        failed: { definitionId: string; reason: string }[];
+      }>
+    >(`/custom-fields/task/${taskId}/fields`, { values });
+    return data.data;
+  },
 };

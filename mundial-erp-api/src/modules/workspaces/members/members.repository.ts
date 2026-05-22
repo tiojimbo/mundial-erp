@@ -48,6 +48,14 @@ export class MembersRepository {
     });
   }
 
+  async findWorkspaceIdsByUser(userId: string): Promise<string[]> {
+    const rows = await this.prisma.workspaceMember.findMany({
+      where: { userId },
+      select: { workspaceId: true },
+    });
+    return rows.map((row) => row.workspaceId);
+  }
+
   async create(data: {
     workspaceId: string;
     userId: string;

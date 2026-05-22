@@ -3,6 +3,7 @@ import { ConflictException, NotFoundException } from '@nestjs/common';
 import * as bcrypt from 'bcrypt';
 import { UsersService } from './users.service';
 import { UsersRepository } from './users.repository';
+import { MembersRepository } from '../workspaces/members/members.repository';
 import { PaginationDto } from '../../common/dtos/pagination.dto';
 
 jest.mock('bcrypt');
@@ -41,6 +42,13 @@ describe('UsersService', () => {
             softDelete: jest.fn(),
           },
         },
+        {
+          provide: MembersRepository,
+          useValue: {
+            findWorkspaceIdsByUser: jest.fn().mockResolvedValue([]),
+            create: jest.fn(),
+          },
+        },
       ],
     }).compile();
 
@@ -54,11 +62,14 @@ describe('UsersService', () => {
       repository.create.mockResolvedValue(mockUser);
       (bcrypt.hash as jest.Mock).mockResolvedValue('hashed-password');
 
-      const result = await service.create({
-        email: 'test@mundial.com',
-        name: 'Test User',
-        password: 'password123',
-      });
+      const result = await service.create(
+        {
+          email: 'test@mundial.com',
+          name: 'Test User',
+          password: 'password123',
+        },
+        'actor-1',
+      );
 
       expect(result.id).toBe('user-1');
       expect(result.email).toBe('test@mundial.com');
@@ -71,11 +82,14 @@ describe('UsersService', () => {
       repository.findByEmail.mockResolvedValue(mockUser);
 
       await expect(
-        service.create({
-          email: 'test@mundial.com',
-          name: 'Test',
-          password: 'pass123',
-        }),
+        service.create(
+          {
+            email: 'test@mundial.com',
+            name: 'Test',
+            password: 'pass123',
+          },
+          'actor-1',
+        ),
       ).rejects.toThrow(ConflictException);
     });
 
@@ -87,12 +101,15 @@ describe('UsersService', () => {
       });
       (bcrypt.hash as jest.Mock).mockResolvedValue('hashed');
 
-      const result = await service.create({
-        email: 'admin@mundial.com',
-        name: 'Admin',
-        password: 'pass123',
-        role: 'ADMIN' as const,
-      });
+      const result = await service.create(
+        {
+          email: 'admin@mundial.com',
+          name: 'Admin',
+          password: 'pass123',
+          role: 'ADMIN' as const,
+        },
+        'actor-1',
+      );
 
       expect(result.role).toBe('ADMIN');
     });

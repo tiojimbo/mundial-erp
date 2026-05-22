@@ -32,6 +32,14 @@ export const TASK_LIST_SELECT = {
   timeSpentSeconds: true,
   createdAt: true,
   updatedAt: true,
+  assignees: {
+    select: {
+      userId: true,
+      isPrimary: true,
+      user: { select: { name: true } },
+    },
+    orderBy: [{ isPrimary: 'desc' }, { assignedAt: 'asc' }],
+  },
   customType: {
     select: {
       id: true,

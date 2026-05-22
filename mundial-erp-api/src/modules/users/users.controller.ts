@@ -37,8 +37,8 @@ export class UsersController {
   @ApiOperation({ summary: 'Criar usuário (somente ADMIN)' })
   @ApiResponse({ status: 201, type: UserResponseDto })
   @ApiResponse({ status: 409, description: 'Email já cadastrado' })
-  create(@Body() dto: CreateUserDto) {
-    return this.usersService.create(dto);
+  create(@CurrentUser('sub') actorId: string, @Body() dto: CreateUserDto) {
+    return this.usersService.create(dto, actorId);
   }
 
   @Get()

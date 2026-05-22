@@ -417,9 +417,9 @@ function SidebarContent({
       )}
 
       {/* Scrollable nav */}
-      <ScrollArea.Root type='hover' className='flex-1 overflow-hidden'>
+      <ScrollArea.Root type='auto' className='flex-1 overflow-hidden'>
         <ScrollArea.Viewport className='size-full'>
-          <nav aria-label='Menu principal'>
+          <nav aria-label='Menu principal' className='pb-3'>
             {/* ── Home ── */}
             {isExpanded ? (
               <SectionLabel title='Home'>

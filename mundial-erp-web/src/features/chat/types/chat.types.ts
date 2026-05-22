@@ -97,7 +97,7 @@ export type CreateChannelPayload = {
 };
 
 export type CreateDmPayload = {
-  userIds?: string[];
+  participantIds?: string[];
 };
 
 export type UpdateChannelPayload = {

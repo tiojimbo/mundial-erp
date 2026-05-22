@@ -4,7 +4,6 @@ import { useMemo, useState } from 'react';
 import {
   RiListCheck2,
   RiLayoutColumnLine,
-  RiChat1Line,
   RiPushpinLine,
   RiAddLine,
 } from '@remixicon/react';
@@ -72,13 +71,6 @@ export function ProcessListView({
 
         {/* Tabs */}
         <nav className="flex items-center overflow-x-auto border-b-[0.25px] border-stroke-soft-200 px-10">
-          <button
-            type="button"
-            className="relative flex h-[35.5px] items-center gap-1.5 px-3 py-2 text-[13px] font-medium text-text-sub-600 transition-colors hover:text-text-strong-950"
-          >
-            <RiChat1Line className="size-4" />
-            Canal
-          </button>
           <button
             type="button"
             onClick={() => setActiveView('list')}

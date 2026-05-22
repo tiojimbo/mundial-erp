@@ -5,7 +5,8 @@ import * as Dialog from '@radix-ui/react-dialog';
 import { RiCloseLine, RiSearchLine } from '@remixicon/react';
 import { useRouter } from 'next/navigation';
 import { useCreateDm } from '../hooks/use-channels';
-import { useUsers } from '@/features/settings/hooks/use-users';
+import { useWorkspaceMembers } from '@/features/workspaces/hooks/use-workspace-members';
+import { useWorkspaceStore } from '@/stores/workspace.store';
 import { useAuth } from '@/providers/auth-provider';
 import { useChatStore } from '@/stores/chat.store';
 
@@ -52,14 +53,22 @@ export function CreateDmDialog({ open, onOpenChange }: CreateDmDialogProps) {
   const setActiveChannel = useChatStore((s) => s.setActiveChannel);
   const router = useRouter();
 
-  const { data: usersData, isLoading } = useUsers({
-    limit: 10000,
-    sortBy: 'name',
-    sortOrder: 'asc',
+  const workspaceId = useWorkspaceStore((s) => s.currentWorkspace?.id ?? '');
+  const { data: membersData, isLoading } = useWorkspaceMembers(workspaceId, {
+    limit: 100,
   });
 
   const users = useMemo(() => {
-    const all = usersData?.data ?? [];
+    const rows = (membersData?.data ?? []) as Array<{
+      userId: string;
+      userName?: string;
+      userEmail?: string;
+    }>;
+    const all = rows.map((m) => ({
+      id: m.userId,
+      name: m.userName ?? '',
+      email: m.userEmail ?? '',
+    }));
     const filtered = all.filter((u) => u.id !== currentUser?.id);
     if (!search.trim()) return filtered;
     const q = search.toLowerCase();
@@ -68,7 +77,7 @@ export function CreateDmDialog({ open, onOpenChange }: CreateDmDialogProps) {
         u.name.toLowerCase().includes(q) ||
         u.email.toLowerCase().includes(q),
     );
-  }, [usersData, currentUser?.id, search]);
+  }, [membersData, currentUser?.id, search]);
 
   function handleOpenChange(nextOpen: boolean) {
     if (!nextOpen) setSearch('');
@@ -78,7 +87,7 @@ export function CreateDmDialog({ open, onOpenChange }: CreateDmDialogProps) {
   const handleSelectUser = (userId: string) => {
     if (isPending) return;
     createDm(
-      { userIds: [userId] },
+      { participantIds: [userId] },
       {
         onSuccess: (channel) => {
           setActiveChannel(channel.id);

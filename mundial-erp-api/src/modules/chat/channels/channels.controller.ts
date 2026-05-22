@@ -68,7 +68,7 @@ export class ChannelsController {
     );
   }
 
-  @Post('direct-message')
+  @Post('direct')
   @ApiOperation({ summary: 'Criar DM idempotente (ClickUp #9)' })
   @ApiResponse({ status: 201, type: ChannelResponseDto })
   createDm(

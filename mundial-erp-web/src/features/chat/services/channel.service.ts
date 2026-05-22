@@ -41,7 +41,7 @@ export const channelService = {
 
   async createDm(payload: CreateDmPayload): Promise<Channel> {
     const { data } = await api.post<ApiResponse<Channel>>(
-      '/chat/channels/direct-message',
+      '/chat/channels/direct',
       payload,
     );
     return data.data;

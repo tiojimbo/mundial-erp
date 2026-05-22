@@ -19,6 +19,21 @@ export class TaskStatusSummaryDto {
 }
 
 /**
+ * Assignee sumarizado para listagens — shape consumido pelo front
+ * (`taskAssigneeSchema`: userId/userName/isPrimary).
+ */
+export class TaskListAssigneeDto {
+  @ApiProperty()
+  userId!: string;
+
+  @ApiPropertyOptional({ nullable: true })
+  userName!: string | null;
+
+  @ApiProperty()
+  isPrimary!: boolean;
+}
+
+/**
  * Resposta sumarizada de task (list). PLANO-TASKS.md §7.1: Prisma `select`
  * obrigatorio -> DTO reflete o shape retornado pelo repository.
  *
@@ -55,6 +70,9 @@ export class TaskResponseDto {
   /** ADR-001: externo = `assigneeId`; interno = `primaryAssigneeCache`. */
   @ApiPropertyOptional({ nullable: true })
   assigneeId!: string | null;
+
+  @ApiProperty({ type: [TaskListAssigneeDto] })
+  assignees!: TaskListAssigneeDto[];
 
   @ApiProperty()
   creatorId!: string;
@@ -148,6 +166,18 @@ export class TaskResponseDto {
     dto.priority = row.priority as TaskPriority;
     // ADR-001: preserva nome externo.
     dto.assigneeId = (row.primaryAssigneeCache as string | null) ?? null;
+    const assigneeRows = (row.assignees as
+      | Array<{
+          userId: string;
+          isPrimary: boolean;
+          user: { name: string | null } | null;
+        }>
+      | undefined) ?? [];
+    dto.assignees = assigneeRows.map((a) => ({
+      userId: a.userId,
+      userName: a.user?.name ?? null,
+      isPrimary: a.isPrimary,
+    }));
     dto.creatorId = row.creatorId as string;
     dto.parentId = (row.parentId as string | null) ?? null;
     dto.startDate = (row.startDate as Date | null) ?? null;

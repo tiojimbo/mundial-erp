@@ -106,7 +106,7 @@ export class ChannelsService {
     workspaceId: string,
   ): Promise<ChannelResponseDto> {
     const participantIds = [
-      ...new Set([userId, ...(dto.userIds ?? [])]),
+      ...new Set([userId, ...(dto.participantIds ?? [])]),
     ].sort();
     const hash = createHash('sha256')
       .update(participantIds.join(':'))
