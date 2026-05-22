@@ -6,13 +6,6 @@ import { TaskResponseDto } from './task-response.dto';
  * Cada seccao e `null` quando nao solicitada, `[]`/objetos quando presente.
  */
 
-export class TaskAssigneeSummaryDto {
-  id!: string;
-  name!: string;
-  email!: string;
-  isPrimary!: boolean;
-}
-
 export class TaskWatcherSummaryDto {
   id!: string;
   name!: string;
@@ -44,9 +37,6 @@ export class TaskDetailResponseDto extends TaskResponseDto {
 
   @ApiPropertyOptional({ type: [TaskTagSummaryDto] })
   tags?: TaskTagSummaryDto[];
-
-  @ApiPropertyOptional({ type: [TaskAssigneeSummaryDto] })
-  assignees?: TaskAssigneeSummaryDto[];
 
   @ApiPropertyOptional({ type: [TaskWatcherSummaryDto] })
   watchers?: TaskWatcherSummaryDto[];

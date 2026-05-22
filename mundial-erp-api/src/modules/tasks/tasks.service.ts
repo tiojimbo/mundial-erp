@@ -20,9 +20,11 @@ import { CreateTaskDto } from './dtos/create-task.dto';
 import { UpdateTaskDto } from './dtos/update-task.dto';
 import { AssignTaskDto } from './dtos/assign-task.dto';
 import { MergeTasksDto } from './dtos/merge-tasks.dto';
-import { TaskResponseDto } from './dtos/task-response.dto';
 import {
-  TaskAssigneeSummaryDto,
+  TaskResponseDto,
+  TaskListAssigneeDto,
+} from './dtos/task-response.dto';
+import {
   TaskDetailResponseDto,
   TaskWatcherSummaryDto,
 } from './dtos/task-detail-response.dto';
@@ -902,10 +904,9 @@ export class TasksService {
     if (includes.has('assignees')) {
       const assignees = await this.repository.findAssignees(taskId);
       dto.assignees = assignees.map(
-        (a): TaskAssigneeSummaryDto => ({
-          id: a.user.id,
-          name: a.user.name,
-          email: a.user.email,
+        (a): TaskListAssigneeDto => ({
+          userId: a.userId,
+          userName: a.user.name,
           isPrimary: a.isPrimary,
         }),
       );
