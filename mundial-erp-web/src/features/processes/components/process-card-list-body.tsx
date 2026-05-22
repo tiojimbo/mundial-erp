@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useMemo, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { RiArrowDownSLine } from '@remixicon/react';
@@ -18,13 +18,20 @@ import {
 import { cn } from '@/lib/cn';
 import { StatusIcon } from './status-icon';
 import { StatusIconPopover } from './status-icon-popover';
+import { CustomFieldCell } from './custom-field-cell';
+import { ColumnFieldsDrawer } from './column-fields-drawer';
 import { formatShortDate } from '@/lib/formatters';
 import { useTasksSelectionStore } from '@/stores/tasks-selection.store';
+import { useProcessViews } from '@/features/process-views/hooks/use-process-views';
+import { useCustomFieldDefinitions } from '@/features/custom-fields/hooks/use-custom-field-definitions';
+import type { CustomFieldDefinition } from '@/features/custom-fields/types/custom-field.types';
 import type {
   ProcessSummaryList,
   StatusGroupSummary,
   TaskItemSummary,
 } from '@/features/navigation/types/process-summary.types';
+
+const CF_COLUMN_WIDTH = 200;
 
 const COLUMN_HEADERS = [
   { col: 'NAME', label: 'Nome', width: 400, resizable: true },
@@ -41,6 +48,32 @@ type ProcessCardListBodyProps = {
 export function ProcessCardListBody({
   process,
 }: ProcessCardListBodyProps) {
+  const [columnsDrawerOpen, setColumnsDrawerOpen] = useState(false);
+  const viewsQuery = useProcessViews(process.id);
+  const definitionsQuery = useCustomFieldDefinitions({ listId: process.id });
+
+  const customColumns = useMemo<CustomFieldDefinition[]>(() => {
+    const listView = (viewsQuery.data ?? []).find((v) => v.viewType === 'LIST');
+    const cfg = listView?.config as { visibleCustomFields?: string[] } | undefined;
+    const visibleIds = Array.isArray(cfg?.visibleCustomFields)
+      ? cfg!.visibleCustomFields
+      : [];
+    if (visibleIds.length === 0) return [];
+    const grouped = definitionsQuery.data;
+    if (!grouped) return [];
+    const all = [
+      ...grouped.taskType,
+      ...grouped.list,
+      ...grouped.folder,
+      ...grouped.space,
+      ...(grouped.workspace ?? []),
+    ] as CustomFieldDefinition[];
+    const byId = new Map(all.map((d) => [d.id, d]));
+    return visibleIds
+      .map((id) => byId.get(id))
+      .filter((d): d is CustomFieldDefinition => Boolean(d));
+  }, [viewsQuery.data, definitionsQuery.data]);
+
   if (process.groups.length === 0) {
     return (
       <div className="px-5 pb-4">
@@ -64,8 +97,15 @@ export function ProcessCardListBody({
           key={group.statusId}
           group={group}
           listId={process.id}
+          customColumns={customColumns}
+          onAddColumn={() => setColumnsDrawerOpen(true)}
         />
       ))}
+      <ColumnFieldsDrawer
+        open={columnsDrawerOpen}
+        onClose={() => setColumnsDrawerOpen(false)}
+        listId={process.id}
+      />
     </div>
   );
 }
@@ -73,9 +113,13 @@ export function ProcessCardListBody({
 function StatusGroupSection({
   group,
   listId,
+  customColumns,
+  onAddColumn,
 }: {
   group: StatusGroupSummary;
   listId: string;
+  customColumns: CustomFieldDefinition[];
+  onAddColumn: () => void;
 }) {
   const [expanded, setExpanded] = useState(true);
 
@@ -180,6 +224,24 @@ function StatusGroupSection({
                   </div>
                 </div>
               ))}
+              {customColumns.map((def, idx) => (
+                <div
+                  key={def.id}
+                  role="columnheader"
+                  aria-colindex={COLUMN_HEADERS.length + idx + 1}
+                  data-col={`CF_${def.id}`}
+                  className="relative flex shrink-0 items-center"
+                  style={{ width: CF_COLUMN_WIDTH }}
+                >
+                  <div className="mt-2 w-full px-4 py-2">
+                    <div className="flex min-w-0 items-center gap-1.5">
+                      <span className="min-w-0 truncate font-medium whitespace-nowrap">
+                        {def.name}
+                      </span>
+                    </div>
+                  </div>
+                </div>
+              ))}
             </div>
 
             {/* Add column */}
@@ -191,6 +253,7 @@ function StatusGroupSection({
                 type="button"
                 data-slot="button"
                 aria-label="Adicionar coluna"
+                onClick={onAddColumn}
                 className="inline-flex size-9 cursor-pointer items-center justify-center gap-2 whitespace-nowrap rounded-none text-sm font-medium outline-none transition-all hover:bg-accent hover:text-accent-foreground focus-visible:border-ring focus-visible:ring-ring/50 focus-visible:ring-[3px]"
               >
                 <Plus className="size-4" aria-hidden />
@@ -205,6 +268,7 @@ function StatusGroupSection({
               item={item}
               group={group}
               listId={listId}
+              customColumns={customColumns}
             />
           ))}
 
@@ -225,10 +289,12 @@ function TaskRow({
   item,
   group,
   listId,
+  customColumns,
 }: {
   item: TaskItemSummary;
   group: StatusGroupSummary;
   listId: string;
+  customColumns: CustomFieldDefinition[];
 }) {
   const router = useRouter();
   const isSelected = useTasksSelectionStore((s) => s.selectedIds.includes(item.id));
@@ -507,6 +573,16 @@ function TaskRow({
             </div>
           </div>
         </div>
+
+        {/* Colunas de custom fields */}
+        {customColumns.map((def) => (
+          <CustomFieldCell
+            key={def.id}
+            taskId={item.id}
+            definition={def}
+            width={200}
+          />
+        ))}
       </div>
     </div>
   );

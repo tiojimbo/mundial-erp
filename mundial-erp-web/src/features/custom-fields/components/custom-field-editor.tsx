@@ -33,6 +33,7 @@ export interface CustomFieldEditorProps {
   onChange: (next: CustomFieldRawValue) => void;
   readOnly?: boolean;
   error?: string;
+  inline?: boolean;
 }
 
 export function CustomFieldEditor(props: CustomFieldEditorProps) {
@@ -92,6 +93,7 @@ function castStringProps(props: CustomFieldEditorProps): {
   onChange: (next: CustomFieldRawValue) => void;
   readOnly?: boolean;
   error?: string;
+  inline?: boolean;
 } {
   const { value } = props;
   const stringValue =
@@ -105,6 +107,7 @@ function castNumberProps(props: CustomFieldEditorProps): {
   onChange: (next: CustomFieldRawValue) => void;
   readOnly?: boolean;
   error?: string;
+  inline?: boolean;
 } {
   const { value } = props;
   let numberValue: number | null = null;
@@ -122,6 +125,7 @@ function castBooleanProps(props: CustomFieldEditorProps): {
   onChange: (next: CustomFieldRawValue) => void;
   readOnly?: boolean;
   error?: string;
+  inline?: boolean;
 } {
   const { value } = props;
   let boolValue: boolean | null = null;
@@ -137,6 +141,7 @@ function castStringArrayProps(props: CustomFieldEditorProps): {
   onChange: (next: CustomFieldRawValue) => void;
   readOnly?: boolean;
   error?: string;
+  inline?: boolean;
 } {
   const { value } = props;
   const arrayValue = Array.isArray(value)
@@ -151,6 +156,7 @@ function castRollupProps(props: CustomFieldEditorProps): {
   onChange: (next: CustomFieldRawValue) => void;
   readOnly?: boolean;
   error?: string;
+  inline?: boolean;
 } {
   const { value } = props;
   if (typeof value === 'number' || typeof value === 'string' || value === null) {

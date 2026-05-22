@@ -20,3 +20,8 @@ export type CreateProcessViewPayload = {
   viewType: ProcessViewType;
   config?: Record<string, unknown>;
 };
+
+export type UpdateProcessViewPayload = {
+  name?: string;
+  config?: Record<string, unknown>;
+};

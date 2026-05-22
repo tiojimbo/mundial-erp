@@ -13,10 +13,11 @@ import {
   RiDeleteBinLine,
   RiAddLine,
 } from '@remixicon/react';
-import { Group } from 'lucide-react';
+import { Columns3, Group } from 'lucide-react';
 import * as Popover from '@/components/ui/popover';
 import { CustomFieldsManagerDialog } from '@/features/custom-fields/components/manager/custom-fields-manager-dialog';
 import type { ManagerView } from '@/features/custom-fields/hooks/use-custom-fields-manager-state';
+import { ColumnFieldsDrawer } from './column-fields-drawer';
 
 const GROUP_OPTIONS = [
   { value: 'status', label: 'Status' },
@@ -65,6 +66,9 @@ export function ProcessToolbar({
   const [groupBy, setGroupBy] = useState<GroupByValue>('status');
   const [groupOrder, setGroupOrder] = useState<'asc' | 'desc'>('asc');
   const [cfManagerOpen, setCfManagerOpen] = useState(false);
+  const [columnsDrawerOpen, setColumnsDrawerOpen] = useState(false);
+  const listScopeId =
+    customFieldsScope?.kind === 'list' ? customFieldsScope.listId : null;
   const cfInitialView: ManagerView | undefined = customFieldsScope
     ? customFieldsScope.kind === 'space'
       ? { kind: 'space', spaceId: customFieldsScope.spaceId }
@@ -218,6 +222,18 @@ export function ProcessToolbar({
             />
           </div>
 
+          {/* Colunas: drawer de campos visiveis na list view */}
+          {listScopeId ? (
+            <button
+              type="button"
+              aria-label="Configurar colunas da lista"
+              onClick={() => setColumnsDrawerOpen(true)}
+              className="flex size-7 items-center justify-center rounded-md text-muted-foreground transition-colors hover:bg-accent hover:text-foreground"
+            >
+              <Columns3 className="size-3.5" />
+            </button>
+          ) : null}
+
           {/* Config icon button: gerenciar campos personalizados deste escopo */}
           <button
             type="button"
@@ -246,6 +262,13 @@ export function ProcessToolbar({
           open={cfManagerOpen}
           onClose={() => setCfManagerOpen(false)}
           initialView={cfInitialView}
+        />
+      ) : null}
+      {listScopeId ? (
+        <ColumnFieldsDrawer
+          open={columnsDrawerOpen}
+          onClose={() => setColumnsDrawerOpen(false)}
+          listId={listScopeId}
         />
       ) : null}
     </div>
