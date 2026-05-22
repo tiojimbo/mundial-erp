@@ -2,173 +2,42 @@
 
 import { useMemo, useState } from 'react';
 import * as Popover from '@radix-ui/react-popover';
-import {
-  AtSign,
-  BadgeCheck,
-  Bell,
-  Bookmark,
-  Briefcase,
-  Building,
-  Calendar,
-  Camera,
-  CircleAlert,
-  CircleCheck,
-  CircleCheckBig,
-  CircleDot,
-  CircleHelp,
-  CircleMinus,
-  CirclePlus,
-  CircleX,
-  Circle,
-  Clock,
-  Contact,
-  Crown,
-  Diamond,
-  Eye,
-  EyeOff,
-  File,
-  FileCheck,
-  FilePlus,
-  FileText,
-  Flag,
-  Flame,
-  Folder,
-  Globe,
-  Hash,
-  Heart,
-  HeartPulse,
-  Hexagon,
-  Image as ImageIcon,
-  Info,
-  Key,
-  Landmark,
-  Lightbulb,
-  Link as LinkIcon,
-  ListTodo,
-  Lock,
-  LockOpen,
-  Mail,
-  MapPin,
-  Medal,
-  Megaphone,
-  MessageCircle,
-  Music,
-  Newspaper,
-  NotebookText,
-  Paperclip,
-  Phone,
-  Rocket,
-  ScrollText,
-  Search,
-  Send,
-  Shield,
-  Sparkles,
-  Square,
-  SquareCheckBig,
-  Star,
-  Store,
-  Tag,
-  Target,
-  ToggleLeft,
-  ToggleRight,
-  Triangle,
-  TriangleAlert,
-  Trophy,
-  User,
-  UserCheck,
-  UserPlus,
-  Users,
-  UsersRound,
-  Video,
-  Zap,
-  type LucideIcon,
-} from 'lucide-react';
+import * as LucideIcons from 'lucide-react';
+import { CircleDot, Search, type LucideIcon } from 'lucide-react';
 import { cn } from '@/lib/cn';
 
 export type IconEntry = { name: string; Icon: LucideIcon };
 
-export const AVAILABLE_ICONS: IconEntry[] = [
-  { name: 'CircleDot', Icon: CircleDot },
-  { name: 'Diamond', Icon: Diamond },
-  { name: 'Flag', Icon: Flag },
-  { name: 'Bookmark', Icon: Bookmark },
-  { name: 'Zap', Icon: Zap },
-  { name: 'Target', Icon: Target },
-  { name: 'Hexagon', Icon: Hexagon },
-  { name: 'Triangle', Icon: Triangle },
-  { name: 'Square', Icon: Square },
-  { name: 'Circle', Icon: Circle },
-  { name: 'Star', Icon: Star },
-  { name: 'Rocket', Icon: Rocket },
-  { name: 'ToggleRight', Icon: ToggleRight },
-  { name: 'ToggleLeft', Icon: ToggleLeft },
-  { name: 'Megaphone', Icon: Megaphone },
-  { name: 'File', Icon: File },
-  { name: 'FileText', Icon: FileText },
-  { name: 'FileCheck', Icon: FileCheck },
-  { name: 'FilePlus', Icon: FilePlus },
-  { name: 'ScrollText', Icon: ScrollText },
-  { name: 'Newspaper', Icon: Newspaper },
-  { name: 'NotebookText', Icon: NotebookText },
-  { name: 'User', Icon: User },
-  { name: 'Users', Icon: Users },
-  { name: 'UserCheck', Icon: UserCheck },
-  { name: 'UserPlus', Icon: UserPlus },
-  { name: 'UsersRound', Icon: UsersRound },
-  { name: 'Contact', Icon: Contact },
-  { name: 'Briefcase', Icon: Briefcase },
-  { name: 'Building', Icon: Building },
-  { name: 'Store', Icon: Store },
-  { name: 'Landmark', Icon: Landmark },
-  { name: 'Folder', Icon: Folder },
-  { name: 'Calendar', Icon: Calendar },
-  { name: 'Clock', Icon: Clock },
-  { name: 'CircleCheckBig', Icon: CircleCheckBig },
-  { name: 'CircleCheck', Icon: CircleCheck },
-  { name: 'SquareCheckBig', Icon: SquareCheckBig },
-  { name: 'BadgeCheck', Icon: BadgeCheck },
-  { name: 'ListTodo', Icon: ListTodo },
-  { name: 'CircleAlert', Icon: CircleAlert },
-  { name: 'TriangleAlert', Icon: TriangleAlert },
-  { name: 'CircleX', Icon: CircleX },
-  { name: 'CircleMinus', Icon: CircleMinus },
-  { name: 'CirclePlus', Icon: CirclePlus },
-  { name: 'Info', Icon: Info },
-  { name: 'CircleHelp', Icon: CircleHelp },
-  { name: 'Bell', Icon: Bell },
-  { name: 'Heart', Icon: Heart },
-  { name: 'HeartPulse', Icon: HeartPulse },
-  { name: 'Shield', Icon: Shield },
-  { name: 'Lock', Icon: Lock },
-  { name: 'LockOpen', Icon: LockOpen },
-  { name: 'Key', Icon: Key },
-  { name: 'Eye', Icon: Eye },
-  { name: 'EyeOff', Icon: EyeOff },
-  { name: 'Globe', Icon: Globe },
-  { name: 'MapPin', Icon: MapPin },
-  { name: 'Phone', Icon: Phone },
-  { name: 'Mail', Icon: Mail },
-  { name: 'MessageCircle', Icon: MessageCircle },
-  { name: 'Send', Icon: Send },
-  { name: 'Link', Icon: LinkIcon },
-  { name: 'Paperclip', Icon: Paperclip },
-  { name: 'Image', Icon: ImageIcon },
-  { name: 'Camera', Icon: Camera },
-  { name: 'Video', Icon: Video },
-  { name: 'Music', Icon: Music },
-  { name: 'Hash', Icon: Hash },
-  { name: 'AtSign', Icon: AtSign },
-  { name: 'Tag', Icon: Tag },
-  { name: 'Sparkles', Icon: Sparkles },
-  { name: 'Lightbulb', Icon: Lightbulb },
-  { name: 'Flame', Icon: Flame },
-  { name: 'Crown', Icon: Crown },
-  { name: 'Trophy', Icon: Trophy },
-  { name: 'Medal', Icon: Medal },
-];
+const seen = new Set<unknown>();
+export const AVAILABLE_ICONS: IconEntry[] = Object.entries(
+  LucideIcons as Record<string, unknown>,
+)
+  .filter(
+    ([name, value]) =>
+      value != null &&
+      (typeof value === 'object' || typeof value === 'function') &&
+      /^[A-Z]/.test(name) &&
+      !name.endsWith('Icon') &&
+      !name.startsWith('Lucide'),
+  )
+  .filter(([, value]) => {
+    if (seen.has(value)) return false;
+    seen.add(value);
+    return true;
+  })
+  .map(([name, Icon]) => ({ name, Icon: Icon as LucideIcon }))
+  .sort((a, b) => a.name.localeCompare(b.name));
 
 const ICON_MAP: Record<string, LucideIcon> = Object.fromEntries(
-  AVAILABLE_ICONS.map((entry) => [entry.name, entry.Icon]),
+  Object.entries(LucideIcons as Record<string, unknown>)
+    .filter(
+      ([name, value]) =>
+        value != null &&
+        (typeof value === 'object' || typeof value === 'function') &&
+        /^[A-Z]/.test(name) &&
+        !name.startsWith('Lucide'),
+    )
+    .map(([name, Icon]) => [name, Icon as LucideIcon]),
 );
 
 export function getIconByName(name?: string | null): LucideIcon {
@@ -208,12 +77,11 @@ export function IconPicker({ value, onChange }: Props) {
           <SelectedIcon className='h-4 w-4' />
         </button>
       </Popover.Trigger>
-      <Popover.Portal>
-        <Popover.Content
-          align='start'
-          sideOffset={4}
-          className='z-[70] w-[360px] overflow-hidden rounded-md border border-border bg-popover text-popover-foreground shadow-md'
-        >
+      <Popover.Content
+        align='start'
+        sideOffset={4}
+        className='z-[70] w-[360px] overflow-hidden rounded-md border border-border bg-popover text-popover-foreground shadow-md'
+      >
           <div className='border-b border-border p-2'>
             <div className='flex items-center gap-2 rounded-md border border-border px-2'>
               <Search
@@ -259,8 +127,7 @@ export function IconPicker({ value, onChange }: Props) {
               </div>
             )}
           </div>
-        </Popover.Content>
-      </Popover.Portal>
+      </Popover.Content>
     </Popover.Root>
   );
 }

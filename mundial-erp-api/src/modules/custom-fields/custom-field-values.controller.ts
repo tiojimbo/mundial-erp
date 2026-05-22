@@ -10,6 +10,7 @@ import { Throttle } from '@nestjs/throttler';
 import { CustomFieldValuesService } from './custom-field-values.service';
 import { CustomFieldValueResponseDto } from './dtos/custom-field-value-response.dto';
 import { SetCustomFieldValueDto } from './dtos/set-custom-field-value.dto';
+import { SetCustomFieldValuesBulkDto } from './dtos/set-custom-field-values-bulk.dto';
 import { CurrentUser, Roles } from '../auth/decorators';
 import type { JwtPayload } from '../auth/decorators';
 import { WorkspaceId } from '../workspaces/decorators/workspace-id.decorator';
@@ -90,6 +91,30 @@ export class CustomFieldValuesController {
       taskId,
       definitionId,
       dto.value,
+      user.sub,
+    );
+  }
+
+  @Put('custom-fields/task/:taskId/fields')
+  @Roles(Role.ADMIN, Role.MANAGER, Role.OPERATOR)
+  @Throttle({ default: { limit: 60, ttl: 60_000 } })
+  @ApiOperation({
+    summary: 'Definir valores de varios custom fields da tarefa (bulk)',
+  })
+  @ApiResponse({
+    status: 200,
+    description: 'Valores processados — { updated, failed }',
+  })
+  setValuesBulk(
+    @WorkspaceId() workspaceId: string,
+    @Param('taskId') taskId: string,
+    @Body() dto: SetCustomFieldValuesBulkDto,
+    @CurrentUser() user: JwtPayload,
+  ) {
+    return this.service.setValuesBulk(
+      workspaceId,
+      taskId,
+      dto.values,
       user.sub,
     );
   }

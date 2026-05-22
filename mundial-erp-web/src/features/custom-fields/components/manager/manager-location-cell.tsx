@@ -2,7 +2,7 @@
 
 import { useMemo, useState } from 'react';
 import { Command } from 'cmdk';
-import { Folder, Globe, List as ListIcon, Search, X } from 'lucide-react';
+import { Building2, Folder, Globe, List as ListIcon, Search, X } from 'lucide-react';
 import { toast } from 'sonner';
 import { useSidebarTree } from '@/features/navigation/hooks/use-sidebar-tree';
 import { cn } from '@/lib/cn';
@@ -37,8 +37,6 @@ export function ManagerLocationCell({ def }: ManagerLocationCellProps) {
   const treeQuery = useSidebarTree();
   const addLocation = useAddCustomFieldLocation();
   const removeLocation = useRemoveCustomFieldLocation();
-
-  const isBuiltin = def.fixed;
 
   const flatOptions = useMemo<{
     spaces: FlatLocation[];
@@ -101,7 +99,6 @@ export function ManagerLocationCell({ def }: ManagerLocationCellProps) {
     type: CustomFieldLocationType,
     id: string,
   ) => {
-    if (isBuiltin) return;
     try {
       if (current) {
         await removeLocation.mutateAsync({
@@ -124,7 +121,7 @@ export function ManagerLocationCell({ def }: ManagerLocationCellProps) {
   };
 
   const handleRemoveCurrent = async () => {
-    if (isBuiltin || !current) return;
+    if (!current) return;
     try {
       await removeLocation.mutateAsync({
         customFieldId: def.id,
@@ -149,16 +146,18 @@ export function ManagerLocationCell({ def }: ManagerLocationCellProps) {
       </span>
     </span>
   ) : (
-    <span className="text-muted-foreground text-paragraph-xs">Workspace</span>
+    <span className="text-foreground inline-flex items-center gap-1 rounded-md border px-2 py-0.5 text-paragraph-xs font-normal">
+      <Building2 className="h-3 w-3" />
+      <span className="max-w-[100px] truncate">Workspace</span>
+    </span>
   );
 
   return (
     <div className="relative inline-block">
       <button
         type="button"
-        disabled={isBuiltin}
         onClick={() => setOpen((v) => !v)}
-        className="hover:bg-accent flex cursor-pointer items-center gap-1 rounded-md px-1 py-0.5 transition-colors disabled:cursor-not-allowed disabled:opacity-50"
+        className="hover:bg-accent flex cursor-pointer items-center gap-1 rounded-md px-1 py-0.5 transition-colors"
       >
         {triggerContent}
       </button>
@@ -185,26 +184,26 @@ export function ManagerLocationCell({ def }: ManagerLocationCellProps) {
                   <span className="flex-1 truncate text-paragraph-sm">
                     {labelMap.get(`${current.type}:${current.id}`) ?? current.id}
                   </span>
-                  {!isBuiltin ? (
-                    <button
-                      type="button"
-                      aria-label="Remover localização"
-                      onClick={handleRemoveCurrent}
-                      className="text-muted-foreground hover:text-destructive opacity-0 transition-opacity group-hover/loc:opacity-100"
-                    >
-                      <X className="h-3.5 w-3.5" />
-                    </button>
-                  ) : null}
+                  <button
+                    type="button"
+                    aria-label="Remover localização"
+                    onClick={handleRemoveCurrent}
+                    className="text-muted-foreground hover:text-destructive opacity-0 transition-opacity group-hover/loc:opacity-100"
+                  >
+                    <X className="h-3.5 w-3.5" />
+                  </button>
                 </div>
               ) : (
-                <p className="text-muted-foreground px-2 py-1.5 text-paragraph-xs">
-                  Nenhuma location
-                </p>
+                <div className="flex items-center gap-2 rounded-md px-2 py-1.5">
+                  <Building2 className="h-3 w-3 text-muted-foreground" />
+                  <span className="flex-1 truncate text-paragraph-sm">
+                    Workspace
+                  </span>
+                </div>
               )}
             </div>
-            {!isBuiltin ? (
-              <div className="border-t">
-                <Command className="flex h-full w-full flex-col overflow-hidden rounded-md bg-popover text-popover-foreground">
+            <div className="border-t">
+              <Command className="flex h-full w-full flex-col overflow-hidden rounded-md bg-popover text-popover-foreground">
                   <div className="flex h-9 items-center gap-2 border-b px-3">
                     <Search className="size-4 shrink-0 opacity-50" />
                     <Command.Input
@@ -246,7 +245,6 @@ export function ManagerLocationCell({ def }: ManagerLocationCellProps) {
                   </Command.List>
                 </Command>
               </div>
-            ) : null}
           </div>
         </>
       ) : null}

@@ -149,6 +149,10 @@ export class CustomFieldDefinitionsService {
       const F = folderIdsOf(entity);
       const S = spaceIdsOf(entity);
 
+      if (isWorkspaceLevel(entity)) {
+        grouped.workspace.push(toDto(entity));
+      }
+
       if (filters.listId && L.has(filters.listId)) {
         grouped.list.push(toDto(entity));
       }
@@ -498,10 +502,7 @@ export class CustomFieldDefinitionsService {
     if (!visible) {
       throw new NotFoundException('Custom field definition nao encontrada');
     }
-    if (visible.workspaceId === null || visible.isBuiltin) {
-      throw new ForbiddenException(BUILTIN_LOCK_MESSAGE);
-    }
-    if (visible.workspaceId !== workspaceId) {
+    if (visible.workspaceId !== null && visible.workspaceId !== workspaceId) {
       throw new NotFoundException('Custom field definition nao encontrada');
     }
 
@@ -531,10 +532,7 @@ export class CustomFieldDefinitionsService {
     if (!visible) {
       throw new NotFoundException('Custom field definition nao encontrada');
     }
-    if (visible.workspaceId === null || visible.isBuiltin) {
-      throw new ForbiddenException(BUILTIN_LOCK_MESSAGE);
-    }
-    if (visible.workspaceId !== workspaceId) {
+    if (visible.workspaceId !== null && visible.workspaceId !== workspaceId) {
       throw new NotFoundException('Custom field definition nao encontrada');
     }
 

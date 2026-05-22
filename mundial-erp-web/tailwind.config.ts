@@ -646,6 +646,7 @@ const config = {
         'collapsible-down': 'collapsible-down 0.15s ease-out',
         'collapsible-up': 'collapsible-up 0.15s ease-out',
         'feature-in': 'feature-in 600ms ease-out',
+        'dot-progress': 'dot-progress 4000ms linear forwards',
       },
       keyframes: {
         'accordion-down': {
@@ -673,6 +674,10 @@ const config = {
         'feature-in': {
           '0%': { opacity: '0', transform: 'translateY(12px) scale(0.96)' },
           '100%': { opacity: '1', transform: 'translateY(0) scale(1)' },
+        },
+        'dot-progress': {
+          '0%': { width: '0%' },
+          '100%': { width: '100%' },
         },
       },
     },

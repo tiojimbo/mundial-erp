@@ -28,11 +28,28 @@ import {
   type LoginFormData,
 } from '@/features/auth/schemas/login.schema';
 
+const AUTOPLAY_MS = 4000;
 const FEATURES = [
-  { icon: RiTeamLine, label: 'Times centralizados' },
-  { icon: RiBarChartBoxLine, label: 'Métricas que importam' },
-  { icon: RiPulseLine, label: 'Dados em tempo real' },
-  { icon: RiSettings3Line, label: 'Configurável do jeito que você usa' },
+  {
+    icon: RiTeamLine,
+    label: 'Times centralizados',
+    description: 'Equipes, áreas e responsáveis num só painel',
+  },
+  {
+    icon: RiBarChartBoxLine,
+    label: 'Métricas que importam',
+    description: 'Indicadores reais do que move o resultado',
+  },
+  {
+    icon: RiPulseLine,
+    label: 'Dados em tempo real',
+    description: 'Atualização contínua, sem espera',
+  },
+  {
+    icon: RiSettings3Line,
+    label: 'Configurável do jeito que você usa',
+    description: 'Adapta ao fluxo do seu time, não o contrário',
+  },
 ] as const;
 
 export default function LoginPage() {
@@ -40,13 +57,15 @@ export default function LoginPage() {
   const [showPassword, setShowPassword] = useState(false);
   const [serverError, setServerError] = useState<string | null>(null);
   const [activeFeature, setActiveFeature] = useState(0);
+  const [isPaused, setIsPaused] = useState(false);
 
   useEffect(() => {
+    if (isPaused) return;
     const id = setInterval(() => {
       setActiveFeature((i) => (i + 1) % FEATURES.length);
-    }, 4000);
+    }, AUTOPLAY_MS);
     return () => clearInterval(id);
-  }, []);
+  }, [isPaused]);
 
   const {
     register,
@@ -229,45 +248,83 @@ export default function LoginPage() {
 
         <div className='relative z-10 flex h-full w-full flex-col'>
           <div className='flex flex-1 items-center justify-center px-12'>
-            <div className='flex max-w-md flex-col items-center gap-12'>
+            <div
+              className='flex max-w-md flex-col items-center gap-12'
+              onMouseEnter={() => setIsPaused(true)}
+              onMouseLeave={() => setIsPaused(false)}
+            >
               <h2 className='text-center text-title-h3 text-static-white'>
                 {siteConfig.tagline}
               </h2>
 
               <div
                 key={activeFeature}
-                className='flex animate-feature-in flex-col items-center gap-6'
+                className='relative flex animate-feature-in flex-col items-center gap-5'
                 aria-live='polite'
               >
+                <span
+                  className='pointer-events-none absolute -inset-16 rounded-full bg-static-white/10 blur-3xl transition-transform duration-700'
+                  style={{
+                    transform: `translateX(${(activeFeature - (FEATURES.length - 1) / 2) * 28}px)`,
+                  }}
+                  aria-hidden
+                />
                 {(() => {
                   const Icon = FEATURES[activeFeature].icon;
                   return (
-                    <span className='flex size-20 items-center justify-center rounded-2xl bg-static-white/10 ring-1 ring-inset ring-static-white/20'>
-                      <Icon className='size-10 text-static-white' />
+                    <span className='relative flex size-24 items-center justify-center rounded-2xl bg-static-white/10 ring-1 ring-inset ring-static-white/20 backdrop-blur-sm'>
+                      <span
+                        className='pointer-events-none absolute inset-0 rounded-2xl bg-gradient-to-br from-static-white/20 to-transparent'
+                        aria-hidden
+                      />
+                      <span
+                        className='pointer-events-none absolute -inset-1.5 rounded-3xl ring-1 ring-static-white/10'
+                        aria-hidden
+                      />
+                      <Icon className='relative size-10 text-static-white' />
                     </span>
                   );
                 })()}
-                <p className='text-center text-title-h5 text-static-white'>
-                  {FEATURES[activeFeature].label}
-                </p>
+                <div className='flex flex-col items-center gap-2'>
+                  <p className='text-center text-title-h5 text-static-white'>
+                    {FEATURES[activeFeature].label}
+                  </p>
+                  <p className='max-w-[20rem] text-center text-paragraph-md text-static-white/60'>
+                    {FEATURES[activeFeature].description}
+                  </p>
+                </div>
               </div>
 
               <div className='flex items-center gap-2' role='tablist'>
-                {FEATURES.map((feature, i) => (
-                  <button
-                    key={feature.label}
-                    type='button'
-                    role='tab'
-                    aria-selected={i === activeFeature}
-                    aria-label={feature.label}
-                    onClick={() => setActiveFeature(i)}
-                    className={
-                      i === activeFeature
-                        ? 'h-1.5 w-6 rounded-full bg-static-white transition-all duration-300'
-                        : 'h-1.5 w-1.5 rounded-full bg-static-white/30 transition-all duration-300 hover:bg-static-white/50'
-                    }
-                  />
-                ))}
+                {FEATURES.map((feature, i) => {
+                  const isActive = i === activeFeature;
+                  return (
+                    <button
+                      key={feature.label}
+                      type='button'
+                      role='tab'
+                      aria-selected={isActive}
+                      aria-label={feature.label}
+                      onClick={() => setActiveFeature(i)}
+                      className={
+                        isActive
+                          ? 'relative h-1.5 w-8 overflow-hidden rounded-full bg-static-white/25 transition-all duration-300'
+                          : 'h-1.5 w-1.5 rounded-full bg-static-white/30 transition-all duration-300 hover:bg-static-white/50'
+                      }
+                    >
+                      {isActive && (
+                        <span
+                          key={activeFeature}
+                          className='absolute inset-y-0 left-0 animate-dot-progress rounded-full bg-static-white'
+                          style={{
+                            animationPlayState: isPaused ? 'paused' : 'running',
+                          }}
+                          aria-hidden
+                        />
+                      )}
+                    </button>
+                  );
+                })}
               </div>
             </div>
           </div>

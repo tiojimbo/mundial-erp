@@ -1,12 +1,22 @@
 'use client';
 
 import { useEffect, useState } from 'react';
+import dynamic from 'next/dynamic';
 import { toast } from 'sonner';
 import { X } from 'lucide-react';
 import * as Dialog from '@radix-ui/react-dialog';
 import { useCreateCustomTaskType } from '@/features/tasks/hooks/use-custom-task-types';
-import { IconPicker } from './icon-picker';
 import { cn } from '@/lib/cn';
+
+const IconPicker = dynamic(
+  () => import('./icon-picker').then((m) => ({ default: m.IconPicker })),
+  {
+    ssr: false,
+    loading: () => (
+      <div className='h-9 w-9 rounded-md border border-border bg-muted/40' />
+    ),
+  },
+);
 
 type Props = {
   open: boolean;

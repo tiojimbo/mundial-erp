@@ -332,11 +332,48 @@ export class CustomFieldValuesService implements OnModuleDestroy {
     });
   }
 
+  async setValuesBulk(
+    workspaceId: string,
+    taskId: string,
+    items: { definitionId: string; value: unknown }[],
+    actorUserId: string,
+  ): Promise<{
+    updated: CustomFieldValueResponseDto[];
+    failed: { definitionId: string; reason: string }[];
+  }> {
+    const task = await this.valuesRepo.findTaskInWorkspace(workspaceId, taskId);
+    if (!task) {
+      throw new NotFoundException('Tarefa nao encontrada');
+    }
+    const updated: CustomFieldValueResponseDto[] = [];
+    const failed: { definitionId: string; reason: string }[] = [];
+    // Sucesso parcial: um campo invalido nao aborta os demais.
+    for (const item of items) {
+      try {
+        updated.push(
+          await this.setValue(
+            workspaceId,
+            taskId,
+            item.definitionId,
+            item.value,
+            actorUserId,
+          ),
+        );
+      } catch (err) {
+        failed.push({
+          definitionId: item.definitionId,
+          reason: err instanceof Error ? err.message : 'erro desconhecido',
+        });
+      }
+    }
+    return { updated, failed };
+  }
+
   async clearValue(
     workspaceId: string,
     taskId: string,
     definitionId: string,
-  ): Promise<CustomFieldValueResponseDto> {
+  ): Promise<void> {
     const task = await this.valuesRepo.findTaskInWorkspace(workspaceId, taskId);
     if (!task) {
       throw new NotFoundException('Tarefa nao encontrada');
@@ -350,17 +387,17 @@ export class CustomFieldValuesService implements OnModuleDestroy {
       throw new NotFoundException('Custom field definition nao encontrada');
     }
 
-    const beforeRow = this.automationEvents
-      ? await this.valuesRepo.findValueByPair(taskId, definitionId)
-      : null;
-    const beforeValue = beforeRow
-      ? this.extractScalar(definition.type, beforeRow)
-      : null;
-
-    const removed = await this.valuesRepo.deleteValue(taskId, definitionId);
-    if (!removed) {
-      throw new NotFoundException('Valor nao encontrado para esta tarefa');
+    const beforeRow = await this.valuesRepo.findValueByPair(
+      taskId,
+      definitionId,
+    );
+    // Idempotente: limpar um campo que ja esta vazio nao e erro.
+    if (!beforeRow) {
+      return;
     }
+    const beforeValue = this.extractScalar(definition.type, beforeRow);
+
+    await this.valuesRepo.deleteValue(taskId, definitionId);
 
     this.dedupCache.delete(`${taskId}:${definitionId}`);
 
@@ -384,10 +421,6 @@ export class CustomFieldValuesService implements OnModuleDestroy {
         });
       }
     }
-
-    return CustomFieldValueResponseDto.fromEntity(removed, {
-      exposeWorkspaceId: removed.definition.workspaceId === workspaceId,
-    });
   }
 
   private async loadTaskContext(taskId: string, workspaceId: string): Promise<{

@@ -35,9 +35,11 @@ import {
   useCustomFieldDefinitions,
 } from '@/features/custom-fields/hooks/use-custom-field-definitions';
 import {
+  useClearCustomFieldValue,
   useCustomFieldValues,
   usePatchCustomFieldValue,
 } from '@/features/custom-fields/hooks/use-custom-field-values';
+import { useCnpjAutofill } from '@/features/custom-fields/hooks/use-cnpj-autofill';
 import { useFeatureFlag } from '@/features/custom-fields/hooks/use-feature-flag';
 import type {
   CustomFieldDefinition,
@@ -138,15 +140,16 @@ const QUICK_TYPE_OPTIONS: ReadonlyArray<{ value: CustomFieldType; label: string 
   { value: 'CNPJ', label: 'CNPJ' },
 ];
 
-type BucketKey = 'taskType' | 'list' | 'folder' | 'space';
+type BucketKey = 'taskType' | 'list' | 'folder' | 'space' | 'workspace';
 
-const BUCKET_ORDER: BucketKey[] = ['taskType', 'list', 'folder', 'space'];
+const BUCKET_ORDER: BucketKey[] = ['taskType', 'list', 'folder', 'space', 'workspace'];
 
 const BUCKET_LABEL: Record<BucketKey, string> = {
   taskType: 'Campos do tipo',
   list: 'Campos desta lista',
   folder: 'Herdados da pasta',
   space: 'Herdados do departamento',
+  workspace: 'Campos do workspace',
 };
 
 const TYPE_ICON: Partial<Record<CustomFieldType, LucideIcon>> = {
@@ -191,6 +194,8 @@ export function CustomFieldsSection({
   const definitionsQuery = useCustomFieldDefinitions(definitionsScope);
   const valuesQuery = useCustomFieldValues(taskId);
   const patchMutation = usePatchCustomFieldValue();
+  const clearMutation = useClearCustomFieldValue();
+  const triggerCnpjAutofill = useCnpjAutofill(taskId);
 
   const isLoading = definitionsQuery.isLoading || valuesQuery.isLoading;
   const isError = definitionsQuery.isError || valuesQuery.isError;
@@ -263,7 +268,18 @@ export function CustomFieldsSection({
 
   function handleChange(customFieldId: string, next: CustomFieldRawValue) {
     if (!writeEnabled) return;
-    patchMutation.mutate({ taskId, customFieldId, value: next });
+    const isEmpty =
+      next === null ||
+      next === undefined ||
+      next === '' ||
+      (Array.isArray(next) && next.length === 0);
+    if (isEmpty) {
+      clearMutation.mutate({ taskId, customFieldId });
+    } else {
+      patchMutation.mutate({ taskId, customFieldId, value: next });
+    }
+    const def = allVisible.find((d) => d.id === customFieldId);
+    if (def) triggerCnpjAutofill(def, next);
   }
 
   return (
