@@ -34,15 +34,15 @@ export function SubtasksSection({ task }: SubtasksSectionProps) {
 
   return (
     <CollapsibleSection
-      sectionKey="subtasks"
-      title="Subtarefas"
+      sectionKey='subtasks'
+      title='Subtarefas'
       counter={total > 0 ? `${done}/${total}` : undefined}
     >
       {total > 0 && <ProgressBar value={done} max={total} />}
       {total === 0 ? (
-        <EmptyCardCta label="Adicionar subtarefa" onClick={handleAdd} />
+        <EmptyCardCta label='Adicionar subtarefa' onClick={handleAdd} />
       ) : (
-        <ul className="mt-2 flex flex-col gap-1">
+        <ul className='mt-2 flex flex-col gap-1'>
           {subtasks.map((st) => (
             <li key={st.id}>
               <SubtaskRow task={st} />

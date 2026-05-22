@@ -93,9 +93,8 @@ export class TaskOutboxCleanupService {
     const completedDeleted = await this.repository.deleteCompletedOlderThanDays(
       COMPLETED_RETENTION_DAYS,
     );
-    const deadDeleted = await this.repository.deleteDeadOlderThanDays(
-      DEAD_RETENTION_DAYS,
-    );
+    const deadDeleted =
+      await this.repository.deleteDeadOlderThanDays(DEAD_RETENTION_DAYS);
 
     const totalDeleted = completedDeleted + deadDeleted;
     const durationMs = Date.now() - startedAt;

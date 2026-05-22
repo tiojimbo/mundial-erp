@@ -80,12 +80,15 @@ export function Header() {
         {/* Avatar + Dropdown */}
         <Dropdown.Root>
           <Dropdown.Trigger asChild>
-            <button type='button' className='rounded-full ring-offset-2 focus:ring-2 focus:ring-primary-base'>
+            <button
+              type='button'
+              className='rounded-full ring-offset-2 focus:ring-2 focus:ring-primary-base'
+            >
               <Avatar.Root size='32' color='gray'>
                 {user?.avatarUrl ? (
                   <Avatar.Image src={user.avatarUrl} alt={user.name} />
                 ) : (
-                  user?.name?.[0] ?? 'U'
+                  (user?.name?.[0] ?? 'U')
                 )}
               </Avatar.Root>
             </button>
@@ -112,7 +115,10 @@ export function Header() {
               className='text-sidebar-foreground data-[highlighted]:bg-sidebar-accent data-[highlighted]:text-sidebar-accent-foreground'
             >
               <Link href='/configuracoes'>
-                <Dropdown.ItemIcon as={RiSettings4Line} className='text-sidebar-foreground' />
+                <Dropdown.ItemIcon
+                  as={RiSettings4Line}
+                  className='text-sidebar-foreground'
+                />
                 Configurações
               </Link>
             </Dropdown.Item>
@@ -124,7 +130,10 @@ export function Header() {
               onClick={logout}
               className='text-sidebar-foreground data-[highlighted]:bg-sidebar-accent data-[highlighted]:text-sidebar-accent-foreground'
             >
-              <Dropdown.ItemIcon as={RiLogoutBoxRLine} className='text-sidebar-foreground' />
+              <Dropdown.ItemIcon
+                as={RiLogoutBoxRLine}
+                className='text-sidebar-foreground'
+              />
               Sair
             </Dropdown.Item>
           </Dropdown.Content>

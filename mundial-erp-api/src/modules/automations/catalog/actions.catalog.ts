@@ -45,7 +45,12 @@ export const ACTIONS_CATALOG: ReadonlyArray<ActionDef> = [
     label: 'Mover para lista',
     category: 'navigation',
     params: [
-      { name: 'listId', type: 'reference', referenceType: 'list', required: true },
+      {
+        name: 'listId',
+        type: 'reference',
+        referenceType: 'list',
+        required: true,
+      },
     ],
   },
   {
@@ -314,7 +319,12 @@ export const ACTIONS_CATALOG: ReadonlyArray<ActionDef> = [
     category: 'integration',
     notImplemented: true,
     params: [
-      { name: 'userId', type: 'reference', referenceType: 'user', required: true },
+      {
+        name: 'userId',
+        type: 'reference',
+        referenceType: 'user',
+        required: true,
+      },
       { name: 'content', type: 'string', required: true },
     ],
   },

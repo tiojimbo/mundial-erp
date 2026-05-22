@@ -14,8 +14,13 @@ describe('PercentageField', () => {
 
   it('emite number ao digitar', () => {
     const onChange = vi.fn();
-    const def = makeCustomFieldDefinition({ type: 'PERCENTAGE', name: 'Desconto' });
-    render(<PercentageField definition={def} value={null} onChange={onChange} />);
+    const def = makeCustomFieldDefinition({
+      type: 'PERCENTAGE',
+      name: 'Desconto',
+    });
+    render(
+      <PercentageField definition={def} value={null} onChange={onChange} />,
+    );
     fireEvent.change(screen.getByRole('spinbutton'), {
       target: { value: '42' },
     });
@@ -28,7 +33,9 @@ describe('PercentageField', () => {
   it('aceita decimal', () => {
     const onChange = vi.fn();
     const def = makeCustomFieldDefinition({ type: 'PERCENTAGE' });
-    render(<PercentageField definition={def} value={null} onChange={onChange} />);
+    render(
+      <PercentageField definition={def} value={null} onChange={onChange} />,
+    );
     fireEvent.change(screen.getByRole('spinbutton'), {
       target: { value: '12.5' },
     });

@@ -34,15 +34,12 @@ export default function InicioPage() {
   const greeting = getGreeting();
   const hasTasks = !isLoading && (data?.summary.totalActive ?? 0) > 0;
 
-  const scrollToSection = useCallback(
-    (sectionId: string) => {
-      const el = document.getElementById(sectionId);
-      if (el) {
-        el.scrollIntoView({ behavior: 'smooth', block: 'start' });
-      }
-    },
-    [],
-  );
+  const scrollToSection = useCallback((sectionId: string) => {
+    const el = document.getElementById(sectionId);
+    if (el) {
+      el.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    }
+  }, []);
 
   const handleRefresh = useCallback(() => {
     queryClient.invalidateQueries({ queryKey: ['my-tasks'] });

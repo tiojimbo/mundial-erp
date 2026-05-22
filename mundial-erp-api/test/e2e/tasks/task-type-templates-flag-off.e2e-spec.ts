@@ -25,11 +25,7 @@
 // abaixo dependem deste lado-efeito; manter este bloco no topo do arquivo.
 process.env.FEATURE_TASK_TYPE_TEMPLATES_ENABLED = 'false';
 
-import {
-  INestApplication,
-  Logger,
-  ValidationPipe,
-} from '@nestjs/common';
+import { INestApplication, Logger, ValidationPipe } from '@nestjs/common';
 import { Test, TestingModule } from '@nestjs/testing';
 import { Prisma } from '@prisma/client';
 import request from 'supertest';

@@ -1,8 +1,6 @@
 import { Logger } from '@nestjs/common';
 import { TasksService } from './tasks.service';
 
-type AnyFn = jest.Mock;
-
 const WS = 'ws-1';
 const PARENT = 'parent-task-1';
 const SUBTASK = 'sub-1';
@@ -71,7 +69,11 @@ function buildHarness(opts: { siblings: SiblingStatus[] }) {
   };
 
   Logger.overrideLogger([
-    { log: () => undefined, warn: () => undefined, error: () => undefined } as never,
+    {
+      log: () => undefined,
+      warn: () => undefined,
+      error: () => undefined,
+    } as never,
   ]);
 
   const service = new TasksService(
@@ -104,8 +106,10 @@ describe('TasksService — checkAllSubtasksResolved (emit AllSubtasksResolved)',
     await new Promise((r) => setImmediate(r));
 
     expect(h.publisher.emitAllSubtasksResolved).toHaveBeenCalledTimes(1);
-    const arg = h.publisher.emitAllSubtasksResolved.mock
-      .calls[0][0] as Record<string, unknown>;
+    const arg = h.publisher.emitAllSubtasksResolved.mock.calls[0][0] as Record<
+      string,
+      unknown
+    >;
     expect(arg.taskId).toBe(PARENT);
     expect(arg.parentTaskId).toBe(PARENT);
     expect(arg.workspaceId).toBe(WS);
@@ -114,10 +118,7 @@ describe('TasksService — checkAllSubtasksResolved (emit AllSubtasksResolved)',
 
   it('NAO emite quando algum sibling nao esta resolvido (ACTIVE)', async () => {
     const h = buildHarness({
-      siblings: [
-        { status: { type: 'DONE' } },
-        { status: { type: 'ACTIVE' } },
-      ],
+      siblings: [{ status: { type: 'DONE' } }, { status: { type: 'ACTIVE' } }],
     });
 
     await h.service.update(WS, SUBTASK, { statusId: STATUS_DONE }, ACTOR);

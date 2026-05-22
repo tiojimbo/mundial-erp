@@ -43,28 +43,18 @@ export const supplierSchema = z
     personType: z.enum(['F', 'J'], {
       required_error: 'Tipo de pessoa é obrigatório',
     }),
-    cpfCnpj: z
-      .string()
-      .min(1, 'CPF/CNPJ é obrigatório'),
+    cpfCnpj: z.string().min(1, 'CPF/CNPJ é obrigatório'),
     name: z
       .string()
       .min(3, 'Nome deve ter no mínimo 3 caracteres')
       .max(255, 'Nome deve ter no máximo 255 caracteres'),
     tradeName: z.string().max(255).optional().or(z.literal('')),
     ie: z.string().max(20).optional().or(z.literal('')),
-    email: z
-      .string()
-      .email('E-mail inválido')
-      .optional()
-      .or(z.literal('')),
+    email: z.string().email('E-mail inválido').optional().or(z.literal('')),
     phone: z.string().max(20).optional().or(z.literal('')),
     address: z.string().max(255).optional().or(z.literal('')),
     city: z.string().max(100).optional().or(z.literal('')),
-    state: z
-      .string()
-      .max(2)
-      .optional()
-      .or(z.literal('')),
+    state: z.string().max(2).optional().or(z.literal('')),
     zipCode: z.string().max(10).optional().or(z.literal('')),
     isActive: z.boolean().default(true),
   })

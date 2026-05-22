@@ -10,12 +10,12 @@ export function FavoritesTopBar() {
 
   return (
     <div
-      role="region"
-      aria-label="Favoritos fixos no topo"
-      className="relative w-full min-w-0"
+      role='region'
+      aria-label='Favoritos fixos no topo'
+      className='relative w-full min-w-0'
     >
-      <div className="favorites-bar-scroll w-full min-w-0 max-w-full touch-pan-x overflow-x-auto overscroll-x-contain pb-1.5 pt-0.5">
-        <div className="flex w-max min-w-full flex-nowrap items-center gap-1">
+      <div className='favorites-bar-scroll w-full min-w-0 max-w-full touch-pan-x overflow-x-auto overscroll-x-contain pb-1.5 pt-0.5'>
+        <div className='flex w-max min-w-full flex-nowrap items-center gap-1'>
           {items.map((fav) => (
             <FavoriteChip key={fav.id} favorite={fav} />
           ))}

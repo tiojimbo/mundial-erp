@@ -53,10 +53,10 @@ export function TimeEstimateInput({
   if (!editing && !raw) {
     return (
       <button
-        type="button"
+        type='button'
         onClick={() => setEditing(true)}
-        aria-label="Definir tempo estimado"
-        className="text-[13px] font-normal text-muted-foreground/60 hover:text-muted-foreground"
+        aria-label='Definir tempo estimado'
+        className='text-muted-foreground/60 text-[13px] font-normal hover:text-muted-foreground'
       >
         {placeholder}
       </button>
@@ -65,9 +65,9 @@ export function TimeEstimateInput({
 
   return (
     <input
-      type="text"
+      type='text'
       value={raw}
-      aria-label="Tempo estimado"
+      aria-label='Tempo estimado'
       autoFocus={editing}
       onFocus={() => setEditing(true)}
       onChange={(e) => setRaw(e.target.value)}
@@ -84,8 +84,8 @@ export function TimeEstimateInput({
           setEditing(false);
         }
       }}
-      placeholder="2h 30m"
-      className="w-24 rounded-md border border-transparent bg-transparent px-1 py-0.5 text-[13px] outline-none hover:border-border focus:border-ring"
+      placeholder='2h 30m'
+      className='w-24 rounded-md border border-transparent bg-transparent px-1 py-0.5 text-[13px] outline-none hover:border-border focus:border-ring'
     />
   );
 }

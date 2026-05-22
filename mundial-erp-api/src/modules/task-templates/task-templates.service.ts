@@ -197,8 +197,7 @@ export class TaskTemplatesService {
 
     if (dto.name !== undefined) data.name = dto.name.trim();
     if (dto.scope !== undefined) data.scope = dto.scope;
-    if (dtoSpaceId !== undefined)
-      data.spaceId = dtoSpaceId ?? null;
+    if (dtoSpaceId !== undefined) data.spaceId = dtoSpaceId ?? null;
     if (dtoListId !== undefined) data.listId = dtoListId ?? null;
 
     if (dto.payload !== undefined) {

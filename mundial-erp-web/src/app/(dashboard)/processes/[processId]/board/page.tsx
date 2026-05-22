@@ -53,13 +53,13 @@ export default function ProcessBoardPage({ params }: PageProps): JSX.Element {
   }, [statusesQuery.data]);
 
   return (
-    <div className="flex flex-col gap-4">
-      <header className="flex items-center justify-between">
+    <div className='flex flex-col gap-4'>
+      <header className='flex items-center justify-between'>
         <div>
-          <h1 className="text-title-h4 text-text-strong-950">
+          <h1 className='text-title-h4 text-text-strong-950'>
             {process.data?.name ?? 'Board'}
           </h1>
-          <p className="text-paragraph-sm text-text-sub-600">
+          <p className='text-paragraph-sm text-text-sub-600'>
             Quadro Kanban do processo.
           </p>
         </div>

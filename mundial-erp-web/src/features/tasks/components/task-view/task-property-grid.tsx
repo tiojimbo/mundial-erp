@@ -42,6 +42,7 @@ export type TaskPropertyGridProps = {
 export function TaskPropertyGrid({ task }: TaskPropertyGridProps) {
   const [showMore, setShowMore] = useState(false);
 
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   const { data: process } = useProcess(task.processId);
   const { data: statuses } = useStatusesByList(task.processId);
   const updateStatus = useUpdateTaskStatus(task.id);
@@ -120,9 +121,12 @@ export function TaskPropertyGrid({ task }: TaskPropertyGridProps) {
   };
 
   return (
-    <div className="flex flex-col gap-2">
-      <div className="grid grid-cols-2 gap-x-8 gap-y-2 md:grid-cols-2 max-md:grid-cols-1">
-        <PropertyRow icon={<CircleDot className="h-3.5 w-3.5" />} label="Status">
+    <div className='flex flex-col gap-2'>
+      <div className='grid grid-cols-2 gap-x-8 gap-y-2 max-md:grid-cols-1 md:grid-cols-2'>
+        <PropertyRow
+          icon={<CircleDot className='h-3.5 w-3.5' />}
+          label='Status'
+        >
           <StatusBadge
             status={task.status}
             taskId={task.id}
@@ -131,44 +135,50 @@ export function TaskPropertyGrid({ task }: TaskPropertyGridProps) {
             onToggleComplete={handleToggleComplete}
           />
         </PropertyRow>
-        <PropertyRow icon={<User className="h-3.5 w-3.5" />} label="Responsaveis">
+        <PropertyRow
+          icon={<User className='h-3.5 w-3.5' />}
+          label='Responsaveis'
+        >
           <AssigneeMultiPicker
             taskId={task.id}
             assignees={task.assignees}
-            placeholder="Adicionar"
+            placeholder='Adicionar'
             onChange={handleAssigneesChange}
           />
         </PropertyRow>
-        <PropertyRow icon={<Calendar className="h-3.5 w-3.5" />} label="Datas">
+        <PropertyRow icon={<Calendar className='h-3.5 w-3.5' />} label='Datas'>
           <DateRangePicker
             taskId={task.id}
             startDate={task.startDate}
             dueDate={task.dueDate}
-            placeholder="Adicionar"
+            placeholder='Adicionar'
             onChange={handleDateChange}
           />
         </PropertyRow>
-        <PropertyRow icon={<Flag className="h-3.5 w-3.5" />} label="Prioridade">
+        <PropertyRow icon={<Flag className='h-3.5 w-3.5' />} label='Prioridade'>
           <PriorityPicker
             taskId={task.id}
             value={task.priority}
-            placeholder="Vazio"
+            placeholder='Vazio'
             onChange={handlePriorityChange}
           />
         </PropertyRow>
-        <PropertyRow icon={<Hourglass className="h-3.5 w-3.5" />} label="Tempo est.">
+        <PropertyRow
+          icon={<Hourglass className='h-3.5 w-3.5' />}
+          label='Tempo est.'
+        >
           <TimeEstimateInput
             taskId={task.id}
             value={task.estimatedMinutes}
-            placeholder="Adicionar"
+            placeholder='Adicionar'
             onChange={handleTimeEstimateChange}
           />
         </PropertyRow>
-        <PropertyRow icon={<Tag className="h-3.5 w-3.5" />} label="Tags">
+        <PropertyRow icon={<Tag className='h-3.5 w-3.5' />} label='Tags'>
           <TagPicker
             taskId={task.id}
             tags={task.tags}
-            placeholder="Adicionar"
+            placeholder='Adicionar'
             onAdd={handleAddTag}
             onRemove={handleRemoveTag}
             onCreate={handleCreateTag}
@@ -176,20 +186,20 @@ export function TaskPropertyGrid({ task }: TaskPropertyGridProps) {
         </PropertyRow>
         {showMore && (
           <PropertyRow
-            icon={<CircleDot className="h-3.5 w-3.5" />}
-            label="Points"
+            icon={<CircleDot className='h-3.5 w-3.5' />}
+            label='Points'
           >
-            <span className="text-[13px] text-muted-foreground">
+            <span className='text-[13px] text-muted-foreground'>
               {task.points ?? '—'}
             </span>
           </PropertyRow>
         )}
       </div>
       <button
-        type="button"
+        type='button'
         onClick={() => setShowMore((v) => !v)}
         aria-expanded={showMore}
-        className="flex items-center gap-1 text-[13px] text-muted-foreground/60 transition-colors hover:text-muted-foreground"
+        className='text-muted-foreground/60 flex items-center gap-1 text-[13px] transition-colors hover:text-muted-foreground'
       >
         <ChevronDown
           className={`h-3 w-3 transition-transform duration-150 ${showMore ? 'rotate-180' : ''}`}

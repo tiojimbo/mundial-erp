@@ -8,10 +8,7 @@ export class ListsRepository {
 
   private workspaceFilter(workspaceId: string): Prisma.ListWhereInput {
     return {
-      OR: [
-        { space: { workspaceId } },
-        { folder: { space: { workspaceId } } },
-      ],
+      OR: [{ space: { workspaceId } }, { folder: { space: { workspaceId } } }],
     };
   }
 
@@ -107,11 +104,7 @@ export class ListsRepository {
     return { items, total };
   }
 
-  async update(
-    _workspaceId: string,
-    id: string,
-    data: Prisma.ListUpdateInput,
-  ) {
+  async update(_workspaceId: string, id: string, data: Prisma.ListUpdateInput) {
     return this.prisma.list.update({ where: { id }, data });
   }
 

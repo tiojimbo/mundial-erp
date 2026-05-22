@@ -1,10 +1,7 @@
 'use client';
 
 import { useState } from 'react';
-import {
-  RiAddLine,
-  RiSearchLine,
-} from '@remixicon/react';
+import { RiAddLine, RiSearchLine } from '@remixicon/react';
 import { useChannels } from '../../hooks/use-channels';
 import { ChannelListItem } from './channel-list-item';
 
@@ -16,8 +13,12 @@ export function ChannelList() {
   });
 
   const channels = data?.pages.flatMap((page) => page.data) ?? [];
-  const channelItems = channels.filter((c) => c.type === 'PUBLIC' || c.type === 'PRIVATE');
-  const dmItems = channels.filter((c) => c.type === 'DIRECT' || c.type === 'GROUP_DM');
+  const channelItems = channels.filter(
+    (c) => c.type === 'PUBLIC' || c.type === 'PRIVATE',
+  );
+  const dmItems = channels.filter(
+    (c) => c.type === 'DIRECT' || c.type === 'GROUP_DM',
+  );
 
   return (
     <div className='flex h-full flex-col'>

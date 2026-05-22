@@ -1,8 +1,4 @@
-import {
-  useMutation,
-  useQuery,
-  useQueryClient,
-} from '@tanstack/react-query';
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { favoritesService } from '../services/favorites.service';
 import type {
   CreateFavoritePayload,
@@ -28,7 +24,10 @@ export function useFavoriteCheck(
   entityId: string | undefined,
 ) {
   return useQuery({
-    queryKey: entityType && entityId ? favoriteCheckKey(entityType, entityId) : ['favorites', 'check', 'noop'],
+    queryKey:
+      entityType && entityId
+        ? favoriteCheckKey(entityType, entityId)
+        : ['favorites', 'check', 'noop'],
     queryFn: () => favoritesService.check(entityType!, entityId!),
     enabled: !!entityType && !!entityId,
     staleTime: 30_000,

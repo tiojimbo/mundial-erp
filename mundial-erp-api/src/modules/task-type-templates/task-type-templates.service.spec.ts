@@ -36,7 +36,10 @@ type RepoMock = Pick<
 
 interface MetricsMock extends TaskTypeTemplatesMetrics {
   templatesInstantiatedTotal: jest.Mock;
-  cacheMissTotal: jest.Mock<void, [{ reason: CacheMissReason; workspaceId: string }]>;
+  cacheMissTotal: jest.Mock<
+    void,
+    [{ reason: CacheMissReason; workspaceId: string }]
+  >;
   cacheHitTotal: jest.Mock;
   redisErrorTotal: jest.Mock<void, [{ operation: RedisOperation }]>;
 }
@@ -211,7 +214,7 @@ describe('TaskTypeTemplatesService — cache resiliency (P2 laudo CTO)', () => {
     for (let i = 0; i < 5; i++) {
       const ws = `ws-${i}`;
       const ctt = `ctt-${i}`;
-      // eslint-disable-next-line no-await-in-loop -- sequencial proposital
+
       await service.findByCustomTaskTypeId(ctt, ws);
     }
 

@@ -46,7 +46,13 @@ const PDF_ACTIONS: PdfAction[] = [
       const po = order.productionOrders?.[0];
       return po ? `/production-orders/${po.id}/pdf` : null;
     },
-    visibleAfter: ['FATURADO', 'PRODUZIR', 'EM_PRODUCAO', 'PRODUZIDO', 'ENTREGUE'],
+    visibleAfter: [
+      'FATURADO',
+      'PRODUZIR',
+      'EM_PRODUCAO',
+      'PRODUZIDO',
+      'ENTREGUE',
+    ],
   },
 ];
 
@@ -66,7 +72,11 @@ export function OrderActionsDropdown({ order }: Props) {
   const [loading, setLoading] = useState(false);
 
   const visibleActions = PDF_ACTIONS.filter((action) => {
-    if (action.visibleAfter && !isStatusAfter(order.status, action.visibleAfter)) return false;
+    if (
+      action.visibleAfter &&
+      !isStatusAfter(order.status, action.visibleAfter)
+    )
+      return false;
     if (action.hideCondition?.(order)) return false;
     return true;
   });
@@ -89,8 +99,18 @@ export function OrderActionsDropdown({ order }: Props) {
   return (
     <Dropdown.Root>
       <Dropdown.Trigger asChild>
-        <Button.Root variant='neutral' mode='stroke' size='small' disabled={loading}>
-          <Button.Icon as='i' className={loading ? 'ri-loader-4-line animate-spin' : 'ri-more-2-line'} />
+        <Button.Root
+          variant='neutral'
+          mode='stroke'
+          size='small'
+          disabled={loading}
+        >
+          <Button.Icon
+            as='i'
+            className={
+              loading ? 'ri-loader-4-line animate-spin' : 'ri-more-2-line'
+            }
+          />
           Acoes
           <Button.Icon as='i' className='ri-arrow-down-s-line' />
         </Button.Root>

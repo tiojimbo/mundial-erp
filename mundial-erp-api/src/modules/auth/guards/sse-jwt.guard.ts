@@ -53,9 +53,9 @@ export class SseJwtGuard implements CanActivate {
     ]);
     if (isPublic) return true;
 
-    const request = context.switchToHttp().getRequest<
-      Request & { user?: JwtPayload }
-    >();
+    const request = context
+      .switchToHttp()
+      .getRequest<Request & { user?: JwtPayload }>();
 
     // Prioridade: header Authorization, fallback para query.
     const authHeader = request.headers?.authorization;

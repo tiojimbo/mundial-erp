@@ -80,7 +80,7 @@ function MenuItem({
       : 'text-[oklch(0.556_0_0)]';
   return (
     <button
-      type="button"
+      type='button'
       onClick={disabled ? undefined : onClick}
       disabled={disabled}
       className={`flex w-full items-center gap-2.5 rounded-md px-2.5 py-2 text-[13px] outline-none transition-colors ${textClass} ${
@@ -88,7 +88,7 @@ function MenuItem({
       } ${destructive && !disabled ? 'hover:bg-[oklch(0.97_0.03_25)]' : ''}`}
     >
       <Icon className={`size-4 ${iconClass}`} />
-      <span className="flex-1 text-left">{label}</span>
+      <span className='flex-1 text-left'>{label}</span>
       {trailing}
     </button>
   );
@@ -107,19 +107,19 @@ function ToggleItem({
 }) {
   return (
     <button
-      type="button"
+      type='button'
       onClick={() => onToggle(!checked)}
-      className="flex w-full items-center gap-2.5 rounded-md px-2.5 py-2 text-[13px] text-[oklch(0.145_0_0)] outline-none transition-colors hover:bg-[oklch(0.97_0_0)]"
+      className='flex w-full items-center gap-2.5 rounded-md px-2.5 py-2 text-[13px] text-[oklch(0.145_0_0)] outline-none transition-colors hover:bg-[oklch(0.97_0_0)]'
     >
-      <Icon className="size-4 text-[oklch(0.556_0_0)]" />
-      <span className="flex-1 text-left">{label}</span>
+      <Icon className='size-4 text-[oklch(0.556_0_0)]' />
+      <span className='flex-1 text-left'>{label}</span>
       <span
         data-state={checked ? 'checked' : 'unchecked'}
-        className="peer pointer-events-none inline-flex h-5 w-9 shrink-0 items-center rounded-full border-2 border-transparent transition-colors data-[state=checked]:bg-[oklch(0.145_0_0)] data-[state=unchecked]:bg-[oklch(0.922_0_0)]"
+        className='peer pointer-events-none inline-flex h-5 w-9 shrink-0 items-center rounded-full border-2 border-transparent transition-colors data-[state=checked]:bg-[oklch(0.145_0_0)] data-[state=unchecked]:bg-[oklch(0.922_0_0)]'
       >
         <span
           data-state={checked ? 'checked' : 'unchecked'}
-          className="pointer-events-none block h-4 w-4 rounded-full bg-white shadow-lg transition-transform data-[state=checked]:translate-x-4 data-[state=unchecked]:translate-x-0"
+          className='shadow-lg pointer-events-none block h-4 w-4 rounded-full bg-white transition-transform data-[state=checked]:translate-x-4 data-[state=unchecked]:translate-x-0'
         />
       </span>
     </button>
@@ -186,104 +186,104 @@ export function ViewContextMenu({
   const menu = (
     <div
       ref={menuRef}
-      role="menu"
-      className="fixed z-[9999] w-56 rounded-md border border-[oklch(0.922_0_0)] bg-white p-0 text-[oklch(0.145_0_0)] shadow-md outline-none"
+      role='menu'
+      className='shadow-md fixed z-[9999] w-56 rounded-md border border-[oklch(0.922_0_0)] bg-white p-0 text-[oklch(0.145_0_0)] outline-none'
       style={{ left: state.x, top: state.y }}
     >
       {/* Section 1 */}
-      <div className="p-1">
+      <div className='p-1'>
         <MenuItem
           icon={RiStarLine}
-          label="Favoritar"
+          label='Favoritar'
           trailing={
-            <RiArrowRightSLine className="size-3.5 text-[oklch(0.556_0_0)]" />
+            <RiArrowRightSLine className='size-3.5 text-[oklch(0.556_0_0)]' />
           }
         />
         <MenuItem
           icon={RiPencilLine}
-          label="Renomear"
+          label='Renomear'
           onClick={runAndClose(onRename)}
         />
         <MenuItem
           icon={RiLinkM}
-          label="Copiar link da view"
+          label='Copiar link da view'
           onClick={runAndClose(onCopyLink)}
         />
         <MenuItem
           icon={RiSettings3Line}
-          label="Personalizar view"
+          label='Personalizar view'
           trailing={
-            <RiArrowRightSLine className="size-3.5 text-[oklch(0.556_0_0)]" />
+            <RiArrowRightSLine className='size-3.5 text-[oklch(0.556_0_0)]' />
           }
         />
       </div>
 
-      <div className="border-t border-[oklch(0.922_0_0)]" />
+      <div className='border-t border-[oklch(0.922_0_0)]' />
 
       {/* Section 2: view attributes */}
-      <div className="p-1">
+      <div className='p-1'>
         <ToggleItem
           icon={RiPushpinLine}
-          label="Fixar view"
+          label='Fixar view'
           checked={isPinned}
           onToggle={(v) => onTogglePinned?.(v)}
         />
         <ToggleItem
           icon={RiHome2Line}
-          label="View padrão"
+          label='View padrão'
           checked={isDefault}
           onToggle={(v) => onToggleDefault?.(v)}
         />
         <ToggleItem
           icon={RiEyeOffLine}
-          label="View privada"
+          label='View privada'
           checked={isPrivate}
           onToggle={(v) => onTogglePrivate?.(v)}
         />
         <ToggleItem
           icon={RiShieldLine}
-          label="Proteger view"
+          label='Proteger view'
           checked={isProtected}
           onToggle={(v) => onToggleProtected?.(v)}
         />
       </div>
 
-      <div className="border-t border-[oklch(0.922_0_0)]" />
+      <div className='border-t border-[oklch(0.922_0_0)]' />
 
       {/* Section 3: behavior */}
-      <div className="p-1">
+      <div className='p-1'>
         <ToggleItem
           icon={RiStackLine}
-          label="Agrupar por tipo"
+          label='Agrupar por tipo'
           checked={groupByType}
           onToggle={(v) => onToggleGroupByType?.(v)}
         />
         <ToggleItem
           icon={RiSaveLine}
-          label="Auto-save"
+          label='Auto-save'
           checked={autoSave}
           onToggle={(v) => onToggleAutoSave?.(v)}
         />
       </div>
 
-      <div className="border-t border-[oklch(0.922_0_0)]" />
+      <div className='border-t border-[oklch(0.922_0_0)]' />
 
       {/* Section 4: duplicate */}
-      <div className="p-1">
+      <div className='p-1'>
         <MenuItem
           icon={RiFileCopyLine}
-          label="Duplicar view"
+          label='Duplicar view'
           onClick={runAndClose(onDuplicate)}
         />
       </div>
 
-      <div className="border-t border-[oklch(0.922_0_0)]" />
+      <div className='border-t border-[oklch(0.922_0_0)]' />
 
       {/* Section 5: destructive (admin-only) */}
-      <div className="p-1">
+      <div className='p-1'>
         <MenuItem
           icon={RiDeleteBin6Line}
-          label="Excluir view"
+          label='Excluir view'
           destructive={canDelete}
           muted={!canDelete}
           disabled={!canDelete}
@@ -291,12 +291,12 @@ export function ViewContextMenu({
         />
       </div>
 
-      <div className="border-t border-[oklch(0.922_0_0)]">
+      <div className='border-t border-[oklch(0.922_0_0)]'>
         <button
-          type="button"
-          className="flex w-full items-center justify-center gap-2 px-3 py-2.5 text-[13px] font-medium text-[oklch(0.556_0_0)] transition-colors hover:bg-[oklch(0.97_0_0)] hover:text-[oklch(0.145_0_0)]"
+          type='button'
+          className='flex w-full items-center justify-center gap-2 px-3 py-2.5 text-[13px] font-medium text-[oklch(0.556_0_0)] transition-colors hover:bg-[oklch(0.97_0_0)] hover:text-[oklch(0.145_0_0)]'
         >
-          <RiShareLine className="size-3.5" />
+          <RiShareLine className='size-3.5' />
           Compartilhamento e Permissões
         </button>
       </div>

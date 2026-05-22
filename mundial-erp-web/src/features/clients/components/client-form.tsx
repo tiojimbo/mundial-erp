@@ -11,7 +11,10 @@ import * as Hint from '@/components/ui/hint';
 import * as Button from '@/components/ui/button';
 import * as Select from '@/components/ui/select';
 import { clientSchema, type ClientFormData } from '../schemas/client.schema';
-import { useClientClassifications, useDeliveryRoutes } from '../hooks/use-clients';
+import {
+  useClientClassifications,
+  useDeliveryRoutes,
+} from '../hooks/use-clients';
 import type { Client } from '../types/client.types';
 
 type ClientFormProps = {
@@ -22,8 +25,33 @@ type ClientFormProps = {
 };
 
 const STATES = [
-  'AC','AL','AP','AM','BA','CE','DF','ES','GO','MA','MT','MS','MG',
-  'PA','PB','PR','PE','PI','RJ','RN','RS','RO','RR','SC','SP','SE','TO',
+  'AC',
+  'AL',
+  'AP',
+  'AM',
+  'BA',
+  'CE',
+  'DF',
+  'ES',
+  'GO',
+  'MA',
+  'MT',
+  'MS',
+  'MG',
+  'PA',
+  'PB',
+  'PR',
+  'PE',
+  'PI',
+  'RJ',
+  'RN',
+  'RS',
+  'RO',
+  'RR',
+  'SC',
+  'SP',
+  'SE',
+  'TO',
 ];
 
 export function ClientForm({
@@ -229,11 +257,7 @@ export function ClientForm({
                 <Label.Root htmlFor='rg'>RG</Label.Root>
                 <Input.Root>
                   <Input.Wrapper>
-                    <Input.Input
-                      id='rg'
-                      placeholder='RG'
-                      {...register('rg')}
-                    />
+                    <Input.Input id='rg' placeholder='RG' {...register('rg')} />
                   </Input.Wrapper>
                 </Input.Root>
               </div>
@@ -458,9 +482,7 @@ export function ClientForm({
             size='medium'
             disabled={isLoading}
           >
-            {isLoading && (
-              <RiLoader4Line className='size-5 animate-spin' />
-            )}
+            {isLoading && <RiLoader4Line className='size-5 animate-spin' />}
             {defaultValues ? 'Salvar Alterações' : 'Cadastrar Cliente'}
           </Button.Root>
         </div>

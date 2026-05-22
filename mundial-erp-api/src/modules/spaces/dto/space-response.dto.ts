@@ -41,9 +41,7 @@ export class SpaceResponseDto {
   @ApiProperty()
   updatedAt: Date;
 
-  static fromEntity(
-    entity: Space & { sectors?: Sector[] },
-  ): SpaceResponseDto {
+  static fromEntity(entity: Space & { sectors?: Sector[] }): SpaceResponseDto {
     const dto = new SpaceResponseDto();
     dto.id = entity.id;
     dto.name = entity.name;

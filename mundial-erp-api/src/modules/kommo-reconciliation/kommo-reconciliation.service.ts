@@ -49,6 +49,7 @@ export class KommoReconciliationService {
    *   5. Atualizar cursor
    */
   @Cron(CronExpression.EVERY_5_MINUTES, { name: 'kommo-recon-5min' })
+  // eslint-disable-next-line @typescript-eslint/require-await
   async reconcile5min(): Promise<void> {
     this.logger.log({ message: 'kommo-recon-5min tick (stub)' });
     throw new NotImplementedException(
@@ -64,6 +65,7 @@ export class KommoReconciliationService {
    * eventos ordenados fora de sequência.
    */
   @Cron(CronExpression.EVERY_HOUR, { name: 'kommo-recon-hourly' })
+  // eslint-disable-next-line @typescript-eslint/require-await
   async reconcileHourly(): Promise<void> {
     this.logger.log({ message: 'kommo-recon-hourly tick (stub)' });
     throw new NotImplementedException(
@@ -79,6 +81,7 @@ export class KommoReconciliationService {
    * backfill targeted automatico (com feature flag de segurança).
    */
   @Cron('0 3 * * *', { name: 'kommo-recon-daily' })
+  // eslint-disable-next-line @typescript-eslint/require-await
   async reconcileDaily(): Promise<void> {
     this.logger.log({ message: 'kommo-recon-daily tick (stub)' });
     throw new NotImplementedException(

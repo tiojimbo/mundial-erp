@@ -154,7 +154,7 @@ describe('IncomingChatMessageHandler', () => {
   it('throws BadRequestException when kommoChatId is missing', async () => {
     const { handler } = await buildHandler();
     const input = buildValidInput();
-    delete (input.rawPayload as Record<string, unknown>).kommoChatId;
+    delete input.rawPayload.kommoChatId;
 
     await expect(handler.handle(input)).rejects.toBeInstanceOf(
       BadRequestException,
@@ -164,7 +164,7 @@ describe('IncomingChatMessageHandler', () => {
   it('throws BadRequestException when createdAt is missing', async () => {
     const { handler } = await buildHandler();
     const input = buildValidInput();
-    delete (input.rawPayload as Record<string, unknown>).createdAt;
+    delete input.rawPayload.createdAt;
 
     await expect(handler.handle(input)).rejects.toBeInstanceOf(
       BadRequestException,

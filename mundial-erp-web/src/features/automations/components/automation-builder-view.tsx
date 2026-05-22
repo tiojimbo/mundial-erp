@@ -136,6 +136,7 @@ export function AutomationBuilderView({
   const departments = useDepartments();
   const processes = useProcesses();
 
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   const actions = (actionsQuery.data ?? []) as ExtendedActionDef[];
 
   const form = useForm<AutomationBuilderFormData>({
@@ -223,8 +224,7 @@ export function AutomationBuilderView({
   }, [departments.data]);
 
   const spaceOptions = useMemo<ScopeOption[]>(
-    () =>
-      (departments.data ?? []).map((d) => ({ id: d.id, label: d.name })),
+    () => (departments.data ?? []).map((d) => ({ id: d.id, label: d.name })),
     [departments.data],
   );
 
@@ -270,7 +270,7 @@ export function AutomationBuilderView({
   const triggerLabel =
     (triggers.data ?? []).find((t) => t.id === trigger)?.label ?? '...';
   const firstActionLabel = draftActions[0]?.type
-    ? actions.find((a) => a.id === draftActions[0].type)?.label ?? '...'
+    ? (actions.find((a) => a.id === draftActions[0].type)?.label ?? '...')
     : '...';
 
   const setActionType = (index: number, type: string) => {
@@ -305,10 +305,7 @@ export function AutomationBuilderView({
     };
 
     if (editing) {
-      updateMutation.mutate(
-        { id: editing.id, payload },
-        { onSuccess: onBack },
-      );
+      updateMutation.mutate({ id: editing.id, payload }, { onSuccess: onBack });
     } else {
       createMutation.mutate(payload, { onSuccess: onBack });
     }
@@ -362,9 +359,7 @@ export function AutomationBuilderView({
           {/* Scope picker */}
           <div className='space-y-0'>
             <div className='flex items-center gap-2 rounded-t-lg bg-bg-weak-50 px-4 py-3'>
-              <span className='text-label-sm text-text-strong-950'>
-                Escopo
-              </span>
+              <span className='text-label-sm text-text-strong-950'>Escopo</span>
             </div>
             <div className='space-y-3 rounded-b-lg border border-t-0 border-stroke-soft-200 px-4 py-4'>
               <div className='grid grid-cols-1 gap-3 sm:grid-cols-2'>
@@ -379,9 +374,7 @@ export function AutomationBuilderView({
                       <select
                         value={field.value}
                         onChange={(e) =>
-                          field.onChange(
-                            e.target.value as AutomationScopeType,
-                          )
+                          field.onChange(e.target.value as AutomationScopeType)
                         }
                         className={fieldCls}
                       >
@@ -454,10 +447,7 @@ export function AutomationBuilderView({
                     >
                       <option value=''>Selecione um gatilho...</option>
                       {triggersByCategory.map(([category, items]) => (
-                        <optgroup
-                          key={category}
-                          label={category.toUpperCase()}
-                        >
+                        <optgroup key={category} label={category.toUpperCase()}>
                           {items.map((t) => (
                             <option key={t.id} value={t.id}>
                               {t.label}

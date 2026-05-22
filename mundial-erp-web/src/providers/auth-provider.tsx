@@ -33,7 +33,8 @@ function setAuthCookie(hasToken: boolean) {
   if (hasToken) {
     document.cookie = 'auth_token=1; path=/; SameSite=Lax';
   } else {
-    document.cookie = 'auth_token=; path=/; expires=Thu, 01 Jan 1970 00:00:00 GMT';
+    document.cookie =
+      'auth_token=; path=/; expires=Thu, 01 Jan 1970 00:00:00 GMT';
   }
 }
 
@@ -53,9 +54,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const router = useRouter();
   const qc = useQueryClient();
   const { user, setUser, clearUser } = useAuthStore();
-  const setCurrentWorkspace = useWorkspaceStore(
-    (s) => s.setCurrentWorkspace,
-  );
+  const setCurrentWorkspace = useWorkspaceStore((s) => s.setCurrentWorkspace);
   const clearWorkspaceStore = useWorkspaceStore((s) => s.clear);
   const [isLoading, setIsLoading] = useState(true);
   const initialized = useRef(false);
@@ -99,13 +98,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         qc.clear();
       })
       .finally(() => setIsLoading(false));
-  }, [
-    setUser,
-    clearUser,
-    setCurrentWorkspace,
-    clearWorkspaceStore,
-    qc,
-  ]);
+  }, [setUser, clearUser, setCurrentWorkspace, clearWorkspaceStore, qc]);
 
   useEffect(() => {
     if (typeof window === 'undefined') return;
@@ -122,8 +115,11 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   const login = useCallback(
     async (payload: LoginPayload) => {
-      const { user: userData, tokens, workspace } =
-        await authService.login(payload);
+      const {
+        user: userData,
+        tokens,
+        workspace,
+      } = await authService.login(payload);
       localStorage.setItem('access_token', tokens.accessToken);
       localStorage.setItem('refresh_token', tokens.refreshToken);
       setAuthCookie(true);

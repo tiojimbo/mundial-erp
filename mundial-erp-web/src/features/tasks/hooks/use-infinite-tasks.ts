@@ -8,9 +8,7 @@ import type {
 } from '@/types/api.types';
 import type { Task, TaskFilters } from '../types/task.types';
 
-type TasksPage =
-  | PaginatedResponse<Task>
-  | CursorPaginatedResponse<Task>;
+type TasksPage = PaginatedResponse<Task> | CursorPaginatedResponse<Task>;
 
 function hasCursor(page: TasksPage): page is CursorPaginatedResponse<Task> {
   return 'cursor' in page.meta;

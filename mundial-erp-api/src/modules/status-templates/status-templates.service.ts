@@ -9,7 +9,9 @@ export class StatusTemplatesService {
 
   async findAll(workspaceId: string): Promise<StatusTemplateResponseDto[]> {
     const entities = await this.repository.findAll(workspaceId);
-    return entities.map((entity) => StatusTemplateResponseDto.fromEntity(entity));
+    return entities.map((entity) =>
+      StatusTemplateResponseDto.fromEntity(entity),
+    );
   }
 
   async create(

@@ -46,7 +46,7 @@ export function ChatLayout() {
 
       {/* Thread panel — desliza da direita, 400px */}
       {activeThreadMessageId && (
-        <div className='flex w-[400px] min-w-[400px] flex-col border-l border-stroke-soft-200 animate-in slide-in-from-right duration-200'>
+        <div className='flex w-[400px] min-w-[400px] flex-col border-l border-stroke-soft-200 duration-200 animate-in slide-in-from-right'>
           <ThreadPanel messageId={activeThreadMessageId} />
         </div>
       )}

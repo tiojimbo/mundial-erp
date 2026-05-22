@@ -25,7 +25,10 @@ export function DREReportView() {
       {isLoading && (
         <div className='space-y-2'>
           {Array.from({ length: 8 }).map((_, i) => (
-            <div key={i} className='h-10 animate-pulse rounded-lg bg-bg-weak-50' />
+            <div
+              key={i}
+              className='h-10 animate-pulse rounded-lg bg-bg-weak-50'
+            />
           ))}
         </div>
       )}
@@ -33,7 +36,9 @@ export function DREReportView() {
       {/* No data */}
       {!isLoading && !report && filters && (
         <div className='flex flex-col items-center justify-center py-16 text-text-soft-400'>
-          <p className='text-paragraph-sm'>Sem dados para o período selecionado.</p>
+          <p className='text-paragraph-sm'>
+            Sem dados para o período selecionado.
+          </p>
         </div>
       )}
 

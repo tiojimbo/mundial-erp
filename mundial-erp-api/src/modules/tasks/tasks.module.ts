@@ -2,6 +2,7 @@ import { Module, forwardRef } from '@nestjs/common';
 import { TasksController } from './tasks.controller';
 import { TasksService } from './tasks.service';
 import { TasksRepository } from './tasks.repository';
+import { OrderCodeService } from './order-code.service';
 import { TaskOutboxModule } from '../task-outbox/task-outbox.module';
 import { WorkItemsModule } from '../work-items/work-items.module';
 import { CustomTaskTypesModule } from '../custom-task-types/custom-task-types.module';
@@ -64,6 +65,7 @@ import { SseJwtGuard } from '../auth/guards/sse-jwt.guard';
   providers: [
     TasksRepository,
     TasksService,
+    OrderCodeService,
     AssigneesSyncService,
     WatchersSyncService,
     TagsSyncService,

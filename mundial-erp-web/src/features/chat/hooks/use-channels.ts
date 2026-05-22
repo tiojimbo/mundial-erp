@@ -62,8 +62,7 @@ export function useCreateChannel() {
 export function useCreateDm() {
   const qc = useQueryClient();
   return useMutation({
-    mutationFn: (payload: CreateDmPayload) =>
-      channelService.createDm(payload),
+    mutationFn: (payload: CreateDmPayload) => channelService.createDm(payload),
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: CHANNELS_KEY });
     },

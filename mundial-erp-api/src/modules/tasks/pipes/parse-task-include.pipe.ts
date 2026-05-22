@@ -20,9 +20,10 @@ export const TASK_INCLUDE_WHITELIST = new Set<string>([
 ]);
 
 @Injectable()
-export class ParseTaskIncludePipe
-  implements PipeTransform<string | undefined, ReadonlySet<string>>
-{
+export class ParseTaskIncludePipe implements PipeTransform<
+  string | undefined,
+  ReadonlySet<string>
+> {
   transform(value: string | undefined): ReadonlySet<string> {
     if (!value || value.trim() === '') {
       return new Set<string>();

@@ -5,7 +5,10 @@ import * as Button from '@/components/ui/button';
 import * as Modal from '@/components/ui/modal';
 import { useAuthStore } from '@/stores/auth.store';
 import { useChangeOrderStatus } from '../hooks/use-orders';
-import { getAvailableTransitions, type StatusTransition } from '../lib/order-status-machine';
+import {
+  getAvailableTransitions,
+  type StatusTransition,
+} from '../lib/order-status-machine';
 import type { Order } from '../types/order.types';
 
 type Props = {
@@ -13,7 +16,9 @@ type Props = {
 };
 
 export function OrderContextualActions({ order }: Props) {
-  const [confirmModal, setConfirmModal] = useState<StatusTransition | null>(null);
+  const [confirmModal, setConfirmModal] = useState<StatusTransition | null>(
+    null,
+  );
   const [cancelReason, setCancelReason] = useState('');
   const [guardError, setGuardError] = useState<string | null>(null);
   const changeStatus = useChangeOrderStatus(order.id);
@@ -46,9 +51,10 @@ export function OrderContextualActions({ order }: Props) {
 
   function handleConfirm() {
     if (!confirmModal) return;
-    const payload = confirmModal.to === 'CANCELADO' && cancelReason
-      ? { reason: cancelReason }
-      : undefined;
+    const payload =
+      confirmModal.to === 'CANCELADO' && cancelReason
+        ? { reason: cancelReason }
+        : undefined;
 
     changeStatus.mutate(
       { newStatus: confirmModal.to, payload },
@@ -80,12 +86,14 @@ export function OrderContextualActions({ order }: Props) {
       </div>
 
       {guardError && (
-        <div className='mt-2 flex items-center gap-2 rounded-lg border border-state-error-base bg-state-error-lighter px-3 py-2'>
+        <div className='border-state-error-base bg-state-error-lighter mt-2 flex items-center gap-2 rounded-lg border px-3 py-2'>
           <i className='ri-error-warning-line text-state-error-base' />
-          <span className='text-paragraph-sm text-state-error-base'>{guardError}</span>
+          <span className='text-state-error-base text-paragraph-sm'>
+            {guardError}
+          </span>
           <button
             onClick={() => setGuardError(null)}
-            className='ml-auto text-state-error-base hover:opacity-70'
+            className='text-state-error-base ml-auto hover:opacity-70'
           >
             <i className='ri-close-line' />
           </button>

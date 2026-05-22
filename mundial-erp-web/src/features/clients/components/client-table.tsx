@@ -143,7 +143,9 @@ export function ClientTable() {
                     color={client.personType === 'F' ? 'blue' : 'purple'}
                     size='small'
                   >
-                    {client.personType === 'F' ? 'Pessoa Física' : 'Pessoa Jurídica'}
+                    {client.personType === 'F'
+                      ? 'Pessoa Física'
+                      : 'Pessoa Jurídica'}
                   </Badge.Root>
                 </Table.Cell>
                 <Table.Cell>

@@ -77,7 +77,9 @@ export class KommoMessagesRepository {
         : {}),
       contentPreview: fields.contentPreview,
       contentHash: fields.contentHash,
-      ...(fields.createdAt !== undefined ? { createdAt: fields.createdAt } : {}),
+      ...(fields.createdAt !== undefined
+        ? { createdAt: fields.createdAt }
+        : {}),
     };
 
     const updateData: Prisma.KommoMessageUpdateInput = {};

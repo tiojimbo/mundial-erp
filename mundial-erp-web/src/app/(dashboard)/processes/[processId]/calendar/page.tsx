@@ -15,7 +15,9 @@ type PageProps = {
  *
  * NOTE App Router: `export default` obrigatorio (excecao regra #13).
  */
-export default function ProcessCalendarPage({ params }: PageProps): JSX.Element {
+export default function ProcessCalendarPage({
+  params,
+}: PageProps): JSX.Element {
   const { processId } = params;
   const searchParams = useSearchParams();
 
@@ -35,11 +37,12 @@ export default function ProcessCalendarPage({ params }: PageProps): JSX.Element 
   );
 
   return (
-    <div className="flex flex-col gap-4">
+    <div className='flex flex-col gap-4'>
       <header>
-        <h1 className="text-title-h4 text-text-strong-950">Calendario</h1>
-        <p className="text-paragraph-sm text-text-sub-600">
-          Arraste para reagendar — uma confirmacao sera solicitada antes de persistir.
+        <h1 className='text-title-h4 text-text-strong-950'>Calendario</h1>
+        <p className='text-paragraph-sm text-text-sub-600'>
+          Arraste para reagendar — uma confirmacao sera solicitada antes de
+          persistir.
         </p>
       </header>
       <TaskCalendar tasks={tasks} isLoading={tasksQuery.isLoading} />

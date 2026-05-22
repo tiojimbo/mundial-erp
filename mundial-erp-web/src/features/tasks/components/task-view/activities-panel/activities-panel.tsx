@@ -44,7 +44,7 @@ export function ActivitiesPanel({
   return (
     <aside
       className={cn(
-        'flex flex-col overflow-hidden rounded-[14px] bg-card shadow-sm',
+        'shadow-sm flex flex-col overflow-hidden rounded-[14px] bg-card',
         asSheet
           ? 'fixed inset-y-0 right-0 z-30 w-[90vw] max-w-[400px]'
           : 'w-[400px]',

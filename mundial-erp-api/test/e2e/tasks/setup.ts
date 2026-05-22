@@ -268,7 +268,9 @@ export const createTestTask = async (
       creatorId: creatorUserId,
       priority: overrides.priority ?? 'NONE',
       primaryAssigneeCache: overrides.assigneeId,
-      startDate: overrides.startDate ? new Date(overrides.startDate) : undefined,
+      startDate: overrides.startDate
+        ? new Date(overrides.startDate)
+        : undefined,
       dueDate: overrides.dueDate ? new Date(overrides.dueDate) : undefined,
       customTypeId: overrides.customTypeId,
     },

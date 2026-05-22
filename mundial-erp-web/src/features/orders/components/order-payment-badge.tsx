@@ -15,8 +15,13 @@ function formatCurrency(cents: number): string {
   }).format(cents / 100);
 }
 
-export function OrderPaymentBadge({ totalCents, paidAmountCents, paymentProofUrl }: Props) {
-  const percentage = totalCents > 0 ? Math.round((paidAmountCents / totalCents) * 100) : 0;
+export function OrderPaymentBadge({
+  totalCents,
+  paidAmountCents,
+  paymentProofUrl,
+}: Props) {
+  const percentage =
+    totalCents > 0 ? Math.round((paidAmountCents / totalCents) * 100) : 0;
 
   if (percentage >= 100) {
     return (

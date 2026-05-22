@@ -53,10 +53,7 @@ export class FoldersService {
     return slug;
   }
 
-  private async assertSpaceInWorkspace(
-    workspaceId: string,
-    spaceId: string,
-  ) {
+  private async assertSpaceInWorkspace(workspaceId: string, spaceId: string) {
     const space = await this.spacesRepository.findById(workspaceId, spaceId);
     if (!space) {
       throw new NotFoundException('Space não encontrado');
@@ -401,18 +398,13 @@ export class FoldersService {
     });
   }
 
-  async remove(
-    workspaceId: string,
-    id: string,
-  ): Promise<{ message: string }> {
+  async remove(workspaceId: string, id: string): Promise<{ message: string }> {
     const entity = await this.foldersRepository.findById(workspaceId, id);
     if (!entity) {
       throw new NotFoundException('Folder não encontrado');
     }
     if (entity.isDefault) {
-      throw new BadRequestException(
-        'Não é possível excluir um folder padrão',
-      );
+      throw new BadRequestException('Não é possível excluir um folder padrão');
     }
     await this.foldersRepository.softDelete(workspaceId, id);
     return { message: 'Folder deleted successfully' };
@@ -464,20 +456,24 @@ export class FoldersService {
         where: { folderId, deletedAt: null },
         select: { id: true },
       });
-      const keptIds = new Set(
-        items.filter((s) => s.id !== undefined).map((s) => s.id as string),
+      const ownIds = new Set(existing.map((e) => e.id));
+      const keptOwnIds = new Set(
+        items
+          .filter((s) => s.id !== undefined && ownIds.has(s.id))
+          .map((s) => s.id as string),
       );
       const toRemove = existing
         .map((e) => e.id)
-        .filter((id) => !keptIds.has(id));
+        .filter((id) => !keptOwnIds.has(id));
       if (toRemove.length > 0) {
         await tx.status.updateMany({
           where: { id: { in: toRemove } },
           data: { deletedAt: new Date() },
         });
       }
+      const statusIdRemap = new Map<string, string>();
       for (const item of items) {
-        if (item.id) {
+        if (item.id && ownIds.has(item.id)) {
           await tx.status.update({
             where: { id: item.id },
             data: {
@@ -488,7 +484,7 @@ export class FoldersService {
             },
           });
         } else {
-          await tx.status.create({
+          const created = await tx.status.create({
             data: {
               folderId,
               name: item.name,
@@ -497,7 +493,18 @@ export class FoldersService {
               position: item.position,
             },
           });
+          if (item.id) statusIdRemap.set(item.id, created.id);
         }
+      }
+      for (const [oldId, newId] of statusIdRemap) {
+        await tx.workItem.updateMany({
+          where: {
+            statusId: oldId,
+            deletedAt: null,
+            list: { folderId, statusInheritance: 'FOLDER' },
+          },
+          data: { statusId: newId },
+        });
       }
       const statuses = await tx.status.findMany({
         where: { folderId, deletedAt: null },

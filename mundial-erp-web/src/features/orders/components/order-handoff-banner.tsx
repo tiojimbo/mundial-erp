@@ -16,19 +16,19 @@ const HANDOFF_MESSAGES: Partial<Record<string, string>> = {
 export function OrderHandoffBanner({ order }: Props) {
   const message = HANDOFF_MESSAGES[order.status];
 
-  const hasPendingHandoff = order.processInstances?.some((pi) =>
-    pi.status !== 'COMPLETED' && pi.status !== 'CANCELLED',
+  const hasPendingHandoff = order.processInstances?.some(
+    (pi) => pi.status !== 'COMPLETED' && pi.status !== 'CANCELLED',
   );
 
   if (!message || !hasPendingHandoff) return null;
 
   return (
-    <div className='flex items-center gap-2 rounded-lg border border-state-information-base bg-state-information-lighter px-4 py-2.5'>
+    <div className='border-state-information-base bg-state-information-lighter flex items-center gap-2 rounded-lg border px-4 py-2.5'>
       <i className='ri-share-forward-line text-lg text-state-information-base' />
-      <span className='text-paragraph-sm text-state-information-base'>
+      <span className='text-state-information-base text-paragraph-sm'>
         {message}
       </span>
-      <span className='ml-auto text-label-xs text-state-information-base'>
+      <span className='text-state-information-base ml-auto text-label-xs'>
         Status: {ORDER_STATUS_LABELS[order.status]}
       </span>
     </div>

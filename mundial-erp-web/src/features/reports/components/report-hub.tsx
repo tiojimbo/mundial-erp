@@ -11,14 +11,16 @@ import {
 const REPORTS = [
   {
     title: 'DRE',
-    description: 'Demonstrativo de Resultados do Exercício — receitas, despesas e resultado líquido.',
+    description:
+      'Demonstrativo de Resultados do Exercício — receitas, despesas e resultado líquido.',
     href: '/relatorios/dre',
     icon: RiBarChartBoxLine,
     color: 'text-primary-base',
   },
   {
     title: 'Relatório de Vendas',
-    description: 'Vendas por período, produto e cliente com análise de ticket médio.',
+    description:
+      'Vendas por período, produto e cliente com análise de ticket médio.',
     href: '/relatorios/vendas',
     icon: RiLineChartLine,
     color: 'text-state-success-base',

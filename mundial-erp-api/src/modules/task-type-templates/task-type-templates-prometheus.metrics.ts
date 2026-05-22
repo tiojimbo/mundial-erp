@@ -15,12 +15,8 @@ import type {
 import { PROM_REGISTRY } from '../../common/metrics/metrics.tokens';
 
 @Injectable()
-export class PrometheusTaskTypeTemplatesMetrics
-  implements TaskTypeTemplatesMetrics
-{
-  private readonly logger = new Logger(
-    PrometheusTaskTypeTemplatesMetrics.name,
-  );
+export class PrometheusTaskTypeTemplatesMetrics implements TaskTypeTemplatesMetrics {
+  private readonly logger = new Logger(PrometheusTaskTypeTemplatesMetrics.name);
 
   private readonly instantiated: Counter<'custom_type_id' | 'workspace_id'>;
   private readonly cacheHit: Counter<'workspace_id'>;
@@ -79,10 +75,7 @@ export class PrometheusTaskTypeTemplatesMetrics
     }
   }
 
-  cacheMissTotal(args: {
-    reason: CacheMissReason;
-    workspaceId: string;
-  }): void {
+  cacheMissTotal(args: { reason: CacheMissReason; workspaceId: string }): void {
     try {
       this.cacheMiss.inc({
         reason: args.reason,

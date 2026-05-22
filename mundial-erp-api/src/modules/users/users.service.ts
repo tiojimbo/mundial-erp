@@ -26,10 +26,7 @@ export class UsersService {
     private readonly membersRepository: MembersRepository,
   ) {}
 
-  async create(
-    dto: CreateUserDto,
-    actorId: string,
-  ): Promise<UserResponseDto> {
+  async create(dto: CreateUserDto, actorId: string): Promise<UserResponseDto> {
     const existing = await this.usersRepository.findByEmail(dto.email);
     if (existing) {
       throw new ConflictException('Email já cadastrado');
@@ -43,9 +40,7 @@ export class UsersService {
       name: dto.name,
       passwordHash,
       role: dto.role,
-      space: dtoSpaceId
-        ? { connect: { id: dtoSpaceId } }
-        : undefined,
+      space: dtoSpaceId ? { connect: { id: dtoSpaceId } } : undefined,
     });
 
     await this.addToActorWorkspaces(user.id, actorId);

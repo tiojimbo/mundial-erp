@@ -6,7 +6,11 @@ import * as Checkbox from '@/components/ui/checkbox';
 import * as Badge from '@/components/ui/badge';
 import { useToggleSupply } from '../../hooks/use-orders';
 import { formatCurrency } from '../../lib/format';
-import type { Order, OrderItemSupply, ProductionOrder } from '../../types/order.types';
+import type {
+  Order,
+  OrderItemSupply,
+  ProductionOrder,
+} from '../../types/order.types';
 
 type Props = {
   order: Order;
@@ -50,7 +54,13 @@ function SupplyChecklist({
                 });
               }}
             />
-            <span className={isReady ? 'text-text-soft-400 line-through' : 'text-text-strong-950'}>
+            <span
+              className={
+                isReady
+                  ? 'text-text-soft-400 line-through'
+                  : 'text-text-strong-950'
+              }
+            >
               {supply.name}
               {supply.quantity > 1 && ` (x${supply.quantity})`}
             </span>
@@ -87,7 +97,10 @@ function InlineProductionInfo({
         </span>
         <div className='mt-1.5 flex flex-col gap-1'>
           {relatedConsumptions.map((c) => (
-            <div key={c.id} className='flex items-center justify-between text-paragraph-xs'>
+            <div
+              key={c.id}
+              className='flex items-center justify-between text-paragraph-xs'
+            >
               <span className='text-text-sub-600'>
                 {c.ingredient?.name ?? 'Ingrediente'}
               </span>
@@ -117,7 +130,13 @@ export function ItemsTab({ order }: Props) {
   const [expandedItems, setExpandedItems] = useState<Set<string>>(new Set());
 
   // Supplies are toggleable during production stages (not during EM_ORCAMENTO where items are editable)
-  const canToggleSupplies = ['FATURADO', 'PRODUZIR', 'EM_PRODUCAO', 'PRODUZIDO', 'ENTREGUE'].includes(order.status);
+  const canToggleSupplies = [
+    'FATURADO',
+    'PRODUZIR',
+    'EM_PRODUCAO',
+    'PRODUZIDO',
+    'ENTREGUE',
+  ].includes(order.status);
   // Show production info after FATURADO
   const showProduction = canToggleSupplies;
 
@@ -149,7 +168,9 @@ export function ItemsTab({ order }: Props) {
         <Table.Body>
           {order.items.map((item) => {
             const isExpanded = expandedItems.has(item.id);
-            const hasExpandableContent = item.supplies.length > 0 || (showProduction && order.productionOrders?.length > 0);
+            const hasExpandableContent =
+              item.supplies.length > 0 ||
+              (showProduction && order.productionOrders?.length > 0);
 
             return (
               <Table.Row key={item.id} className='group'>
@@ -159,14 +180,17 @@ export function ItemsTab({ order }: Props) {
                       onClick={() => toggleExpand(item.id)}
                       className='rounded p-0.5 text-text-sub-600 hover:bg-bg-weak-50'
                     >
-                      <i className={`ri-arrow-${isExpanded ? 'down' : 'right'}-s-line`} />
+                      <i
+                        className={`ri-arrow-${isExpanded ? 'down' : 'right'}-s-line`}
+                      />
                     </button>
                   )}
                 </Table.Cell>
                 <Table.Cell>
                   <div className='flex flex-col'>
                     <span className='font-medium text-text-strong-950'>
-                      {item.product?.code ?? '-'} - {item.product?.name ?? 'Produto'}
+                      {item.product?.code ?? '-'} -{' '}
+                      {item.product?.name ?? 'Produto'}
                     </span>
 
                     {isExpanded && (
@@ -193,13 +217,19 @@ export function ItemsTab({ order }: Props) {
                   </span>
                 </Table.Cell>
                 <Table.Cell className='text-right'>{item.quantity}</Table.Cell>
-                <Table.Cell className='text-right'>{item.pieces ?? '-'}</Table.Cell>
-                <Table.Cell className='text-right'>{item.size ?? '-'}</Table.Cell>
+                <Table.Cell className='text-right'>
+                  {item.pieces ?? '-'}
+                </Table.Cell>
+                <Table.Cell className='text-right'>
+                  {item.size ?? '-'}
+                </Table.Cell>
                 <Table.Cell className='text-right'>
                   {formatCurrency(item.unitPriceCents)}
                 </Table.Cell>
                 <Table.Cell className='text-right'>
-                  {item.discountCents > 0 ? formatCurrency(item.discountCents) : '-'}
+                  {item.discountCents > 0
+                    ? formatCurrency(item.discountCents)
+                    : '-'}
                 </Table.Cell>
                 <Table.Cell className='text-right font-medium'>
                   {formatCurrency(item.totalCents)}
@@ -226,7 +256,9 @@ export function ItemsTab({ order }: Props) {
           {order.discountCents > 0 && (
             <div className='flex justify-between text-paragraph-sm'>
               <span className='text-text-sub-600'>Desconto</span>
-              <span className='text-state-error-base'>-{formatCurrency(order.discountCents)}</span>
+              <span className='text-state-error-base'>
+                -{formatCurrency(order.discountCents)}
+              </span>
             </div>
           )}
           {order.taxSubstitutionCents > 0 && (
@@ -238,7 +270,9 @@ export function ItemsTab({ order }: Props) {
           <div className='border-t border-stroke-soft-200 pt-1'>
             <div className='flex justify-between text-label-md'>
               <span className='text-text-strong-950'>Total</span>
-              <span className='text-text-strong-950'>{formatCurrency(order.totalCents)}</span>
+              <span className='text-text-strong-950'>
+                {formatCurrency(order.totalCents)}
+              </span>
             </div>
           </div>
         </div>

@@ -34,7 +34,7 @@ export function TeamField({
       {(controlProps) => (
         <input
           {...controlProps}
-          type="text"
+          type='text'
           className={inline ? inputClassInline : inputClass}
           value={localValue}
           readOnly={isReadOnly}

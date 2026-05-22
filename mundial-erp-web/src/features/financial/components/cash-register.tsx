@@ -1,11 +1,7 @@
 'use client';
 
 import { useState } from 'react';
-import {
-  RiLockLine,
-  RiLockUnlockLine,
-  RiSafeLine,
-} from '@remixicon/react';
+import { RiLockLine, RiLockUnlockLine, RiSafeLine } from '@remixicon/react';
 import * as Table from '@/components/ui/table';
 import * as Badge from '@/components/ui/badge';
 import * as Button from '@/components/ui/button';
@@ -20,7 +16,10 @@ import {
 import type { CashRegister as CashRegisterType } from '../types/financial.types';
 
 export function CashRegisterPage() {
-  const { data, isLoading } = useCashRegisters({ sortBy: 'openedAt', sortOrder: 'desc' });
+  const { data, isLoading } = useCashRegisters({
+    sortBy: 'openedAt',
+    sortOrder: 'desc',
+  });
   const [openDialog, setOpenDialog] = useState(false);
   const [closeTarget, setCloseTarget] = useState<CashRegisterType | null>(null);
 
@@ -64,10 +63,10 @@ export function CashRegisterPage() {
 
       {/* Current status */}
       {currentOpen && (
-        <div className='rounded-lg border border-state-success-base/30 bg-state-success-base/5 p-4'>
+        <div className='border-state-success-base/30 bg-state-success-base/5 rounded-lg border p-4'>
           <div className='flex items-center gap-2'>
-            <RiSafeLine className='size-5 text-state-success-base' />
-            <span className='text-label-sm text-state-success-base'>
+            <RiSafeLine className='text-state-success-base size-5' />
+            <span className='text-state-success-base text-label-sm'>
               Caixa aberto
             </span>
           </div>
@@ -183,9 +182,7 @@ export function CashRegisterPage() {
       </Table.Root>
 
       {/* Open Dialog */}
-      {openDialog && (
-        <OpenCashDialog onClose={() => setOpenDialog(false)} />
-      )}
+      {openDialog && <OpenCashDialog onClose={() => setOpenDialog(false)} />}
 
       {/* Close Dialog */}
       {closeTarget && (

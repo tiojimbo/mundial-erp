@@ -8,9 +8,14 @@ import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { render, screen, fireEvent, act } from '@testing-library/react';
 import { CpfField } from './cpf-field';
 import type { CustomFieldDefinition } from '../../types/custom-field.types';
-import { makeCustomFieldDefinition } from "../../types/custom-field.fixtures";
+import { makeCustomFieldDefinition } from '../../types/custom-field.fixtures';
 
-const definition: CustomFieldDefinition = makeCustomFieldDefinition({ id: 'def-cpf-1', workspaceId: 'ws-1', name: 'CPF', type: 'CPF' });
+const definition: CustomFieldDefinition = makeCustomFieldDefinition({
+  id: 'def-cpf-1',
+  workspaceId: 'ws-1',
+  name: 'CPF',
+  type: 'CPF',
+});
 
 describe('CpfField (TTT-024)', () => {
   beforeEach(() => {
@@ -68,7 +73,7 @@ describe('CpfField (TTT-024)', () => {
         definition={definition}
         value={null}
         onChange={onChange}
-        error="CPF invalido"
+        error='CPF invalido'
       />,
     );
     const input = screen.getByPlaceholderText('000.000.000-00');

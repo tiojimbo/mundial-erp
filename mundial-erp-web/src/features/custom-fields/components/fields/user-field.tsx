@@ -62,7 +62,8 @@ const AVATAR_COLORS = [
 
 function colorOf(id: string) {
   let hash = 0;
-  for (let i = 0; i < id.length; i += 1) hash = (hash * 31 + id.charCodeAt(i)) | 0;
+  for (let i = 0; i < id.length; i += 1)
+    hash = (hash * 31 + id.charCodeAt(i)) | 0;
   return AVATAR_COLORS[Math.abs(hash) % AVATAR_COLORS.length];
 }
 
@@ -79,7 +80,8 @@ export function UserField({
   const { data: members } = useWorkspaceMembers(workspaceId);
   const [open, setOpen] = useState(false);
   const normalizedMembers = useMemo<NormalizedMember[]>(
-    () => (members?.data ?? []).map((m) => normalize(m as unknown as FlatMember)),
+    () =>
+      (members?.data ?? []).map((m) => normalize(m as unknown as FlatMember)),
     [members],
   );
   const selectedMember = useMemo(
@@ -89,15 +91,20 @@ export function UserField({
 
   if (!inline) {
     return (
-      <FieldShell definition={definition} error={error} hint={definition.config?.hint} showLabel>
+      <FieldShell
+        definition={definition}
+        error={error}
+        hint={definition.config?.hint}
+        showLabel
+      >
         {(controlProps) => (
           <input
             {...controlProps}
-            type="text"
+            type='text'
             className={inputClass}
             value={typeof value === 'string' ? value : ''}
             readOnly={isReadOnly}
-            placeholder="ID do usuario"
+            placeholder='ID do usuario'
             onChange={(event) => {
               const next = event.target.value.trim();
               onChange(next.length === 0 ? null : next);
@@ -115,44 +122,46 @@ export function UserField({
           <Popover.Trigger asChild>
             <button
               {...controlProps}
-              type="button"
+              type='button'
               disabled={isReadOnly}
-              className="flex w-full cursor-pointer items-center gap-2 focus:outline-none disabled:cursor-not-allowed disabled:opacity-60"
+              className='flex w-full cursor-pointer items-center gap-2 focus:outline-none disabled:cursor-not-allowed disabled:opacity-60'
             >
               {selectedMember ? (
                 <>
                   <Avatar member={selectedMember} />
-                  <span className="text-foreground truncate text-[13px]">{selectedMember.name}</span>
+                  <span className='truncate text-[13px] text-foreground'>
+                    {selectedMember.name}
+                  </span>
                 </>
               ) : (
                 <div
-                  className="bg-muted text-muted-foreground ring-border/60 hover:bg-accent hover:text-foreground flex h-6 w-6 shrink-0 items-center justify-center rounded-full ring-1 ring-inset transition-colors"
-                  aria-label="Atribuir usuário"
+                  className='ring-border/60 flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-muted text-muted-foreground ring-1 ring-inset transition-colors hover:bg-accent hover:text-foreground'
+                  aria-label='Atribuir usuário'
                 >
-                  <UserPlus className="h-3.5 w-3.5" />
+                  <UserPlus className='h-3.5 w-3.5' />
                 </div>
               )}
             </button>
           </Popover.Trigger>
           <Popover.Portal>
             <Popover.Content
-              align="start"
+              align='start'
               sideOffset={4}
-              className="bg-popover text-popover-foreground z-50 w-[300px] rounded-md border p-0 shadow-md outline-none"
+              className='shadow-md z-50 w-[300px] rounded-md border bg-popover p-0 text-popover-foreground outline-none'
             >
-              <Command className="text-popover-foreground flex h-full w-full flex-col overflow-hidden rounded-md bg-transparent">
-                <div className="flex h-9 items-center gap-2 border-b px-3">
-                  <Search className="h-4 w-4 shrink-0 opacity-50" />
+              <Command className='flex h-full w-full flex-col overflow-hidden rounded-md bg-transparent text-popover-foreground'>
+                <div className='flex h-9 items-center gap-2 border-b px-3'>
+                  <Search className='h-4 w-4 shrink-0 opacity-50' />
                   <Command.Input
-                    placeholder="Buscar membros..."
-                    className="placeholder:text-muted-foreground h-10 w-full bg-transparent py-3 text-sm outline-none"
+                    placeholder='Buscar membros...'
+                    className='text-sm h-10 w-full bg-transparent py-3 outline-none placeholder:text-muted-foreground'
                   />
                 </div>
-                <Command.List className="max-h-[300px] scroll-py-1 overflow-x-hidden overflow-y-auto">
-                  <Command.Empty className="text-muted-foreground px-3 py-6 text-center text-sm">
+                <Command.List className='max-h-[300px] scroll-py-1 overflow-y-auto overflow-x-hidden'>
+                  <Command.Empty className='text-sm px-3 py-6 text-center text-muted-foreground'>
                     Nenhum membro encontrado
                   </Command.Empty>
-                  <Command.Group className="overflow-hidden p-1">
+                  <Command.Group className='overflow-hidden p-1'>
                     {normalizedMembers.map((m) => (
                       <Command.Item
                         key={m.id}
@@ -163,14 +172,18 @@ export function UserField({
                         }}
                         className={cn(
                           'data-[selected=true]:bg-accent data-[selected=true]:text-accent-foreground',
-                          'relative flex cursor-pointer items-center gap-2 rounded-sm px-2 py-1.5 text-sm outline-none select-none',
+                          'text-sm relative flex cursor-pointer select-none items-center gap-2 rounded-sm px-2 py-1.5 outline-none',
                         )}
                       >
-                        <div className="flex w-full items-center gap-2">
+                        <div className='flex w-full items-center gap-2'>
                           <Avatar member={m} />
-                          <div className="min-w-0 flex-1">
-                            <p className="truncate text-sm font-medium">{m.name}</p>
-                            <p className="text-muted-foreground truncate text-xs">{m.email}</p>
+                          <div className='min-w-0 flex-1'>
+                            <p className='text-sm truncate font-medium'>
+                              {m.name}
+                            </p>
+                            <p className='text-xs truncate text-muted-foreground'>
+                              {m.email}
+                            </p>
                           </div>
                         </div>
                       </Command.Item>
@@ -179,14 +192,14 @@ export function UserField({
                 </Command.List>
                 {selectedMember && (
                   <button
-                    type="button"
+                    type='button'
                     onClick={() => {
                       onChange(null);
                       setOpen(false);
                     }}
-                    className="text-destructive hover:bg-destructive/10 flex items-center gap-1 border-t px-3 py-2 text-xs"
+                    className='hover:bg-destructive/10 text-xs flex items-center gap-1 border-t px-3 py-2 text-destructive'
                   >
-                    <X className="h-3 w-3" />
+                    <X className='h-3 w-3' />
                     Remover
                   </button>
                 )}
@@ -203,14 +216,19 @@ function Avatar({ member }: { member: NormalizedMember }) {
   const c = colorOf(member.id);
   if (member.avatarUrl) {
     return (
-      <span className="relative flex h-6 w-6 shrink-0 overflow-hidden rounded-full">
-        <img src={member.avatarUrl} alt={member.name} className="h-full w-full object-cover" />
+      <span className='relative flex h-6 w-6 shrink-0 overflow-hidden rounded-full'>
+        {/* eslint-disable-next-line @next/next/no-img-element */}
+        <img
+          src={member.avatarUrl}
+          alt={member.name}
+          className='h-full w-full object-cover'
+        />
       </span>
     );
   }
   return (
     <span
-      className="relative flex h-6 w-6 shrink-0 items-center justify-center rounded-full text-[10px] font-semibold"
+      className='relative flex h-6 w-6 shrink-0 items-center justify-center rounded-full text-[10px] font-semibold'
       style={{ backgroundColor: c.bg, color: c.fg }}
     >
       {initialsOf(member.name)}

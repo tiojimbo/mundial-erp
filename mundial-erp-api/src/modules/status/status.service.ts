@@ -51,7 +51,9 @@ export class StatusService {
       throw new NotFoundException(`Status with ID ${id} not found`);
     }
     return StatusDetailResponseDto.fromEntityWithTasks(
-      entity as Parameters<typeof StatusDetailResponseDto.fromEntityWithTasks>[0],
+      entity as Parameters<
+        typeof StatusDetailResponseDto.fromEntityWithTasks
+      >[0],
     );
   }
 
@@ -78,10 +80,7 @@ export class StatusService {
     return StatusResponseDto.fromEntity(updated);
   }
 
-  async remove(
-    workspaceId: string,
-    id: string,
-  ): Promise<StatusResponseDto> {
+  async remove(workspaceId: string, id: string): Promise<StatusResponseDto> {
     const entity = await this.statusRepository.findById(workspaceId, id);
     if (!entity) {
       throw new NotFoundException(`Status with ID ${id} not found`);

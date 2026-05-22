@@ -69,9 +69,7 @@ export class TaskSSEClient {
 
   private readonly token: string | undefined;
 
-  private readonly handlers: Required<
-    Pick<TaskSseClientOptions, 'onEvent'>
-  > &
+  private readonly handlers: Required<Pick<TaskSseClientOptions, 'onEvent'>> &
     Pick<TaskSseClientOptions, 'onError' | 'onOpen' | 'onClose'>;
 
   private eventSource: EventSource | null = null;
@@ -155,9 +153,7 @@ export class TaskSSEClient {
       }
 
       source.onerror = () => {
-        this.handlers.onError?.(
-          new Error(`SSE error on task ${this.taskId}`),
-        );
+        this.handlers.onError?.(new Error(`SSE error on task ${this.taskId}`));
         this.teardownEventSource();
         if (this.closed) return;
         this.scheduleReconnect();
@@ -194,9 +190,7 @@ export class TaskSSEClient {
 
   private scheduleReconnect(): void {
     const step =
-      BACKOFF_STEPS_MS[
-        Math.min(this.attempts, BACKOFF_STEPS_MS.length - 1)
-      ];
+      BACKOFF_STEPS_MS[Math.min(this.attempts, BACKOFF_STEPS_MS.length - 1)];
     this.attempts += 1;
     const delay = jitter(step);
     this.reconnectTimer = setTimeout(() => {

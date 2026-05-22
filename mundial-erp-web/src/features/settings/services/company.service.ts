@@ -1,5 +1,8 @@
 import { api } from '@/lib/api';
-import type { CompanySettings, UpdateCompanyPayload } from '../types/settings.types';
+import type {
+  CompanySettings,
+  UpdateCompanyPayload,
+} from '../types/settings.types';
 
 export const companyService = {
   async get(): Promise<CompanySettings> {
@@ -15,9 +18,13 @@ export const companyService = {
   async uploadLogo(file: File): Promise<{ logoUrl: string }> {
     const formData = new FormData();
     formData.append('logo', file);
-    const { data } = await api.post<{ logoUrl: string }>('/company/logo', formData, {
-      headers: { 'Content-Type': 'multipart/form-data' },
-    });
+    const { data } = await api.post<{ logoUrl: string }>(
+      '/company/logo',
+      formData,
+      {
+        headers: { 'Content-Type': 'multipart/form-data' },
+      },
+    );
     return data;
   },
 };

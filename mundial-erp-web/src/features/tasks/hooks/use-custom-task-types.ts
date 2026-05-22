@@ -42,7 +42,11 @@ export function useUpdateCustomTaskType() {
   return useMutation<
     CustomTaskType,
     Error,
-    { spaceId: string | null; taskTypeId: string; payload: UpdateCustomTaskTypePayload }
+    {
+      spaceId: string | null;
+      taskTypeId: string;
+      payload: UpdateCustomTaskTypePayload;
+    }
   >({
     mutationFn: ({ spaceId, taskTypeId, payload }) =>
       customTaskTypesService.update(spaceId, taskTypeId, payload),
@@ -52,7 +56,11 @@ export function useUpdateCustomTaskType() {
 
 export function useDeleteCustomTaskType() {
   const qc = useQueryClient();
-  return useMutation<void, Error, { spaceId: string | null; taskTypeId: string }>({
+  return useMutation<
+    void,
+    Error,
+    { spaceId: string | null; taskTypeId: string }
+  >({
     mutationFn: ({ spaceId, taskTypeId }) =>
       customTaskTypesService.remove(spaceId, taskTypeId),
     onSuccess: () => invalidateAll(qc),

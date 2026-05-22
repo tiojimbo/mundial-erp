@@ -47,7 +47,12 @@ export function QuotationDossier({ quotationId }: Props) {
   const [expectedDeliveryDate, setExpectedDeliveryDate] = useState('');
   const [purchaseNotes, setPurchaseNotes] = useState('');
   const [proposalItems, setProposalItems] = useState<
-    { productId: string; productName: string; quantity: number; unitPriceCents: string }[]
+    {
+      productId: string;
+      productName: string;
+      quantity: number;
+      unitPriceCents: string;
+    }[]
   >([]);
 
   if (isLoading) {
@@ -63,8 +68,10 @@ export function QuotationDossier({ quotationId }: Props) {
   if (error || !quotation) {
     return (
       <div className='flex flex-col items-center justify-center gap-4 py-16'>
-        <RiErrorWarningLine className='size-10 text-state-error-base' />
-        <p className='text-paragraph-md text-text-strong-950'>Cotação não encontrada</p>
+        <RiErrorWarningLine className='text-state-error-base size-10' />
+        <p className='text-paragraph-md text-text-strong-950'>
+          Cotação não encontrada
+        </p>
         <Link href='/compras/cotacoes'>
           <Button.Root variant='neutral' mode='stroke' size='small'>
             Voltar para lista
@@ -101,7 +108,8 @@ export function QuotationDossier({ quotationId }: Props) {
     const items = proposalItems.map((pi) => ({
       productId: pi.productId,
       quantity: pi.quantity,
-      unitPriceCents: Math.round(parseFloat(pi.unitPriceCents.replace(',', '.')) * 100) || 0,
+      unitPriceCents:
+        Math.round(parseFloat(pi.unitPriceCents.replace(',', '.')) * 100) || 0,
     }));
     updateMutation.mutate(
       {
@@ -160,7 +168,8 @@ export function QuotationDossier({ quotationId }: Props) {
             </div>
             <p className='text-paragraph-xs text-text-soft-400'>
               Solicitada em {formatDate(quotation.requestedAt)}
-              {quotation.receivedAt && ` · Recebida em ${formatDate(quotation.receivedAt)}`}
+              {quotation.receivedAt &&
+                ` · Recebida em ${formatDate(quotation.receivedAt)}`}
             </p>
             {quotation.totalCents > 0 && (
               <p className='text-paragraph-sm text-text-sub-600'>
@@ -172,18 +181,19 @@ export function QuotationDossier({ quotationId }: Props) {
 
         {/* Action buttons based on status */}
         <div className='flex items-center gap-2'>
-          {quotation.status !== 'REJECTED' && quotation.status !== 'SELECTED' && (
-            <Button.Root
-              variant='error'
-              mode='ghost'
-              size='small'
-              onClick={handleRejectQuotation}
-              disabled={updateMutation.isPending}
-            >
-              <Button.Icon as={RiCloseCircleLine} />
-              Rejeitar
-            </Button.Root>
-          )}
+          {quotation.status !== 'REJECTED' &&
+            quotation.status !== 'SELECTED' && (
+              <Button.Root
+                variant='error'
+                mode='ghost'
+                size='small'
+                onClick={handleRejectQuotation}
+                disabled={updateMutation.isPending}
+              >
+                <Button.Icon as={RiCloseCircleLine} />
+                Rejeitar
+              </Button.Root>
+            )}
 
           {quotation.status === 'DRAFT' && (
             <Button.Root
@@ -209,12 +219,7 @@ export function QuotationDossier({ quotationId }: Props) {
                 <Button.Icon as={RiMailCheckLine} />
                 Registrar Proposta
               </Button.Root>
-              <Button.Root
-                variant='neutral'
-                mode='ghost'
-                size='small'
-                disabled
-              >
+              <Button.Root variant='neutral' mode='ghost' size='small' disabled>
                 <Button.Icon as={RiTimeLine} />
                 Aguardando resposta
               </Button.Root>
@@ -230,7 +235,9 @@ export function QuotationDossier({ quotationId }: Props) {
               disabled={selectMutation.isPending}
             >
               <Button.Icon as={RiCheckDoubleLine} />
-              {selectMutation.isPending ? 'Selecionando...' : 'Selecionar Cotação'}
+              {selectMutation.isPending
+                ? 'Selecionando...'
+                : 'Selecionar Cotação'}
             </Button.Root>
           )}
 
@@ -252,19 +259,25 @@ export function QuotationDossier({ quotationId }: Props) {
       <div className='rounded-xl border border-stroke-soft-200 bg-bg-white-0 p-5 shadow-regular-xs'>
         <div className='grid grid-cols-1 gap-4 md:grid-cols-3'>
           <div>
-            <span className='text-subheading-2xs uppercase text-text-soft-400'>Fornecedor</span>
+            <span className='text-subheading-2xs uppercase text-text-soft-400'>
+              Fornecedor
+            </span>
             <p className='text-paragraph-sm text-text-strong-950'>
               {quotation.supplier?.name ?? '-'}
             </p>
           </div>
           <div>
-            <span className='text-subheading-2xs uppercase text-text-soft-400'>CPF/CNPJ</span>
+            <span className='text-subheading-2xs uppercase text-text-soft-400'>
+              CPF/CNPJ
+            </span>
             <p className='text-paragraph-sm text-text-strong-950'>
               {quotation.supplier?.cpfCnpj ?? '-'}
             </p>
           </div>
           <div>
-            <span className='text-subheading-2xs uppercase text-text-soft-400'>Status</span>
+            <span className='text-subheading-2xs uppercase text-text-soft-400'>
+              Status
+            </span>
             <div className='mt-1'>
               <QuotationStatusBadge status={quotation.status} />
             </div>
@@ -327,7 +340,9 @@ export function QuotationDossier({ quotationId }: Props) {
               </div>
 
               <div className='space-y-1.5'>
-                <Label.Root htmlFor='expectedDeliveryDate'>Previsão de entrega</Label.Root>
+                <Label.Root htmlFor='expectedDeliveryDate'>
+                  Previsão de entrega
+                </Label.Root>
                 <Input.Root>
                   <Input.Wrapper>
                     <Input.Input
@@ -369,7 +384,9 @@ export function QuotationDossier({ quotationId }: Props) {
               onClick={handleCreatePurchaseOrder}
               disabled={createOrderMutation.isPending}
             >
-              {createOrderMutation.isPending ? 'Processando...' : 'Confirmar Compra'}
+              {createOrderMutation.isPending
+                ? 'Processando...'
+                : 'Confirmar Compra'}
             </Button.Root>
           </Modal.Footer>
         </Modal.Content>
@@ -390,8 +407,12 @@ export function QuotationDossier({ quotationId }: Props) {
                   className='flex items-center justify-between gap-3 rounded-lg border border-stroke-soft-200 p-3'
                 >
                   <div className='flex-1'>
-                    <p className='text-label-sm text-text-strong-950'>{pi.productName}</p>
-                    <p className='text-paragraph-xs text-text-soft-400'>Qtd: {pi.quantity}</p>
+                    <p className='text-label-sm text-text-strong-950'>
+                      {pi.productName}
+                    </p>
+                    <p className='text-paragraph-xs text-text-soft-400'>
+                      Qtd: {pi.quantity}
+                    </p>
                   </div>
                   <div className='w-36'>
                     <Input.Root size='small'>
@@ -402,7 +423,10 @@ export function QuotationDossier({ quotationId }: Props) {
                           value={pi.unitPriceCents}
                           onChange={(e) => {
                             const updated = [...proposalItems];
-                            updated[idx] = { ...updated[idx], unitPriceCents: e.target.value };
+                            updated[idx] = {
+                              ...updated[idx],
+                              unitPriceCents: e.target.value,
+                            };
                             setProposalItems(updated);
                           }}
                         />

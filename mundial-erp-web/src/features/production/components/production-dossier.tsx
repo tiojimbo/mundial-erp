@@ -19,7 +19,11 @@ type Props = {
 };
 
 export function ProductionDossier({ productionOrderId }: Props) {
-  const { data: order, isLoading, error } = useProductionOrder(productionOrderId);
+  const {
+    data: order,
+    isLoading,
+    error,
+  } = useProductionOrder(productionOrderId);
 
   if (isLoading) {
     return (
@@ -106,7 +110,9 @@ export function ProductionDossier({ productionOrderId }: Props) {
           <span className='text-subheading-2xs uppercase text-text-soft-400'>
             Observacoes
           </span>
-          <p className='text-paragraph-sm text-text-strong-950'>{order.notes}</p>
+          <p className='text-paragraph-sm text-text-strong-950'>
+            {order.notes}
+          </p>
         </div>
       )}
 

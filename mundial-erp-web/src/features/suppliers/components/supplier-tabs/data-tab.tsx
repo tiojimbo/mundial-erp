@@ -7,7 +7,13 @@ type SupplierDataTabProps = {
   supplier: Supplier;
 };
 
-function DataRow({ label, value }: { label: string; value: string | null | undefined }) {
+function DataRow({
+  label,
+  value,
+}: {
+  label: string;
+  value: string | null | undefined;
+}) {
   return (
     <div className='flex flex-col gap-0.5'>
       <span className='text-paragraph-xs text-text-soft-400'>{label}</span>
@@ -29,14 +35,18 @@ export function SupplierDataTab({ supplier }: SupplierDataTabProps) {
         <div className='grid gap-4 sm:grid-cols-2 lg:grid-cols-3'>
           <DataRow
             label='Tipo de Pessoa'
-            value={supplier.personType === 'F' ? 'Pessoa Física' : 'Pessoa Jurídica'}
+            value={
+              supplier.personType === 'F' ? 'Pessoa Física' : 'Pessoa Jurídica'
+            }
           />
           <DataRow
             label={supplier.personType === 'F' ? 'CPF' : 'CNPJ'}
             value={formatCpfCnpj(supplier.cpfCnpj)}
           />
           <DataRow
-            label={supplier.personType === 'F' ? 'Nome Completo' : 'Razão Social'}
+            label={
+              supplier.personType === 'F' ? 'Nome Completo' : 'Razão Social'
+            }
             value={supplier.name}
           />
           <DataRow

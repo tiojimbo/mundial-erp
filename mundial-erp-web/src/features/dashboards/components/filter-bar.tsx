@@ -32,7 +32,12 @@ export function FilterBar({
       </Button.Root>
 
       {filters.map((filter) => (
-        <Badge.Root key={filter.id} variant='lighter' color='blue' size='medium'>
+        <Badge.Root
+          key={filter.id}
+          variant='lighter'
+          color='blue'
+          size='medium'
+        >
           {filter.label}: {FILTER_OPERATOR_LABELS[filter.operator]}{' '}
           {String(filter.value)}
           <button

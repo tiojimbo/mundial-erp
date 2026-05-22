@@ -61,8 +61,7 @@ export const taskQueryKeys = {
       'activities',
       params ?? {},
     ] as const,
-  templates: (workspaceId: string) =>
-    [workspaceId, 'task-templates'] as const,
+  templates: (workspaceId: string) => [workspaceId, 'task-templates'] as const,
   customTaskTypes: (workspaceId: string) =>
     [workspaceId, 'custom-task-types'] as const,
 };

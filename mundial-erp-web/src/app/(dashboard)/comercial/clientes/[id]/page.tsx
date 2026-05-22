@@ -6,6 +6,8 @@ type ClienteDetalhePageProps = {
   params: { id: string };
 };
 
-export default function ClienteDetalhePage({ params }: ClienteDetalhePageProps) {
+export default function ClienteDetalhePage({
+  params,
+}: ClienteDetalhePageProps) {
   return <ClientDetail clientId={params.id} />;
 }

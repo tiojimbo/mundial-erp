@@ -109,7 +109,7 @@ export function MyTasksView(): JSX.Element {
 
   if (!user) {
     return (
-      <div className="rounded-lg border border-dashed border-stroke-soft-200 p-6 text-center text-paragraph-sm text-text-sub-600">
+      <div className='rounded-lg border border-dashed border-stroke-soft-200 p-6 text-center text-paragraph-sm text-text-sub-600'>
         Faca login para ver suas tarefas.
       </div>
     );
@@ -118,13 +118,16 @@ export function MyTasksView(): JSX.Element {
   if (query.isLoading) {
     return (
       <div
-        className="flex flex-col gap-3"
-        role="status"
-        aria-busy="true"
-        aria-live="polite"
+        className='flex flex-col gap-3'
+        role='status'
+        aria-busy='true'
+        aria-live='polite'
       >
         {Array.from({ length: 3 }).map((_, i) => (
-          <div key={i} className="h-32 animate-pulse rounded-lg bg-bg-weak-50" />
+          <div
+            key={i}
+            className='h-32 animate-pulse rounded-lg bg-bg-weak-50'
+          />
         ))}
       </div>
     );
@@ -132,40 +135,40 @@ export function MyTasksView(): JSX.Element {
 
   if (tasks.length === 0) {
     return (
-      <div className="rounded-lg border border-dashed border-stroke-soft-200 p-8 text-center text-paragraph-sm text-text-sub-600">
+      <div className='rounded-lg border border-dashed border-stroke-soft-200 p-8 text-center text-paragraph-sm text-text-sub-600'>
         Nenhuma tarefa atribuida a voce agora.
       </div>
     );
   }
 
   return (
-    <div className="flex flex-col gap-6">
+    <div className='flex flex-col gap-6'>
       {sections.map((section) => (
         <section key={section.id} aria-labelledby={`my-tasks-${section.id}`}>
-          <header className="mb-2 flex items-center gap-2">
-            <section.icon className="size-4 text-text-sub-600" />
+          <header className='mb-2 flex items-center gap-2'>
+            <section.icon className='size-4 text-text-sub-600' />
             <h2
               id={`my-tasks-${section.id}`}
-              className="text-label-md text-text-strong-950"
+              className='text-label-md text-text-strong-950'
             >
               {section.title}
             </h2>
             <span
-              className="text-subheading-2xs text-text-sub-600"
+              className='text-subheading-2xs text-text-sub-600'
               aria-label={`${section.tasks.length} tarefas`}
             >
               {section.tasks.length}
             </span>
           </header>
           {section.tasks.length === 0 ? (
-            <p className="rounded-md border border-dashed border-stroke-soft-200 p-4 text-paragraph-sm text-text-sub-600">
+            <p className='rounded-md border border-dashed border-stroke-soft-200 p-4 text-paragraph-sm text-text-sub-600'>
               Nada aqui.
             </p>
           ) : (
             <ul
-              role="list"
+              role='list'
               aria-label={section.title}
-              className="grid grid-cols-1 gap-2 md:grid-cols-2 lg:grid-cols-3"
+              className='grid grid-cols-1 gap-2 md:grid-cols-2 lg:grid-cols-3'
             >
               {section.tasks.map((task) => (
                 <TaskCard key={task.id} task={task} />
@@ -176,11 +179,11 @@ export function MyTasksView(): JSX.Element {
       ))}
 
       {query.hasNextPage && (
-        <div className="flex justify-center">
+        <div className='flex justify-center'>
           <button
-            type="button"
+            type='button'
             onClick={() => query.fetchNextPage()}
-            className="inline-flex h-9 items-center gap-2 rounded-md border border-stroke-soft-200 bg-bg-white-0 px-4 text-label-xs text-text-sub-600 hover:bg-bg-weak-50"
+            className='inline-flex h-9 items-center gap-2 rounded-md border border-stroke-soft-200 bg-bg-white-0 px-4 text-label-xs text-text-sub-600 hover:bg-bg-weak-50'
           >
             Carregar mais
           </button>
@@ -188,8 +191,8 @@ export function MyTasksView(): JSX.Element {
       )}
 
       <Link
-        href="/tasks/all"
-        className="self-start text-label-xs text-primary-base hover:underline"
+        href='/tasks/all'
+        className='self-start text-label-xs text-primary-base hover:underline'
       >
         Ver todas as tarefas →
       </Link>

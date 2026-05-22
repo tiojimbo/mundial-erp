@@ -3,11 +3,7 @@
 import Link from 'next/link';
 import { format, isPast, isToday, parseISO } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
-import {
-  RiCalendarLine,
-  RiFlagLine,
-  RiPriceTag3Line,
-} from '@remixicon/react';
+import { RiCalendarLine, RiFlagLine, RiPriceTag3Line } from '@remixicon/react';
 import { cn } from '@/lib/cn';
 import * as Avatar from '@/components/ui/avatar';
 import * as AvatarGroup from '@/components/ui/avatar-group';
@@ -78,7 +74,7 @@ export function TaskCard({
 
   return (
     <article
-      role="listitem"
+      role='listitem'
       aria-label={`Tarefa ${task.title}`}
       className={cn(
         'group relative flex flex-col gap-2 rounded-lg border border-stroke-soft-200 bg-bg-white-0 p-3 text-left shadow-regular-xs transition-all duration-200',
@@ -92,7 +88,7 @@ export function TaskCard({
     >
       <Link
         href={`/tasks/${task.id}`}
-        className="line-clamp-2 text-label-sm text-text-strong-950 outline-none hover:underline"
+        className='line-clamp-2 text-label-sm text-text-strong-950 outline-none hover:underline'
         onClick={(event) => {
           if (onOpen) {
             event.preventDefault();
@@ -105,48 +101,46 @@ export function TaskCard({
 
       {visibleTags.length > 0 && (
         <ul
-          className="flex flex-wrap items-center gap-1"
-          aria-label="Tags da tarefa"
+          className='flex flex-wrap items-center gap-1'
+          aria-label='Tags da tarefa'
         >
           {visibleTags.map((tag) => (
             <li
               key={tag.id}
-              className="inline-flex items-center gap-1 rounded-md px-1.5 py-0.5 text-subheading-2xs text-text-sub-600"
+              className='inline-flex items-center gap-1 rounded-md px-1.5 py-0.5 text-subheading-2xs text-text-sub-600'
               style={{
                 backgroundColor: `${tag.color}1A`,
                 color: tag.color,
               }}
             >
-              <RiPriceTag3Line className="size-3" aria-hidden />
+              <RiPriceTag3Line className='size-3' aria-hidden />
               <span>{tag.name}</span>
             </li>
           ))}
           {extraTags > 0 && (
-            <li className="inline-flex items-center rounded-md bg-bg-weak-50 px-1.5 py-0.5 text-subheading-2xs text-text-sub-600">
+            <li className='inline-flex items-center rounded-md bg-bg-weak-50 px-1.5 py-0.5 text-subheading-2xs text-text-sub-600'>
               +{extraTags}
             </li>
           )}
         </ul>
       )}
 
-      <div className="flex items-center justify-between gap-2">
-        <div className="flex items-center gap-2 text-subheading-2xs text-text-sub-600">
+      <div className='flex items-center justify-between gap-2'>
+        <div className='flex items-center gap-2 text-subheading-2xs text-text-sub-600'>
           <span
             className={cn(
               'inline-flex items-center gap-1 rounded-md px-1.5 py-0.5',
-              due.tone === 'overdue' &&
-                'bg-error-lighter text-error-base',
-              due.tone === 'today' &&
-                'bg-warning-lighter text-warning-base',
+              due.tone === 'overdue' && 'bg-error-lighter text-error-base',
+              due.tone === 'today' && 'bg-warning-lighter text-warning-base',
               due.tone === 'future' && 'bg-bg-weak-50',
               due.tone === 'none' && 'bg-bg-weak-50 text-faded-base',
             )}
           >
-            <RiCalendarLine className="size-3" aria-hidden />
+            <RiCalendarLine className='size-3' aria-hidden />
             <span>{due.label}</span>
           </span>
           {typeof task.points === 'number' && task.points > 0 && (
-            <span className="inline-flex items-center rounded-md bg-bg-weak-50 px-1.5 py-0.5">
+            <span className='inline-flex items-center rounded-md bg-bg-weak-50 px-1.5 py-0.5'>
               {task.points} pts
             </span>
           )}
@@ -158,14 +152,14 @@ export function TaskCard({
             aria-label={`Prioridade: ${PRIORITY_LABEL[priority]}`}
             title={PRIORITY_LABEL[priority]}
           >
-            <RiFlagLine className="size-3" aria-hidden />
+            <RiFlagLine className='size-3' aria-hidden />
           </span>
         </div>
 
         {task.assignees.length > 0 && (
-          <AvatarGroup.Root size="24">
+          <AvatarGroup.Root size='24'>
             {task.assignees.slice(0, 3).map((assignee) => (
-              <Avatar.Root key={assignee.userId} size="24">
+              <Avatar.Root key={assignee.userId} size='24'>
                 <span aria-hidden>
                   {assignee.userName?.slice(0, 1).toUpperCase() ?? '?'}
                 </span>

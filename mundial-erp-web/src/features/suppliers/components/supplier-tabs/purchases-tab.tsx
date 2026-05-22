@@ -16,7 +16,10 @@ function getTypeBadge(type: 'QUOTATION' | 'ORDER') {
 }
 
 function getStatusBadge(status: string) {
-  const map: Record<string, { label: string; color: 'green' | 'blue' | 'orange' | 'red' | 'gray' }> = {
+  const map: Record<
+    string,
+    { label: string; color: 'green' | 'blue' | 'orange' | 'red' | 'gray' }
+  > = {
     SELECTED: { label: 'Selecionada', color: 'green' },
     RECEIVED: { label: 'Recebido', color: 'green' },
     CONFIRMED: { label: 'Confirmado', color: 'blue' },
@@ -29,7 +32,9 @@ function getStatusBadge(status: string) {
   return map[status] ?? { label: status, color: 'gray' as const };
 }
 
-export function SupplierPurchasesTab({ supplierId }: SupplierPurchasesTabProps) {
+export function SupplierPurchasesTab({
+  supplierId,
+}: SupplierPurchasesTabProps) {
   const { data: purchases, isLoading } = useSupplierPurchaseHistory(supplierId);
 
   if (isLoading) {
@@ -74,12 +79,20 @@ export function SupplierPurchasesTab({ supplierId }: SupplierPurchasesTabProps) 
           return (
             <Table.Row key={purchase.id}>
               <Table.Cell>
-                <Badge.Root variant='lighter' color={typeBadge.color} size='small'>
+                <Badge.Root
+                  variant='lighter'
+                  color={typeBadge.color}
+                  size='small'
+                >
                   {typeBadge.label}
                 </Badge.Root>
               </Table.Cell>
               <Table.Cell>
-                <Badge.Root variant='lighter' color={statusBadge.color} size='small'>
+                <Badge.Root
+                  variant='lighter'
+                  color={statusBadge.color}
+                  size='small'
+                >
                   {statusBadge.label}
                 </Badge.Root>
               </Table.Cell>
@@ -90,12 +103,16 @@ export function SupplierPurchasesTab({ supplierId }: SupplierPurchasesTabProps) 
               </Table.Cell>
               <Table.Cell>
                 <span className='text-paragraph-sm text-text-sub-600'>
-                  {purchase.requestedAt ? formatDate(purchase.requestedAt) : '—'}
+                  {purchase.requestedAt
+                    ? formatDate(purchase.requestedAt)
+                    : '—'}
                 </span>
               </Table.Cell>
               <Table.Cell>
                 <span className='text-paragraph-sm text-text-sub-600'>
-                  {purchase.deliveryDate ? formatDate(purchase.deliveryDate) : '—'}
+                  {purchase.deliveryDate
+                    ? formatDate(purchase.deliveryDate)
+                    : '—'}
                 </span>
               </Table.Cell>
             </Table.Row>

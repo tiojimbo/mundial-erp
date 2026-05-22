@@ -162,7 +162,11 @@ function castRollupProps(props: CustomFieldEditorProps): {
   inline?: boolean;
 } {
   const { value } = props;
-  if (typeof value === 'number' || typeof value === 'string' || value === null) {
+  if (
+    typeof value === 'number' ||
+    typeof value === 'string' ||
+    value === null
+  ) {
     return { ...props, value };
   }
   return { ...props, value: null };

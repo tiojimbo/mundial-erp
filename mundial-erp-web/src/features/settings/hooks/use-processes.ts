@@ -1,9 +1,8 @@
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import {
-  useQuery,
-  useMutation,
-  useQueryClient,
-} from '@tanstack/react-query';
-import { processesService } from '../services/processes.service';
+  processesService,
+  type StatusInheritPayload,
+} from '../services/processes.service';
 import type {
   CreateProcessPayload,
   UpdateProcessPayload,
@@ -31,7 +30,8 @@ export function useProcess(id: string) {
 export function useCreateProcess() {
   const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: (payload: CreateProcessPayload) => processesService.create(payload),
+    mutationFn: (payload: CreateProcessPayload) =>
+      processesService.create(payload),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: PROCESSES_KEY });
     },
@@ -41,7 +41,8 @@ export function useCreateProcess() {
 export function useUpdateProcess(id: string) {
   const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: (payload: UpdateProcessPayload) => processesService.update(id, payload),
+    mutationFn: (payload: UpdateProcessPayload) =>
+      processesService.update(id, payload),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: PROCESSES_KEY });
     },
@@ -51,9 +52,8 @@ export function useUpdateProcess(id: string) {
 export function useUpdateProcessStatusInherit(id: string) {
   const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: (payload: {
-      statusInheritance: 'SPACE' | 'FOLDER' | 'CUSTOM';
-    }) => processesService.updateStatusInherit(id, payload),
+    mutationFn: (payload: StatusInheritPayload) =>
+      processesService.updateStatusInherit(id, payload),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: PROCESSES_KEY });
     },
@@ -73,7 +73,8 @@ export function useDeleteProcess() {
 export function useCreateActivity() {
   const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: (payload: CreateActivityPayload) => processesService.createActivity(payload),
+    mutationFn: (payload: CreateActivityPayload) =>
+      processesService.createActivity(payload),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: PROCESSES_KEY });
     },
@@ -83,7 +84,8 @@ export function useCreateActivity() {
 export function useUpdateActivity(id: string) {
   const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: (payload: UpdateActivityPayload) => processesService.updateActivity(id, payload),
+    mutationFn: (payload: UpdateActivityPayload) =>
+      processesService.updateActivity(id, payload),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: PROCESSES_KEY });
     },

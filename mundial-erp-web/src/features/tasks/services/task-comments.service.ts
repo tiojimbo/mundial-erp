@@ -36,10 +36,10 @@ export const taskCommentsService = {
     taskId: string,
     payload: CommentCreateDto,
   ): Promise<TaskComment> {
-    const { data } = await api.post<ApiResponse<TaskComment>>(
-      '/comments',
-      { taskId, ...payload },
-    );
+    const { data } = await api.post<ApiResponse<TaskComment>>('/comments', {
+      taskId,
+      ...payload,
+    });
     return data.data;
   },
 

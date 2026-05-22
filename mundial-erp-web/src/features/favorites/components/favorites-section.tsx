@@ -26,7 +26,7 @@ export function FavoritesSection({ isExpanded }: FavoritesSectionProps) {
 
   if (!isExpanded) {
     return (
-      <ul className="space-y-px px-2">
+      <ul className='space-y-px px-2'>
         {items.map((fav) => (
           <FavoriteSidebarItem key={fav.id} favorite={fav} compact />
         ))}
@@ -35,14 +35,14 @@ export function FavoritesSection({ isExpanded }: FavoritesSectionProps) {
   }
 
   return (
-    <div className="relative flex w-full min-w-0 flex-col">
-      <div className="flex items-center justify-between px-4 pb-1 pt-4">
+    <div className='relative flex w-full min-w-0 flex-col'>
+      <div className='flex items-center justify-between px-4 pb-1 pt-4'>
         <button
-          type="button"
+          type='button'
           onClick={() => setOpen((v) => !v)}
-          className="group/header flex flex-1 items-center gap-1 rounded-md py-0.5 transition-colors hover:bg-sidebar-accent"
+          className='group/header flex flex-1 items-center gap-1 rounded-md py-0.5 transition-colors hover:bg-sidebar-accent'
         >
-          <span className="flex h-4 flex-1 truncate text-[12px] font-medium tracking-[-0.132px] text-sidebar-foreground/70">
+          <span className='text-sidebar-foreground/70 flex h-4 flex-1 truncate text-[12px] font-medium tracking-[-0.132px]'>
             Favoritos
           </span>
           <ChevronRight
@@ -55,7 +55,7 @@ export function FavoritesSection({ isExpanded }: FavoritesSectionProps) {
         </button>
       </div>
       {open && (
-        <ul className="flex w-full min-w-0 flex-col gap-0.5 px-2">
+        <ul className='flex w-full min-w-0 flex-col gap-0.5 px-2'>
           {items.map((fav) => (
             <FavoriteSidebarItem key={fav.id} favorite={fav} />
           ))}
@@ -92,14 +92,14 @@ function FavoriteSidebarItem({
               isActive && 'bg-sidebar-accent text-foreground',
             )}
           >
-            <Icon className="size-3.5" strokeWidth={1.75} aria-hidden />
+            <Icon className='size-3.5' strokeWidth={1.75} aria-hidden />
           </Link>
         ) : (
           <span
             title={label}
-            className="flex items-center justify-center rounded-md p-1.5 text-muted-foreground"
+            className='flex items-center justify-center rounded-md p-1.5 text-muted-foreground'
           >
-            <Icon className="size-3.5" strokeWidth={1.75} aria-hidden />
+            <Icon className='size-3.5' strokeWidth={1.75} aria-hidden />
           </span>
         )}
       </li>
@@ -107,45 +107,45 @@ function FavoriteSidebarItem({
   }
 
   return (
-    <li className="group/menu-item relative">
+    <li className='group/menu-item relative'>
       {href ? (
         <Link
           href={href}
           title={label}
           className={cn(
-            'group/fav flex h-7 w-full items-center gap-2 overflow-hidden rounded-md px-2 text-[13px] outline-hidden transition-colors',
+            'group/fav outline-hidden flex h-7 w-full items-center gap-2 overflow-hidden rounded-md px-2 text-[13px] transition-colors',
             isActive
               ? 'bg-sidebar-accent font-medium text-foreground'
               : 'text-muted-foreground hover:bg-sidebar-accent hover:text-foreground',
           )}
         >
           <Icon
-            className="size-3.5 shrink-0 text-muted-foreground transition-colors group-hover/fav:text-primary"
+            className='group-hover/fav:text-primary size-3.5 shrink-0 text-muted-foreground transition-colors'
             strokeWidth={1.75}
             aria-hidden
           />
-          <span className="truncate">{label}</span>
+          <span className='truncate'>{label}</span>
           <button
-            type="button"
+            type='button'
             onClick={(e) => {
               e.preventDefault();
               e.stopPropagation();
               unfavorite.mutate(favorite.id);
             }}
             disabled={unfavorite.isPending}
-            aria-label="Desfavoritar"
-            className="absolute right-1.5 flex size-5 items-center justify-center rounded-sm text-muted-foreground opacity-0 transition-all hover:bg-background/60 hover:text-destructive group-hover/menu-item:opacity-100 disabled:opacity-50"
+            aria-label='Desfavoritar'
+            className='hover:bg-background/60 absolute right-1.5 flex size-5 items-center justify-center rounded-sm text-muted-foreground opacity-0 transition-all hover:text-destructive disabled:opacity-50 group-hover/menu-item:opacity-100'
           >
-            <PinOff className="size-3" aria-hidden />
+            <PinOff className='size-3' aria-hidden />
           </button>
         </Link>
       ) : (
         <span
           title={label}
-          className="group/fav flex h-7 w-full items-center gap-2 overflow-hidden rounded-md px-2 text-[13px] text-muted-foreground"
+          className='group/fav flex h-7 w-full items-center gap-2 overflow-hidden rounded-md px-2 text-[13px] text-muted-foreground'
         >
-          <Icon className="size-3.5 shrink-0" strokeWidth={1.75} aria-hidden />
-          <span className="truncate">{label}</span>
+          <Icon className='size-3.5 shrink-0' strokeWidth={1.75} aria-hidden />
+          <span className='truncate'>{label}</span>
         </span>
       )}
     </li>

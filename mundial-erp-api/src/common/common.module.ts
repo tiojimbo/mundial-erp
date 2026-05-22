@@ -15,15 +15,7 @@ import { FileTypeDetectorService } from './adapters/file-type-detector.service';
  */
 @Global()
 @Module({
-  providers: [
-    CycleDetectorService,
-    S3AdapterService,
-    FileTypeDetectorService,
-  ],
-  exports: [
-    CycleDetectorService,
-    S3AdapterService,
-    FileTypeDetectorService,
-  ],
+  providers: [CycleDetectorService, S3AdapterService, FileTypeDetectorService],
+  exports: [CycleDetectorService, S3AdapterService, FileTypeDetectorService],
 })
 export class CommonModule {}

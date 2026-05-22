@@ -9,7 +9,10 @@ const orderItemSupplySchema = z.object({
 const orderItemSchema = z.object({
   productId: z.string().min(1, 'Produto e obrigatorio'),
   quantity: z.coerce.number().min(1, 'Quantidade deve ser maior que 0'),
-  unitPriceCents: z.coerce.number().int().min(0, 'Preco unitario e obrigatorio'),
+  unitPriceCents: z.coerce
+    .number()
+    .int()
+    .min(0, 'Preco unitario e obrigatorio'),
   discountCents: z.coerce.number().int().min(0).default(0),
   pieces: z.coerce.number().optional(),
   size: z.coerce.number().optional(),

@@ -136,7 +136,9 @@ export class CustomFieldDefinitionsController {
   @Delete(':customFieldId/location')
   @Roles(Role.ADMIN, Role.MANAGER)
   @Throttle({ default: { limit: 60, ttl: 60_000 } })
-  @ApiOperation({ summary: 'Desvincular campo de um local (list/folder/space)' })
+  @ApiOperation({
+    summary: 'Desvincular campo de um local (list/folder/space)',
+  })
   @ApiResponse({ status: 200 })
   @ApiResponse({ status: 404, description: 'Definition nao encontrada' })
   removeLocation(

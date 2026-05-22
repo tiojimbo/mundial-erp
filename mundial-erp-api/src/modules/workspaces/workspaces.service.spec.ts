@@ -236,9 +236,9 @@ describe('WorkspacesService', () => {
     it('should throw NotFoundException when user is not a member', async () => {
       membersRepository.findSidebarOrder.mockResolvedValue(null);
 
-      await expect(
-        service.getSidebarOrder('ws-1', 'outsider'),
-      ).rejects.toThrow(NotFoundException);
+      await expect(service.getSidebarOrder('ws-1', 'outsider')).rejects.toThrow(
+        NotFoundException,
+      );
     });
   });
 

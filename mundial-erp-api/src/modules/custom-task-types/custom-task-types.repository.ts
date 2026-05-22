@@ -216,5 +216,4 @@ export class CustomTaskTypesRepository {
     });
     return space !== null;
   }
-
 }

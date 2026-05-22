@@ -11,7 +11,10 @@ import * as Hint from '@/components/ui/hint';
 import * as Button from '@/components/ui/button';
 import * as Select from '@/components/ui/select';
 import * as Switch from '@/components/ui/switch';
-import { supplierSchema, type SupplierFormData } from '../schemas/supplier.schema';
+import {
+  supplierSchema,
+  type SupplierFormData,
+} from '../schemas/supplier.schema';
 import type { Supplier } from '../types/supplier.types';
 
 type SupplierFormProps = {
@@ -22,8 +25,33 @@ type SupplierFormProps = {
 };
 
 const STATES = [
-  'AC','AL','AP','AM','BA','CE','DF','ES','GO','MA','MT','MS','MG',
-  'PA','PB','PR','PE','PI','RJ','RN','RS','RO','RR','SC','SP','SE','TO',
+  'AC',
+  'AL',
+  'AP',
+  'AM',
+  'BA',
+  'CE',
+  'DF',
+  'ES',
+  'GO',
+  'MA',
+  'MT',
+  'MS',
+  'MG',
+  'PA',
+  'PB',
+  'PR',
+  'PE',
+  'PI',
+  'RJ',
+  'RN',
+  'RS',
+  'RO',
+  'RR',
+  'SC',
+  'SP',
+  'SE',
+  'TO',
 ];
 
 export function SupplierForm({
@@ -348,9 +376,7 @@ export function SupplierForm({
             size='medium'
             disabled={isLoading}
           >
-            {isLoading && (
-              <RiLoader4Line className='size-5 animate-spin' />
-            )}
+            {isLoading && <RiLoader4Line className='size-5 animate-spin' />}
             {defaultValues ? 'Salvar Alterações' : 'Cadastrar Fornecedor'}
           </Button.Root>
         </div>

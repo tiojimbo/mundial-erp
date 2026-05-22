@@ -121,7 +121,10 @@ export type CustomFieldsSectionProps = {
   taskTypeId?: string | null;
 };
 
-const QUICK_TYPE_OPTIONS: ReadonlyArray<{ value: CustomFieldType; label: string }> = [
+const QUICK_TYPE_OPTIONS: ReadonlyArray<{
+  value: CustomFieldType;
+  label: string;
+}> = [
   { value: 'TEXT', label: 'Texto' },
   { value: 'NUMBER', label: 'Número' },
   { value: 'QUANTITY', label: 'Quantidade' },
@@ -145,7 +148,13 @@ const QUICK_TYPE_OPTIONS: ReadonlyArray<{ value: CustomFieldType; label: string 
 
 type BucketKey = 'taskType' | 'list' | 'folder' | 'space' | 'workspace';
 
-const BUCKET_ORDER: BucketKey[] = ['taskType', 'list', 'folder', 'space', 'workspace'];
+const BUCKET_ORDER: BucketKey[] = [
+  'taskType',
+  'list',
+  'folder',
+  'space',
+  'workspace',
+];
 
 const BUCKET_LABEL: Record<BucketKey, string> = {
   taskType: 'Campos do tipo',
@@ -206,9 +215,18 @@ export function CustomFieldsSection({
 
   const bucketGroups = useMemo(() => {
     const grouped = definitionsQuery.data;
-    if (!grouped) return [] as { key: BucketKey; label: string; defs: CustomFieldDefinition[] }[];
+    if (!grouped)
+      return [] as {
+        key: BucketKey;
+        label: string;
+        defs: CustomFieldDefinition[];
+      }[];
     const seen = new Set<string>();
-    const out: { key: BucketKey; label: string; defs: CustomFieldDefinition[] }[] = [];
+    const out: {
+      key: BucketKey;
+      label: string;
+      defs: CustomFieldDefinition[];
+    }[] = [];
     for (const key of BUCKET_ORDER) {
       const raw = (grouped[key] ?? []) as CustomFieldDefinition[];
       const dedup = raw.filter((def) => {
@@ -292,7 +310,7 @@ export function CustomFieldsSection({
       title='Campos personalizados'
       counter={
         allVisible.length > 0 ? (
-          <span className='bg-muted text-muted-foreground rounded-full px-1.5 py-0.5 text-[10px] leading-none tabular-nums'>
+          <span className='rounded-full bg-muted px-1.5 py-0.5 text-[10px] tabular-nums leading-none text-muted-foreground'>
             {allVisible.length}
           </span>
         ) : null
@@ -304,7 +322,7 @@ export function CustomFieldsSection({
               type='button'
               aria-label='Criar campo personalizado nesta lista'
               onClick={() => setQuickCreateOpen(true)}
-              className='flex h-7 w-7 items-center justify-center rounded-md text-muted-foreground opacity-0 transition-all hover:bg-muted group-hover:opacity-100 focus-visible:opacity-100'
+              className='flex h-7 w-7 items-center justify-center rounded-md text-muted-foreground opacity-0 transition-all hover:bg-muted focus-visible:opacity-100 group-hover:opacity-100'
             >
               <Plus className='h-3.5 w-3.5' />
             </button>
@@ -313,7 +331,7 @@ export function CustomFieldsSection({
             type='button'
             aria-label='Gerenciar campos personalizados desta lista'
             onClick={() => setManagerOpen(true)}
-            className='flex h-7 w-7 items-center justify-center rounded-md text-muted-foreground opacity-0 transition-all hover:bg-muted group-hover:opacity-100 focus-visible:opacity-100'
+            className='flex h-7 w-7 items-center justify-center rounded-md text-muted-foreground opacity-0 transition-all hover:bg-muted focus-visible:opacity-100 group-hover:opacity-100'
           >
             <Settings2 className='h-3.5 w-3.5' />
           </button>
@@ -327,7 +345,10 @@ export function CustomFieldsSection({
           className='flex flex-col gap-2'
         >
           {Array.from({ length: 3 }).map((_, i) => (
-            <div key={i} className='h-9 w-full animate-pulse rounded-md bg-muted' />
+            <div
+              key={i}
+              className='h-9 w-full animate-pulse rounded-md bg-muted'
+            />
           ))}
         </div>
       )}
@@ -396,8 +417,11 @@ function FieldSubgroup({
     <div className='relative'>
       <div className='pb-1'>
         <div className='mb-1 flex items-center gap-1.5 px-1 pt-1'>
-          <LayoutGrid className='h-3 w-3 text-muted-foreground/40' aria-hidden='true' />
-          <span className='text-muted-foreground/50 text-[10px] font-semibold tracking-widest uppercase'>
+          <LayoutGrid
+            className='text-muted-foreground/40 h-3 w-3'
+            aria-hidden='true'
+          />
+          <span className='text-muted-foreground/50 text-[10px] font-semibold uppercase tracking-widest'>
             {label}
           </span>
         </div>
@@ -413,15 +437,18 @@ function FieldSubgroup({
                   className='flex items-center gap-2 pl-2 pr-2'
                   style={{ width: 220, minWidth: 220 }}
                 >
-                  <Icon className='h-3.5 w-3.5 shrink-0 text-muted-foreground/60' aria-hidden='true' />
-                  <span className='text-muted-foreground truncate text-[13px] normal-case'>
+                  <Icon
+                    className='text-muted-foreground/60 h-3.5 w-3.5 shrink-0'
+                    aria-hidden='true'
+                  />
+                  <span className='truncate text-[13px] normal-case text-muted-foreground'>
                     {definition.name}
                   </span>
                   <button
                     type='button'
                     aria-label={`Configurações do campo ${definition.name}`}
                     onClick={() => onOpenSettings(definition.id)}
-                    className='ml-auto flex h-5 w-5 shrink-0 cursor-pointer items-center justify-center rounded text-muted-foreground/40 opacity-0 transition-opacity hover:bg-accent group-hover/row:opacity-100 focus-visible:opacity-100'
+                    className='text-muted-foreground/40 ml-auto flex h-5 w-5 shrink-0 cursor-pointer items-center justify-center rounded opacity-0 transition-opacity hover:bg-accent focus-visible:opacity-100 group-hover/row:opacity-100'
                   >
                     <Settings2 className='h-3 w-3' />
                   </button>
@@ -459,7 +486,13 @@ type FieldRowProps = {
  * (Henrique nao publicou ainda) — usa direto os componentes atomicos
  * `<TextField/>`, `<DropdownField/>`, etc., que ja estao prontos.
  */
-function FieldRow({ definition, entry, readOnly, onChange, inline }: FieldRowProps) {
+function FieldRow({
+  definition,
+  entry,
+  readOnly,
+  onChange,
+  inline,
+}: FieldRowProps) {
   const rawValue = entry?.value ?? null;
   const value: string | number | null =
     typeof rawValue === 'string' || typeof rawValue === 'number'
@@ -764,13 +797,13 @@ function QuickCreateFieldDialog({
       <Modal.Content
         showClose={false}
         overlayClassName='bg-black/60 backdrop-blur-none'
-        className='!max-w-[420px] flex max-h-[90vh] flex-col overflow-hidden !rounded-xl border-0 !shadow-regular-md p-0'
+        className='flex max-h-[90vh] !max-w-[420px] flex-col overflow-hidden !rounded-xl border-0 p-0 !shadow-regular-md'
       >
         <Modal.Title className='sr-only'>Criar campo personalizado</Modal.Title>
-        <header className='border-border flex shrink-0 items-center justify-between border-b px-4 py-3'>
+        <header className='flex shrink-0 items-center justify-between border-b border-border px-4 py-3'>
           <div className='flex flex-col'>
             <span className='text-label-sm'>Criar campo</span>
-            <span className='text-muted-foreground text-paragraph-xs'>
+            <span className='text-paragraph-xs text-muted-foreground'>
               Crie um novo campo personalizado nesta lista
             </span>
           </div>
@@ -795,7 +828,7 @@ function QuickCreateFieldDialog({
               autoFocus
               onChange={(e) => setName(e.target.value)}
               placeholder='Digite o nome do campo'
-              className='border-input h-9 w-full rounded-md border bg-transparent px-3 text-paragraph-sm outline-none focus-visible:ring-[3px] focus-visible:ring-ring/50'
+              className='focus-visible:ring-ring/50 h-9 w-full rounded-md border border-input bg-transparent px-3 text-paragraph-sm outline-none focus-visible:ring-[3px]'
             />
           </div>
 
@@ -806,7 +839,7 @@ function QuickCreateFieldDialog({
             <select
               value={type}
               onChange={(e) => setType(e.target.value as CustomFieldType)}
-              className='border-input h-9 w-full cursor-pointer rounded-md border bg-transparent px-3 text-paragraph-sm outline-none focus-visible:ring-[3px] focus-visible:ring-ring/50'
+              className='focus-visible:ring-ring/50 h-9 w-full cursor-pointer rounded-md border border-input bg-transparent px-3 text-paragraph-sm outline-none focus-visible:ring-[3px]'
             >
               {QUICK_TYPE_OPTIONS.map((opt) => (
                 <option key={opt.value} value={opt.value}>
@@ -825,7 +858,7 @@ function QuickCreateFieldDialog({
               value={label}
               onChange={(e) => setLabel(e.target.value)}
               placeholder='Opcional — assume o nome se vazio'
-              className='border-input h-9 w-full rounded-md border bg-transparent px-3 text-paragraph-sm outline-none focus-visible:ring-[3px] focus-visible:ring-ring/50'
+              className='focus-visible:ring-ring/50 h-9 w-full rounded-md border border-input bg-transparent px-3 text-paragraph-sm outline-none focus-visible:ring-[3px]'
             />
           </div>
 
@@ -837,7 +870,7 @@ function QuickCreateFieldDialog({
               value={description}
               onChange={(e) => setDescription(e.target.value)}
               placeholder='Opcional'
-              className='border-input min-h-[60px] w-full resize-none rounded-md border bg-transparent px-3 py-2 text-paragraph-sm outline-none focus-visible:ring-[3px] focus-visible:ring-ring/50'
+              className='focus-visible:ring-ring/50 min-h-[60px] w-full resize-none rounded-md border border-input bg-transparent px-3 py-2 text-paragraph-sm outline-none focus-visible:ring-[3px]'
             />
           </div>
 
@@ -852,7 +885,7 @@ function QuickCreateFieldDialog({
           </label>
         </div>
 
-        <footer className='border-border flex shrink-0 items-center justify-end gap-2 border-t px-4 py-3'>
+        <footer className='flex shrink-0 items-center justify-end gap-2 border-t border-border px-4 py-3'>
           <button
             type='button'
             onClick={onClose}
@@ -864,7 +897,7 @@ function QuickCreateFieldDialog({
             type='button'
             onClick={submit}
             disabled={name.trim().length === 0 || createMutation.isPending}
-            className='bg-primary-base text-static-white inline-flex h-9 cursor-pointer items-center justify-center rounded-md px-4 text-paragraph-sm font-medium shadow-regular-xs transition-all hover:bg-primary-dark disabled:pointer-events-none disabled:opacity-50'
+            className='inline-flex h-9 cursor-pointer items-center justify-center rounded-md bg-primary-base px-4 text-paragraph-sm font-medium text-static-white shadow-regular-xs transition-all hover:bg-primary-dark disabled:pointer-events-none disabled:opacity-50'
           >
             {createMutation.isPending ? 'Criando...' : 'Criar campo'}
           </button>

@@ -21,7 +21,11 @@ type CustomFieldCellProps = {
   width: number;
 };
 
-export function CustomFieldCell({ taskId, definition, width }: CustomFieldCellProps) {
+export function CustomFieldCell({
+  taskId,
+  definition,
+  width,
+}: CustomFieldCellProps) {
   const writeEnabled = useFeatureFlag('custom_fields_write');
   const valuesQuery = useCustomFieldValues(taskId);
   const patchMutation = usePatchCustomFieldValue();
@@ -44,18 +48,22 @@ export function CustomFieldCell({ taskId, definition, width }: CustomFieldCellPr
     if (isEmpty) {
       clearMutation.mutate({ taskId, customFieldId: definition.id });
     } else {
-      patchMutation.mutate({ taskId, customFieldId: definition.id, value: next });
+      patchMutation.mutate({
+        taskId,
+        customFieldId: definition.id,
+        value: next,
+      });
     }
   }
 
   return (
     <div
       data-col={`CF_${definition.id}`}
-      className="flex shrink-0 flex-col overflow-hidden"
+      className='flex shrink-0 flex-col overflow-hidden'
       style={{ width }}
       onClick={(e) => e.stopPropagation()}
     >
-      <div className="flex h-full w-full items-center overflow-hidden px-3 py-1">
+      <div className='flex h-full w-full items-center overflow-hidden px-3 py-1'>
         <CustomFieldEditor
           definition={definition}
           value={value}

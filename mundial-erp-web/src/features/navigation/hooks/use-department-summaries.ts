@@ -7,7 +7,10 @@ export const DEPARTMENT_SUMMARIES_KEY = (id: string, showClosed: boolean) => [
   { showClosed },
 ];
 
-export function useDepartmentSummaries(departmentId: string, showClosed = false) {
+export function useDepartmentSummaries(
+  departmentId: string,
+  showClosed = false,
+) {
   return useQuery({
     queryKey: DEPARTMENT_SUMMARIES_KEY(departmentId, showClosed),
     queryFn: () =>

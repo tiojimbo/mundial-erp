@@ -34,13 +34,15 @@ function BreadcrumbNode({
 
   const content = (
     <>
-      {Icon ? <Icon className="size-3.5 shrink-0" strokeWidth={1.75} aria-hidden /> : null}
-      <span className="truncate">{label}</span>
+      {Icon ? (
+        <Icon className='size-3.5 shrink-0' strokeWidth={1.75} aria-hidden />
+      ) : null}
+      <span className='truncate'>{label}</span>
     </>
   );
 
   return (
-    <li className="flex items-center">
+    <li className='flex items-center'>
       <Tooltip.Root>
         <Tooltip.Trigger asChild>
           {href && !current ? (
@@ -49,7 +51,7 @@ function BreadcrumbNode({
             </Link>
           ) : (
             <button
-              type="button"
+              type='button'
               title={label}
               aria-current={current ? 'page' : undefined}
               aria-haspopup={ariaHasPopup ? 'dialog' : undefined}
@@ -60,7 +62,7 @@ function BreadcrumbNode({
             </button>
           )}
         </Tooltip.Trigger>
-        <Tooltip.Content side="bottom">{label}</Tooltip.Content>
+        <Tooltip.Content side='bottom'>{label}</Tooltip.Content>
       </Tooltip.Root>
     </li>
   );
@@ -68,7 +70,10 @@ function BreadcrumbNode({
 
 function BreadcrumbSeparator() {
   return (
-    <li aria-hidden="true" className="select-none px-0.5 text-[13px] text-muted-foreground/40">
+    <li
+      aria-hidden='true'
+      className='text-muted-foreground/40 select-none px-0.5 text-[13px]'
+    >
       /
     </li>
   );
@@ -81,25 +86,27 @@ type BreadcrumbFavoriteProps = {
 
 function BreadcrumbFavorite({ active, onClick }: BreadcrumbFavoriteProps) {
   return (
-    <li className="ml-1 flex items-center">
+    <li className='ml-1 flex items-center'>
       <Tooltip.Root>
         <Tooltip.Trigger asChild>
           <button
-            type="button"
+            type='button'
             onClick={onClick}
-            aria-haspopup="dialog"
-            aria-label={active ? 'Remover dos favoritos' : 'Adicionar aos favoritos'}
-            className="inline-flex size-7 items-center justify-center rounded-md text-muted-foreground transition-colors hover:bg-accent hover:text-accent-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+            aria-haspopup='dialog'
+            aria-label={
+              active ? 'Remover dos favoritos' : 'Adicionar aos favoritos'
+            }
+            className='inline-flex size-7 items-center justify-center rounded-md text-muted-foreground transition-colors hover:bg-accent hover:text-accent-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring'
           >
             <Star
-              className="size-3.5"
+              className='size-3.5'
               strokeWidth={2}
               fill={active ? 'currentColor' : 'none'}
               aria-hidden
             />
           </button>
         </Tooltip.Trigger>
-        <Tooltip.Content side="bottom">
+        <Tooltip.Content side='bottom'>
           {active ? 'Remover dos favoritos' : 'Adicionar aos favoritos'}
         </Tooltip.Content>
       </Tooltip.Root>
@@ -133,9 +140,9 @@ export function BreadcrumbTrail({
   favoriteTarget,
 }: BreadcrumbTrailProps) {
   return (
-    <header className="flex shrink-0 items-center px-10 py-2.5">
-      <nav aria-label="Breadcrumb" className="flex items-center">
-        <ol className="flex items-center gap-0.5">
+    <header className='flex shrink-0 items-center px-10 py-2.5'>
+      <nav aria-label='Breadcrumb' className='flex items-center'>
+        <ol className='flex items-center gap-0.5'>
           {items.map((item, index) => {
             const isLast = index === items.length - 1;
             return (
@@ -153,14 +160,17 @@ export function BreadcrumbTrail({
             );
           })}
           {favoriteTarget ? (
-            <li className="ml-1 flex items-center">
+            <li className='ml-1 flex items-center'>
               <FavoriteStarButton
                 entityType={favoriteTarget.entityType}
                 entityId={favoriteTarget.entityId}
               />
             </li>
           ) : favorite ? (
-            <BreadcrumbFavorite active={favorite.active} onClick={favorite.onClick} />
+            <BreadcrumbFavorite
+              active={favorite.active}
+              onClick={favorite.onClick}
+            />
           ) : null}
         </ol>
       </nav>

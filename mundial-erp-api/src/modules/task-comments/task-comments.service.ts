@@ -57,7 +57,10 @@ export class TaskCommentsService {
     private readonly automationEvents?: TaskEventsPublisher,
   ) {}
 
-  private async loadTaskContext(taskId: string, workspaceId: string): Promise<{
+  private async loadTaskContext(
+    taskId: string,
+    workspaceId: string,
+  ): Promise<{
     listId: string;
     folderId: string | null;
     spaceId: string | null;
@@ -105,10 +108,7 @@ export class TaskCommentsService {
     return response;
   }
 
-  async findOne(
-    workspaceId: string,
-    id: string,
-  ): Promise<CommentResponseDto> {
+  async findOne(workspaceId: string, id: string): Promise<CommentResponseDto> {
     const found = await this.repository.findById(workspaceId, id);
     if (!found) {
       throw new NotFoundException('Comentario nao encontrado');

@@ -142,7 +142,10 @@ export function ProductDetail({ productId }: ProductDetailProps) {
           <ProductPricingTab product={product} />
         </TabMenuHorizontal.Content>
         <TabMenuHorizontal.Content value='formula' className='pt-6'>
-          <ProductFormulaTab productId={productId} classification={product.classification} />
+          <ProductFormulaTab
+            productId={productId}
+            classification={product.classification}
+          />
         </TabMenuHorizontal.Content>
         <TabMenuHorizontal.Content value='imagens' className='pt-6'>
           <ProductImagesTab product={product} />

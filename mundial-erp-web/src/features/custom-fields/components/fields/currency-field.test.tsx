@@ -9,9 +9,14 @@ import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { render, screen, fireEvent, act } from '@testing-library/react';
 import { CurrencyField } from './currency-field';
 import type { CustomFieldDefinition } from '../../types/custom-field.types';
-import { makeCustomFieldDefinition } from "../../types/custom-field.fixtures";
+import { makeCustomFieldDefinition } from '../../types/custom-field.fixtures';
 
-const definition: CustomFieldDefinition = makeCustomFieldDefinition({ id: 'def-currency-1', workspaceId: 'ws-1', name: 'Total', type: 'CURRENCY' });
+const definition: CustomFieldDefinition = makeCustomFieldDefinition({
+  id: 'def-currency-1',
+  workspaceId: 'ws-1',
+  name: 'Total',
+  type: 'CURRENCY',
+});
 
 describe('CurrencyField (TTT-024)', () => {
   beforeEach(() => {
@@ -72,7 +77,7 @@ describe('CurrencyField (TTT-024)', () => {
         definition={definition}
         value={null}
         onChange={onChange}
-        error="Valor invalido"
+        error='Valor invalido'
       />,
     );
     const input = screen.getByPlaceholderText('0,00');

@@ -17,14 +17,19 @@ import type {
 } from '../types/workspace.types';
 
 export const workspaceService = {
-  async list(filters?: WorkspaceFilters): Promise<PaginatedResponse<Workspace>> {
+  async list(
+    filters?: WorkspaceFilters,
+  ): Promise<PaginatedResponse<Workspace>> {
     const params: Record<string, unknown> = {};
     if (filters?.page) params.page = filters.page;
     if (filters?.limit) params.limit = filters.limit;
     if (filters?.search) params.search = filters.search;
-    const { data } = await api.get<PaginatedResponse<Workspace>>('/workspaces', {
-      params,
-    });
+    const { data } = await api.get<PaginatedResponse<Workspace>>(
+      '/workspaces',
+      {
+        params,
+      },
+    );
     return data;
   },
 
@@ -41,7 +46,10 @@ export const workspaceService = {
     return data.data;
   },
 
-  async update(id: string, payload: UpdateWorkspacePayload): Promise<Workspace> {
+  async update(
+    id: string,
+    payload: UpdateWorkspacePayload,
+  ): Promise<Workspace> {
     const { data } = await api.patch<ApiResponse<Workspace>>(
       `/workspaces/${id}`,
       payload,

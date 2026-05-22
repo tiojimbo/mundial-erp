@@ -89,12 +89,12 @@ export function ActivityItem({
       <div className='flex flex-1 items-start gap-2'>
         {Icon ? (
           <Icon
-            className='mt-1 size-3 text-muted-foreground/60'
+            className='text-muted-foreground/60 mt-1 size-3'
             aria-hidden='true'
           />
         ) : (
           <span
-            className='mt-[6px] h-1.5 w-1.5 rounded-full bg-muted-foreground/40'
+            className='bg-muted-foreground/40 mt-[6px] h-1.5 w-1.5 rounded-full'
             aria-hidden='true'
           />
         )}
@@ -113,7 +113,7 @@ export function ActivityItem({
       </div>
       <time
         dateTime={activity.createdAt}
-        className='whitespace-nowrap text-[10px] text-muted-foreground/60'
+        className='text-muted-foreground/60 whitespace-nowrap text-[10px]'
       >
         {formatRelative(activity.createdAt)}
       </time>

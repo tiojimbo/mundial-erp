@@ -3,13 +3,21 @@
 import { useForm, useFieldArray, Controller } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import Link from 'next/link';
-import { RiArrowLeftLine, RiAddLine, RiDeleteBinLine, RiLoader4Line } from '@remixicon/react';
+import {
+  RiArrowLeftLine,
+  RiAddLine,
+  RiDeleteBinLine,
+  RiLoader4Line,
+} from '@remixicon/react';
 import * as Button from '@/components/ui/button';
 import * as Input from '@/components/ui/input';
 import * as Select from '@/components/ui/select';
 import * as Hint from '@/components/ui/hint';
 import * as Label from '@/components/ui/label';
-import { quotationSchema, type QuotationFormData } from '../schemas/quotation.schema';
+import {
+  quotationSchema,
+  type QuotationFormData,
+} from '../schemas/quotation.schema';
 
 type Props = {
   onSubmit: (data: QuotationFormData) => void;
@@ -41,7 +49,10 @@ export function QuotationForm({
   const { fields, append, remove } = useFieldArray({ control, name: 'items' });
 
   return (
-    <form onSubmit={handleSubmit(onSubmit)} className='mx-auto max-w-3xl space-y-6'>
+    <form
+      onSubmit={handleSubmit(onSubmit)}
+      className='mx-auto max-w-3xl space-y-6'
+    >
       {/* Header */}
       <div className='flex items-center gap-3'>
         <Button.Root asChild variant='neutral' mode='ghost' size='xsmall'>
@@ -54,7 +65,9 @@ export function QuotationForm({
 
       {/* Supplier selection */}
       <fieldset className='space-y-4 rounded-xl border border-stroke-soft-200 bg-bg-white-0 p-5 shadow-regular-xs'>
-        <legend className='px-2 text-label-md text-text-strong-950'>Fornecedor</legend>
+        <legend className='px-2 text-label-md text-text-strong-950'>
+          Fornecedor
+        </legend>
         <div className='grid grid-cols-1 gap-4 md:grid-cols-2'>
           <div className='space-y-1.5'>
             <Label.Root>Fornecedor *</Label.Root>
@@ -62,31 +75,45 @@ export function QuotationForm({
               name='supplierId'
               control={control}
               render={({ field }) => (
-                <Select.Root value={field.value || undefined} onValueChange={field.onChange}>
+                <Select.Root
+                  value={field.value || undefined}
+                  onValueChange={field.onChange}
+                >
                   <Select.Trigger>
                     <Select.Value placeholder='Selecione o fornecedor' />
                   </Select.Trigger>
                   <Select.Content>
                     {suppliers.map((s) => (
-                      <Select.Item key={s.id} value={s.id}>{s.name}</Select.Item>
+                      <Select.Item key={s.id} value={s.id}>
+                        {s.name}
+                      </Select.Item>
                     ))}
                   </Select.Content>
                 </Select.Root>
               )}
             />
-            {errors.supplierId && <Hint.Root hasError>{errors.supplierId.message}</Hint.Root>}
+            {errors.supplierId && (
+              <Hint.Root hasError>{errors.supplierId.message}</Hint.Root>
+            )}
           </div>
         </div>
       </fieldset>
 
       {/* Items */}
       <fieldset className='space-y-4 rounded-xl border border-stroke-soft-200 bg-bg-white-0 p-5 shadow-regular-xs'>
-        <legend className='px-2 text-label-md text-text-strong-950'>Itens da Cotação *</legend>
+        <legend className='px-2 text-label-md text-text-strong-950'>
+          Itens da Cotação *
+        </legend>
         <div className='flex flex-col gap-4'>
           {fields.map((field, index) => (
-            <div key={field.id} className='flex flex-col gap-3 rounded-lg border border-stroke-soft-200 p-4'>
+            <div
+              key={field.id}
+              className='flex flex-col gap-3 rounded-lg border border-stroke-soft-200 p-4'
+            >
               <div className='flex items-center justify-between'>
-                <span className='text-label-sm text-text-sub-600'>Item {index + 1}</span>
+                <span className='text-label-sm text-text-sub-600'>
+                  Item {index + 1}
+                </span>
                 {fields.length > 1 && (
                   <Button.Root
                     variant='error'
@@ -105,7 +132,10 @@ export function QuotationForm({
                     name={`items.${index}.productId`}
                     control={control}
                     render={({ field: f }) => (
-                      <Select.Root value={f.value || undefined} onValueChange={f.onChange}>
+                      <Select.Root
+                        value={f.value || undefined}
+                        onValueChange={f.onChange}
+                      >
                         <Select.Trigger>
                           <Select.Value placeholder='Selecione o produto' />
                         </Select.Trigger>
@@ -120,7 +150,9 @@ export function QuotationForm({
                     )}
                   />
                   {errors.items?.[index]?.productId && (
-                    <Hint.Root hasError>{errors.items[index]?.productId?.message}</Hint.Root>
+                    <Hint.Root hasError>
+                      {errors.items[index]?.productId?.message}
+                    </Hint.Root>
                   )}
                 </div>
                 <div className='space-y-1.5'>
@@ -136,15 +168,21 @@ export function QuotationForm({
                     </Input.Wrapper>
                   </Input.Root>
                   {errors.items?.[index]?.quantity && (
-                    <Hint.Root hasError>{errors.items[index]?.quantity?.message}</Hint.Root>
+                    <Hint.Root hasError>
+                      {errors.items[index]?.quantity?.message}
+                    </Hint.Root>
                   )}
                 </div>
               </div>
             </div>
           ))}
 
-          {errors.items?.root && <Hint.Root hasError>{errors.items.root.message}</Hint.Root>}
-          {errors.items?.message && <Hint.Root hasError>{errors.items.message}</Hint.Root>}
+          {errors.items?.root && (
+            <Hint.Root hasError>{errors.items.root.message}</Hint.Root>
+          )}
+          {errors.items?.message && (
+            <Hint.Root hasError>{errors.items.message}</Hint.Root>
+          )}
 
           <Button.Root
             type='button'
@@ -161,7 +199,9 @@ export function QuotationForm({
 
       {/* Notes */}
       <fieldset className='space-y-4 rounded-xl border border-stroke-soft-200 bg-bg-white-0 p-5 shadow-regular-xs'>
-        <legend className='px-2 text-label-md text-text-strong-950'>Observações</legend>
+        <legend className='px-2 text-label-md text-text-strong-950'>
+          Observações
+        </legend>
         <textarea
           {...register('notes')}
           rows={4}

@@ -27,7 +27,11 @@ const POSITION_OPTIONS: Array<{
   hint: string;
 }> = [
   { position: 'TOP', label: 'Topo', hint: 'Fixar no topo do sidebar' },
-  { position: 'SIDEBAR', label: 'Sidebar', hint: 'Aparece na lista do sidebar' },
+  {
+    position: 'SIDEBAR',
+    label: 'Sidebar',
+    hint: 'Aparece na lista do sidebar',
+  },
   { position: 'BOTTOM', label: 'Rodape', hint: 'Fixar no rodape do sidebar' },
 ];
 
@@ -68,7 +72,7 @@ export function FavoriteStarButton({
         <Tooltip.Trigger asChild>
           <Popover.Trigger asChild>
             <button
-              type="button"
+              type='button'
               onClick={handleClick}
               aria-haspopup={favorited ? undefined : 'dialog'}
               aria-pressed={favorited}
@@ -76,10 +80,10 @@ export function FavoriteStarButton({
                 favorited ? 'Remover dos favoritos' : 'Adicionar aos favoritos'
               }
               disabled={createFavorite.isPending || deleteFavorite.isPending}
-              className="inline-flex size-7 items-center justify-center rounded-md text-muted-foreground transition-colors hover:bg-accent hover:text-accent-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring disabled:opacity-50"
+              className='inline-flex size-7 items-center justify-center rounded-md text-muted-foreground transition-colors hover:bg-accent hover:text-accent-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring disabled:opacity-50'
             >
               <Star
-                className="size-3.5"
+                className='size-3.5'
                 strokeWidth={2}
                 fill={favorited ? 'currentColor' : 'none'}
                 aria-hidden
@@ -87,29 +91,29 @@ export function FavoriteStarButton({
             </button>
           </Popover.Trigger>
         </Tooltip.Trigger>
-        <Tooltip.Content side="bottom">
+        <Tooltip.Content side='bottom'>
           {favorited ? 'Remover dos favoritos' : 'Adicionar aos favoritos'}
         </Tooltip.Content>
       </Tooltip.Root>
       <Popover.Content
-        align="end"
+        align='end'
         sideOffset={8}
-        className="w-56 p-1"
+        className='w-56 p-1'
         showArrow={false}
       >
-        <div className="px-2 py-1.5 text-[12px] font-semibold text-muted-foreground">
+        <div className='px-2 py-1.5 text-[12px] font-semibold text-muted-foreground'>
           Onde fixar?
         </div>
         {POSITION_OPTIONS.map(({ position, label, hint }) => (
           <button
             key={position}
-            type="button"
+            type='button'
             onClick={() => handleChoose(position)}
             disabled={createFavorite.isPending}
-            className="flex w-full flex-col items-start gap-0 rounded-md px-2 py-1.5 text-left text-[13px] transition-colors hover:bg-accent focus-visible:bg-accent focus-visible:outline-none disabled:opacity-50"
+            className='flex w-full flex-col items-start gap-0 rounded-md px-2 py-1.5 text-left text-[13px] transition-colors hover:bg-accent focus-visible:bg-accent focus-visible:outline-none disabled:opacity-50'
           >
-            <span className="font-medium text-foreground">{label}</span>
-            <span className="text-[11px] text-muted-foreground">{hint}</span>
+            <span className='font-medium text-foreground'>{label}</span>
+            <span className='text-[11px] text-muted-foreground'>{hint}</span>
           </button>
         ))}
       </Popover.Content>

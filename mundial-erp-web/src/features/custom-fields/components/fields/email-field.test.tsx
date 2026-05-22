@@ -6,9 +6,14 @@ import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { render, screen, fireEvent, act } from '@testing-library/react';
 import { EmailField } from './email-field';
 import type { CustomFieldDefinition } from '../../types/custom-field.types';
-import { makeCustomFieldDefinition } from "../../types/custom-field.fixtures";
+import { makeCustomFieldDefinition } from '../../types/custom-field.fixtures';
 
-const definition: CustomFieldDefinition = makeCustomFieldDefinition({ id: 'def-email-1', workspaceId: 'ws-1', name: 'Email de contato', type: 'EMAIL' });
+const definition: CustomFieldDefinition = makeCustomFieldDefinition({
+  id: 'def-email-1',
+  workspaceId: 'ws-1',
+  name: 'Email de contato',
+  type: 'EMAIL',
+});
 
 describe('EmailField (TTT-024)', () => {
   beforeEach(() => {
@@ -50,7 +55,7 @@ describe('EmailField (TTT-024)', () => {
         definition={definition}
         value={null}
         onChange={onChange}
-        error="Email invalido"
+        error='Email invalido'
       />,
     );
     const input = screen.getByPlaceholderText('nome@exemplo.com');

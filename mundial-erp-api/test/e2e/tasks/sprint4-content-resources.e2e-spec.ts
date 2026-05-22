@@ -1,9 +1,5 @@
 import { Test, TestingModule } from '@nestjs/testing';
-import {
-  INestApplication,
-  Logger,
-  ValidationPipe,
-} from '@nestjs/common';
+import { INestApplication, Logger, ValidationPipe } from '@nestjs/common';
 import request from 'supertest';
 import { App } from 'supertest/types';
 import { AppModule } from '../../../src/app.module';
@@ -57,7 +53,9 @@ describe('Sprint 4 — Content Resources (e2e)', () => {
       });
     } catch (err) {
       dbAvailable = false;
-      log.warn(`[sprint4] infra indisponível, pulando suite: ${(err as Error).message}`);
+      log.warn(
+        `[sprint4] infra indisponível, pulando suite: ${(err as Error).message}`,
+      );
       try {
         await app?.close();
       } catch {

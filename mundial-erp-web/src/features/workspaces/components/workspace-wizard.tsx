@@ -359,7 +359,10 @@ export function WorkspaceWizard() {
                   {submitting ? (
                     <>
                       Criando
-                      <Button.Icon as={RiLoader4Line} className='animate-spin' />
+                      <Button.Icon
+                        as={RiLoader4Line}
+                        className='animate-spin'
+                      />
                     </>
                   ) : (
                     <>

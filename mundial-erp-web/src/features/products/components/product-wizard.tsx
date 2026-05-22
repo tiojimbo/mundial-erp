@@ -176,9 +176,7 @@ export function ProductWizard({
   const selectedTypeId = step1Form.watch('productTypeId');
   const { data: nextCode } = useNextProductCode(selectedTypeId);
 
-  const [generatedCode, setGeneratedCode] = useState(
-    defaultValues?.code ?? '',
-  );
+  const [generatedCode, setGeneratedCode] = useState(defaultValues?.code ?? '');
   const [generatedBarcode, setGeneratedBarcode] = useState(
     defaultValues?.barcode ?? '',
   );
@@ -254,7 +252,13 @@ export function ProductWizard({
                 if (step.number < currentStep) setCurrentStep(step.number);
               }}
               type='button'
-              className={step.number > currentStep ? 'cursor-not-allowed opacity-50' : step.number < currentStep ? 'cursor-pointer' : ''}
+              className={
+                step.number > currentStep
+                  ? 'cursor-not-allowed opacity-50'
+                  : step.number < currentStep
+                    ? 'cursor-pointer'
+                    : ''
+              }
             >
               <HorizontalStepper.ItemIndicator>
                 {step.number}
@@ -451,9 +455,7 @@ function StepIdentification({
             />
           </Input.Wrapper>
         </Input.Root>
-        {errors.name && (
-          <Hint.Root hasError>{errors.name.message}</Hint.Root>
-        )}
+        {errors.name && <Hint.Root hasError>{errors.name.message}</Hint.Root>}
       </div>
 
       {/* Department & Brand */}
@@ -574,9 +576,7 @@ function StepIdentification({
             <Hint.Root>Ex: CX (caixa) para conversão UN↔CX</Hint.Root>
           </div>
           <div className='space-y-1.5'>
-            <Label.Root htmlFor='unitsPerBox'>
-              Unidades por Caixa
-            </Label.Root>
+            <Label.Root htmlFor='unitsPerBox'>Unidades por Caixa</Label.Root>
             <Input.Root>
               <Input.Wrapper>
                 <Input.Input

@@ -22,9 +22,7 @@ function formatSlaRemaining(minutes: number): string {
   return mins > 0 ? `${hours}h ${mins}min` : `${hours}h`;
 }
 
-function getSlaColor(
-  minutes: number,
-): 'red' | 'orange' | 'green' {
+function getSlaColor(minutes: number): 'red' | 'orange' | 'green' {
   if (minutes <= 0) return 'red';
   if (minutes <= 60) return 'orange';
   return 'green';
@@ -54,7 +52,7 @@ export function ActivityCard({ activity }: ActivityCardProps) {
   return (
     <Link
       href={`/comercial/pedidos/${activity.orderId}`}
-      className='group block rounded-xl border border-stroke-soft-200 bg-bg-white-0 p-4 shadow-regular-xs transition duration-200 hover:border-stroke-strong-950/10 hover:shadow-regular-sm'
+      className='hover:border-stroke-strong-950/10 group block rounded-xl border border-stroke-soft-200 bg-bg-white-0 p-4 shadow-regular-xs transition duration-200 hover:shadow-regular-sm'
     >
       <div className='flex items-start justify-between gap-3'>
         <div className='min-w-0 flex-1'>

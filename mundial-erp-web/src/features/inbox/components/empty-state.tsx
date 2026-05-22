@@ -30,7 +30,9 @@ export function EmptyState({ view }: EmptyStateProps) {
       </div>
       <p className='mt-4 text-label-sm text-muted-foreground'>{title}</p>
       {subtitle && (
-        <p className='mt-1 text-paragraph-sm text-muted-foreground'>{subtitle}</p>
+        <p className='mt-1 text-paragraph-sm text-muted-foreground'>
+          {subtitle}
+        </p>
       )}
     </div>
   );

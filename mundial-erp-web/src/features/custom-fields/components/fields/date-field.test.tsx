@@ -9,9 +9,14 @@ import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { render, screen, fireEvent, act } from '@testing-library/react';
 import { DateField } from './date-field';
 import type { CustomFieldDefinition } from '../../types/custom-field.types';
-import { makeCustomFieldDefinition } from "../../types/custom-field.fixtures";
+import { makeCustomFieldDefinition } from '../../types/custom-field.fixtures';
 
-const definition: CustomFieldDefinition = makeCustomFieldDefinition({ id: 'def-date-1', workspaceId: 'ws-1', name: 'Data de entrega', type: 'DATE' });
+const definition: CustomFieldDefinition = makeCustomFieldDefinition({
+  id: 'def-date-1',
+  workspaceId: 'ws-1',
+  name: 'Data de entrega',
+  type: 'DATE',
+});
 
 describe('DateField (TTT-024)', () => {
   beforeEach(() => {
@@ -64,7 +69,7 @@ describe('DateField (TTT-024)', () => {
         definition={definition}
         value={null}
         onChange={onChange}
-        error="Data invalida"
+        error='Data invalida'
       />,
     );
     const input = screen.getByLabelText(/data de entrega/i);

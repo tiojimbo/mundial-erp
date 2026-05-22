@@ -8,9 +8,7 @@ export const reactionService = {
   },
 
   async remove(messageId: string, emojiName: string): Promise<void> {
-    await api.delete(
-      `/chat/messages/${messageId}/reactions/${emojiName}`,
-    );
+    await api.delete(`/chat/messages/${messageId}/reactions/${emojiName}`);
   },
 
   async getByMessage(

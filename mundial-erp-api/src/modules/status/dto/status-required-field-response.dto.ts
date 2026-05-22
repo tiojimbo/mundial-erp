@@ -1,8 +1,5 @@
 import { ApiProperty } from '@nestjs/swagger';
-import {
-  CustomFieldDefinition,
-  StatusRequiredField,
-} from '@prisma/client';
+import { CustomFieldDefinition, StatusRequiredField } from '@prisma/client';
 
 export class RequiredFieldCustomFieldDto {
   @ApiProperty()

@@ -113,9 +113,12 @@ export function ScannerProcessor() {
             <i className='ri-arrow-left-line text-xl' />
           </Link>
           <div>
-            <h1 className='text-title-h5 text-text-strong-950'>Processar Requisicao</h1>
+            <h1 className='text-title-h5 text-text-strong-950'>
+              Processar Requisicao
+            </h1>
             <p className='text-paragraph-sm text-text-sub-600'>
-              Escaneie o codigo de barras da requisicao em qualquer tela, ou cole o codigo abaixo
+              Escaneie o codigo de barras da requisicao em qualquer tela, ou
+              cole o codigo abaixo
             </p>
           </div>
         </div>
@@ -124,14 +127,18 @@ export function ScannerProcessor() {
       {/* Scanner area */}
       <div className='rounded-xl border-2 border-dashed border-stroke-soft-200 bg-bg-white-0 p-6'>
         <div className='flex flex-col items-center gap-4 text-center'>
-          <div className={`flex h-16 w-16 items-center justify-center rounded-full ${
-            isProcessed
-              ? 'bg-green-50 text-green-500'
-              : 'bg-bg-weak-50 text-text-soft-400'
-          }`}>
-            <i className={`text-3xl ${
-              isProcessed ? 'ri-checkbox-circle-line' : 'ri-barcode-line'
-            }`} />
+          <div
+            className={`flex h-16 w-16 items-center justify-center rounded-full ${
+              isProcessed
+                ? 'bg-green-50 text-green-500'
+                : 'bg-bg-weak-50 text-text-soft-400'
+            }`}
+          >
+            <i
+              className={`text-3xl ${
+                isProcessed ? 'ri-checkbox-circle-line' : 'ri-barcode-line'
+              }`}
+            />
           </div>
 
           {!requisition && !isLoading && (
@@ -140,8 +147,8 @@ export function ScannerProcessor() {
                 Escaneie o codigo da requisicao
               </p>
               <p className='text-paragraph-sm text-text-sub-600'>
-                O leitor de codigo de barras funciona em qualquer tela do sistema.
-                Use o campo abaixo para entrada manual.
+                O leitor de codigo de barras funciona em qualquer tela do
+                sistema. Use o campo abaixo para entrada manual.
               </p>
             </div>
           )}
@@ -155,7 +162,7 @@ export function ScannerProcessor() {
 
           {isProcessed && (
             <div>
-              <p className='text-label-md text-state-success-base'>
+              <p className='text-state-success-base text-label-md'>
                 Requisicao {requisition.code} aprovada e processada!
               </p>
               <p className='text-paragraph-sm text-text-sub-600'>
@@ -206,7 +213,9 @@ export function ScannerProcessor() {
             <div className='flex items-center justify-between'>
               <div>
                 <div className='flex items-center gap-2'>
-                  <span className='text-label-md text-text-strong-950'>{requisition.code}</span>
+                  <span className='text-label-md text-text-strong-950'>
+                    {requisition.code}
+                  </span>
                   <RequisitionStatusBadge status={requisition.status} />
                 </div>
                 <p className='text-paragraph-xs text-text-soft-400'>
@@ -223,7 +232,9 @@ export function ScannerProcessor() {
 
           <div className='rounded-xl border border-stroke-soft-200 bg-bg-white-0 shadow-regular-xs'>
             <div className='border-b border-stroke-soft-200 px-5 py-3'>
-              <h2 className='text-label-md text-text-strong-950'>Itens da Requisicao</h2>
+              <h2 className='text-label-md text-text-strong-950'>
+                Itens da Requisicao
+              </h2>
             </div>
             <Table.Root>
               <Table.Header>
@@ -255,11 +266,13 @@ export function ScannerProcessor() {
                     </Table.Cell>
                     <Table.Cell className='text-center'>
                       {item.processed ? (
-                        <span className='inline-flex items-center gap-1 text-paragraph-xs text-state-success-base'>
+                        <span className='text-state-success-base inline-flex items-center gap-1 text-paragraph-xs'>
                           <i className='ri-check-line' /> Baixa realizada
                         </span>
                       ) : (
-                        <span className='text-paragraph-xs text-text-soft-400'>Pendente</span>
+                        <span className='text-paragraph-xs text-text-soft-400'>
+                          Pendente
+                        </span>
                       )}
                     </Table.Cell>
                   </Table.Row>

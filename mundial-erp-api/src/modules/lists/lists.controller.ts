@@ -64,10 +64,7 @@ export class ListsController {
   @SkipResponseTransform()
   @Roles(Role.ADMIN, Role.MANAGER, Role.OPERATOR, Role.VIEWER)
   @ApiOperation({ summary: 'Metadata de filters/sortOptions da list' })
-  getResources(
-    @WorkspaceId() workspaceId: string,
-    @Param('id') id: string,
-  ) {
+  getResources(@WorkspaceId() workspaceId: string, @Param('id') id: string) {
     return this.listsService.getResources(workspaceId, id);
   }
 
@@ -75,10 +72,7 @@ export class ListsController {
   @SkipResponseTransform()
   @Roles(Role.ADMIN, Role.MANAGER, Role.OPERATOR, Role.VIEWER)
   @ApiOperation({ summary: 'Visibility atual da list' })
-  getVisibility(
-    @WorkspaceId() workspaceId: string,
-    @Param('id') id: string,
-  ) {
+  getVisibility(@WorkspaceId() workspaceId: string, @Param('id') id: string) {
     return this.listsService.getVisibility(workspaceId, id);
   }
 
@@ -98,10 +92,7 @@ export class ListsController {
   @SkipResponseTransform()
   @Roles(Role.ADMIN, Role.MANAGER, Role.OPERATOR, Role.VIEWER)
   @ApiOperation({ summary: 'Listar membros da list' })
-  listMembers(
-    @WorkspaceId() workspaceId: string,
-    @Param('id') id: string,
-  ) {
+  listMembers(@WorkspaceId() workspaceId: string, @Param('id') id: string) {
     return this.listsService.listMembers(workspaceId, id);
   }
 
@@ -158,10 +149,7 @@ export class ListsController {
   @ApiOperation({
     summary: 'Listar statuses da list (vazio se inheritance != CUSTOM)',
   })
-  listStatuses(
-    @WorkspaceId() workspaceId: string,
-    @Param('id') id: string,
-  ) {
+  listStatuses(@WorkspaceId() workspaceId: string, @Param('id') id: string) {
     return this.listsService.listStatuses(workspaceId, id);
   }
 

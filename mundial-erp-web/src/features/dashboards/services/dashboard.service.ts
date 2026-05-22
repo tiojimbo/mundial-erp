@@ -22,7 +22,9 @@ function idempotencyHeaders() {
 export const dashboardService = {
   // ===== Dashboards =====
 
-  async getAll(filters?: DashboardFilters): Promise<PaginatedResponse<DashboardListItem>> {
+  async getAll(
+    filters?: DashboardFilters,
+  ): Promise<PaginatedResponse<DashboardListItem>> {
     const { data } = await api.get<PaginatedResponse<DashboardListItem>>(
       '/dashboards',
       { params: filters },
@@ -36,19 +38,17 @@ export const dashboardService = {
   },
 
   async create(payload: CreateDashboardPayload): Promise<Dashboard> {
-    const { data } = await api.post<Dashboard>(
-      '/dashboards',
-      payload,
-      { headers: idempotencyHeaders() },
-    );
+    const { data } = await api.post<Dashboard>('/dashboards', payload, {
+      headers: idempotencyHeaders(),
+    });
     return data;
   },
 
-  async update(id: string, payload: UpdateDashboardPayload): Promise<Dashboard> {
-    const { data } = await api.patch<Dashboard>(
-      `/dashboards/${id}`,
-      payload,
-    );
+  async update(
+    id: string,
+    payload: UpdateDashboardPayload,
+  ): Promise<Dashboard> {
+    const { data } = await api.patch<Dashboard>(`/dashboards/${id}`, payload);
     return data;
   },
 
@@ -58,7 +58,10 @@ export const dashboardService = {
 
   // ===== Cards =====
 
-  async addCard(dashboardId: string, payload: CreateCardPayload): Promise<DashboardCard> {
+  async addCard(
+    dashboardId: string,
+    payload: CreateCardPayload,
+  ): Promise<DashboardCard> {
     const { data } = await api.post<DashboardCard>(
       `/dashboards/${dashboardId}/cards`,
       payload,
@@ -83,7 +86,10 @@ export const dashboardService = {
     await api.delete(`/dashboards/${dashboardId}/cards/${cardId}`);
   },
 
-  async updateLayout(dashboardId: string, payload: BatchLayoutPayload): Promise<void> {
+  async updateLayout(
+    dashboardId: string,
+    payload: BatchLayoutPayload,
+  ): Promise<void> {
     await api.patch(`/dashboards/${dashboardId}/layout`, payload);
   },
 
@@ -101,7 +107,10 @@ export const dashboardService = {
 
   // ===== Filters =====
 
-  async addFilter(dashboardId: string, payload: CreateFilterPayload): Promise<DashboardFilter> {
+  async addFilter(
+    dashboardId: string,
+    payload: CreateFilterPayload,
+  ): Promise<DashboardFilter> {
     const { data } = await api.post<DashboardFilter>(
       `/dashboards/${dashboardId}/filters`,
       payload,

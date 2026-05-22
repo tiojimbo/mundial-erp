@@ -39,7 +39,11 @@ export type AttachmentsSectionProps = {
   categories?: TaskTypeTemplateAttachmentCategory[] | null;
 };
 
-export function AttachmentsSection({ task, categories }: AttachmentsSectionProps) {
+export function AttachmentsSection({
+  task,
+  categories,
+}: AttachmentsSectionProps) {
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   const attachments = task.attachments ?? [];
   const [isDragging, setIsDragging] = useState(false);
   const upload = useUploadAttachment();
@@ -113,10 +117,10 @@ export function AttachmentsSection({ task, categories }: AttachmentsSectionProps
         onDragLeave={() => setIsDragging(false)}
         onDrop={handleDrop}
         className={cn(
-          'block cursor-pointer rounded-lg border border-dashed py-6 text-center text-sm transition-colors duration-150',
+          'text-sm block cursor-pointer rounded-lg border border-dashed py-6 text-center transition-colors duration-150',
           isDragging
             ? 'border-primary bg-primary/5 text-primary'
-            : 'border-border/60 text-muted-foreground hover:bg-muted/40',
+            : 'border-border/60 hover:bg-muted/40 text-muted-foreground',
         )}
       >
         <input
@@ -194,7 +198,7 @@ function CategoryChip({ category, attached, onActivate }: CategoryChipProps) {
         }}
         className={cn(
           'inline-flex items-center gap-1 rounded-full border px-2.5 py-0.5 text-[11px] font-medium transition-colors',
-          'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40',
+          'focus-visible:ring-primary/40 focus-visible:outline-none focus-visible:ring-2',
           tone,
         )}
       >

@@ -37,7 +37,10 @@ export class AutomationsController {
   @Get('triggers')
   @Roles(Role.ADMIN, Role.MANAGER, Role.OPERATOR, Role.VIEWER)
   @ApiOperation({ summary: 'Listar triggers disponíveis para Automations' })
-  @ApiResponse({ status: 200, description: 'Catálogo estático com 18 triggers' })
+  @ApiResponse({
+    status: 200,
+    description: 'Catálogo estático com 18 triggers',
+  })
   listTriggers() {
     return this.service.listTriggers();
   }
@@ -52,15 +55,22 @@ export class AutomationsController {
 
   @Get('statuses')
   @Roles(Role.ADMIN, Role.MANAGER, Role.OPERATOR, Role.VIEWER)
-  @ApiOperation({ summary: 'Listar workflow statuses do workspace agrupados por escopo' })
-  @ApiResponse({ status: 200, description: '{ spaces: [...], folders: [...] }' })
+  @ApiOperation({
+    summary: 'Listar workflow statuses do workspace agrupados por escopo',
+  })
+  @ApiResponse({
+    status: 200,
+    description: '{ spaces: [...], folders: [...] }',
+  })
   listStatuses(@WorkspaceId() workspaceId: string) {
     return this.service.listStatusesByScope(workspaceId);
   }
 
   @Get()
   @Roles(Role.ADMIN, Role.MANAGER, Role.OPERATOR, Role.VIEWER)
-  @ApiOperation({ summary: 'Listar Automations do workspace (filtros por query)' })
+  @ApiOperation({
+    summary: 'Listar Automations do workspace (filtros por query)',
+  })
   @ApiResponse({ status: 200, type: [AutomationResponseDto] })
   list(
     @WorkspaceId() workspaceId: string,
@@ -107,7 +117,9 @@ export class AutomationsController {
 
   @Delete(':id')
   @Roles(Role.ADMIN, Role.MANAGER)
-  @ApiOperation({ summary: 'Remover Automation (soft delete, retorna objeto deletado)' })
+  @ApiOperation({
+    summary: 'Remover Automation (soft delete, retorna objeto deletado)',
+  })
   @ApiResponse({ status: 200, type: AutomationResponseDto })
   @ApiResponse({ status: 404, description: 'Automation não encontrada' })
   remove(@WorkspaceId() workspaceId: string, @Param('id') id: string) {

@@ -13,10 +13,7 @@
  *   - Sucesso: lista substituida pelo DTO autoritativo do backend.
  */
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import {
-  QueryClient,
-  QueryClientProvider,
-} from '@tanstack/react-query';
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { renderHook, waitFor, act } from '@testing-library/react';
 import { ReactNode } from 'react';
 

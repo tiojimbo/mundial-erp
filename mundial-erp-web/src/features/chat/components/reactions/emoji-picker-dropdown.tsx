@@ -3,7 +3,12 @@
 import { useState, useRef, useEffect, useCallback } from 'react';
 import { createPortal } from 'react-dom';
 import dynamic from 'next/dynamic';
-import { EmojiStyle, Theme, SuggestionMode, Categories } from 'emoji-picker-react';
+import {
+  EmojiStyle,
+  Theme,
+  SuggestionMode,
+  Categories,
+} from 'emoji-picker-react';
 import type { EmojiClickData } from 'emoji-picker-react';
 
 const EmojiPicker = dynamic(() => import('emoji-picker-react'), {
@@ -99,7 +104,7 @@ export function EmojiPickerDropdown({
         createPortal(
           <div
             ref={pickerRef}
-            className='fixed z-[100] rounded-md border border-[#e7e7e7] bg-white shadow-md'
+            className='shadow-md fixed z-[100] rounded-md border border-[#e7e7e7] bg-white'
             style={{ top: position.top, left: position.left }}
           >
             <EmojiPicker
@@ -118,10 +123,19 @@ export function EmojiPickerDropdown({
               lazyLoadEmojis
               categories={[
                 { category: Categories.SUGGESTED, name: 'Usados recentemente' },
-                { category: Categories.SMILEYS_PEOPLE, name: 'Smileys e Pessoas' },
-                { category: Categories.ANIMALS_NATURE, name: 'Animais e Natureza' },
+                {
+                  category: Categories.SMILEYS_PEOPLE,
+                  name: 'Smileys e Pessoas',
+                },
+                {
+                  category: Categories.ANIMALS_NATURE,
+                  name: 'Animais e Natureza',
+                },
                 { category: Categories.FOOD_DRINK, name: 'Comida e Bebida' },
-                { category: Categories.TRAVEL_PLACES, name: 'Viagem e Lugares' },
+                {
+                  category: Categories.TRAVEL_PLACES,
+                  name: 'Viagem e Lugares',
+                },
                 { category: Categories.ACTIVITIES, name: 'Atividades' },
                 { category: Categories.OBJECTS, name: 'Objetos' },
                 { category: Categories.SYMBOLS, name: 'Simbolos' },

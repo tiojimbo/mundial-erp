@@ -20,9 +20,8 @@ import type {
  */
 export const taskTemplatesService = {
   async list(): Promise<TaskTemplate[]> {
-    const { data } = await api.get<PaginatedResponse<TaskTemplate>>(
-      '/task-templates',
-    );
+    const { data } =
+      await api.get<PaginatedResponse<TaskTemplate>>('/task-templates');
     return data.data;
   },
 
@@ -68,10 +67,7 @@ export const taskTemplatesService = {
     return data.data;
   },
 
-  async instantiate(
-    processId: string,
-    templateId: string,
-  ): Promise<Task> {
+  async instantiate(processId: string, templateId: string): Promise<Task> {
     const { data } = await api.post<ApiResponse<Task>>(
       `/processes/${processId}/task-templates/${templateId}/instances`,
     );

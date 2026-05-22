@@ -13,20 +13,13 @@ import type {
 export const customFieldDefinitionsQueryKeys = {
   all: (workspaceId: string) =>
     [workspaceId, 'custom-field-definitions'] as const,
-  list: (
-    workspaceId: string,
-    scope?: CustomFieldDefinitionsScope,
-  ) =>
+  list: (workspaceId: string, scope?: CustomFieldDefinitionsScope) =>
     [
       ...customFieldDefinitionsQueryKeys.all(workspaceId),
       'list',
       scope ?? {},
     ] as const,
-  manager: (
-    workspaceId: string,
-    scope: ManagerScope,
-    targetId?: string,
-  ) =>
+  manager: (workspaceId: string, scope: ManagerScope, targetId?: string) =>
     [
       ...customFieldDefinitionsQueryKeys.all(workspaceId),
       'manager',
@@ -57,10 +50,7 @@ export function useCustomFieldDefinitions(scope?: CustomFieldDefinitionsScope) {
   });
 }
 
-export function useCustomFieldsManager(
-  scope: ManagerScope,
-  targetId?: string,
-) {
+export function useCustomFieldsManager(scope: ManagerScope, targetId?: string) {
   const workspaceId = useWorkspaceStore(
     (state) => state.currentWorkspace?.id ?? '',
   );
@@ -73,8 +63,7 @@ export function useCustomFieldsManager(
       targetId,
     ),
     queryFn: () => customFieldDefinitionsService.manager(scope, targetId),
-    enabled:
-      Boolean(workspaceId) && (!targetRequired || Boolean(targetId)),
+    enabled: Boolean(workspaceId) && (!targetRequired || Boolean(targetId)),
     staleTime: CUSTOM_FIELD_DEFINITIONS_STALE_TIME_MS,
   });
 }

@@ -2,11 +2,7 @@
 
 import { useState, useCallback } from 'react';
 import { Responsive, WidthProvider } from 'react-grid-layout/legacy';
-import {
-  RiAddLine,
-  RiDeleteBinLine,
-  RiDragMoveLine,
-} from '@remixicon/react';
+import { RiAddLine, RiDeleteBinLine, RiDragMoveLine } from '@remixicon/react';
 import * as Button from '@/components/ui/button';
 import { CardRenderer } from './card-renderer';
 import { CardEditor } from './card-editor';
@@ -52,7 +48,15 @@ export function DashboardGrid({ dashboard, isEditing }: DashboardGridProps) {
   }));
 
   const handleLayoutChange = useCallback(
-    (newLayout: Array<{ i: string; x: number; y: number; w: number; h: number }>) => {
+    (
+      newLayout: Array<{
+        i: string;
+        x: number;
+        y: number;
+        w: number;
+        h: number;
+      }>,
+    ) => {
       if (!isEditing) return;
       const payload: BatchLayoutPayload = {
         cards: newLayout.map((item) => ({
@@ -184,7 +188,7 @@ function GridCard({
           <button
             type='button'
             onClick={onRemove}
-            className='rounded p-1 text-text-soft-400 hover:bg-bg-weak-50 hover:text-state-error-base'
+            className='hover:text-state-error-base rounded p-1 text-text-soft-400 hover:bg-bg-weak-50'
           >
             <RiDeleteBinLine className='size-3.5' />
           </button>

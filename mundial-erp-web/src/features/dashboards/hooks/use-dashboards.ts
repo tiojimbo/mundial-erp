@@ -1,8 +1,4 @@
-import {
-  useQuery,
-  useMutation,
-  useQueryClient,
-} from '@tanstack/react-query';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useRouter } from 'next/navigation';
 import { toast } from 'sonner';
 import { dashboardService } from '../services/dashboard.service';
@@ -88,10 +84,22 @@ export function useDeleteDashboard() {
 
 // ===== Cards =====
 
-export function useCardData(dashboardId: string, cardId: string, globalFilters?: Record<string, unknown>) {
+export function useCardData(
+  dashboardId: string,
+  cardId: string,
+  globalFilters?: Record<string, unknown>,
+) {
   return useQuery({
-    queryKey: [...DASHBOARDS_KEY, dashboardId, 'cards', cardId, 'data', globalFilters],
-    queryFn: () => dashboardService.getCardData(dashboardId, cardId, globalFilters),
+    queryKey: [
+      ...DASHBOARDS_KEY,
+      dashboardId,
+      'cards',
+      cardId,
+      'data',
+      globalFilters,
+    ],
+    queryFn: () =>
+      dashboardService.getCardData(dashboardId, cardId, globalFilters),
     enabled: !!dashboardId && !!cardId,
     refetchInterval: undefined,
   });
@@ -115,7 +123,10 @@ export function useAddCard(dashboardId: string) {
 export function useUpdateCard(dashboardId: string) {
   const qc = useQueryClient();
   return useMutation({
-    mutationFn: ({ cardId, ...payload }: UpdateCardPayload & { cardId: string }) =>
+    mutationFn: ({
+      cardId,
+      ...payload
+    }: UpdateCardPayload & { cardId: string }) =>
       dashboardService.updateCard(dashboardId, cardId, payload),
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: [...DASHBOARDS_KEY, dashboardId] });

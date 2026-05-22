@@ -259,7 +259,10 @@ describe('Sprint 6 — Automations (e2e)', () => {
       const taskRes = await request(app.getHttpServer())
         .post('/api/v1/tasks')
         .set('Authorization', `Bearer ${ws!.token}`)
-        .send({ listId: process!.processId, title: 'Task que dispara automation' })
+        .send({
+          listId: process!.processId,
+          title: 'Task que dispara automation',
+        })
         .expect(201);
       const taskId = (taskRes.body.data ?? taskRes.body).id;
 
@@ -269,7 +272,7 @@ describe('Sprint 6 — Automations (e2e)', () => {
         const get = await request(app.getHttpServer())
           .get(`/api/v1/tasks/${taskId}/assignees`)
           .set('Authorization', `Bearer ${ws!.token}`);
-        assignees = (get.body.data ?? get.body) ?? [];
+        assignees = get.body.data ?? get.body ?? [];
         if (
           assignees.some((a) => a.user?.id === ws!.ownerUserId) &&
           assignees.length > 0

@@ -1,8 +1,4 @@
-import {
-  useQuery,
-  useMutation,
-  useQueryClient,
-} from '@tanstack/react-query';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { usersService } from '../services/users.service';
 import type {
   UserFilters,
@@ -41,7 +37,8 @@ export function useCreateUser() {
 export function useUpdateUser(id: string) {
   const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: (payload: UpdateUserPayload) => usersService.update(id, payload),
+    mutationFn: (payload: UpdateUserPayload) =>
+      usersService.update(id, payload),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: USERS_KEY });
     },

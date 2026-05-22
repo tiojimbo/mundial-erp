@@ -19,11 +19,7 @@ import { FoldersModule } from '../folders/folders.module';
 
 @Module({
   imports: [forwardRef(() => SpacesModule), forwardRef(() => FoldersModule)],
-  controllers: [
-    SectorsController,
-    ActivitiesController,
-    HandoffsController,
-  ],
+  controllers: [SectorsController, ActivitiesController, HandoffsController],
   providers: [
     OrderStatusMachine,
     SectorsRepository,

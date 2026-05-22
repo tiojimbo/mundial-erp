@@ -64,15 +64,15 @@ export function ProcessListView({
   }, [summaries]);
 
   return (
-    <div className="relative -m-4 flex min-h-0 flex-1 flex-col overflow-hidden lg:-m-6">
+    <div className='relative -m-4 flex min-h-0 flex-1 flex-col overflow-hidden lg:-m-6'>
       {/* Page Header */}
-      <div className="border-b-[0.8px] border-stroke-soft-200">
+      <div className='border-b-[0.8px] border-stroke-soft-200'>
         {header}
 
         {/* Tabs */}
-        <nav className="flex items-center overflow-x-auto border-b-[0.25px] border-stroke-soft-200 px-10">
+        <nav className='flex items-center overflow-x-auto border-b-[0.25px] border-stroke-soft-200 px-10'>
           <button
-            type="button"
+            type='button'
             onClick={() => setActiveView('list')}
             className={`relative flex h-[35.5px] items-center gap-1.5 px-3 py-2 text-[13px] font-medium transition-colors ${
               activeView === 'list'
@@ -80,16 +80,16 @@ export function ProcessListView({
                 : 'text-text-sub-600 hover:text-text-strong-950'
             }`}
           >
-            <RiListCheck2 className="size-4" />
+            <RiListCheck2 className='size-4' />
             List
-            <RiPushpinLine className="size-3" />
+            <RiPushpinLine className='size-3' />
           </button>
           <button
-            type="button"
+            type='button'
             disabled
-            className="flex h-[35.5px] items-center gap-1.5 px-3 py-2 text-[13px] font-medium text-text-sub-600 transition-colors hover:text-text-strong-950 disabled:cursor-not-allowed disabled:opacity-50"
+            className='flex h-[35.5px] items-center gap-1.5 px-3 py-2 text-[13px] font-medium text-text-sub-600 transition-colors hover:text-text-strong-950 disabled:cursor-not-allowed disabled:opacity-50'
           >
-            <RiAddLine className="size-3.5" />
+            <RiAddLine className='size-3.5' />
             Nova Visualização
           </button>
         </nav>
@@ -97,7 +97,7 @@ export function ProcessListView({
 
       {/* Tab Content */}
       {activeView === 'list' && (
-        <div className="flex min-h-0 flex-1 flex-col overflow-hidden">
+        <div className='flex min-h-0 flex-1 flex-col overflow-hidden'>
           <ProcessToolbar
             search={search}
             onSearchChange={setSearch}
@@ -108,26 +108,26 @@ export function ProcessListView({
             customFieldsScope={customFieldsScope}
           />
 
-          <div className="flex w-full flex-1 flex-col gap-4 overflow-auto pb-24">
+          <div className='flex w-full flex-1 flex-col gap-4 overflow-auto pb-24'>
             {isSummariesLoading ? (
-              <div className="space-y-4 px-10">
+              <div className='space-y-4 px-10'>
                 {[1, 2, 3].map((i) => (
                   <div
                     key={i}
-                    className="h-48 animate-pulse rounded-xl bg-bg-weak-50"
+                    className='h-48 animate-pulse rounded-xl bg-bg-weak-50'
                   />
                 ))}
               </div>
             ) : filteredSummaries.length === 0 ? (
-              <div className="flex flex-col items-center justify-center gap-2 py-20 text-text-soft-400">
-                <p className="text-paragraph-sm">
+              <div className='flex flex-col items-center justify-center gap-2 py-20 text-text-soft-400'>
+                <p className='text-paragraph-sm'>
                   {search
                     ? 'Nenhum processo encontrado para esta busca.'
                     : emptyMessage}
                 </p>
               </div>
             ) : (
-              <div className="space-y-4 py-4">
+              <div className='space-y-4 py-4'>
                 {filteredSummaries.map((process) => (
                   <ProcessCard
                     key={process.id}
@@ -144,9 +144,9 @@ export function ProcessListView({
       )}
 
       {activeView === 'board' && (
-        <div className="flex flex-col items-center justify-center gap-2 py-20 text-text-soft-400">
-          <RiLayoutColumnLine className="size-8" />
-          <p className="text-paragraph-sm">Visualização Board em breve.</p>
+        <div className='flex flex-col items-center justify-center gap-2 py-20 text-text-soft-400'>
+          <RiLayoutColumnLine className='size-8' />
+          <p className='text-paragraph-sm'>Visualização Board em breve.</p>
         </div>
       )}
     </div>

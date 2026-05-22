@@ -33,19 +33,19 @@ export function ChecklistsSection({ task }: ChecklistsSectionProps) {
 
   return (
     <CollapsibleSection
-      sectionKey="checklists"
-      title="Checklists"
-      icon={<ListChecks className="h-4 w-4" />}
+      sectionKey='checklists'
+      title='Checklists'
+      icon={<ListChecks className='h-4 w-4' />}
       counter={checklists.length > 0 ? checklists.length : undefined}
     >
       {checklists.length === 0 ? (
-        <EmptyCardCta label="Criar checklist" onClick={handleCreate} />
+        <EmptyCardCta label='Criar checklist' onClick={handleCreate} />
       ) : (
-        <div className="flex flex-col gap-2">
+        <div className='flex flex-col gap-2'>
           {checklists.map((cl) => (
             <ChecklistPanel key={cl.id} checklist={cl} />
           ))}
-          <EmptyCardCta label="Criar checklist" onClick={handleCreate} />
+          <EmptyCardCta label='Criar checklist' onClick={handleCreate} />
         </div>
       )}
     </CollapsibleSection>

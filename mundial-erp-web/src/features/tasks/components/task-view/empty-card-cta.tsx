@@ -18,12 +18,12 @@ export type EmptyCardCtaProps = {
 export function EmptyCardCta({ label, icon, onClick }: EmptyCardCtaProps) {
   return (
     <button
-      type="button"
+      type='button'
       onClick={onClick}
       aria-label={label}
-      className="flex w-full items-center gap-2 rounded-lg border border-dashed border-border/60 px-4 py-3 text-[13px] text-muted-foreground transition-colors duration-150 hover:bg-muted/40 hover:text-foreground"
+      className='border-border/60 hover:bg-muted/40 flex w-full items-center gap-2 rounded-lg border border-dashed px-4 py-3 text-[13px] text-muted-foreground transition-colors duration-150 hover:text-foreground'
     >
-      {icon ?? <Plus className="h-4 w-4" />}
+      {icon ?? <Plus className='h-4 w-4' />}
       <span>{label}</span>
     </button>
   );

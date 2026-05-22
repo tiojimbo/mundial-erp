@@ -1,7 +1,10 @@
 'use client';
 
 import { useMemo } from 'react';
-import { useCustomFieldValues, usePatchCustomFieldValue } from '../hooks/use-custom-field-values';
+import {
+  useCustomFieldValues,
+  usePatchCustomFieldValue,
+} from '../hooks/use-custom-field-values';
 import { useCnpjAutofill } from '../hooks/use-cnpj-autofill';
 import { useFeatureFlag } from '../hooks/use-feature-flag';
 import type {
@@ -90,14 +93,14 @@ export function CustomFieldsSection({
   return (
     <section
       aria-label={title ?? 'Campos personalizados'}
-      className="flex flex-col gap-3"
+      className='flex flex-col gap-3'
     >
       {title ? (
-        <h3 className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+        <h3 className='text-xs font-semibold uppercase tracking-wide text-muted-foreground'>
           {title}
         </h3>
       ) : null}
-      <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+      <div className='grid grid-cols-1 gap-3 sm:grid-cols-2'>
         {filtered.map((entry) => (
           <CustomFieldEditor
             key={entry.customFieldId}

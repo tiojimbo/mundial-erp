@@ -40,9 +40,9 @@ export function EmailField({
       {(controlProps) => (
         <input
           {...controlProps}
-          type="email"
-          inputMode="email"
-          autoComplete="email"
+          type='email'
+          inputMode='email'
+          autoComplete='email'
           className={inline ? inputClassInline : inputClass}
           value={localValue}
           readOnly={isReadOnly}

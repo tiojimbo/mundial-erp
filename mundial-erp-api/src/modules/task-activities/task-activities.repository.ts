@@ -61,7 +61,14 @@ export class TaskActivitiesRepository {
     taskId: string,
     params: FindActivitiesParams,
   ): Promise<{ items: ActivityRow[]; total: number }> {
-    const { skip = 0, take = 50, type = 'ALL', actions, actorId, cursor } = params;
+    const {
+      skip = 0,
+      take = 50,
+      type = 'ALL',
+      actions,
+      actorId,
+      cursor,
+    } = params;
     const safeTake = Math.min(take, MAX_PAGE_TAKE);
 
     const where: Prisma.WorkItemActivityWhereInput = {
@@ -107,9 +114,7 @@ export class TaskActivitiesRepository {
    */
   async findStatusesByIds(
     ids: string[],
-  ): Promise<
-    { id: string; name: string; color: string; type: string }[]
-  > {
+  ): Promise<{ id: string; name: string; color: string; type: string }[]> {
     if (ids.length === 0) return [];
     return this.prisma.status.findMany({
       where: { id: { in: ids } },

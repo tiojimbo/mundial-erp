@@ -11,9 +11,7 @@ import { useDebouncedOnChange } from './use-debounced-onchange';
 
 function parseQuantity(input: string): number | null {
   if (input.trim().length === 0) return null;
-  const parsed = Number(
-    input.replace(/[^\d,.-]/g, '').replace(',', '.'),
-  );
+  const parsed = Number(input.replace(/[^\d,.-]/g, '').replace(',', '.'));
   return Number.isFinite(parsed) && parsed >= 0 ? parsed : null;
 }
 
@@ -58,10 +56,10 @@ export function QuantityField({
         <div className={containerClass}>
           <input
             {...controlProps}
-            type="text"
-            inputMode="decimal"
+            type='text'
+            inputMode='decimal'
             size={Math.max(localValue.length, 1)}
-            className={`min-w-[1ch] max-w-full bg-transparent text-foreground outline-none placeholder:text-muted-foreground/60 [field-sizing:content] ${sizeClass}`}
+            className={`placeholder:text-muted-foreground/60 min-w-[1ch] max-w-full bg-transparent text-foreground outline-none [field-sizing:content] ${sizeClass}`}
             value={localValue}
             readOnly={isReadOnly}
             placeholder={inline ? '-' : '0'}
@@ -72,7 +70,7 @@ export function QuantityField({
             }}
           />
           <span
-            aria-hidden="true"
+            aria-hidden='true'
             className={`ml-1.5 shrink-0 text-foreground ${sizeClass}`}
           >
             {abbr}

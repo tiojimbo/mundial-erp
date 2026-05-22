@@ -72,23 +72,23 @@ export function GlobalShortcuts({
 
   return (
     <Modal.Root open={helpOpen} onOpenChange={setHelpOpen}>
-      <Modal.Content className="max-w-[480px]">
+      <Modal.Content className='max-w-[480px]'>
         <Modal.Header
-          title="Atalhos de teclado"
-          description="Acoes rapidas disponiveis em qualquer pagina."
+          title='Atalhos de teclado'
+          description='Acoes rapidas disponiveis em qualquer pagina.'
         />
         <Modal.Body>
-          <ul className="flex flex-col gap-2" role="list">
+          <ul className='flex flex-col gap-2' role='list'>
             {SHORTCUTS.map((shortcut) => (
               <li
                 key={shortcut.keys}
-                className="flex items-center justify-between gap-4 rounded-md border border-stroke-soft-200 px-3 py-2"
-                role="listitem"
+                className='flex items-center justify-between gap-4 rounded-md border border-stroke-soft-200 px-3 py-2'
+                role='listitem'
               >
-                <span className="text-paragraph-sm text-text-strong-950">
+                <span className='text-paragraph-sm text-text-strong-950'>
                   {shortcut.description}
                 </span>
-                <kbd className="inline-flex h-6 min-w-[24px] items-center justify-center rounded-md border border-stroke-soft-200 bg-bg-weak-50 px-1.5 font-mono text-subheading-2xs text-text-sub-600">
+                <kbd className='inline-flex h-6 min-w-[24px] items-center justify-center rounded-md border border-stroke-soft-200 bg-bg-weak-50 px-1.5 font-mono text-subheading-2xs text-text-sub-600'>
                   {shortcut.keys}
                 </kbd>
               </li>

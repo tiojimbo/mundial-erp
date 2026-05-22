@@ -32,7 +32,10 @@ function getActiveActivity(processInstances: ProcessInstance[]): {
   return null;
 }
 
-function formatSlaRemaining(slaMinutes: number | null, startedAt: string | null): string | null {
+function formatSlaRemaining(
+  slaMinutes: number | null,
+  startedAt: string | null,
+): string | null {
   if (!slaMinutes || !startedAt) return null;
   const elapsed = (Date.now() - new Date(startedAt).getTime()) / 60000;
   const remaining = Math.round(slaMinutes - elapsed);
@@ -72,8 +75,12 @@ export function ProcessContextBar({ processInstances }: Props) {
       </div>
 
       {slaText && (
-        <div className={`flex items-center gap-1.5 text-label-xs ${isExpired ? 'text-state-error-base' : 'text-text-sub-600'}`}>
-          <i className={`ri-timer-line ${isExpired ? 'text-state-error-base' : ''}`} />
+        <div
+          className={`flex items-center gap-1.5 text-label-xs ${isExpired ? 'text-state-error-base' : 'text-text-sub-600'}`}
+        >
+          <i
+            className={`ri-timer-line ${isExpired ? 'text-state-error-base' : ''}`}
+          />
           {slaText}
         </div>
       )}

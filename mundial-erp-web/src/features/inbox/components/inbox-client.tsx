@@ -57,9 +57,7 @@ export function InboxClient() {
     <div className='flex h-full flex-col'>
       <header className='flex items-center gap-2 px-4 py-3'>
         <RiInboxLine className='h-4 w-4 text-muted-foreground' />
-        <h1 className='text-paragraph-sm text-foreground'>
-          Caixa de entrada
-        </h1>
+        <h1 className='text-paragraph-sm text-foreground'>Caixa de entrada</h1>
       </header>
 
       <InboxTabs

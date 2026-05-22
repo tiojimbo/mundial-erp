@@ -166,13 +166,14 @@ export class TaskResponseDto {
     dto.priority = row.priority as TaskPriority;
     // ADR-001: preserva nome externo.
     dto.assigneeId = (row.primaryAssigneeCache as string | null) ?? null;
-    const assigneeRows = (row.assignees as
-      | Array<{
-          userId: string;
-          isPrimary: boolean;
-          user: { name: string | null } | null;
-        }>
-      | undefined) ?? [];
+    const assigneeRows =
+      (row.assignees as
+        | Array<{
+            userId: string;
+            isPrimary: boolean;
+            user: { name: string | null } | null;
+          }>
+        | undefined) ?? [];
     dto.assignees = assigneeRows.map((a) => ({
       userId: a.userId,
       userName: a.user?.name ?? null,

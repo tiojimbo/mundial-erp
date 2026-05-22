@@ -9,8 +9,7 @@ import type { ManagerView } from './use-custom-fields-manager-state';
 import type { ManagerCustomFieldGroup } from '../types/custom-field.types';
 
 export const customFieldGroupsQueryKeys = {
-  all: (workspaceId: string) =>
-    [workspaceId, 'custom-field-groups'] as const,
+  all: (workspaceId: string) => [workspaceId, 'custom-field-groups'] as const,
   list: (workspaceId: string) =>
     [...customFieldGroupsQueryKeys.all(workspaceId), 'list'] as const,
   byTaskType: (workspaceId: string, taskTypeId: string) =>

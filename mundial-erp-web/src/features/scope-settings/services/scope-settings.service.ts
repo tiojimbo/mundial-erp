@@ -69,10 +69,7 @@ export const scopeSettingsService = {
     await api.delete(`/${scope}/${id}/members/${userId}`);
   },
 
-  async getResources(
-    scope: ScopeKind,
-    id: string,
-  ): Promise<ResourcesMetadata> {
+  async getResources(scope: ScopeKind, id: string): Promise<ResourcesMetadata> {
     const { data } = await api.get<ResourcesMetadata>(
       `/${scope}/${id}/resources`,
     );

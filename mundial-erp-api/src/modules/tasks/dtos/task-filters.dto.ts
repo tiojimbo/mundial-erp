@@ -88,7 +88,10 @@ export class TaskFiltersDto {
   @IsString({ each: true })
   processIds?: string[];
 
-  @ApiPropertyOptional({ type: [String], description: 'Alias Hoppe de processIds.' })
+  @ApiPropertyOptional({
+    type: [String],
+    description: 'Alias Hoppe de processIds.',
+  })
   @IsOptional()
   @Transform(({ value }) => toStringArray(value))
   @IsArray()
@@ -104,7 +107,10 @@ export class TaskFiltersDto {
   @IsString({ each: true })
   areaIds?: string[];
 
-  @ApiPropertyOptional({ type: [String], description: 'Alias Hoppe de areaIds.' })
+  @ApiPropertyOptional({
+    type: [String],
+    description: 'Alias Hoppe de areaIds.',
+  })
   @IsOptional()
   @Transform(({ value }) => toStringArray(value))
   @IsArray()
@@ -120,7 +126,10 @@ export class TaskFiltersDto {
   @IsString({ each: true })
   departmentIds?: string[];
 
-  @ApiPropertyOptional({ type: [String], description: 'Alias Hoppe de departmentIds.' })
+  @ApiPropertyOptional({
+    type: [String],
+    description: 'Alias Hoppe de departmentIds.',
+  })
   @IsOptional()
   @Transform(({ value }) => toStringArray(value))
   @IsArray()

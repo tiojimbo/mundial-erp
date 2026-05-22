@@ -189,8 +189,9 @@ export class ChannelsService {
       if (!isMember) throw new NotFoundException('Canal nao encontrado');
     }
 
-    const activeMemberCount =
-      await this.channelsRepository.countActiveMembers(entity.id);
+    const activeMemberCount = await this.channelsRepository.countActiveMembers(
+      entity.id,
+    );
     return ChannelResponseDto.fromEntity(entity, { activeMemberCount });
   }
 

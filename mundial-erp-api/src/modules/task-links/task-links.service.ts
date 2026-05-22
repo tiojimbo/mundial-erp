@@ -24,7 +24,12 @@ function mapLinkedTask(task: unknown): LinkedTaskDto {
   const t = task as {
     id: string;
     title: string;
-    status: { id: string; name: string; color: string; type: StatusType } | null;
+    status: {
+      id: string;
+      name: string;
+      color: string;
+      type: StatusType;
+    } | null;
     customType: { id: string; name: string; icon: string | null } | null;
     list: { id: string; name: string } | null;
   };
@@ -167,7 +172,9 @@ export class TaskLinksService {
 
     // Resposta na perspectiva da task consultada.
     const isOutgoingForCaller = created.fromTaskId === taskId;
-    const otherTaskId = isOutgoingForCaller ? created.toTaskId : created.fromTaskId;
+    const otherTaskId = isOutgoingForCaller
+      ? created.toTaskId
+      : created.fromTaskId;
     const perspectivedType = isOutgoingForCaller
       ? created.type
       : inverseType(created.type);

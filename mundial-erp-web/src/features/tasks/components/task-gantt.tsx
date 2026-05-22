@@ -117,7 +117,8 @@ export function TaskGantt({
         return { key: dep.id, from, to };
       })
       .filter(
-        (v): v is { key: string; from: BarPosition; to: BarPosition } => v !== null,
+        (v): v is { key: string; from: BarPosition; to: BarPosition } =>
+          v !== null,
       );
   }, [dependencies, bars]);
 
@@ -127,68 +128,68 @@ export function TaskGantt({
   if (isLoading) {
     return (
       <div
-        role="status"
-        aria-busy="true"
-        aria-live="polite"
-        className="h-96 animate-pulse rounded-lg bg-bg-weak-50"
+        role='status'
+        aria-busy='true'
+        aria-live='polite'
+        className='h-96 animate-pulse rounded-lg bg-bg-weak-50'
       />
     );
   }
 
   if (tasks.length === 0) {
     return (
-      <div className="rounded-lg border border-dashed border-stroke-soft-200 p-8 text-center text-paragraph-sm text-text-sub-600">
+      <div className='rounded-lg border border-dashed border-stroke-soft-200 p-8 text-center text-paragraph-sm text-text-sub-600'>
         Nenhuma tarefa com data definida para exibir no Gantt.
       </div>
     );
   }
 
   return (
-    <div className="flex flex-col gap-2">
-      <div className="flex flex-wrap items-center gap-2">
+    <div className='flex flex-col gap-2'>
+      <div className='flex flex-wrap items-center gap-2'>
         <button
-          type="button"
+          type='button'
           onClick={() => setScrollAnchor((d) => addDays(d, -daysVisible))}
-          className="inline-flex h-8 items-center rounded-md border border-stroke-soft-200 bg-bg-white-0 px-3 text-label-xs text-text-sub-600 hover:bg-bg-weak-50"
+          className='inline-flex h-8 items-center rounded-md border border-stroke-soft-200 bg-bg-white-0 px-3 text-label-xs text-text-sub-600 hover:bg-bg-weak-50'
         >
           Anterior
         </button>
         <button
-          type="button"
+          type='button'
           onClick={() => setScrollAnchor(startOfDay(new Date()))}
-          className="inline-flex h-8 items-center rounded-md border border-stroke-soft-200 bg-bg-white-0 px-3 text-label-xs text-text-sub-600 hover:bg-bg-weak-50"
+          className='inline-flex h-8 items-center rounded-md border border-stroke-soft-200 bg-bg-white-0 px-3 text-label-xs text-text-sub-600 hover:bg-bg-weak-50'
         >
           Hoje
         </button>
         <button
-          type="button"
+          type='button'
           onClick={() => setScrollAnchor((d) => addDays(d, daysVisible))}
-          className="inline-flex h-8 items-center rounded-md border border-stroke-soft-200 bg-bg-white-0 px-3 text-label-xs text-text-sub-600 hover:bg-bg-weak-50"
+          className='inline-flex h-8 items-center rounded-md border border-stroke-soft-200 bg-bg-white-0 px-3 text-label-xs text-text-sub-600 hover:bg-bg-weak-50'
         >
           Proximo
         </button>
-        <span className="text-paragraph-xs text-text-sub-600">
+        <span className='text-paragraph-xs text-text-sub-600'>
           {format(days[0], "dd 'de' MMM", { locale: ptBR })} —{' '}
           {format(days[days.length - 1], "dd 'de' MMM", { locale: ptBR })}
         </span>
       </div>
 
       <div
-        className="overflow-auto rounded-lg border border-stroke-soft-200"
-        role="region"
-        aria-label="Gantt de tarefas"
+        className='overflow-auto rounded-lg border border-stroke-soft-200'
+        role='region'
+        aria-label='Gantt de tarefas'
       >
         <div
-          className="grid"
+          className='grid'
           style={{
             gridTemplateColumns: `${SIDEBAR_WIDTH_PX}px ${gridWidth}px`,
           }}
         >
           {/* Sidebar header */}
-          <div className="sticky left-0 top-0 z-20 border-b border-r border-stroke-soft-200 bg-bg-white-0 px-3 py-2 text-label-xs uppercase text-text-sub-600">
+          <div className='sticky left-0 top-0 z-20 border-b border-r border-stroke-soft-200 bg-bg-white-0 px-3 py-2 text-label-xs uppercase text-text-sub-600'>
             Tarefa
           </div>
-          <div className="sticky top-0 z-10 flex border-b border-stroke-soft-200 bg-bg-white-0">
+          <div className='sticky top-0 z-10 flex border-b border-stroke-soft-200 bg-bg-white-0'>
             {days.map((day) => (
               <div
                 key={day.toISOString()}
@@ -206,16 +207,16 @@ export function TaskGantt({
           </div>
 
           {/* Sidebar rows */}
-          <div className="sticky left-0 z-10 flex flex-col border-r border-stroke-soft-200 bg-bg-white-0">
+          <div className='sticky left-0 z-10 flex flex-col border-r border-stroke-soft-200 bg-bg-white-0'>
             {tasks.map((task) => (
               <button
                 key={task.id}
-                type="button"
+                type='button'
                 onClick={() => router.push(`/tasks/${task.id}`)}
-                className="flex items-center border-b border-stroke-soft-200 px-3 text-left text-paragraph-xs text-text-strong-950 hover:bg-bg-weak-50"
+                className='flex items-center border-b border-stroke-soft-200 px-3 text-left text-paragraph-xs text-text-strong-950 hover:bg-bg-weak-50'
                 style={{ height: ROW_HEIGHT_PX }}
               >
-                <span className="line-clamp-1">{task.title}</span>
+                <span className='line-clamp-1'>{task.title}</span>
               </button>
             ))}
           </div>
@@ -223,7 +224,7 @@ export function TaskGantt({
           {/* Grid background + bars */}
           <div
             ref={gridRef}
-            className="relative"
+            className='relative'
             style={{ width: gridWidth, height: gridHeight }}
           >
             {/* column separators */}
@@ -245,7 +246,7 @@ export function TaskGantt({
             {tasks.map((_, rowIdx) => (
               <div
                 key={rowIdx}
-                className="absolute left-0 w-full border-b border-stroke-soft-200"
+                className='absolute left-0 w-full border-b border-stroke-soft-200'
                 style={{
                   top: (rowIdx + 1) * ROW_HEIGHT_PX - 1,
                   height: 1,
@@ -259,9 +260,9 @@ export function TaskGantt({
               return (
                 <button
                   key={bar.taskId}
-                  type="button"
+                  type='button'
                   onClick={() => router.push(`/tasks/${task.id}`)}
-                  className="absolute flex items-center rounded-md text-subheading-2xs text-static-white shadow-regular-xs transition-transform hover:scale-[1.02]"
+                  className='absolute flex items-center rounded-md text-subheading-2xs text-static-white shadow-regular-xs transition-transform hover:scale-[1.02]'
                   style={{
                     left: bar.startCol * COLUMN_WIDTH_PX + 2,
                     top: bar.row * ROW_HEIGHT_PX + 6,
@@ -271,7 +272,7 @@ export function TaskGantt({
                   }}
                   aria-label={`${task.title} - ${task.status.name}`}
                 >
-                  <span className="truncate px-2">{task.title}</span>
+                  <span className='truncate px-2'>{task.title}</span>
                 </button>
               );
             })}
@@ -279,7 +280,7 @@ export function TaskGantt({
             {/* Dependency SVG overlay (read-only) */}
             <svg
               aria-hidden
-              className="pointer-events-none absolute left-0 top-0"
+              className='pointer-events-none absolute left-0 top-0'
               width={gridWidth}
               height={gridHeight}
             >
@@ -294,10 +295,10 @@ export function TaskGantt({
                   <path
                     key={dep.key}
                     d={`M ${fromX} ${fromY} L ${midX} ${fromY} L ${midX} ${toY} L ${toX} ${toY}`}
-                    stroke="currentColor"
+                    stroke='currentColor'
                     strokeWidth={1.5}
-                    fill="none"
-                    className="text-text-sub-600"
+                    fill='none'
+                    className='text-text-sub-600'
                   />
                 );
               })}

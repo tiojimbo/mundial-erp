@@ -46,7 +46,8 @@ export default function EditarPainelPage() {
               Editando: {dashboard.name}
             </h1>
             <p className='text-paragraph-sm text-text-sub-600'>
-              Arraste e redimensione os cards. Adicione novos cards ao dashboard.
+              Arraste e redimensione os cards. Adicione novos cards ao
+              dashboard.
             </p>
           </div>
         </div>

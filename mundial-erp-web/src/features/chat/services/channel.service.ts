@@ -1,8 +1,5 @@
 import { api } from '@/lib/api';
-import type {
-  ApiResponse,
-  CursorPaginatedResponse,
-} from '@/types/api.types';
+import type { ApiResponse, CursorPaginatedResponse } from '@/types/api.types';
 import type {
   Channel,
   ChannelMember,
@@ -47,10 +44,7 @@ export const channelService = {
     return data.data;
   },
 
-  async update(
-    id: string,
-    payload: UpdateChannelPayload,
-  ): Promise<Channel> {
+  async update(id: string, payload: UpdateChannelPayload): Promise<Channel> {
     const { data } = await api.patch<ApiResponse<Channel>>(
       `/chat/channels/${id}`,
       payload,
@@ -66,9 +60,10 @@ export const channelService = {
     channelId: string,
     params?: { cursor?: string; limit?: number },
   ): Promise<CursorPaginatedResponse<ChannelMember>> {
-    const { data } = await api.get<
-      CursorPaginatedResponse<ChannelMember>
-    >(`/chat/channels/${channelId}/members`, { params });
+    const { data } = await api.get<CursorPaginatedResponse<ChannelMember>>(
+      `/chat/channels/${channelId}/members`,
+      { params },
+    );
     return data;
   },
 
@@ -79,10 +74,7 @@ export const channelService = {
     await api.post(`/chat/channels/${channelId}/members`, payload);
   },
 
-  async removeMember(
-    channelId: string,
-    userId: string,
-  ): Promise<void> {
+  async removeMember(channelId: string, userId: string): Promise<void> {
     await api.delete(`/chat/channels/${channelId}/members/${userId}`);
   },
 

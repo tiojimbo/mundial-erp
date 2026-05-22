@@ -1,4 +1,8 @@
-import { BadRequestException, Injectable, NotFoundException } from '@nestjs/common';
+import {
+  BadRequestException,
+  Injectable,
+  NotFoundException,
+} from '@nestjs/common';
 import { TaskActivityType } from '@prisma/client';
 import { TaskActivitiesRepository } from './task-activities.repository';
 import { ActivityFiltersDto } from './dtos/activity-filters.dto';
@@ -15,7 +19,9 @@ import {
  */
 @Injectable()
 export class TaskActivitiesService {
-  private readonly validActivityTypes = new Set<string>(Object.values(TaskActivityType));
+  private readonly validActivityTypes = new Set<string>(
+    Object.values(TaskActivityType),
+  );
 
   constructor(private readonly repository: TaskActivitiesRepository) {}
 
@@ -84,9 +90,9 @@ export class TaskActivitiesService {
           payload: {
             ...p,
             fromStatus:
-              typeof p.from === 'string' ? byId.get(p.from) ?? null : null,
+              typeof p.from === 'string' ? (byId.get(p.from) ?? null) : null,
             toStatus:
-              typeof p.to === 'string' ? byId.get(p.to) ?? null : null,
+              typeof p.to === 'string' ? (byId.get(p.to) ?? null) : null,
           },
         };
       }

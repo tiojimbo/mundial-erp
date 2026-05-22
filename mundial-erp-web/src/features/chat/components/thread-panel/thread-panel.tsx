@@ -21,8 +21,7 @@ export function ThreadPanel({ messageId }: ThreadPanelProps) {
   );
   const { data, isLoading: isLoadingReplies } = useReplies(messageId);
 
-  const replies: Message[] =
-    data?.pages.flatMap((page) => page.data) ?? [];
+  const replies: Message[] = data?.pages.flatMap((page) => page.data) ?? [];
 
   const authorName = parentMessage?.author.name ?? 'Conversa';
   const replyCount = replies.length;
@@ -90,9 +89,7 @@ export function ThreadPanel({ messageId }: ThreadPanelProps) {
             ))}
           </div>
         ) : (
-          replies.map((reply) => (
-            <MessageItem key={reply.id} message={reply} />
-          ))
+          replies.map((reply) => <MessageItem key={reply.id} message={reply} />)
         )}
       </div>
 

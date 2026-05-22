@@ -341,10 +341,7 @@ export class ListsService {
     });
   }
 
-  async remove(
-    workspaceId: string,
-    id: string,
-  ): Promise<{ message: string }> {
+  async remove(workspaceId: string, id: string): Promise<{ message: string }> {
     const entity = await this.listsRepository.findById(workspaceId, id);
     if (!entity) {
       throw new NotFoundException('List não encontrada');
@@ -396,20 +393,24 @@ export class ListsService {
         where: { listId, deletedAt: null },
         select: { id: true },
       });
-      const keptIds = new Set(
-        items.filter((s) => s.id !== undefined).map((s) => s.id as string),
+      const ownIds = new Set(existing.map((e) => e.id));
+      const keptOwnIds = new Set(
+        items
+          .filter((s) => s.id !== undefined && ownIds.has(s.id))
+          .map((s) => s.id as string),
       );
       const toRemove = existing
         .map((e) => e.id)
-        .filter((id) => !keptIds.has(id));
+        .filter((id) => !keptOwnIds.has(id));
       if (toRemove.length > 0) {
         await tx.status.updateMany({
           where: { id: { in: toRemove } },
           data: { deletedAt: new Date() },
         });
       }
+      const statusIdRemap = new Map<string, string>();
       for (const item of items) {
-        if (item.id) {
+        if (item.id && ownIds.has(item.id)) {
           await tx.status.update({
             where: { id: item.id },
             data: {
@@ -420,7 +421,7 @@ export class ListsService {
             },
           });
         } else {
-          await tx.status.create({
+          const created = await tx.status.create({
             data: {
               listId,
               name: item.name,
@@ -429,7 +430,14 @@ export class ListsService {
               position: item.position,
             },
           });
+          if (item.id) statusIdRemap.set(item.id, created.id);
         }
+      }
+      for (const [oldId, newId] of statusIdRemap) {
+        await tx.workItem.updateMany({
+          where: { listId, statusId: oldId, deletedAt: null },
+          data: { statusId: newId },
+        });
       }
       const statuses = await tx.status.findMany({
         where: { listId, deletedAt: null },

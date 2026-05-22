@@ -35,10 +35,7 @@ export class SpaceTaskTypesController {
   @ApiOperation({ summary: 'Listar custom task types do space' })
   @ApiResponse({ status: 200, type: [CustomTaskTypeResponseDto] })
   @ApiResponse({ status: 404, description: 'Space nao encontrado' })
-  list(
-    @WorkspaceId() workspaceId: string,
-    @Param('spaceId') spaceId: string,
-  ) {
+  list(@WorkspaceId() workspaceId: string, @Param('spaceId') spaceId: string) {
     return this.service.listBySpace(workspaceId, spaceId);
   }
 

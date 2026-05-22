@@ -11,10 +11,6 @@ import { TaskView } from '@/features/tasks/components/task-view/task-view';
  *
  * @see .claude/plan/PLANO-TASKS.md §11 regra #13
  */
-export default function TaskPage({
-  params,
-}: {
-  params: { taskId: string };
-}) {
+export default function TaskPage({ params }: { params: { taskId: string } }) {
   return <TaskView taskId={params.taskId} />;
 }

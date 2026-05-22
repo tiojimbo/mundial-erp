@@ -109,9 +109,9 @@ describe('TaskCommentsService (unit, stub)', () => {
     });
 
     it('aceita hifens, pontos e underscores', () => {
-      expect(
-        service.extractMentions('@ana-paula @jose.lima @user_01'),
-      ).toEqual(['ana-paula', 'jose.lima', 'user_01']);
+      expect(service.extractMentions('@ana-paula @jose.lima @user_01')).toEqual(
+        ['ana-paula', 'jose.lima', 'user_01'],
+      );
     });
 
     it('body vazio retorna []', () => {

@@ -8,7 +8,7 @@ export default function DocumentosPage() {
       </div>
       <div>
         <h1 className='text-lg font-semibold text-gray-900'>Documentos</h1>
-        <p className='mt-1 text-sm text-gray-500'>
+        <p className='text-sm mt-1 text-gray-500'>
           Em breve: propostas, NF-e, etiquetas e relatórios em um só lugar.
         </p>
       </div>

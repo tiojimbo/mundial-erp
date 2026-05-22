@@ -25,11 +25,11 @@ export function LossesTab({ order }: Props) {
   return (
     <div className='flex flex-col gap-4'>
       {totalCost > 0 && (
-        <div className='rounded-lg border border-state-error-lighter bg-state-error-lighter/10 p-3'>
-          <span className='text-subheading-2xs uppercase text-state-error-base'>
+        <div className='border-state-error-lighter bg-state-error-lighter/10 rounded-lg border p-3'>
+          <span className='text-state-error-base text-subheading-2xs uppercase'>
             Custo Total de Perdas
           </span>
-          <p className='text-label-md text-state-error-base'>
+          <p className='text-state-error-base text-label-md'>
             {formatCents(totalCost)}
           </p>
         </div>

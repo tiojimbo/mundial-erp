@@ -22,7 +22,7 @@ export function POStatusStepper({ currentStatus }: Props) {
     return (
       <div className='flex items-center gap-2 rounded-lg bg-red-50 px-4 py-3'>
         <i className='ri-close-circle-line text-xl text-state-error-base' />
-        <span className='text-label-sm text-state-error-base'>
+        <span className='text-state-error-base text-label-sm'>
           Ordem de producao cancelada
         </span>
       </div>

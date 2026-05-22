@@ -461,7 +461,10 @@ export class CustomFieldValuesService implements OnModuleDestroy {
     }
   }
 
-  private async loadTaskContext(taskId: string, workspaceId: string): Promise<{
+  private async loadTaskContext(
+    taskId: string,
+    workspaceId: string,
+  ): Promise<{
     listId: string;
     folderId: string | null;
     spaceId: string | null;
@@ -845,9 +848,7 @@ export class CustomFieldValuesService implements OnModuleDestroy {
 
   private applyDerivation(source: number, rule: DerivationRule): number {
     const raw =
-      rule.operation === 'divide'
-        ? source / rule.factor
-        : source * rule.factor;
+      rule.operation === 'divide' ? source / rule.factor : source * rule.factor;
     return Math.round(raw * 100) / 100;
   }
 }

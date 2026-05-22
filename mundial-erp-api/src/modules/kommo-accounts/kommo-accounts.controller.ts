@@ -158,5 +158,4 @@ export class KommoAccountsController {
       //   `refreshToken` + `expiresAt` preenchidos (ADR-004 invariante).
     });
   }
-
 }

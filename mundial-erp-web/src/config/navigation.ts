@@ -1,8 +1,4 @@
-import {
-  RiHome5Line,
-  RiInboxLine,
-  RiFileTextLine,
-} from '@remixicon/react';
+import { RiHome5Line, RiInboxLine, RiFileTextLine } from '@remixicon/react';
 import type { ComponentType } from 'react';
 
 export type NavItem = {

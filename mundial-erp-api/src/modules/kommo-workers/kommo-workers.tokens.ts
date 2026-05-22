@@ -15,7 +15,9 @@
  * DI troque a implementação sem alterar handler.
  */
 
-export const KOMMO_CONVERSATIONS_SERVICE = Symbol('KOMMO_CONVERSATIONS_SERVICE');
+export const KOMMO_CONVERSATIONS_SERVICE = Symbol(
+  'KOMMO_CONVERSATIONS_SERVICE',
+);
 export const KOMMO_MESSAGES_SERVICE = Symbol('KOMMO_MESSAGES_SERVICE');
 export const KOMMO_WEBHOOK_EVENTS_REPOSITORY = Symbol(
   'KOMMO_WEBHOOK_EVENTS_REPOSITORY',

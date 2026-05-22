@@ -1,8 +1,4 @@
-import {
-  useQuery,
-  useMutation,
-  useQueryClient,
-} from '@tanstack/react-query';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useRouter } from 'next/navigation';
 import { useNotification } from '@/hooks/use-notification';
 import { quotationService } from '../services/quotation.service';
@@ -18,7 +14,8 @@ export const PURCHASE_ORDERS_KEY = ['purchase-orders'];
 
 function extractErrorMessage(error: unknown): string {
   if (error && typeof error === 'object' && 'response' in error) {
-    const res = (error as { response?: { data?: { message?: string } } }).response;
+    const res = (error as { response?: { data?: { message?: string } } })
+      .response;
     if (res?.data?.message) return res.data.message;
   }
   if (error instanceof Error) return error.message;
@@ -135,7 +132,8 @@ export function useCreatePurchaseOrder() {
       qc.invalidateQueries({ queryKey: PURCHASE_ORDERS_KEY });
       notification({
         title: 'Compra efetivada',
-        description: 'Ordem de compra criada com sucesso. Conta a pagar gerada automaticamente.',
+        description:
+          'Ordem de compra criada com sucesso. Conta a pagar gerada automaticamente.',
         status: 'success',
       });
     },

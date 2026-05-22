@@ -146,42 +146,45 @@ function BoardTaskCard({
   const dateLabel = formatDateRange(task.startDate, task.dueDate);
   const assignees = task.assignees ?? [];
   const visibleAssignees = assignees.slice(0, 3);
-  const extraAssignees = Math.max(0, assignees.length - visibleAssignees.length);
+  const extraAssignees = Math.max(
+    0,
+    assignees.length - visibleAssignees.length,
+  );
 
   return (
     <div
-      role="button"
+      role='button'
       tabIndex={0}
       aria-label={`Tarefa ${task.title}`}
       className={cn(
         'group relative flex h-[103.6px] w-[268px] flex-col rounded-lg border border-stroke-soft-200 bg-bg-white-0 p-3 text-left shadow-regular-xs',
-        'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-base/50',
+        'focus-visible:ring-primary-base/50 focus-visible:outline-none focus-visible:ring-2',
         overlay && 'shadow-regular-md',
       )}
       {...(draggableHandleProps ?? {})}
     >
-      <div className="flex items-center gap-1.5">
+      <div className='flex items-center gap-1.5'>
         {(() => {
           const TypeIcon = getIconByName(task.customType?.icon);
           return (
             <TypeIcon
               aria-hidden
-              className="size-3.5 shrink-0 text-text-sub-600"
+              className='size-3.5 shrink-0 text-text-sub-600'
             />
           );
         })()}
         <Link
           href={`/tasks/${task.id}`}
-          className="block truncate text-[13px] font-semibold text-text-strong-950 outline-none hover:underline"
+          className='block truncate text-[13px] font-semibold text-text-strong-950 outline-none hover:underline'
           onClick={(event) => event.stopPropagation()}
         >
           {task.title}
         </Link>
       </div>
 
-      <div className="mt-2 flex flex-col gap-1.5">
+      <div className='mt-2 flex flex-col gap-1.5'>
         <div
-          className="flex -space-x-1"
+          className='flex -space-x-1'
           aria-label={
             visibleAssignees.length > 0
               ? `${assignees.length} responsável(is)`
@@ -193,13 +196,13 @@ function BoardTaskCard({
               {visibleAssignees.map((assignee) => (
                 <span
                   key={assignee.userId}
-                  data-slot="avatar"
+                  data-slot='avatar'
                   title={assignee.userName ?? undefined}
-                  className="relative flex size-6 shrink-0 overflow-hidden rounded-full ring-2 ring-white"
+                  className='relative flex size-6 shrink-0 overflow-hidden rounded-full ring-2 ring-white'
                 >
                   <span
-                    data-slot="avatar-fallback"
-                    className="flex size-full items-center justify-center rounded-full text-[10px] font-semibold"
+                    data-slot='avatar-fallback'
+                    className='flex size-full items-center justify-center rounded-full text-[10px] font-semibold'
                     style={{
                       backgroundColor: avatarColorForId(assignee.userId),
                       color: 'rgb(255, 255, 255)',
@@ -211,12 +214,12 @@ function BoardTaskCard({
               ))}
               {extraAssignees > 0 && (
                 <span
-                  data-slot="avatar"
-                  className="relative flex size-6 shrink-0 overflow-hidden rounded-full ring-2 ring-white"
+                  data-slot='avatar'
+                  className='relative flex size-6 shrink-0 overflow-hidden rounded-full ring-2 ring-white'
                 >
                   <span
-                    data-slot="avatar-fallback"
-                    className="flex size-full items-center justify-center rounded-full bg-bg-weak-50 text-[10px] font-semibold text-text-sub-600"
+                    data-slot='avatar-fallback'
+                    className='flex size-full items-center justify-center rounded-full bg-bg-weak-50 text-[10px] font-semibold text-text-sub-600'
                   >
                     +{extraAssignees}
                   </span>
@@ -225,25 +228,23 @@ function BoardTaskCard({
             </>
           ) : (
             <span
-              data-slot="avatar"
-              title="Sem responsável"
-              className="relative flex size-6 shrink-0 overflow-hidden rounded-full ring-2 ring-white"
+              data-slot='avatar'
+              title='Sem responsável'
+              className='relative flex size-6 shrink-0 overflow-hidden rounded-full ring-2 ring-white'
             >
               <span
-                data-slot="avatar-fallback"
-                className="flex size-full items-center justify-center rounded-full bg-bg-weak-50 text-text-sub-600"
+                data-slot='avatar-fallback'
+                className='flex size-full items-center justify-center rounded-full bg-bg-weak-50 text-text-sub-600'
               >
-                <RiUser3Line aria-hidden className="size-3" />
+                <RiUser3Line aria-hidden className='size-3' />
               </span>
             </span>
           )}
         </div>
 
-        <span
-          className="inline-flex w-fit items-center gap-1 rounded-md bg-bg-weak-50 px-1.5 py-0.5 text-subheading-2xs text-text-sub-600"
-        >
-          <RiCalendarLine aria-hidden className="size-3" />
-          <span className="truncate">{dateLabel ?? 'Sem prazo'}</span>
+        <span className='inline-flex w-fit items-center gap-1 rounded-md bg-bg-weak-50 px-1.5 py-0.5 text-subheading-2xs text-text-sub-600'>
+          <RiCalendarLine aria-hidden className='size-3' />
+          <span className='truncate'>{dateLabel ?? 'Sem prazo'}</span>
         </span>
       </div>
     </div>
@@ -307,13 +308,15 @@ function BoardColumn({
       )}
       style={{
         backgroundColor: `rgb(${rgbTriplet} / 0.05)`,
-        ...(isOver ? { boxShadow: `inset 0 0 0 2px rgb(${rgbTriplet} / 0.30)` } : {}),
+        ...(isOver
+          ? { boxShadow: `inset 0 0 0 2px rgb(${rgbTriplet} / 0.30)` }
+          : {}),
       }}
     >
-      <header className="mb-3 flex items-center justify-between gap-2">
-        <div className="flex min-w-0 flex-1 items-center gap-1.5">
+      <header className='mb-3 flex items-center justify-between gap-2'>
+        <div className='flex min-w-0 flex-1 items-center gap-1.5'>
           <span
-            className="inline-flex items-center gap-1 rounded-md px-2 py-0.5"
+            className='inline-flex items-center gap-1 rounded-md px-2 py-0.5'
             style={{ backgroundColor: `rgb(${rgbTriplet} / 0.15)` }}
           >
             <StatusIcon
@@ -322,18 +325,16 @@ function BoardColumn({
               size={12}
             />
             <span
-              className="text-[11px] font-bold uppercase tracking-wide"
+              className='text-[11px] font-bold uppercase tracking-wide'
               style={{ color: `rgb(${rgbTriplet})` }}
             >
               {column.status.name}
             </span>
           </span>
           <span
-            className="text-[12px] font-semibold tabular-nums"
+            className='text-[12px] font-semibold tabular-nums'
             style={{
-              color: overLimit
-                ? undefined
-                : `rgb(${rgbTriplet} / 0.85)`,
+              color: overLimit ? undefined : `rgb(${rgbTriplet} / 0.85)`,
             }}
             aria-label={`${column.tasks.length} tarefa(s)`}
           >
@@ -343,21 +344,21 @@ function BoardColumn({
             </span>
           </span>
         </div>
-        <div className="flex items-center gap-0.5">
+        <div className='flex items-center gap-0.5'>
           <button
-            type="button"
+            type='button'
             aria-label={`Opções da coluna ${column.status.name}`}
-            className="rounded p-1 text-text-sub-600 transition-colors hover:bg-bg-white-0/60 hover:text-text-strong-950"
+            className='hover:bg-bg-white-0/60 rounded p-1 text-text-sub-600 transition-colors hover:text-text-strong-950'
           >
-            <RiMoreLine className="size-3.5" />
+            <RiMoreLine className='size-3.5' />
           </button>
           <button
-            type="button"
+            type='button'
             aria-label={`Adicionar tarefa em ${column.status.name}`}
             onClick={() => onAddTask?.(column.status.id)}
-            className="rounded p-1 text-text-sub-600 transition-colors hover:bg-bg-white-0/60 hover:text-text-strong-950"
+            className='hover:bg-bg-white-0/60 rounded p-1 text-text-sub-600 transition-colors hover:text-text-strong-950'
           >
-            <RiAddLine className="size-3.5" />
+            <RiAddLine className='size-3.5' />
           </button>
         </div>
       </header>
@@ -365,7 +366,7 @@ function BoardColumn({
       <div
         ref={setNodeRef}
         data-droppable-id={column.status.id}
-        className="flex min-h-0 flex-1 flex-col gap-2 overflow-y-auto"
+        className='flex min-h-0 flex-1 flex-col gap-2 overflow-y-auto'
       >
         <SortableContext
           items={column.tasks.map((t) => t.id)}
@@ -377,12 +378,12 @@ function BoardColumn({
         </SortableContext>
 
         <button
-          type="button"
+          type='button'
           onClick={() => onAddTask?.(column.status.id)}
-          className="flex items-center gap-1 rounded-md px-1 py-1.5 text-left text-subheading-2xs font-medium transition-colors hover:bg-bg-white-0/50"
+          className='hover:bg-bg-white-0/50 flex items-center gap-1 rounded-md px-1 py-1.5 text-left text-subheading-2xs font-medium transition-colors'
           style={{ color: `rgb(${rgbTriplet} / 0.9)` }}
         >
-          <RiAddLine aria-hidden className="size-3.5" />
+          <RiAddLine aria-hidden className='size-3.5' />
           {defaultTaskType?.pluralName ?? 'Adicionar tarefa'}
         </button>
       </div>
@@ -547,15 +548,15 @@ export function TaskBoard({
   if (isLoading) {
     return (
       <div
-        className="flex gap-2 overflow-x-auto p-2"
-        role="status"
-        aria-live="polite"
-        aria-busy="true"
+        className='flex gap-2 overflow-x-auto p-2'
+        role='status'
+        aria-live='polite'
+        aria-busy='true'
       >
         {statuses.map((s) => (
           <div
             key={s.id}
-            className="h-48 w-[280px] shrink-0 animate-pulse rounded-lg bg-bg-weak-50"
+            className='h-48 w-[280px] shrink-0 animate-pulse rounded-lg bg-bg-weak-50'
           />
         ))}
       </div>
@@ -574,10 +575,10 @@ export function TaskBoard({
       autoScroll={{ threshold: { x: 0.2, y: 0.2 } }}
     >
       <div
-        className="flex min-h-0 flex-1 overflow-x-auto"
-        aria-label="Quadro Kanban"
+        className='flex min-h-0 flex-1 overflow-x-auto'
+        aria-label='Quadro Kanban'
       >
-        <div className="flex h-full items-start gap-2 p-2">
+        <div className='flex h-full items-start gap-2 p-2'>
           {columns.map((column) => (
             <BoardColumn
               key={column.status.id}

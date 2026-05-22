@@ -1,6 +1,11 @@
 // ===== Enums =====
 
-export type PaymentStatus = 'PENDING' | 'PARTIAL' | 'PAID' | 'OVERDUE' | 'CANCELLED';
+export type PaymentStatus =
+  | 'PENDING'
+  | 'PARTIAL'
+  | 'PAID'
+  | 'OVERDUE'
+  | 'CANCELLED';
 
 export type InvoiceDirection = 'INBOUND' | 'OUTBOUND';
 

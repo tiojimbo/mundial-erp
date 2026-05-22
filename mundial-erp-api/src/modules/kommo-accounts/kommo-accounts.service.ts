@@ -70,9 +70,7 @@ export class KommoAccountsService {
 
     const updateInput: Prisma.KommoAccountUpdateInput = {
       ...sharedFields,
-      ...(connectedByUserId !== undefined
-        ? { connectedByUserId }
-        : {}),
+      ...(connectedByUserId !== undefined ? { connectedByUserId } : {}),
     };
 
     const entity = await this.accountsRepository.upsertByWorkspaceId(

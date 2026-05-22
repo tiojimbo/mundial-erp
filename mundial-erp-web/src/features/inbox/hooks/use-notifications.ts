@@ -65,7 +65,9 @@ export function useMarkAsRead() {
       return { previousData };
     },
     onError: (_err, _id, context) => {
-      context?.previousData?.forEach(([key, data]) => qc.setQueryData(key, data));
+      context?.previousData?.forEach(([key, data]) =>
+        qc.setQueryData(key, data),
+      );
     },
     onSettled: () => qc.invalidateQueries({ queryKey: NOTIFICATIONS_KEY }),
   });
@@ -89,7 +91,9 @@ export function useMarkAsUnread() {
       return { previousData };
     },
     onError: (_err, _id, context) => {
-      context?.previousData?.forEach(([key, data]) => qc.setQueryData(key, data));
+      context?.previousData?.forEach(([key, data]) =>
+        qc.setQueryData(key, data),
+      );
     },
     onSettled: () => qc.invalidateQueries({ queryKey: NOTIFICATIONS_KEY }),
   });
@@ -112,7 +116,9 @@ export function useClearNotification() {
       return { previousData };
     },
     onError: (_err, _id, context) => {
-      context?.previousData?.forEach(([key, data]) => qc.setQueryData(key, data));
+      context?.previousData?.forEach(([key, data]) =>
+        qc.setQueryData(key, data),
+      );
     },
     onSettled: () => qc.invalidateQueries({ queryKey: NOTIFICATIONS_KEY }),
   });
@@ -138,7 +144,9 @@ export function useUnclearNotification() {
       return { previousData };
     },
     onError: (_err, _id, context) => {
-      context?.previousData?.forEach(([key, data]) => qc.setQueryData(key, data));
+      context?.previousData?.forEach(([key, data]) =>
+        qc.setQueryData(key, data),
+      );
     },
     onSettled: () => qc.invalidateQueries({ queryKey: NOTIFICATIONS_KEY }),
   });
@@ -162,7 +170,9 @@ export function useSnoozeNotification() {
       return { previousData };
     },
     onError: (_err, _vars, context) => {
-      context?.previousData?.forEach(([key, data]) => qc.setQueryData(key, data));
+      context?.previousData?.forEach(([key, data]) =>
+        qc.setQueryData(key, data),
+      );
     },
     onSettled: () => qc.invalidateQueries({ queryKey: NOTIFICATIONS_KEY }),
   });
@@ -188,7 +198,9 @@ export function useUnsnoozeNotification() {
       return { previousData };
     },
     onError: (_err, _id, context) => {
-      context?.previousData?.forEach(([key, data]) => qc.setQueryData(key, data));
+      context?.previousData?.forEach(([key, data]) =>
+        qc.setQueryData(key, data),
+      );
     },
     onSettled: () => qc.invalidateQueries({ queryKey: NOTIFICATIONS_KEY }),
   });
@@ -223,7 +235,9 @@ export function useMarkAllRead() {
       return { previousData };
     },
     onError: (_err, _payload, context) => {
-      context?.previousData?.forEach(([key, data]) => qc.setQueryData(key, data));
+      context?.previousData?.forEach(([key, data]) =>
+        qc.setQueryData(key, data),
+      );
     },
     onSettled: () => qc.invalidateQueries({ queryKey: NOTIFICATIONS_KEY }),
   });
@@ -253,7 +267,9 @@ export function useClearAll() {
       return { previousData };
     },
     onError: (_err, _payload, context) => {
-      context?.previousData?.forEach(([key, data]) => qc.setQueryData(key, data));
+      context?.previousData?.forEach(([key, data]) =>
+        qc.setQueryData(key, data),
+      );
     },
     onSettled: () => qc.invalidateQueries({ queryKey: NOTIFICATIONS_KEY }),
   });

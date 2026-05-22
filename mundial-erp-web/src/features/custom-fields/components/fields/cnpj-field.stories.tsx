@@ -4,10 +4,17 @@
 
 import type { Meta, StoryObj } from '@storybook/react';
 import type { CustomFieldDefinition } from '../../types/custom-field.types';
-import { makeCustomFieldDefinition } from "../../types/custom-field.fixtures";
+import { makeCustomFieldDefinition } from '../../types/custom-field.fixtures';
 import { CnpjField } from './cnpj-field';
 
-const baseDef: CustomFieldDefinition = makeCustomFieldDefinition({ id: 'def-cnpj-1', workspaceId: null, name: 'CNPJ do fornecedor', type: 'CNPJ', fixed: true, position: 70 });
+const baseDef: CustomFieldDefinition = makeCustomFieldDefinition({
+  id: 'def-cnpj-1',
+  workspaceId: null,
+  name: 'CNPJ do fornecedor',
+  type: 'CNPJ',
+  fixed: true,
+  position: 70,
+});
 
 const meta: Meta<typeof CnpjField> = {
   title: 'CustomFields/CnpjField',

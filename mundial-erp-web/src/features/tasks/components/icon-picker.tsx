@@ -80,53 +80,51 @@ export function IconPicker({ value, onChange }: Props) {
       <Popover.Content
         align='start'
         sideOffset={4}
-        className='z-[70] w-[360px] overflow-hidden rounded-md border border-border bg-popover text-popover-foreground shadow-md'
+        className='shadow-md z-[70] w-[360px] overflow-hidden rounded-md border border-border bg-popover text-popover-foreground'
       >
-          <div className='border-b border-border p-2'>
-            <div className='flex items-center gap-2 rounded-md border border-border px-2'>
-              <Search
-                className='h-3.5 w-3.5 text-muted-foreground'
-                aria-hidden
-              />
-              <input
-                autoFocus
-                placeholder='Search...'
-                className='h-8 flex-1 bg-transparent text-sm outline-none placeholder:text-muted-foreground'
-                value={search}
-                onChange={(e) => setSearch(e.target.value)}
-              />
+        <div className='border-b border-border p-2'>
+          <div className='flex items-center gap-2 rounded-md border border-border px-2'>
+            <Search className='h-3.5 w-3.5 text-muted-foreground' aria-hidden />
+            <input
+              autoFocus
+              placeholder='Search...'
+              className='text-sm h-8 flex-1 bg-transparent outline-none placeholder:text-muted-foreground'
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+            />
+          </div>
+        </div>
+        <div className='max-h-[280px] overflow-y-auto p-2'>
+          {filtered.length === 0 ? (
+            <div className='text-xs py-6 text-center text-muted-foreground'>
+              Nenhum icone encontrado.
             </div>
-          </div>
-          <div className='max-h-[280px] overflow-y-auto p-2'>
-            {filtered.length === 0 ? (
-              <div className='py-6 text-center text-xs text-muted-foreground'>
-                Nenhum icone encontrado.
-              </div>
-            ) : (
-              <div className='grid grid-cols-8 gap-0.5'>
-                {filtered.map(({ name, Icon }) => {
-                  const selected = value === name;
-                  return (
-                    <button
-                      key={name}
-                      type='button'
-                      onClick={() => {
-                        onChange(name);
-                        setOpen(false);
-                      }}
-                      className={cn(
-                        'flex h-8 w-8 items-center justify-center rounded-md transition-colors hover:bg-accent',
-                        selected && 'bg-accent text-foreground ring-1 ring-primary',
-                      )}
-                      aria-label={name}
-                    >
-                      <Icon className='h-4 w-4' />
-                    </button>
-                  );
-                })}
-              </div>
-            )}
-          </div>
+          ) : (
+            <div className='grid grid-cols-8 gap-0.5'>
+              {filtered.map(({ name, Icon }) => {
+                const selected = value === name;
+                return (
+                  <button
+                    key={name}
+                    type='button'
+                    onClick={() => {
+                      onChange(name);
+                      setOpen(false);
+                    }}
+                    className={cn(
+                      'flex h-8 w-8 items-center justify-center rounded-md transition-colors hover:bg-accent',
+                      selected &&
+                        'ring-primary bg-accent text-foreground ring-1',
+                    )}
+                    aria-label={name}
+                  >
+                    <Icon className='h-4 w-4' />
+                  </button>
+                );
+              })}
+            </div>
+          )}
+        </div>
       </Popover.Content>
     </Popover.Root>
   );

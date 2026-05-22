@@ -64,9 +64,7 @@ describe('Kommo Dashboard — Response Shape per CardType (T-I4, T-D4)', () => {
   it.todo(
     'Empty fixture (0 rows) — every CardType returns valid empty shape matching Zod schema (never 5xx)',
   );
-  it.todo(
-    'p95 < 1.5s without cache on 500-row fixture for all 8 CardTypes',
-  );
+  it.todo('p95 < 1.5s without cache on 500-row fixture for all 8 CardTypes');
   it.todo(
     'Response log includes duration_ms + cache_hit flag, never the filter values in plaintext — T-I3',
   );

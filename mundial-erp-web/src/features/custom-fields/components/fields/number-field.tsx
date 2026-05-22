@@ -43,8 +43,8 @@ export function NumberField({
       {(controlProps) => (
         <input
           {...controlProps}
-          type="number"
-          inputMode="decimal"
+          type='number'
+          inputMode='decimal'
           className={inline ? inputClassInline : inputClass}
           value={localValue}
           readOnly={isReadOnly}

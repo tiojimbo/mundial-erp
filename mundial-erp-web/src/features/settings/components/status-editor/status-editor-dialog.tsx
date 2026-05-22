@@ -25,7 +25,7 @@ import {
 import {
   useDepartment,
   useArea,
-  useUpdateArea,
+  useUpdateAreaStatusInherit,
   DEPARTMENTS_KEY,
   AREAS_KEY,
 } from '../../hooks/use-departments';
@@ -34,14 +34,11 @@ import {
   useUpdateProcessStatusInherit,
   PROCESSES_KEY,
 } from '../../hooks/use-processes';
+import type { StatusBulkItem } from '../../services/processes.service';
 import type { StatusInlineConfig } from '../../types/settings.types';
 import { cn } from '@/lib/cn';
 import { GroupSection } from './group-section';
-import {
-  DEFAULT_NEW_STATUS_COLOR,
-  GROUPS,
-  type StatusType,
-} from './constants';
+import { DEFAULT_NEW_STATUS_COLOR, GROUPS, type StatusType } from './constants';
 import type { StatusDraft } from './status-row';
 
 type Mode = 'inherit' | 'custom';
@@ -81,7 +78,6 @@ export function StatusEditorDialog({
   parentName,
   departmentId,
   initialMode,
-  initialUseSpaceStatuses,
 }: StatusEditorDialogProps) {
   const queryClient = useQueryClient();
 
@@ -106,17 +102,14 @@ export function StatusEditorDialog({
       return areaQuery.data?.statuses ?? [];
     }
     return (processQuery.data?.statuses ?? []) as StatusInlineConfig[];
-  }, [
-    targetType,
-    departmentQuery.data,
-    areaQuery.data,
-    processQuery.data,
-  ]);
+  }, [targetType, departmentQuery.data, areaQuery.data, processQuery.data]);
 
   const createStatus = useCreateStatus();
   const updateStatus = useUpdateStatus();
   const deleteStatus = useDeleteStatus();
-  const updateArea = useUpdateArea(targetType === 'area' ? targetId : '');
+  const updateAreaStatusInherit = useUpdateAreaStatusInherit(
+    targetType === 'area' ? targetId : '',
+  );
   const updateProcessInherit = useUpdateProcessStatusInherit(
     targetType === 'list' ? targetId : '',
   );
@@ -231,7 +224,10 @@ export function StatusEditorDialog({
     }
   }
 
-  async function handleDeleteTemplate(templateId: string, templateName: string) {
+  async function handleDeleteTemplate(
+    templateId: string,
+    templateName: string,
+  ) {
     if (!window.confirm(`Remover template "${templateName}"?`)) return;
     try {
       await deleteTemplate.mutateAsync(templateId);
@@ -243,11 +239,7 @@ export function StatusEditorDialog({
     }
   }
 
-  function reorderGroup(
-    group: StatusType,
-    activeId: string,
-    overId: string,
-  ) {
+  function reorderGroup(group: StatusType, activeId: string, overId: string) {
     const groupItems = statusesByGroup(group);
     const oldIndex = groupItems.findIndex((s) => s.id === activeId);
     const newIndex = groupItems.findIndex((s) => s.id === overId);
@@ -290,6 +282,63 @@ export function StatusEditorDialog({
       }
     }
 
+    if (targetType === 'list' || targetType === 'area') {
+      await applyBulk();
+      return;
+    }
+
+    await applyDepartment();
+  }
+
+  // List e folder: troca de herança + statuses num único PUT bulk. O backend
+  // copia os statuses herdados pro escopo próprio e remapeia as tasks.
+  async function applyBulk() {
+    const bulkStatuses: StatusBulkItem[] =
+      mode === 'custom'
+        ? statuses.map((s) => ({
+            ...(s.id.startsWith('temp-') ? {} : { id: s.id }),
+            type: s.type,
+            name: s.name.trim(),
+            color: s.color,
+            position: s.position,
+          }))
+        : [];
+
+    setSaving(true);
+    try {
+      const payload = {
+        statusInheritance: (mode === 'inherit' ? 'SPACE' : 'CUSTOM') as
+          | 'SPACE'
+          | 'CUSTOM',
+        statuses: bulkStatuses,
+      };
+      if (targetType === 'list') {
+        await updateProcessInherit.mutateAsync(payload);
+      } else {
+        await updateAreaStatusInherit.mutateAsync(payload);
+      }
+
+      queryClient.invalidateQueries({ queryKey: STATUSES_KEY });
+      queryClient.invalidateQueries({
+        queryKey:
+          targetType === 'list'
+            ? [...PROCESSES_KEY, targetId]
+            : [...AREAS_KEY, targetId],
+      });
+      toast.success('Status atualizados');
+      onOpenChange(false);
+    } catch (err) {
+      console.error('[StatusEditorDialog] falha ao aplicar', err);
+      const message =
+        err instanceof Error ? err.message : 'Falha ao atualizar status.';
+      toast.error(message);
+    } finally {
+      setSaving(false);
+    }
+  }
+
+  // Department: statuses são sempre próprios do espaço, sem herança.
+  async function applyDepartment() {
     const localIds = new Set(statuses.map((s) => s.id));
     const deleted = serverStatuses.filter((s) => !localIds.has(s.id));
     const created = statuses.filter((s) => s.id.startsWith('temp-'));
@@ -303,80 +352,48 @@ export function StatusEditorDialog({
         original.position !== s.position
       );
     });
-    const areaModeChanged =
-      (targetType === 'area' || targetType === 'list') &&
-      mode !== initialMode &&
-      (mode === 'inherit') !== (initialUseSpaceStatuses ?? true);
 
-    const hasChanges =
-      mode === 'custom' &&
-      (deleted.length > 0 || created.length > 0 || updated.length > 0);
-
-    if (!hasChanges && !areaModeChanged) {
+    if (deleted.length === 0 && created.length === 0 && updated.length === 0) {
       onOpenChange(false);
       return;
     }
 
     setSaving(true);
     try {
-      if (mode === 'custom') {
-        for (const d of deleted) {
-          await deleteStatus.mutateAsync(d.id);
-        }
-
-        for (const c of created) {
-          await createStatus.mutateAsync({
-            type: c.type,
-            name: c.name.trim(),
-            color: c.color,
-            position: c.position,
-            ...(targetType === 'department'
-              ? { spaceId: departmentId }
-              : { folderId: targetId }),
-          });
-        }
-
-        for (const u of updated) {
-          const original = serverById.get(u.id);
-          if (!original) continue;
-          const patch: {
-            name?: string;
-            color?: string;
-            position?: number;
-          } = {};
-          if (original.name !== u.name.trim()) patch.name = u.name.trim();
-          if (original.color !== u.color) patch.color = u.color;
-          if (original.position !== u.position) patch.position = u.position;
-          if (Object.keys(patch).length > 0) {
-            await updateStatus.mutateAsync({ id: u.id, payload: patch });
-          }
-        }
+      for (const d of deleted) {
+        await deleteStatus.mutateAsync(d.id);
       }
 
-      if (areaModeChanged) {
-        if (targetType === 'area') {
-          await updateArea.mutateAsync({ useSpaceStatuses: mode === 'inherit' });
-        } else if (targetType === 'list') {
-          await updateProcessInherit.mutateAsync({
-            statusInheritance: mode === 'inherit' ? 'SPACE' : 'CUSTOM',
-          });
+      for (const c of created) {
+        await createStatus.mutateAsync({
+          type: c.type,
+          name: c.name.trim(),
+          color: c.color,
+          position: c.position,
+          spaceId: departmentId,
+        });
+      }
+
+      for (const u of updated) {
+        const original = serverById.get(u.id);
+        if (!original) continue;
+        const patch: {
+          name?: string;
+          color?: string;
+          position?: number;
+        } = {};
+        if (original.name !== u.name.trim()) patch.name = u.name.trim();
+        if (original.color !== u.color) patch.color = u.color;
+        if (original.position !== u.position) patch.position = u.position;
+        if (Object.keys(patch).length > 0) {
+          await updateStatus.mutateAsync({ id: u.id, payload: patch });
         }
       }
 
       queryClient.invalidateQueries({ queryKey: STATUSES_KEY });
-      if (targetType === 'department') {
-        queryClient.invalidateQueries({
-          queryKey: [...DEPARTMENTS_KEY, departmentId],
-        });
-      } else if (targetType === 'area') {
-        queryClient.invalidateQueries({
-          queryKey: [...AREAS_KEY, targetId],
-        });
-      } else {
-        queryClient.invalidateQueries({
-          queryKey: [...PROCESSES_KEY, targetId],
-        });
-      }
+      queryClient.invalidateQueries({
+        queryKey: [...DEPARTMENTS_KEY, departmentId],
+      });
       toast.success('Status atualizados');
       onOpenChange(false);
     } catch (err) {
@@ -392,41 +409,41 @@ export function StatusEditorDialog({
   return (
     <Modal.Root open={open} onOpenChange={onOpenChange}>
       <Modal.Content
-        className="max-w-[580px] rounded-lg !animate-none"
-        overlayClassName="bg-black/50 backdrop-blur-0 !animate-none"
-        role="dialog"
-        aria-label="Editar status"
+        className='max-w-[580px] !animate-none rounded-lg'
+        overlayClassName='bg-black/50 backdrop-blur-0 !animate-none'
+        role='dialog'
+        aria-label='Editar status'
       >
-        <Modal.Header className="pl-5 pr-14">
+        <Modal.Header className='pl-5 pr-14'>
           <Modal.Title>
             Editar status de{' '}
-            <span className="underline decoration-dashed decoration-text-soft-400 underline-offset-2">
+            <span className='underline decoration-text-soft-400 decoration-dashed underline-offset-2'>
               {targetName}
             </span>
           </Modal.Title>
         </Modal.Header>
 
         <Modal.Body>
-          <div className="flex gap-6">
-            <div className="w-[45%] space-y-3">
-              <div className="flex items-center gap-1.5">
-                <span className="text-label-sm text-text-strong-950">
+          <div className='flex gap-6'>
+            <div className='w-[45%] space-y-3'>
+              <div className='flex items-center gap-1.5'>
+                <span className='text-label-sm text-text-strong-950'>
                   Tipo do status
                 </span>
                 <Tooltip.Root>
                   <Tooltip.Trigger asChild>
                     <button
-                      type="button"
-                      aria-label="Sobre os tipos de status"
-                      className="flex size-3.5 items-center justify-center rounded-full text-text-soft-400 hover:text-text-sub-600"
+                      type='button'
+                      aria-label='Sobre os tipos de status'
+                      className='flex size-3.5 items-center justify-center rounded-full text-text-soft-400 hover:text-text-sub-600'
                     >
                       ?
                     </button>
                   </Tooltip.Trigger>
                   <Tooltip.Content
-                    size="small"
-                    variant="dark"
-                    className="max-w-[260px]"
+                    size='small'
+                    variant='dark'
+                    className='max-w-[260px]'
                   >
                     Por padrao, Listas e Pastas herdam os status do espaco.
                     Selecione Status personalizado para criar status
@@ -441,7 +458,7 @@ export function StatusEditorDialog({
                   if (forcedCustom) return;
                   setMode(value as Mode);
                 }}
-                className="flex flex-col gap-2"
+                className='flex flex-col gap-2'
                 disabled={forcedCustom}
               >
                 <label
@@ -451,9 +468,9 @@ export function StatusEditorDialog({
                     forcedCustom && 'cursor-not-allowed opacity-50',
                   )}
                 >
-                  <Radio.Item value="inherit" className="mt-0.5" />
-                  <div className="flex flex-col">
-                    <span className="text-[14px] text-text-strong-950">
+                  <Radio.Item value='inherit' className='mt-0.5' />
+                  <div className='flex flex-col'>
+                    <span className='text-[14px] text-text-strong-950'>
                       {parentName
                         ? `Herdar de ${parentName}`
                         : 'Herdar da Pasta'}
@@ -467,9 +484,9 @@ export function StatusEditorDialog({
                     mode === 'custom' && 'ring-1 ring-primary-base',
                   )}
                 >
-                  <Radio.Item value="custom" className="mt-0.5" />
-                  <div className="flex flex-col">
-                    <span className="text-[14px] text-text-strong-950">
+                  <Radio.Item value='custom' className='mt-0.5' />
+                  <div className='flex flex-col'>
+                    <span className='text-[14px] text-text-strong-950'>
                       Personalizado
                     </span>
                   </div>
@@ -484,18 +501,18 @@ export function StatusEditorDialog({
               )}
               aria-disabled={mode === 'inherit'}
             >
-              <div className="flex items-center justify-end gap-2">
+              <div className='flex items-center justify-end gap-2'>
                 <Dropdown.Root>
                   <Dropdown.Trigger asChild>
                     <button
-                      type="button"
-                      className="flex cursor-pointer items-center gap-1 rounded-lg border border-stroke-soft-200 px-2.5 py-1 text-[12px] text-text-sub-600 hover:bg-bg-weak-50"
+                      type='button'
+                      className='flex cursor-pointer items-center gap-1 rounded-lg border border-stroke-soft-200 px-2.5 py-1 text-[12px] text-text-sub-600 hover:bg-bg-weak-50'
                     >
                       Templates
-                      <ChevronDown className="size-3" />
+                      <ChevronDown className='size-3' />
                     </button>
                   </Dropdown.Trigger>
-                  <Dropdown.Content align="end" className="w-56">
+                  <Dropdown.Content align='end' className='w-56'>
                     {(templatesQuery.data ?? []).length === 0 ? (
                       <Dropdown.Item disabled>
                         Nenhum template salvo
@@ -505,19 +522,19 @@ export function StatusEditorDialog({
                         <Dropdown.Item
                           key={t.id}
                           onSelect={() => applyTemplate(t.id)}
-                          className="flex items-center justify-between gap-2"
+                          className='flex items-center justify-between gap-2'
                         >
-                          <span className="truncate">{t.name}</span>
+                          <span className='truncate'>{t.name}</span>
                           <button
-                            type="button"
+                            type='button'
                             aria-label={`Remover template ${t.name}`}
                             onClick={(e) => {
                               e.stopPropagation();
                               handleDeleteTemplate(t.id, t.name);
                             }}
-                            className="flex size-4 items-center justify-center text-text-soft-400 hover:text-destructive"
+                            className='flex size-4 items-center justify-center text-text-soft-400 hover:text-destructive'
                           >
-                            <Trash2 className="size-3" />
+                            <Trash2 className='size-3' />
                           </button>
                         </Dropdown.Item>
                       ))
@@ -525,23 +542,26 @@ export function StatusEditorDialog({
                   </Dropdown.Content>
                 </Dropdown.Root>
                 <button
-                  type="button"
+                  type='button'
                   onClick={handleSaveAsTemplate}
                   disabled={createTemplate.isPending}
-                  className="cursor-pointer rounded-lg border border-stroke-soft-200 px-2.5 py-1 text-[12px] text-text-sub-600 hover:bg-bg-weak-50 disabled:cursor-not-allowed disabled:opacity-50"
+                  className='cursor-pointer rounded-lg border border-stroke-soft-200 px-2.5 py-1 text-[12px] text-text-sub-600 hover:bg-bg-weak-50 disabled:cursor-not-allowed disabled:opacity-50'
                 >
                   {createTemplate.isPending ? 'Salvando...' : 'Salvar template'}
                 </button>
               </div>
 
               {isLoading ? (
-                <p className="py-6 text-center text-sm text-text-soft-400">
+                <p className='text-sm py-6 text-center text-text-soft-400'>
                   Carregando status...
                 </p>
               ) : (
-                <ScrollArea.Root type="hover" className="h-[50vh] overflow-hidden">
-                  <ScrollArea.Viewport className="size-full">
-                    <div className="flex flex-col gap-4 pb-2 pr-3">
+                <ScrollArea.Root
+                  type='hover'
+                  className='h-[50vh] overflow-hidden'
+                >
+                  <ScrollArea.Viewport className='size-full'>
+                    <div className='flex flex-col gap-4 pb-2 pr-3'>
                       {GROUPS.map((group) => (
                         <GroupSection
                           key={group.key}
@@ -560,10 +580,10 @@ export function StatusEditorDialog({
                     </div>
                   </ScrollArea.Viewport>
                   <ScrollArea.Scrollbar
-                    orientation="vertical"
-                    className="flex w-1.5 touch-none select-none p-px transition-opacity duration-200 data-[state=hidden]:opacity-0 data-[state=visible]:opacity-100"
+                    orientation='vertical'
+                    className='flex w-1.5 touch-none select-none p-px transition-opacity duration-200 data-[state=hidden]:opacity-0 data-[state=visible]:opacity-100'
                   >
-                    <ScrollArea.Thumb className="relative flex-1 rounded-full bg-border" />
+                    <ScrollArea.Thumb className='relative flex-1 rounded-full bg-border' />
                   </ScrollArea.Scrollbar>
                 </ScrollArea.Root>
               )}
@@ -571,21 +591,21 @@ export function StatusEditorDialog({
           </div>
         </Modal.Body>
 
-        <Modal.Footer className="justify-end rounded-b-lg bg-[#FCFCFC] px-6 py-4">
-          <div className="flex items-center gap-2">
+        <Modal.Footer className='justify-end rounded-b-lg bg-[#FCFCFC] px-6 py-4'>
+          <div className='flex items-center gap-2'>
             <Button.Root
-              variant="neutral"
-              mode="stroke"
-              size="small"
+              variant='neutral'
+              mode='stroke'
+              size='small'
               onClick={() => onOpenChange(false)}
               disabled={saving}
             >
               Cancelar
             </Button.Root>
             <Button.Root
-              variant="primary"
-              mode="filled"
-              size="small"
+              variant='primary'
+              mode='filled'
+              size='small'
               onClick={handleApply}
               disabled={saving || isLoading}
             >

@@ -28,11 +28,7 @@
 process.env.FEATURE_TASK_TYPE_TEMPLATES_ENABLED = 'true';
 
 import { Test, TestingModule } from '@nestjs/testing';
-import {
-  INestApplication,
-  Logger,
-  ValidationPipe,
-} from '@nestjs/common';
+import { INestApplication, Logger, ValidationPipe } from '@nestjs/common';
 import request from 'supertest';
 import { App } from 'supertest/types';
 import { AppModule } from '../../../src/app.module';
@@ -225,9 +221,7 @@ describe('POST /tasks com TaskTypeTemplate (e2e)', () => {
     };
   };
 
-  const cleanupOwnTemplate = async (
-    own: CreatedOwnTemplate,
-  ): Promise<void> => {
+  const cleanupOwnTemplate = async (own: CreatedOwnTemplate): Promise<void> => {
     await prisma.taskTypeTemplateField.deleteMany({
       where: { templateId: own.templateId },
     });

@@ -444,15 +444,18 @@ export const createDependencySchema = z
     dependsOn: z.string().uuid().optional(),
     dependencyOf: z.string().uuid().optional(),
   })
-  .refine(
-    (v) => Boolean(v.dependsOn) !== Boolean(v.dependencyOf),
-    { message: 'Informe exatamente um: dependsOn OU dependencyOf.' },
-  );
+  .refine((v) => Boolean(v.dependsOn) !== Boolean(v.dependencyOf), {
+    message: 'Informe exatamente um: dependsOn OU dependencyOf.',
+  });
 
 export const attachmentSignedUrlRequestSchema = z.object({
   fileName: z.string().trim().min(1),
   mimeType: z.string().trim().min(1),
-  sizeBytes: z.number().int().positive().max(25 * 1024 * 1024),
+  sizeBytes: z
+    .number()
+    .int()
+    .positive()
+    .max(25 * 1024 * 1024),
 });
 
 export const attachmentSignedUrlResponseSchema = z.object({

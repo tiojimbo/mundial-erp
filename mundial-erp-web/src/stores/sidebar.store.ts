@@ -23,7 +23,12 @@ type SidebarState = {
   setAreaExpanded: (areaId: string, expanded: boolean) => void;
 };
 
-export { SIDEBAR_MIN_WIDTH, SIDEBAR_MAX_WIDTH, SIDEBAR_DEFAULT_WIDTH, SIDEBAR_COLLAPSED_WIDTH };
+export {
+  SIDEBAR_MIN_WIDTH,
+  SIDEBAR_MAX_WIDTH,
+  SIDEBAR_DEFAULT_WIDTH,
+  SIDEBAR_COLLAPSED_WIDTH,
+};
 
 export const useSidebarStore = create<SidebarState>((set) => ({
   isExpanded: true,
@@ -35,7 +40,12 @@ export const useSidebarStore = create<SidebarState>((set) => ({
   toggleSidebar: () => set((state) => ({ isExpanded: !state.isExpanded })),
   setSidebarExpanded: (expanded) => set({ isExpanded: expanded }),
   setSidebarWidth: (width) =>
-    set({ sidebarWidth: Math.min(SIDEBAR_MAX_WIDTH, Math.max(SIDEBAR_MIN_WIDTH, width)) }),
+    set({
+      sidebarWidth: Math.min(
+        SIDEBAR_MAX_WIDTH,
+        Math.max(SIDEBAR_MIN_WIDTH, width),
+      ),
+    }),
   toggleMobileSidebar: () =>
     set((state) => ({ isMobileOpen: !state.isMobileOpen })),
   closeMobileSidebar: () => set({ isMobileOpen: false }),

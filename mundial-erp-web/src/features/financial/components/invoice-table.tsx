@@ -20,7 +20,10 @@ import * as Pagination from '@/components/ui/pagination';
 import { useDebounce } from '@/hooks/use-debounce';
 import { formatCents, formatDate } from '@/lib/formatters';
 import { useInvoices } from '../hooks/use-financial';
-import type { InvoiceFilters, InvoiceDirection } from '../types/financial.types';
+import type {
+  InvoiceFilters,
+  InvoiceDirection,
+} from '../types/financial.types';
 import { INVOICE_DIRECTION_LABELS } from '../types/financial.types';
 
 type BadgeColor = React.ComponentProps<typeof Badge.Root>['color'];
@@ -109,119 +112,119 @@ export function InvoiceTable() {
       </div>
 
       {/* Table */}
-        <Table.Root>
-          <Table.Header>
+      <Table.Root>
+        <Table.Header>
+          <Table.Row>
+            <Table.Head>Número</Table.Head>
+            <Table.Head>Direção</Table.Head>
+            <Table.Head>Cliente</Table.Head>
+            <Table.Head>Pedido</Table.Head>
+            <Table.Head className='text-right'>Valor</Table.Head>
+            <Table.Head>Emissão</Table.Head>
+            <Table.Head>Status</Table.Head>
+            <Table.Head className='text-right'>Ações</Table.Head>
+          </Table.Row>
+        </Table.Header>
+        <Table.Body>
+          {isLoading ? (
+            Array.from({ length: 5 }).map((_, i) => (
+              <Table.Row key={i}>
+                {Array.from({ length: 8 }).map((__, j) => (
+                  <Table.Cell key={j}>
+                    <div className='h-4 w-24 animate-pulse rounded bg-bg-weak-50' />
+                  </Table.Cell>
+                ))}
+              </Table.Row>
+            ))
+          ) : items.length === 0 ? (
             <Table.Row>
-              <Table.Head>Número</Table.Head>
-              <Table.Head>Direção</Table.Head>
-              <Table.Head>Cliente</Table.Head>
-              <Table.Head>Pedido</Table.Head>
-              <Table.Head className='text-right'>Valor</Table.Head>
-              <Table.Head>Emissão</Table.Head>
-              <Table.Head>Status</Table.Head>
-              <Table.Head className='text-right'>Ações</Table.Head>
+              <Table.Cell colSpan={8} className='text-center'>
+                <p className='py-8 text-paragraph-sm text-text-soft-400'>
+                  {filters.search
+                    ? 'Nenhuma nota fiscal encontrada para esta busca.'
+                    : 'Nenhuma nota fiscal registrada.'}
+                </p>
+              </Table.Cell>
             </Table.Row>
-          </Table.Header>
-          <Table.Body>
-            {isLoading ? (
-              Array.from({ length: 5 }).map((_, i) => (
-                <Table.Row key={i}>
-                  {Array.from({ length: 8 }).map((__, j) => (
-                    <Table.Cell key={j}>
-                      <div className='h-4 w-24 animate-pulse rounded bg-bg-weak-50' />
-                    </Table.Cell>
-                  ))}
-                </Table.Row>
-              ))
-            ) : items.length === 0 ? (
-              <Table.Row>
-                <Table.Cell colSpan={8} className='text-center'>
-                  <p className='py-8 text-paragraph-sm text-text-soft-400'>
-                    {filters.search
-                      ? 'Nenhuma nota fiscal encontrada para esta busca.'
-                      : 'Nenhuma nota fiscal registrada.'}
-                  </p>
+          ) : (
+            items.map((inv) => (
+              <Table.Row key={inv.id}>
+                <Table.Cell>
+                  <button
+                    onClick={() =>
+                      router.push(`/financeiro/notas-fiscais/${inv.id}`)
+                    }
+                    className='text-left text-label-sm text-text-strong-950 transition hover:text-primary-base'
+                  >
+                    {inv.invoiceNumber}
+                  </button>
+                </Table.Cell>
+                <Table.Cell>
+                  <Badge.Root
+                    color={DIRECTION_COLOR[inv.direction]}
+                    variant='lighter'
+                    size='small'
+                  >
+                    {INVOICE_DIRECTION_LABELS[inv.direction]}
+                  </Badge.Root>
+                </Table.Cell>
+                <Table.Cell>
+                  <span className='text-paragraph-sm text-text-sub-600'>
+                    {inv.client?.name ?? '—'}
+                  </span>
+                </Table.Cell>
+                <Table.Cell>
+                  {inv.order ? (
+                    <Link
+                      href={`/comercial/pedidos/${inv.orderId}`}
+                      className='text-paragraph-sm text-primary-base hover:underline'
+                    >
+                      #{inv.order.orderNumber}
+                    </Link>
+                  ) : (
+                    <span className='text-paragraph-sm text-text-soft-400'>
+                      —
+                    </span>
+                  )}
+                </Table.Cell>
+                <Table.Cell className='text-right font-medium'>
+                  {formatCents(inv.totalCents)}
+                </Table.Cell>
+                <Table.Cell>
+                  <span className='text-paragraph-sm text-text-sub-600'>
+                    {formatDate(inv.issuedAt)}
+                  </span>
+                </Table.Cell>
+                <Table.Cell>
+                  {inv.cancelledAt ? (
+                    <Badge.Root color='red' variant='lighter' size='small'>
+                      <Badge.Dot />
+                      Cancelada
+                    </Badge.Root>
+                  ) : (
+                    <Badge.Root color='green' variant='lighter' size='small'>
+                      <Badge.Dot />
+                      Ativa
+                    </Badge.Root>
+                  )}
+                </Table.Cell>
+                <Table.Cell className='text-right'>
+                  <Button.Root
+                    asChild
+                    variant='neutral'
+                    mode='ghost'
+                    size='xxsmall'
+                  >
+                    <Link href={`/financeiro/notas-fiscais/${inv.id}`}>
+                      <Button.Icon as={RiEyeLine} />
+                    </Link>
+                  </Button.Root>
                 </Table.Cell>
               </Table.Row>
-            ) : (
-              items.map((inv) => (
-                <Table.Row key={inv.id}>
-                  <Table.Cell>
-                    <button
-                      onClick={() =>
-                        router.push(`/financeiro/notas-fiscais/${inv.id}`)
-                      }
-                      className='text-left text-label-sm text-text-strong-950 transition hover:text-primary-base'
-                    >
-                      {inv.invoiceNumber}
-                    </button>
-                  </Table.Cell>
-                  <Table.Cell>
-                    <Badge.Root
-                      color={DIRECTION_COLOR[inv.direction]}
-                      variant='lighter'
-                      size='small'
-                    >
-                      {INVOICE_DIRECTION_LABELS[inv.direction]}
-                    </Badge.Root>
-                  </Table.Cell>
-                  <Table.Cell>
-                    <span className='text-paragraph-sm text-text-sub-600'>
-                      {inv.client?.name ?? '—'}
-                    </span>
-                  </Table.Cell>
-                  <Table.Cell>
-                    {inv.order ? (
-                      <Link
-                        href={`/comercial/pedidos/${inv.orderId}`}
-                        className='text-paragraph-sm text-primary-base hover:underline'
-                      >
-                        #{inv.order.orderNumber}
-                      </Link>
-                    ) : (
-                      <span className='text-paragraph-sm text-text-soft-400'>
-                        —
-                      </span>
-                    )}
-                  </Table.Cell>
-                  <Table.Cell className='text-right font-medium'>
-                    {formatCents(inv.totalCents)}
-                  </Table.Cell>
-                  <Table.Cell>
-                    <span className='text-paragraph-sm text-text-sub-600'>
-                      {formatDate(inv.issuedAt)}
-                    </span>
-                  </Table.Cell>
-                  <Table.Cell>
-                    {inv.cancelledAt ? (
-                      <Badge.Root color='red' variant='lighter' size='small'>
-                        <Badge.Dot />
-                        Cancelada
-                      </Badge.Root>
-                    ) : (
-                      <Badge.Root color='green' variant='lighter' size='small'>
-                        <Badge.Dot />
-                        Ativa
-                      </Badge.Root>
-                    )}
-                  </Table.Cell>
-                  <Table.Cell className='text-right'>
-                    <Button.Root
-                      asChild
-                      variant='neutral'
-                      mode='ghost'
-                      size='xxsmall'
-                    >
-                      <Link href={`/financeiro/notas-fiscais/${inv.id}`}>
-                        <Button.Icon as={RiEyeLine} />
-                      </Link>
-                    </Button.Root>
-                  </Table.Cell>
-                </Table.Row>
-              ))
-            )}
-          </Table.Body>
-        </Table.Root>
+            ))
+          )}
+        </Table.Body>
+      </Table.Root>
 
       {/* Pagination */}
       {pagination && pagination.totalPages > 1 && (

@@ -1,9 +1,6 @@
-import {
-  useQuery,
-  useMutation,
-  useQueryClient,
-} from '@tanstack/react-query';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { departmentsService } from '../services/departments.service';
+import type { StatusInheritPayload } from '../services/processes.service';
 import type {
   CreateDepartmentPayload,
   UpdateDepartmentPayload,
@@ -41,7 +38,8 @@ export function useArea(id: string) {
 export function useCreateDepartment() {
   const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: (payload: CreateDepartmentPayload) => departmentsService.create(payload),
+    mutationFn: (payload: CreateDepartmentPayload) =>
+      departmentsService.create(payload),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: DEPARTMENTS_KEY });
     },
@@ -51,7 +49,8 @@ export function useCreateDepartment() {
 export function useUpdateDepartment(id: string) {
   const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: (payload: UpdateDepartmentPayload) => departmentsService.update(id, payload),
+    mutationFn: (payload: UpdateDepartmentPayload) =>
+      departmentsService.update(id, payload),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: DEPARTMENTS_KEY });
     },
@@ -71,7 +70,8 @@ export function useDeleteDepartment() {
 export function useCreateArea() {
   const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: (payload: CreateAreaPayload) => departmentsService.createArea(payload),
+    mutationFn: (payload: CreateAreaPayload) =>
+      departmentsService.createArea(payload),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: DEPARTMENTS_KEY });
     },
@@ -81,9 +81,21 @@ export function useCreateArea() {
 export function useUpdateArea(id: string) {
   const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: (payload: UpdateAreaPayload) => departmentsService.updateArea(id, payload),
+    mutationFn: (payload: UpdateAreaPayload) =>
+      departmentsService.updateArea(id, payload),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: DEPARTMENTS_KEY });
+    },
+  });
+}
+
+export function useUpdateAreaStatusInherit(id: string) {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (payload: StatusInheritPayload) =>
+      departmentsService.updateAreaStatusInherit(id, payload),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: AREAS_KEY });
     },
   });
 }

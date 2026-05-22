@@ -1,8 +1,4 @@
-import {
-  useQuery,
-  useMutation,
-  useQueryClient,
-} from '@tanstack/react-query';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useRouter } from 'next/navigation';
 import { useNotification } from '@/hooks/use-notification';
 import { orderService } from '../services/order.service';
@@ -19,7 +15,8 @@ export const ORDERS_KEY = ['orders'];
 
 function extractErrorMessage(error: unknown): string {
   if (error && typeof error === 'object' && 'response' in error) {
-    const res = (error as { response?: { data?: { message?: string } } }).response;
+    const res = (error as { response?: { data?: { message?: string } } })
+      .response;
     if (res?.data?.message) return res.data.message;
   }
   if (error instanceof Error) return error.message;
@@ -55,8 +52,7 @@ export function useCreateOrder() {
   const qc = useQueryClient();
   const { notification } = useNotification();
   return useMutation({
-    mutationFn: (payload: CreateOrderPayload) =>
-      orderService.create(payload),
+    mutationFn: (payload: CreateOrderPayload) => orderService.create(payload),
     onSuccess: (order) => {
       qc.invalidateQueries({ queryKey: ORDERS_KEY });
       notification({

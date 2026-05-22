@@ -6,9 +6,14 @@ import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { render, screen, fireEvent, act } from '@testing-library/react';
 import { UrlField } from './url-field';
 import type { CustomFieldDefinition } from '../../types/custom-field.types';
-import { makeCustomFieldDefinition } from "../../types/custom-field.fixtures";
+import { makeCustomFieldDefinition } from '../../types/custom-field.fixtures';
 
-const definition: CustomFieldDefinition = makeCustomFieldDefinition({ id: 'def-url-1', workspaceId: 'ws-1', name: 'Website', type: 'URL' });
+const definition: CustomFieldDefinition = makeCustomFieldDefinition({
+  id: 'def-url-1',
+  workspaceId: 'ws-1',
+  name: 'Website',
+  type: 'URL',
+});
 
 describe('UrlField (TTT-024)', () => {
   beforeEach(() => {
@@ -36,7 +41,9 @@ describe('UrlField (TTT-024)', () => {
       <UrlField definition={definition} value={null} onChange={onChange} />,
     );
     const input = screen.getByPlaceholderText('https://exemplo.com');
-    fireEvent.change(input, { target: { value: 'https://mundial.example.com' } });
+    fireEvent.change(input, {
+      target: { value: 'https://mundial.example.com' },
+    });
     act(() => {
       vi.advanceTimersByTime(499);
     });
@@ -54,7 +61,7 @@ describe('UrlField (TTT-024)', () => {
         definition={definition}
         value={null}
         onChange={onChange}
-        error="URL invalida"
+        error='URL invalida'
       />,
     );
     const input = screen.getByPlaceholderText('https://exemplo.com');

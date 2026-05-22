@@ -241,5 +241,4 @@ export class TaskChecklistsRepository {
       data: { deletedAt: new Date() },
     });
   }
-
 }

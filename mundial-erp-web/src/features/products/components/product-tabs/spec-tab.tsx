@@ -46,22 +46,10 @@ export function ProductSpecTab({ product }: ProductSpecTabProps) {
       <div className='rounded-xl border border-stroke-soft-200 bg-bg-white-0 p-5 shadow-regular-xs'>
         <h3 className='mb-4 text-label-sm text-text-strong-950'>Dimensões</h3>
         <div className='grid gap-4 sm:grid-cols-2 lg:grid-cols-4'>
-          <DataRow
-            label='Peso (kg)'
-            value={product.weight}
-          />
-          <DataRow
-            label='Largura (m)'
-            value={product.width}
-          />
-          <DataRow
-            label='Altura (m)'
-            value={product.height}
-          />
-          <DataRow
-            label='Comprimento (m)'
-            value={product.length}
-          />
+          <DataRow label='Peso (kg)' value={product.weight} />
+          <DataRow label='Largura (m)' value={product.width} />
+          <DataRow label='Altura (m)' value={product.height} />
+          <DataRow label='Comprimento (m)' value={product.length} />
         </div>
       </div>
 
@@ -72,10 +60,7 @@ export function ProductSpecTab({ product }: ProductSpecTabProps) {
         </h3>
         <div className='grid gap-4 sm:grid-cols-2 lg:grid-cols-3'>
           <DataRow label='Peso M3' value={product.weightM3} />
-          <DataRow
-            label='Cap. Produtiva'
-            value={product.productionCapacity}
-          />
+          <DataRow label='Cap. Produtiva' value={product.productionCapacity} />
           <DataRow label='Peças por Unidade' value={product.piecesPerUnit} />
           <DataRow label='Tamanho' value={product.size} />
           <DataRow label='S/Carga (kg/m2)' value={product.loadCapacity} />

@@ -36,10 +36,7 @@ export class StatusController {
   @Roles(Role.ADMIN, Role.MANAGER)
   @ApiOperation({ summary: 'Criar status (Hoppe-style)' })
   @ApiResponse({ status: 201, type: StatusResponseDto })
-  create(
-    @WorkspaceId() workspaceId: string,
-    @Body() dto: CreateStatusDto,
-  ) {
+  create(@WorkspaceId() workspaceId: string, @Body() dto: CreateStatusDto) {
     return this.statusService.create(workspaceId, dto);
   }
 
@@ -58,10 +55,7 @@ export class StatusController {
   @Roles(Role.ADMIN, Role.MANAGER, Role.OPERATOR, Role.VIEWER)
   @ApiOperation({ summary: 'Detalhe de status com tasks aninhadas' })
   @ApiResponse({ status: 200, type: StatusDetailResponseDto })
-  findById(
-    @WorkspaceId() workspaceId: string,
-    @Param('id') id: string,
-  ) {
+  findById(@WorkspaceId() workspaceId: string, @Param('id') id: string) {
     return this.statusService.findById(workspaceId, id);
   }
 
@@ -81,16 +75,15 @@ export class StatusController {
   @Roles(Role.ADMIN, Role.MANAGER)
   @ApiOperation({ summary: 'Deletar status (sem migração obrigatória)' })
   @ApiResponse({ status: 200, type: StatusResponseDto })
-  remove(
-    @WorkspaceId() workspaceId: string,
-    @Param('id') id: string,
-  ) {
+  remove(@WorkspaceId() workspaceId: string, @Param('id') id: string) {
     return this.statusService.remove(workspaceId, id);
   }
 
   @Get(':id/required-fields')
   @Roles(Role.ADMIN, Role.MANAGER, Role.OPERATOR, Role.VIEWER)
-  @ApiOperation({ summary: 'Listar custom fields obrigatórios pra entrar no status' })
+  @ApiOperation({
+    summary: 'Listar custom fields obrigatórios pra entrar no status',
+  })
   @ApiResponse({ status: 200, type: [StatusRequiredFieldResponseDto] })
   findRequiredFields(
     @WorkspaceId() workspaceId: string,

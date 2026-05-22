@@ -21,7 +21,10 @@ export interface GroupSectionProps {
   group: StatusGroupConfig;
   items: StatusDraft[];
   onAdd: () => void;
-  onUpdate: (id: string, patch: Partial<Pick<StatusDraft, 'name' | 'color'>>) => void;
+  onUpdate: (
+    id: string,
+    patch: Partial<Pick<StatusDraft, 'name' | 'color'>>,
+  ) => void;
   onRemove: (id: string) => void;
   onReorder: (activeId: string, overId: string) => void;
   justAddedId?: string | null;
@@ -53,38 +56,38 @@ export function GroupSection({
 
   return (
     <section
-      role="group"
+      role='group'
       aria-label={group.label}
-      className="flex flex-col gap-1.5"
+      className='flex flex-col gap-1.5'
     >
-      <header className="flex items-center justify-between">
-        <div className="flex items-center gap-1.5">
-          <span className="text-[12px] tracking-wide text-text-soft-400">
+      <header className='flex items-center justify-between'>
+        <div className='flex items-center gap-1.5'>
+          <span className='text-[12px] tracking-wide text-text-soft-400'>
             {group.label}
           </span>
           <Tooltip.Root>
             <Tooltip.Trigger asChild>
               <button
-                type="button"
+                type='button'
                 aria-label={`Sobre ${group.label}`}
-                className="flex size-3.5 items-center justify-center text-text-soft-400 hover:text-text-sub-600"
+                className='flex size-3.5 items-center justify-center text-text-soft-400 hover:text-text-sub-600'
               >
-                <Info className="size-3" />
+                <Info className='size-3' />
               </button>
             </Tooltip.Trigger>
-            <Tooltip.Content size="small" variant="dark">
+            <Tooltip.Content size='small' variant='dark'>
               {group.tip}
             </Tooltip.Content>
           </Tooltip.Root>
         </div>
         {group.canAdd && (
           <button
-            type="button"
+            type='button'
             aria-label={`Adicionar status em ${group.label}`}
             onClick={onAdd}
-            className="flex size-5 items-center justify-center rounded text-text-sub-600 hover:bg-bg-weak-50"
+            className='flex size-5 items-center justify-center rounded text-text-sub-600 hover:bg-bg-weak-50'
           >
-            <Plus className="size-3.5" />
+            <Plus className='size-3.5' />
           </button>
         )}
       </header>
@@ -98,7 +101,7 @@ export function GroupSection({
           items={items.map((s) => s.id)}
           strategy={verticalListSortingStrategy}
         >
-          <div className="flex flex-col gap-1">
+          <div className='flex flex-col gap-1'>
             {items.map((status) => (
               <StatusRow
                 key={status.id}
@@ -121,11 +124,11 @@ export function GroupSection({
 
       {group.canAdd && (
         <button
-          type="button"
+          type='button'
           onClick={onAdd}
-          className="flex w-full items-center justify-center gap-1 rounded-lg border border-dashed border-stroke-soft-200 py-1.5 text-[14px] text-text-sub-600 hover:bg-bg-weak-50"
+          className='flex w-full items-center justify-center gap-1 rounded-lg border border-dashed border-stroke-soft-200 py-1.5 text-[14px] text-text-sub-600 hover:bg-bg-weak-50'
         >
-          <Plus className="size-3" />
+          <Plus className='size-3' />
           Adicionar status
         </button>
       )}

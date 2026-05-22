@@ -22,7 +22,11 @@ export const step2Schema = z
     height: z.coerce.number().positive('Altura é obrigatória'),
     length: z.coerce.number().positive('Comprimento é obrigatório'),
     weightM3: z.coerce.number().positive().optional().or(z.literal('')),
-    productionCapacity: z.coerce.number().positive().optional().or(z.literal('')),
+    productionCapacity: z.coerce
+      .number()
+      .positive()
+      .optional()
+      .or(z.literal('')),
     stockLocation: z.string().max(100).optional().or(z.literal('')),
     minStock: z.coerce.number().min(0, 'Estoque mínimo inválido'),
     piecesPerUnit: z.coerce.number().positive().optional().or(z.literal('')),

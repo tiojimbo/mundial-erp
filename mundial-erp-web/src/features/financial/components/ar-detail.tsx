@@ -2,10 +2,7 @@
 
 import { useState } from 'react';
 import Link from 'next/link';
-import {
-  RiArrowLeftLine,
-  RiMoneyDollarCircleLine,
-} from '@remixicon/react';
+import { RiArrowLeftLine, RiMoneyDollarCircleLine } from '@remixicon/react';
 import * as Button from '@/components/ui/button';
 import { formatCents, formatDate } from '@/lib/formatters';
 import { useAccountReceivable } from '../hooks/use-financial';
@@ -92,7 +89,7 @@ export function ARDetail({ arId }: Props) {
           <span className='text-paragraph-xs text-text-soft-400'>
             Valor Pago
           </span>
-          <p className='text-title-h6 text-state-success-base'>
+          <p className='text-state-success-base text-title-h6'>
             {formatCents(ar.paidAmountCents)}
           </p>
         </div>
@@ -100,7 +97,7 @@ export function ARDetail({ arId }: Props) {
           <span className='text-paragraph-xs text-text-soft-400'>
             Saldo Pendente
           </span>
-          <p className='text-title-h6 text-state-warning-base'>
+          <p className='text-state-warning-base text-title-h6'>
             {formatCents(balanceCents)}
           </p>
         </div>
@@ -157,9 +154,7 @@ export function ARDetail({ arId }: Props) {
             </dd>
           </div>
           <div>
-            <dt className='text-paragraph-xs text-text-soft-400'>
-              Criado em
-            </dt>
+            <dt className='text-paragraph-xs text-text-soft-400'>Criado em</dt>
             <dd className='text-paragraph-sm text-text-strong-950'>
               {formatDate(ar.createdAt)}
             </dd>

@@ -226,10 +226,6 @@ export class SpacesRepository {
       .filter((p) => p.processType === ProcessType.LIST)
       .map((p) => p.id);
 
-    const bpmProcessIds = processes
-      .filter((p) => p.processType === ProcessType.BPM)
-      .map((p) => p.id);
-
     // 2. Batch: WorkItems agrupados por processo+status para processos LIST
     const workItemWhere: Prisma.WorkItemWhereInput = {
       listId: { in: listProcessIds },

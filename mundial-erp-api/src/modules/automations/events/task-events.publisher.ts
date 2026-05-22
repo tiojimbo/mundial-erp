@@ -97,9 +97,7 @@ export class TaskEventsPublisher {
     try {
       this.emitter.emit(event, payload);
     } catch (err) {
-      this.logger.warn(
-        `Falha ao emitir ${event}: ${(err as Error).message}`,
-      );
+      this.logger.warn(`Falha ao emitir ${event}: ${(err as Error).message}`);
     }
   }
 }

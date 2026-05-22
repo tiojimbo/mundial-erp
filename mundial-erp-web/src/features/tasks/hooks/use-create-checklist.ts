@@ -3,10 +3,7 @@ import { toast } from 'sonner';
 import { taskChecklistsService } from '../services/task-checklists.service';
 import { taskQueryKeys } from '../lib/query-keys';
 import { useWorkspaceId } from '../lib/use-workspace-id';
-import type {
-  CreateChecklistDto,
-  TaskChecklist,
-} from '../types/task.types';
+import type { CreateChecklistDto, TaskChecklist } from '../types/task.types';
 
 type Vars = { taskId: string; payload: CreateChecklistDto };
 

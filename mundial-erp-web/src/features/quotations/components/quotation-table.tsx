@@ -18,16 +18,20 @@ import { useDebounce } from '@/hooks/use-debounce';
 import { formatCents, formatDate } from '@/lib/formatters';
 import { QuotationStatusBadge } from './quotation-status-badge';
 import { useQuotations } from '../hooks/use-quotations';
-import type { QuotationStatus, QuotationFilters } from '../types/quotation.types';
+import type {
+  QuotationStatus,
+  QuotationFilters,
+} from '../types/quotation.types';
 
-const STATUS_TABS: { label: string; filter: QuotationStatus[] | undefined }[] = [
-  { label: 'Todas', filter: undefined },
-  { label: 'Rascunho', filter: ['DRAFT'] },
-  { label: 'Enviadas', filter: ['SENT'] },
-  { label: 'Recebidas', filter: ['RECEIVED'] },
-  { label: 'Selecionadas', filter: ['SELECTED'] },
-  { label: 'Rejeitadas', filter: ['REJECTED'] },
-];
+const STATUS_TABS: { label: string; filter: QuotationStatus[] | undefined }[] =
+  [
+    { label: 'Todas', filter: undefined },
+    { label: 'Rascunho', filter: ['DRAFT'] },
+    { label: 'Enviadas', filter: ['SENT'] },
+    { label: 'Recebidas', filter: ['RECEIVED'] },
+    { label: 'Selecionadas', filter: ['SELECTED'] },
+    { label: 'Rejeitadas', filter: ['REJECTED'] },
+  ];
 
 export function QuotationTable() {
   const [activeTab, setActiveTab] = useState(0);
@@ -85,108 +89,108 @@ export function QuotationTable() {
       {/* Status tabs + Search */}
       <div className='border-b border-stroke-soft-200'>
         <div className='flex flex-col gap-3 sm:flex-row'>
-        <div className='flex items-center gap-1'>
-          {STATUS_TABS.map((tab, idx) => (
-            <button
-              key={tab.label}
-              onClick={() => setActiveTab(idx)}
-              className={`px-3 py-2 text-label-sm transition-colors ${
-                activeTab === idx
-                  ? 'border-b-2 border-primary-base text-primary-base'
-                  : 'text-text-sub-600 hover:text-text-strong-950'
-              }`}
-            >
-              {tab.label}
-            </button>
-          ))}
-        </div>
-        <div className='flex-1' />
-        <Input.Root size='medium'>
-          <Input.Wrapper>
-            <Input.Icon as={RiSearchLine} />
-            <Input.Input
-              placeholder='Buscar por fornecedor...'
-              value={searchInput}
-              onChange={(e) => setSearchInput(e.target.value)}
-            />
-          </Input.Wrapper>
-        </Input.Root>
+          <div className='flex items-center gap-1'>
+            {STATUS_TABS.map((tab, idx) => (
+              <button
+                key={tab.label}
+                onClick={() => setActiveTab(idx)}
+                className={`px-3 py-2 text-label-sm transition-colors ${
+                  activeTab === idx
+                    ? 'border-b-2 border-primary-base text-primary-base'
+                    : 'text-text-sub-600 hover:text-text-strong-950'
+                }`}
+              >
+                {tab.label}
+              </button>
+            ))}
+          </div>
+          <div className='flex-1' />
+          <Input.Root size='medium'>
+            <Input.Wrapper>
+              <Input.Icon as={RiSearchLine} />
+              <Input.Input
+                placeholder='Buscar por fornecedor...'
+                value={searchInput}
+                onChange={(e) => setSearchInput(e.target.value)}
+              />
+            </Input.Wrapper>
+          </Input.Root>
         </div>
       </div>
 
       {/* Table */}
-        <Table.Root>
-          <Table.Header>
+      <Table.Root>
+        <Table.Header>
+          <Table.Row>
+            <Table.Head>Fornecedor</Table.Head>
+            <Table.Head>Status</Table.Head>
+            <Table.Head>Data Solicitação</Table.Head>
+            <Table.Head className='text-right'>Total</Table.Head>
+            <Table.Head className='text-right'>Ações</Table.Head>
+          </Table.Row>
+        </Table.Header>
+        <Table.Body>
+          {isLoading ? (
+            Array.from({ length: 5 }).map((_, i) => (
+              <Table.Row key={i}>
+                {Array.from({ length: 5 }).map((__, j) => (
+                  <Table.Cell key={j}>
+                    <div className='h-4 w-24 animate-pulse rounded bg-bg-weak-50' />
+                  </Table.Cell>
+                ))}
+              </Table.Row>
+            ))
+          ) : quotations.length === 0 ? (
             <Table.Row>
-              <Table.Head>Fornecedor</Table.Head>
-              <Table.Head>Status</Table.Head>
-              <Table.Head>Data Solicitação</Table.Head>
-              <Table.Head className='text-right'>Total</Table.Head>
-              <Table.Head className='text-right'>Ações</Table.Head>
+              <Table.Cell colSpan={5} className='text-center'>
+                <p className='py-8 text-paragraph-sm text-text-soft-400'>
+                  {filters.search
+                    ? 'Nenhuma cotação encontrada para esta busca.'
+                    : 'Nenhuma cotação cadastrada.'}
+                </p>
+              </Table.Cell>
             </Table.Row>
-          </Table.Header>
-          <Table.Body>
-            {isLoading ? (
-              Array.from({ length: 5 }).map((_, i) => (
-                <Table.Row key={i}>
-                  {Array.from({ length: 5 }).map((__, j) => (
-                    <Table.Cell key={j}>
-                      <div className='h-4 w-24 animate-pulse rounded bg-bg-weak-50' />
-                    </Table.Cell>
-                  ))}
-                </Table.Row>
-              ))
-            ) : quotations.length === 0 ? (
-              <Table.Row>
-                <Table.Cell colSpan={5} className='text-center'>
-                  <p className='py-8 text-paragraph-sm text-text-soft-400'>
-                    {filters.search
-                      ? 'Nenhuma cotação encontrada para esta busca.'
-                      : 'Nenhuma cotação cadastrada.'}
-                  </p>
+          ) : (
+            quotations.map((quotation) => (
+              <Table.Row key={quotation.id}>
+                <Table.Cell>
+                  <Link
+                    href={`/compras/cotacoes/${quotation.id}`}
+                    className='text-label-sm text-text-strong-950 transition hover:text-primary-base'
+                  >
+                    {quotation.supplier?.name ?? '—'}
+                  </Link>
+                </Table.Cell>
+                <Table.Cell>
+                  <QuotationStatusBadge status={quotation.status} />
+                </Table.Cell>
+                <Table.Cell>
+                  <span className='text-paragraph-sm text-text-sub-600'>
+                    {formatDate(quotation.requestedAt)}
+                  </span>
+                </Table.Cell>
+                <Table.Cell className='text-right'>
+                  <span className='text-paragraph-sm text-text-strong-950'>
+                    {formatCents(quotation.totalCents)}
+                  </span>
+                </Table.Cell>
+                <Table.Cell className='text-right'>
+                  <Button.Root
+                    asChild
+                    variant='neutral'
+                    mode='ghost'
+                    size='xxsmall'
+                  >
+                    <Link href={`/compras/cotacoes/${quotation.id}`}>
+                      <Button.Icon as={RiEyeLine} />
+                    </Link>
+                  </Button.Root>
                 </Table.Cell>
               </Table.Row>
-            ) : (
-              quotations.map((quotation) => (
-                <Table.Row key={quotation.id}>
-                  <Table.Cell>
-                    <Link
-                      href={`/compras/cotacoes/${quotation.id}`}
-                      className='text-label-sm text-text-strong-950 transition hover:text-primary-base'
-                    >
-                      {quotation.supplier?.name ?? '—'}
-                    </Link>
-                  </Table.Cell>
-                  <Table.Cell>
-                    <QuotationStatusBadge status={quotation.status} />
-                  </Table.Cell>
-                  <Table.Cell>
-                    <span className='text-paragraph-sm text-text-sub-600'>
-                      {formatDate(quotation.requestedAt)}
-                    </span>
-                  </Table.Cell>
-                  <Table.Cell className='text-right'>
-                    <span className='text-paragraph-sm text-text-strong-950'>
-                      {formatCents(quotation.totalCents)}
-                    </span>
-                  </Table.Cell>
-                  <Table.Cell className='text-right'>
-                    <Button.Root
-                      asChild
-                      variant='neutral'
-                      mode='ghost'
-                      size='xxsmall'
-                    >
-                      <Link href={`/compras/cotacoes/${quotation.id}`}>
-                        <Button.Icon as={RiEyeLine} />
-                      </Link>
-                    </Button.Root>
-                  </Table.Cell>
-                </Table.Row>
-              ))
-            )}
-          </Table.Body>
-        </Table.Root>
+            ))
+          )}
+        </Table.Body>
+      </Table.Root>
 
       {/* Pagination */}
       {pagination && pagination.totalPages > 1 && (
@@ -237,7 +241,6 @@ export function QuotationTable() {
           </Pagination.Root>
         </div>
       )}
-
     </div>
   );
 }

@@ -11,10 +11,7 @@ import type {
   SidebarDepartment,
   SidebarProcess,
 } from '@/features/navigation/types/navigation.types';
-import type {
-  Favorite,
-  FavoriteEntityType,
-} from '../types/favorite.types';
+import type { Favorite, FavoriteEntityType } from '../types/favorite.types';
 
 export function favoriteIcon(type: FavoriteEntityType): LucideIcon {
   switch (type) {
@@ -102,11 +99,23 @@ export function favoriteLabel(
 ): string {
   switch (fav.entityType) {
     case 'SPACE':
-      return resolveSpace(tree, fav.entityId)?.name ?? fav.entity?.name ?? fav.entityId;
+      return (
+        resolveSpace(tree, fav.entityId)?.name ??
+        fav.entity?.name ??
+        fav.entityId
+      );
     case 'FOLDER':
-      return resolveFolder(tree, fav.entityId)?.area.name ?? fav.entity?.name ?? fav.entityId;
+      return (
+        resolveFolder(tree, fav.entityId)?.area.name ??
+        fav.entity?.name ??
+        fav.entityId
+      );
     case 'LIST':
-      return resolveList(tree, fav.entityId)?.process.name ?? fav.entity?.name ?? fav.entityId;
+      return (
+        resolveList(tree, fav.entityId)?.process.name ??
+        fav.entity?.name ??
+        fav.entityId
+      );
     default:
       return fav.entity?.name ?? fav.entityId;
   }

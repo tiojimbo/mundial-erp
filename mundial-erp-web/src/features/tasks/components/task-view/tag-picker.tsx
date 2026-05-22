@@ -53,11 +53,11 @@ export function TagPicker({
   );
 
   return (
-    <div className="relative inline-flex flex-wrap items-center gap-1">
+    <div className='relative inline-flex flex-wrap items-center gap-1'>
       {tags.map((tag) => (
         <span
           key={tag.id}
-          className="inline-flex items-center gap-1 rounded-md px-1.5 py-0.5 text-[11px] font-medium"
+          className='inline-flex items-center gap-1 rounded-md px-1.5 py-0.5 text-[11px] font-medium'
           style={{
             background: `color-mix(in oklch, ${tag.color} 15%, transparent)`,
             color: tag.color,
@@ -65,55 +65,55 @@ export function TagPicker({
         >
           {tag.name}
           <button
-            type="button"
+            type='button'
             onClick={() => onRemove?.(tag.id)}
             aria-label={`Remover tag ${tag.name}`}
-            className="opacity-60 hover:opacity-100"
+            className='opacity-60 hover:opacity-100'
           >
-            <X className="h-3 w-3" />
+            <X className='h-3 w-3' />
           </button>
         </span>
       ))}
       <button
-        type="button"
+        type='button'
         onClick={() => setOpen((v) => !v)}
-        aria-label="Adicionar tag"
+        aria-label='Adicionar tag'
         aria-expanded={open}
-        className="inline-flex items-center gap-1 text-[13px] text-muted-foreground/60 hover:text-muted-foreground"
+        className='text-muted-foreground/60 inline-flex items-center gap-1 text-[13px] hover:text-muted-foreground'
       >
         {tags.length === 0 ? (
           placeholder
         ) : (
           <>
-            <Plus className="h-3 w-3" />
+            <Plus className='h-3 w-3' />
           </>
         )}
       </button>
       {open && (
         <div
-          role="dialog"
-          aria-label="Selecionar tags"
-          className="absolute left-0 top-full z-20 mt-1 min-w-[200px] rounded-[10px] border border-border bg-popover p-2 text-[13px] shadow-lg"
+          role='dialog'
+          aria-label='Selecionar tags'
+          className='shadow-lg absolute left-0 top-full z-20 mt-1 min-w-[200px] rounded-[10px] border border-border bg-popover p-2 text-[13px]'
         >
           <input
-            type="search"
+            type='search'
             value={query}
             onChange={(e) => setQuery(e.target.value)}
-            placeholder="Buscar ou criar..."
-            aria-label="Buscar ou criar tag"
-            className="mb-1 w-full rounded-md border border-border bg-transparent px-2 py-1 text-[13px] outline-none focus:border-ring"
+            placeholder='Buscar ou criar...'
+            aria-label='Buscar ou criar tag'
+            className='mb-1 w-full rounded-md border border-border bg-transparent px-2 py-1 text-[13px] outline-none focus:border-ring'
           />
           {canCreate && (
             <button
-              type="button"
+              type='button'
               onClick={() => {
                 onCreate?.(debouncedQuery.trim());
                 setQuery('');
                 setOpen(false);
               }}
-              className="flex w-full items-center gap-1.5 rounded-md px-2 py-1.5 text-left hover:bg-muted"
+              className='flex w-full items-center gap-1.5 rounded-md px-2 py-1.5 text-left hover:bg-muted'
             >
-              <Plus className="h-3.5 w-3.5" />
+              <Plus className='h-3.5 w-3.5' />
               Criar &ldquo;{debouncedQuery.trim()}&rdquo;
             </button>
           )}

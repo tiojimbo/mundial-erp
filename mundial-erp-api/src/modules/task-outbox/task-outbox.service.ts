@@ -166,7 +166,9 @@ export class TaskOutboxService {
     // local (EventEmitter2) apos a tx externa resolver.
     if (this.syncDev) {
       const actorId =
-        typeof input.payload.actorId === 'string' ? input.payload.actorId : null;
+        typeof input.payload.actorId === 'string'
+          ? input.payload.actorId
+          : null;
       const activity = await this.repo.projectActivityInTx(tx, {
         outboxEventId: row.id,
         workItemId: input.aggregateId,

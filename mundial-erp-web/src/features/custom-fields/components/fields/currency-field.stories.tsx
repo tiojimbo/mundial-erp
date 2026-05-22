@@ -4,10 +4,18 @@
 
 import type { Meta, StoryObj } from '@storybook/react';
 import type { CustomFieldDefinition } from '../../types/custom-field.types';
-import { makeCustomFieldDefinition } from "../../types/custom-field.fixtures";
+import { makeCustomFieldDefinition } from '../../types/custom-field.fixtures';
 import { CurrencyField } from './currency-field';
 
-const baseDef: CustomFieldDefinition = makeCustomFieldDefinition({ id: 'def-cur-1', workspaceId: null, name: 'Valor total', type: 'CURRENCY', config: { hint: 'Em reais (R$).' }, fixed: true, position: 30 });
+const baseDef: CustomFieldDefinition = makeCustomFieldDefinition({
+  id: 'def-cur-1',
+  workspaceId: null,
+  name: 'Valor total',
+  type: 'CURRENCY',
+  config: { hint: 'Em reais (R$).' },
+  fixed: true,
+  position: 30,
+});
 
 const meta: Meta<typeof CurrencyField> = {
   title: 'CustomFields/CurrencyField',

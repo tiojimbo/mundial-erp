@@ -199,11 +199,7 @@ describe('TasksService.create', () => {
   it('com assigneeIds: syncAssignees chamado com add=dto.assigneeIds, rem=[]', async () => {
     const h = buildHarness();
 
-    await h.service.create(
-      WS,
-      dto({ assigneeIds: ['u-1', 'u-2'] }),
-      ACTOR,
-    );
+    await h.service.create(WS, dto({ assigneeIds: ['u-1', 'u-2'] }), ACTOR);
 
     expect(h.assignees.syncAssignees).toHaveBeenCalledTimes(1);
     const arg = h.assignees.syncAssignees.mock.calls[0][1] as {
@@ -223,11 +219,7 @@ describe('TasksService.create', () => {
   it('com tagIds: syncTags chamado com add=dto.tagIds', async () => {
     const h = buildHarness();
 
-    await h.service.create(
-      WS,
-      dto({ tagIds: ['tag-1', 'tag-2'] }),
-      ACTOR,
-    );
+    await h.service.create(WS, dto({ tagIds: ['tag-1', 'tag-2'] }), ACTOR);
 
     expect(h.tags.syncTags).toHaveBeenCalledTimes(1);
     const arg = h.tags.syncTags.mock.calls[0][1] as {
@@ -323,11 +315,7 @@ describe('TasksService.create', () => {
   it('statusId informado no dto: findFirstStatusForProcess nao e chamado', async () => {
     const h = buildHarness();
 
-    await h.service.create(
-      WS,
-      dto({ statusId: 'status-explicit' }),
-      ACTOR,
-    );
+    await h.service.create(WS, dto({ statusId: 'status-explicit' }), ACTOR);
 
     expect(h.repository.findFirstStatusForProcess).not.toHaveBeenCalled();
     const arg = h.repository.createTask.mock.calls[0][1] as {

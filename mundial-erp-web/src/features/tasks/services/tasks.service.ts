@@ -1,6 +1,5 @@
 import { api } from '@/lib/api';
 import type {
-  ApiResponse,
   PaginatedResponse,
   CursorPaginatedResponse,
 } from '@/types/api.types';
@@ -115,7 +114,7 @@ export type TasksGroupedGroup = {
   label: 'NOT_STARTED' | 'ACTIVE' | 'DONE' | 'CLOSED';
   type: 'STATUS';
   collapsed: boolean;
-  field: 'statusId';
+  field: string;
   position: number;
   viewId: string | null;
   color: string;

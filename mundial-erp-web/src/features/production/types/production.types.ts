@@ -9,7 +9,10 @@ export {
   SO_STATUS_LABELS,
 } from '@/types/production.types';
 
-import type { ProductionOrderStatus, SeparationOrderStatus } from '@/types/production.types';
+import type {
+  ProductionOrderStatus,
+  SeparationOrderStatus,
+} from '@/types/production.types';
 
 // ===== Entities (full production API shape) =====
 

@@ -221,19 +221,45 @@ export default function LoginPage() {
         <div className='h-8 shrink-0' />
       </div>
 
-      <aside
-        className='relative hidden flex-1 overflow-hidden bg-[#0A1624] lg:flex'
-      >
+      <aside className='relative hidden flex-1 overflow-hidden bg-[#0A1624] lg:flex'>
         <svg
           className='pointer-events-none absolute -right-32 -top-32 size-[640px] opacity-30'
           viewBox='0 0 640 640'
           fill='none'
           aria-hidden
         >
-          <circle cx='320' cy='320' r='300' stroke='white' strokeWidth='1' opacity='0.35' />
-          <circle cx='320' cy='320' r='220' stroke='white' strokeWidth='1' opacity='0.25' />
-          <circle cx='320' cy='320' r='140' stroke='white' strokeWidth='1' opacity='0.2' />
-          <circle cx='320' cy='320' r='70' stroke='white' strokeWidth='1' opacity='0.15' />
+          <circle
+            cx='320'
+            cy='320'
+            r='300'
+            stroke='white'
+            strokeWidth='1'
+            opacity='0.35'
+          />
+          <circle
+            cx='320'
+            cy='320'
+            r='220'
+            stroke='white'
+            strokeWidth='1'
+            opacity='0.25'
+          />
+          <circle
+            cx='320'
+            cy='320'
+            r='140'
+            stroke='white'
+            strokeWidth='1'
+            opacity='0.2'
+          />
+          <circle
+            cx='320'
+            cy='320'
+            r='70'
+            stroke='white'
+            strokeWidth='1'
+            opacity='0.15'
+          />
         </svg>
 
         <svg
@@ -242,7 +268,11 @@ export default function LoginPage() {
           fill='none'
           aria-hidden
         >
-          <path d='M0 64 L128 64 M64 0 L64 128' stroke='white' strokeWidth='1' />
+          <path
+            d='M0 64 L128 64 M64 0 L64 128'
+            stroke='white'
+            strokeWidth='1'
+          />
           <circle cx='64' cy='64' r='4' fill='white' />
         </svg>
 
@@ -263,7 +293,7 @@ export default function LoginPage() {
                 aria-live='polite'
               >
                 <span
-                  className='pointer-events-none absolute -inset-16 rounded-full bg-static-white/10 blur-3xl transition-transform duration-700'
+                  className='bg-static-white/10 pointer-events-none absolute -inset-16 rounded-full blur-3xl transition-transform duration-700'
                   style={{
                     transform: `translateX(${(activeFeature - (FEATURES.length - 1) / 2) * 28}px)`,
                   }}
@@ -272,13 +302,13 @@ export default function LoginPage() {
                 {(() => {
                   const Icon = FEATURES[activeFeature].icon;
                   return (
-                    <span className='relative flex size-24 items-center justify-center rounded-2xl bg-static-white/10 ring-1 ring-inset ring-static-white/20 backdrop-blur-sm'>
+                    <span className='bg-static-white/10 ring-static-white/20 relative flex size-24 items-center justify-center rounded-2xl ring-1 ring-inset backdrop-blur-sm'>
                       <span
-                        className='pointer-events-none absolute inset-0 rounded-2xl bg-gradient-to-br from-static-white/20 to-transparent'
+                        className='from-static-white/20 pointer-events-none absolute inset-0 rounded-2xl bg-gradient-to-br to-transparent'
                         aria-hidden
                       />
                       <span
-                        className='pointer-events-none absolute -inset-1.5 rounded-3xl ring-1 ring-static-white/10'
+                        className='ring-static-white/10 pointer-events-none absolute -inset-1.5 rounded-3xl ring-1'
                         aria-hidden
                       />
                       <Icon className='relative size-10 text-static-white' />
@@ -289,7 +319,7 @@ export default function LoginPage() {
                   <p className='text-center text-title-h5 text-static-white'>
                     {FEATURES[activeFeature].label}
                   </p>
-                  <p className='max-w-[20rem] text-center text-paragraph-md text-static-white/60'>
+                  <p className='text-static-white/60 max-w-[20rem] text-center text-paragraph-md'>
                     {FEATURES[activeFeature].description}
                   </p>
                 </div>
@@ -308,8 +338,8 @@ export default function LoginPage() {
                       onClick={() => setActiveFeature(i)}
                       className={
                         isActive
-                          ? 'relative h-1.5 w-8 overflow-hidden rounded-full bg-static-white/25 transition-all duration-300'
-                          : 'h-1.5 w-1.5 rounded-full bg-static-white/30 transition-all duration-300 hover:bg-static-white/50'
+                          ? 'bg-static-white/25 relative h-1.5 w-8 overflow-hidden rounded-full transition-all duration-300'
+                          : 'bg-static-white/30 hover:bg-static-white/50 h-1.5 w-1.5 rounded-full transition-all duration-300'
                       }
                     >
                       {isActive && (

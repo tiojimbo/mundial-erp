@@ -5,9 +5,7 @@ import {
 } from './automation.processor';
 import type { AutomationJobData } from './automation.job.types';
 
-function buildJob(
-  data: Partial<AutomationJobData>,
-): Job<AutomationJobData> {
+function buildJob(data: Partial<AutomationJobData>): Job<AutomationJobData> {
   return {
     data: {
       automationId: 'auto-1',

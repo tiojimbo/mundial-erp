@@ -37,7 +37,9 @@ export function InvoicesTab({ invoices }: Props) {
           const isCancelled = !!inv.cancelledAt;
           return (
             <Table.Row key={inv.id}>
-              <Table.Cell className='font-medium'>{inv.invoiceNumber}</Table.Cell>
+              <Table.Cell className='font-medium'>
+                {inv.invoiceNumber}
+              </Table.Cell>
               <Table.Cell>
                 <Badge.Root
                   color={inv.direction === 'OUTBOUND' ? 'blue' : 'green'}

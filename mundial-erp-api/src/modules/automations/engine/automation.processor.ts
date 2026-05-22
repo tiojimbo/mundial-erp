@@ -5,10 +5,7 @@ import { PrismaService } from '../../../database/prisma.service';
 import { QUEUE_AUTOMATION_EXECUTION } from '../../queue/queue.constants';
 import { AutomationsRepository } from '../automations.repository';
 import { ActionRunnerService, ActionInvocation } from './action-runner.service';
-import {
-  Condition,
-  evaluateConditions,
-} from './condition-evaluator';
+import { Condition, evaluateConditions } from './condition-evaluator';
 import type { AutomationJobData } from './automation.job.types';
 
 export const MAX_AUTOMATION_DEPTH = 5;
@@ -36,7 +33,10 @@ export class AutomationProcessor extends WorkerHost {
       return;
     }
 
-    const automation = await this.repository.findById(workspaceId, automationId);
+    const automation = await this.repository.findById(
+      workspaceId,
+      automationId,
+    );
     if (!automation || !automation.isActive) {
       this.logger.debug(
         `[engine] skip automation=${automationId} not_active_or_missing`,

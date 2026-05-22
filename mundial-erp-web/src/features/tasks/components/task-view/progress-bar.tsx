@@ -17,15 +17,15 @@ export function ProgressBar({ value, max, label }: ProgressBarProps) {
   const percent = Math.min(100, Math.max(0, (value / safeMax) * 100));
   return (
     <div
-      role="progressbar"
+      role='progressbar'
       aria-valuenow={value}
       aria-valuemax={safeMax}
       aria-valuemin={0}
       aria-label={label ?? `${value} de ${safeMax} concluidos`}
-      className="h-1 w-full overflow-hidden rounded-full bg-muted"
+      className='h-1 w-full overflow-hidden rounded-full bg-muted'
     >
       <div
-        className="h-full rounded-full bg-primary transition-[width] duration-200"
+        className='bg-primary h-full rounded-full transition-[width] duration-200'
         style={{ width: `${percent}%` }}
       />
     </div>

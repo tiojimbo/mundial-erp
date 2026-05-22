@@ -24,7 +24,9 @@ export class CreateAutomationDto {
   @MaxLength(200)
   name: string;
 
-  @ApiPropertyOptional({ example: 'Atribui ao gerente quando lead vira pedido' })
+  @ApiPropertyOptional({
+    example: 'Atribui ao gerente quando lead vira pedido',
+  })
   @IsOptional()
   @IsString()
   @MaxLength(500)
@@ -59,7 +61,8 @@ export class CreateAutomationDto {
 
   @ApiPropertyOptional({
     type: [AutomationConditionDto],
-    description: 'Avaliadas com AND. Default: [] (sem condição = sempre executa).',
+    description:
+      'Avaliadas com AND. Default: [] (sem condição = sempre executa).',
   })
   @IsOptional()
   @IsArray()

@@ -13,8 +13,33 @@ import { orderSchema, type OrderFormData } from '../schemas/order.schema';
 import type { CreateOrderPayload } from '../types/order.types';
 
 const STATES = [
-  'AC','AL','AM','AP','BA','CE','DF','ES','GO','MA','MG','MS','MT',
-  'PA','PB','PE','PI','PR','RJ','RN','RO','RR','RS','SC','SE','SP','TO',
+  'AC',
+  'AL',
+  'AM',
+  'AP',
+  'BA',
+  'CE',
+  'DF',
+  'ES',
+  'GO',
+  'MA',
+  'MG',
+  'MS',
+  'MT',
+  'PA',
+  'PB',
+  'PE',
+  'PI',
+  'PR',
+  'RJ',
+  'RN',
+  'RO',
+  'RR',
+  'RS',
+  'SC',
+  'SE',
+  'SP',
+  'TO',
 ];
 
 type Props = {
@@ -86,7 +111,7 @@ function ItemSuppliesField({
           <button
             type='button'
             onClick={() => remove(sIdx)}
-            className='shrink-0 text-state-error-base hover:opacity-70'
+            className='text-state-error-base shrink-0 hover:opacity-70'
           >
             <i className='ri-close-line' />
           </button>
@@ -121,7 +146,15 @@ export function OrderForm({
       shouldProduce: false,
       isResale: false,
       hasTaxSubstitution: false,
-      items: [{ productId: '', quantity: 1, unitPriceCents: 0, discountCents: 0, supplies: [] }],
+      items: [
+        {
+          productId: '',
+          quantity: 1,
+          unitPriceCents: 0,
+          discountCents: 0,
+          supplies: [],
+        },
+      ],
     },
   });
 
@@ -156,18 +189,23 @@ export function OrderForm({
         discountCents: item.discountCents,
         pieces: item.pieces,
         size: item.size,
-        supplies: item.supplies?.filter((s) => s.name.trim()).map((s) => ({
-          name: s.name,
-          productId: s.productId,
-          quantity: s.quantity,
-        })),
+        supplies: item.supplies
+          ?.filter((s) => s.name.trim())
+          .map((s) => ({
+            name: s.name,
+            productId: s.productId,
+            quantity: s.quantity,
+          })),
       })),
     };
     onSubmit(payload);
   }
 
   return (
-    <form onSubmit={handleSubmit(handleFormSubmit)} className='flex flex-col gap-6'>
+    <form
+      onSubmit={handleSubmit(handleFormSubmit)}
+      className='flex flex-col gap-6'
+    >
       {/* Header */}
       <div className='flex items-center justify-between'>
         <div>
@@ -196,7 +234,9 @@ export function OrderForm({
 
       {/* Client selection */}
       <fieldset className='rounded-xl border border-stroke-soft-200 p-5'>
-        <legend className='text-label-md text-text-strong-950 px-2'>Cliente</legend>
+        <legend className='px-2 text-label-md text-text-strong-950'>
+          Cliente
+        </legend>
         <div className='grid grid-cols-1 gap-4 md:grid-cols-2'>
           <div className='space-y-1.5'>
             <Label.Root>Cliente *</Label.Root>
@@ -204,25 +244,36 @@ export function OrderForm({
               name='clientId'
               control={control}
               render={({ field }) => (
-                <Select.Root value={field.value || undefined} onValueChange={field.onChange}>
+                <Select.Root
+                  value={field.value || undefined}
+                  onValueChange={field.onChange}
+                >
                   <Select.Trigger>
                     <Select.Value placeholder='Selecione o cliente' />
                   </Select.Trigger>
                   <Select.Content>
                     {clients.map((c) => (
-                      <Select.Item key={c.id} value={c.id}>{c.name}</Select.Item>
+                      <Select.Item key={c.id} value={c.id}>
+                        {c.name}
+                      </Select.Item>
                     ))}
                   </Select.Content>
                 </Select.Root>
               )}
             />
-            {errors.clientId && <Hint.Root hasError>{errors.clientId.message}</Hint.Root>}
+            {errors.clientId && (
+              <Hint.Root hasError>{errors.clientId.message}</Hint.Root>
+            )}
           </div>
           <div className='space-y-1.5'>
             <Label.Root htmlFor='title'>Titulo do pedido</Label.Root>
             <Input.Root>
               <Input.Wrapper>
-                <Input.Input id='title' placeholder='Ex: Marcelo - TR25' {...register('title')} />
+                <Input.Input
+                  id='title'
+                  placeholder='Ex: Marcelo - TR25'
+                  {...register('title')}
+                />
               </Input.Wrapper>
             </Input.Root>
           </div>
@@ -231,7 +282,9 @@ export function OrderForm({
 
       {/* Commercial info */}
       <fieldset className='rounded-xl border border-stroke-soft-200 p-5'>
-        <legend className='text-label-md text-text-strong-950 px-2'>Informacoes Comerciais</legend>
+        <legend className='px-2 text-label-md text-text-strong-950'>
+          Informacoes Comerciais
+        </legend>
         <div className='grid grid-cols-1 gap-4 md:grid-cols-3'>
           <div className='space-y-1.5'>
             <Label.Root>Forma de pagamento</Label.Root>
@@ -239,13 +292,18 @@ export function OrderForm({
               name='paymentMethodId'
               control={control}
               render={({ field }) => (
-                <Select.Root value={field.value || undefined} onValueChange={field.onChange}>
+                <Select.Root
+                  value={field.value || undefined}
+                  onValueChange={field.onChange}
+                >
                   <Select.Trigger>
                     <Select.Value placeholder='Selecione' />
                   </Select.Trigger>
                   <Select.Content>
                     {paymentMethods.map((pm) => (
-                      <Select.Item key={pm.id} value={pm.id}>{pm.name}</Select.Item>
+                      <Select.Item key={pm.id} value={pm.id}>
+                        {pm.name}
+                      </Select.Item>
                     ))}
                   </Select.Content>
                 </Select.Root>
@@ -258,13 +316,18 @@ export function OrderForm({
               name='carrierId'
               control={control}
               render={({ field }) => (
-                <Select.Root value={field.value || undefined} onValueChange={field.onChange}>
+                <Select.Root
+                  value={field.value || undefined}
+                  onValueChange={field.onChange}
+                >
                   <Select.Trigger>
                     <Select.Value placeholder='Selecione' />
                   </Select.Trigger>
                   <Select.Content>
                     {carriers.map((c) => (
-                      <Select.Item key={c.id} value={c.id}>{c.name}</Select.Item>
+                      <Select.Item key={c.id} value={c.id}>
+                        {c.name}
+                      </Select.Item>
                     ))}
                   </Select.Content>
                 </Select.Root>
@@ -277,13 +340,18 @@ export function OrderForm({
               name='priceTableId'
               control={control}
               render={({ field }) => (
-                <Select.Root value={field.value || undefined} onValueChange={field.onChange}>
+                <Select.Root
+                  value={field.value || undefined}
+                  onValueChange={field.onChange}
+                >
                   <Select.Trigger>
                     <Select.Value placeholder='Selecione' />
                   </Select.Trigger>
                   <Select.Content>
                     {priceTables.map((pt) => (
-                      <Select.Item key={pt.id} value={pt.id}>{pt.name}</Select.Item>
+                      <Select.Item key={pt.id} value={pt.id}>
+                        {pt.name}
+                      </Select.Item>
                     ))}
                   </Select.Content>
                 </Select.Root>
@@ -294,15 +362,25 @@ export function OrderForm({
             <Label.Root htmlFor='deliveryDeadline'>Prazo de entrega</Label.Root>
             <Input.Root>
               <Input.Wrapper>
-                <Input.Input id='deliveryDeadline' type='date' {...register('deliveryDeadline')} />
+                <Input.Input
+                  id='deliveryDeadline'
+                  type='date'
+                  {...register('deliveryDeadline')}
+                />
               </Input.Wrapper>
             </Input.Root>
           </div>
           <div className='space-y-1.5'>
-            <Label.Root htmlFor='proposalValidityDays'>Validade proposta (dias)</Label.Root>
+            <Label.Root htmlFor='proposalValidityDays'>
+              Validade proposta (dias)
+            </Label.Root>
             <Input.Root>
               <Input.Wrapper>
-                <Input.Input id='proposalValidityDays' type='number' {...register('proposalValidityDays')} />
+                <Input.Input
+                  id='proposalValidityDays'
+                  type='number'
+                  {...register('proposalValidityDays')}
+                />
               </Input.Wrapper>
             </Input.Root>
           </div>
@@ -310,7 +388,11 @@ export function OrderForm({
             <Label.Root htmlFor='freightCents'>Frete (centavos)</Label.Root>
             <Input.Root>
               <Input.Wrapper>
-                <Input.Input id='freightCents' type='number' {...register('freightCents')} />
+                <Input.Input
+                  id='freightCents'
+                  type='number'
+                  {...register('freightCents')}
+                />
               </Input.Wrapper>
             </Input.Root>
           </div>
@@ -321,7 +403,10 @@ export function OrderForm({
             control={control}
             render={({ field }) => (
               <label className='flex items-center gap-2 text-label-sm'>
-                <Switch.Root checked={field.value} onCheckedChange={field.onChange} />
+                <Switch.Root
+                  checked={field.value}
+                  onCheckedChange={field.onChange}
+                />
                 Produzir
               </label>
             )}
@@ -331,7 +416,10 @@ export function OrderForm({
             control={control}
             render={({ field }) => (
               <label className='flex items-center gap-2 text-label-sm'>
-                <Switch.Root checked={field.value} onCheckedChange={field.onChange} />
+                <Switch.Root
+                  checked={field.value}
+                  onCheckedChange={field.onChange}
+                />
                 Revenda
               </label>
             )}
@@ -341,7 +429,10 @@ export function OrderForm({
             control={control}
             render={({ field }) => (
               <label className='flex items-center gap-2 text-label-sm'>
-                <Switch.Root checked={field.value} onCheckedChange={field.onChange} />
+                <Switch.Root
+                  checked={field.value}
+                  onCheckedChange={field.onChange}
+                />
                 Substituicao Tributaria
               </label>
             )}
@@ -351,13 +442,18 @@ export function OrderForm({
 
       {/* Delivery info */}
       <fieldset className='rounded-xl border border-stroke-soft-200 p-5'>
-        <legend className='text-label-md text-text-strong-950 px-2'>Entrega</legend>
+        <legend className='px-2 text-label-md text-text-strong-950'>
+          Entrega
+        </legend>
         <div className='grid grid-cols-1 gap-4 md:grid-cols-3'>
           <div className='space-y-1.5 md:col-span-2'>
             <Label.Root htmlFor='deliveryAddress'>Endereco</Label.Root>
             <Input.Root>
               <Input.Wrapper>
-                <Input.Input id='deliveryAddress' {...register('deliveryAddress')} />
+                <Input.Input
+                  id='deliveryAddress'
+                  {...register('deliveryAddress')}
+                />
               </Input.Wrapper>
             </Input.Root>
           </div>
@@ -365,7 +461,10 @@ export function OrderForm({
             <Label.Root htmlFor='deliveryNeighborhood'>Bairro</Label.Root>
             <Input.Root>
               <Input.Wrapper>
-                <Input.Input id='deliveryNeighborhood' {...register('deliveryNeighborhood')} />
+                <Input.Input
+                  id='deliveryNeighborhood'
+                  {...register('deliveryNeighborhood')}
+                />
               </Input.Wrapper>
             </Input.Root>
           </div>
@@ -383,13 +482,18 @@ export function OrderForm({
               name='deliveryState'
               control={control}
               render={({ field }) => (
-                <Select.Root value={field.value || undefined} onValueChange={field.onChange}>
+                <Select.Root
+                  value={field.value || undefined}
+                  onValueChange={field.onChange}
+                >
                   <Select.Trigger>
                     <Select.Value placeholder='UF' />
                   </Select.Trigger>
                   <Select.Content>
                     {STATES.map((uf) => (
-                      <Select.Item key={uf} value={uf}>{uf}</Select.Item>
+                      <Select.Item key={uf} value={uf}>
+                        {uf}
+                      </Select.Item>
                     ))}
                   </Select.Content>
                 </Select.Root>
@@ -405,10 +509,15 @@ export function OrderForm({
             </Input.Root>
           </div>
           <div className='space-y-1.5'>
-            <Label.Root htmlFor='deliveryReferencePoint'>Ponto de referencia</Label.Root>
+            <Label.Root htmlFor='deliveryReferencePoint'>
+              Ponto de referencia
+            </Label.Root>
             <Input.Root>
               <Input.Wrapper>
-                <Input.Input id='deliveryReferencePoint' {...register('deliveryReferencePoint')} />
+                <Input.Input
+                  id='deliveryReferencePoint'
+                  {...register('deliveryReferencePoint')}
+                />
               </Input.Wrapper>
             </Input.Root>
           </div>
@@ -425,14 +534,25 @@ export function OrderForm({
 
       {/* Items */}
       <fieldset className='rounded-xl border border-stroke-soft-200 p-5'>
-        <legend className='text-label-md text-text-strong-950 px-2'>Itens do Pedido *</legend>
+        <legend className='px-2 text-label-md text-text-strong-950'>
+          Itens do Pedido *
+        </legend>
         <div className='flex flex-col gap-4'>
           {fields.map((field, index) => (
-            <div key={field.id} className='flex flex-col gap-3 rounded-lg border border-stroke-soft-200 p-4'>
+            <div
+              key={field.id}
+              className='flex flex-col gap-3 rounded-lg border border-stroke-soft-200 p-4'
+            >
               <div className='flex items-center justify-between'>
-                <span className='text-label-sm text-text-sub-600'>Item {index + 1}</span>
+                <span className='text-label-sm text-text-sub-600'>
+                  Item {index + 1}
+                </span>
                 {fields.length > 1 && (
-                  <button type='button' onClick={() => remove(index)} className='text-state-error-base hover:opacity-70'>
+                  <button
+                    type='button'
+                    onClick={() => remove(index)}
+                    className='text-state-error-base hover:opacity-70'
+                  >
                     <i className='ri-delete-bin-line' />
                   </button>
                 )}
@@ -444,7 +564,10 @@ export function OrderForm({
                     name={`items.${index}.productId`}
                     control={control}
                     render={({ field: f }) => (
-                      <Select.Root value={f.value || undefined} onValueChange={f.onChange}>
+                      <Select.Root
+                        value={f.value || undefined}
+                        onValueChange={f.onChange}
+                      >
                         <Select.Trigger>
                           <Select.Value placeholder='Selecione o produto' />
                         </Select.Trigger>
@@ -459,14 +582,20 @@ export function OrderForm({
                     )}
                   />
                   {errors.items?.[index]?.productId && (
-                    <Hint.Root hasError>{errors.items[index]?.productId?.message}</Hint.Root>
+                    <Hint.Root hasError>
+                      {errors.items[index]?.productId?.message}
+                    </Hint.Root>
                   )}
                 </div>
                 <div className='space-y-1.5'>
                   <Label.Root>Quantidade *</Label.Root>
                   <Input.Root>
                     <Input.Wrapper>
-                      <Input.Input type='number' step='0.01' {...register(`items.${index}.quantity`)} />
+                      <Input.Input
+                        type='number'
+                        step='0.01'
+                        {...register(`items.${index}.quantity`)}
+                      />
                     </Input.Wrapper>
                   </Input.Root>
                 </div>
@@ -474,7 +603,10 @@ export function OrderForm({
                   <Label.Root>Preco unit. (centavos) *</Label.Root>
                   <Input.Root>
                     <Input.Wrapper>
-                      <Input.Input type='number' {...register(`items.${index}.unitPriceCents`)} />
+                      <Input.Input
+                        type='number'
+                        {...register(`items.${index}.unitPriceCents`)}
+                      />
                     </Input.Wrapper>
                   </Input.Root>
                 </div>
@@ -482,7 +614,11 @@ export function OrderForm({
                   <Label.Root>Pecas</Label.Root>
                   <Input.Root>
                     <Input.Wrapper>
-                      <Input.Input type='number' step='0.1' {...register(`items.${index}.pieces`)} />
+                      <Input.Input
+                        type='number'
+                        step='0.1'
+                        {...register(`items.${index}.pieces`)}
+                      />
                     </Input.Wrapper>
                   </Input.Root>
                 </div>
@@ -490,7 +626,11 @@ export function OrderForm({
                   <Label.Root>Tamanho</Label.Root>
                   <Input.Root>
                     <Input.Wrapper>
-                      <Input.Input type='number' step='0.01' {...register(`items.${index}.size`)} />
+                      <Input.Input
+                        type='number'
+                        step='0.01'
+                        {...register(`items.${index}.size`)}
+                      />
                     </Input.Wrapper>
                   </Input.Root>
                 </div>
@@ -498,26 +638,45 @@ export function OrderForm({
                   <Label.Root>Desconto (centavos)</Label.Root>
                   <Input.Root>
                     <Input.Wrapper>
-                      <Input.Input type='number' {...register(`items.${index}.discountCents`)} />
+                      <Input.Input
+                        type='number'
+                        {...register(`items.${index}.discountCents`)}
+                      />
                     </Input.Wrapper>
                   </Input.Root>
                 </div>
               </div>
 
               {/* Supplies per item (Fix #2) */}
-              <ItemSuppliesField nestIndex={index} control={control} register={register} />
+              <ItemSuppliesField
+                nestIndex={index}
+                control={control}
+                register={register}
+              />
             </div>
           ))}
 
-          {errors.items?.root && <Hint.Root hasError>{errors.items.root.message}</Hint.Root>}
-          {errors.items?.message && <Hint.Root hasError>{errors.items.message}</Hint.Root>}
+          {errors.items?.root && (
+            <Hint.Root hasError>{errors.items.root.message}</Hint.Root>
+          )}
+          {errors.items?.message && (
+            <Hint.Root hasError>{errors.items.message}</Hint.Root>
+          )}
 
           <Button.Root
             type='button'
             variant='neutral'
             mode='stroke'
             size='small'
-            onClick={() => append({ productId: '', quantity: 1, unitPriceCents: 0, discountCents: 0, supplies: [] })}
+            onClick={() =>
+              append({
+                productId: '',
+                quantity: 1,
+                unitPriceCents: 0,
+                discountCents: 0,
+                supplies: [],
+              })
+            }
           >
             <Button.Icon as='i' className='ri-add-line' />
             Adicionar item
@@ -527,7 +686,9 @@ export function OrderForm({
 
       {/* Notes */}
       <fieldset className='rounded-xl border border-stroke-soft-200 p-5'>
-        <legend className='text-label-md text-text-strong-950 px-2'>Observacoes</legend>
+        <legend className='px-2 text-label-md text-text-strong-950'>
+          Observacoes
+        </legend>
         <textarea
           {...register('notes')}
           rows={4}

@@ -17,10 +17,7 @@ import { Root as Switch } from '@/components/ui/switch';
 import { useAuth } from '@/providers/auth-provider';
 import { useNotification } from '@/hooks/use-notification';
 import { useUpdateProfile } from '../hooks/use-account';
-import {
-  accountSchema,
-  type AccountFormData,
-} from '../schemas/account.schema';
+import { accountSchema, type AccountFormData } from '../schemas/account.schema';
 import { SettingsSection } from './settings-section';
 import { AvatarUpload } from './avatar-upload';
 import { ThemeColorPicker } from './theme-color-picker';
@@ -96,9 +93,7 @@ export function MyAccountSettings() {
               {/* Nome completo */}
               <div className='space-y-1.5'>
                 <Label.Root htmlFor='fullName'>Nome completo</Label.Root>
-                <InputPrimitive.Root
-                  hasError={!!errors.fullName}
-                >
+                <InputPrimitive.Root hasError={!!errors.fullName}>
                   <InputPrimitive.Wrapper>
                     <InputPrimitive.Icon as={RiUserLine} />
                     <InputPrimitive.Input
@@ -139,9 +134,7 @@ export function MyAccountSettings() {
               {/* Senha atual */}
               <div className='space-y-1.5'>
                 <Label.Root htmlFor='currentPassword'>Senha atual</Label.Root>
-                <InputPrimitive.Root
-                  hasError={!!errors.currentPassword}
-                >
+                <InputPrimitive.Root hasError={!!errors.currentPassword}>
                   <InputPrimitive.Wrapper>
                     <InputPrimitive.Icon as={RiLockLine} />
                     <InputPrimitive.Input

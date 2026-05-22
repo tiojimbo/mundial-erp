@@ -8,7 +8,10 @@ import * as Input from '@/components/ui/input';
 import * as Select from '@/components/ui/select';
 import * as Hint from '@/components/ui/hint';
 import * as Label from '@/components/ui/label';
-import { requisitionSchema, type RequisitionFormData } from '../schemas/stock-requisition.schema';
+import {
+  requisitionSchema,
+  type RequisitionFormData,
+} from '../schemas/stock-requisition.schema';
 
 type Props = {
   onSubmit: (data: RequisitionFormData) => void;
@@ -16,11 +19,7 @@ type Props = {
   products?: { id: string; name: string; code: string }[];
 };
 
-export function RequisitionForm({
-  onSubmit,
-  isLoading,
-  products = [],
-}: Props) {
+export function RequisitionForm({ onSubmit, isLoading, products = [] }: Props) {
   const {
     register,
     handleSubmit,
@@ -33,7 +32,14 @@ export function RequisitionForm({
       type: 'INTERNO',
       orderId: '',
       notes: '',
-      items: [{ productId: '', requestedQuantity: 1, unitType: 'UN', unitsPerBox: undefined }],
+      items: [
+        {
+          productId: '',
+          requestedQuantity: 1,
+          unitType: 'UN',
+          unitsPerBox: undefined,
+        },
+      ],
     },
   });
 
@@ -46,7 +52,9 @@ export function RequisitionForm({
       {/* Header */}
       <div className='flex items-center justify-between'>
         <div>
-          <h1 className='text-title-h5 text-text-strong-950'>Nova Requisicao de Estoque</h1>
+          <h1 className='text-title-h5 text-text-strong-950'>
+            Nova Requisicao de Estoque
+          </h1>
           <p className='text-paragraph-sm text-text-sub-600'>
             Crie uma requisicao para saida de materiais do estoque
           </p>
@@ -71,7 +79,9 @@ export function RequisitionForm({
 
       {/* Type and Order */}
       <fieldset className='rounded-xl border border-stroke-soft-200 bg-bg-white-0 p-5 shadow-regular-xs'>
-        <legend className='text-label-md text-text-strong-950 px-2'>Dados da Requisicao</legend>
+        <legend className='px-2 text-label-md text-text-strong-950'>
+          Dados da Requisicao
+        </legend>
         <div className='grid grid-cols-1 gap-4 md:grid-cols-2'>
           <div className='space-y-1.5'>
             <Label.Root>Tipo *</Label.Root>
@@ -84,13 +94,19 @@ export function RequisitionForm({
                     <Select.Value placeholder='Selecione o tipo' />
                   </Select.Trigger>
                   <Select.Content>
-                    <Select.Item value='VENDA'>Venda (vinculada a pedido)</Select.Item>
-                    <Select.Item value='INTERNO'>Interno (uso proprio)</Select.Item>
+                    <Select.Item value='VENDA'>
+                      Venda (vinculada a pedido)
+                    </Select.Item>
+                    <Select.Item value='INTERNO'>
+                      Interno (uso proprio)
+                    </Select.Item>
                   </Select.Content>
                 </Select.Root>
               )}
             />
-            {errors.type && <Hint.Root hasError>{errors.type.message}</Hint.Root>}
+            {errors.type && (
+              <Hint.Root hasError>{errors.type.message}</Hint.Root>
+            )}
           </div>
 
           {selectedType === 'VENDA' && (
@@ -104,7 +120,9 @@ export function RequisitionForm({
                   />
                 </Input.Wrapper>
               </Input.Root>
-              {errors.orderId && <Hint.Root hasError>{errors.orderId.message}</Hint.Root>}
+              {errors.orderId && (
+                <Hint.Root hasError>{errors.orderId.message}</Hint.Root>
+              )}
             </div>
           )}
         </div>
@@ -112,16 +130,27 @@ export function RequisitionForm({
 
       {/* Items */}
       <fieldset className='rounded-xl border border-stroke-soft-200 bg-bg-white-0 p-5 shadow-regular-xs'>
-        <legend className='text-label-md text-text-strong-950 px-2'>Itens da Requisicao *</legend>
+        <legend className='px-2 text-label-md text-text-strong-950'>
+          Itens da Requisicao *
+        </legend>
         <div className='flex flex-col gap-4'>
           {fields.map((field, index) => {
             const itemUnitType = watchedItems?.[index]?.unitType;
             return (
-              <div key={field.id} className='flex flex-col gap-3 rounded-lg border border-stroke-soft-200 p-4'>
+              <div
+                key={field.id}
+                className='flex flex-col gap-3 rounded-lg border border-stroke-soft-200 p-4'
+              >
                 <div className='flex items-center justify-between'>
-                  <span className='text-label-sm text-text-sub-600'>Item {index + 1}</span>
+                  <span className='text-label-sm text-text-sub-600'>
+                    Item {index + 1}
+                  </span>
                   {fields.length > 1 && (
-                    <button type='button' onClick={() => remove(index)} className='text-state-error-base hover:opacity-70'>
+                    <button
+                      type='button'
+                      onClick={() => remove(index)}
+                      className='text-state-error-base hover:opacity-70'
+                    >
                       <i className='ri-delete-bin-line' />
                     </button>
                   )}
@@ -133,7 +162,10 @@ export function RequisitionForm({
                       name={`items.${index}.productId`}
                       control={control}
                       render={({ field: f }) => (
-                        <Select.Root value={f.value || undefined} onValueChange={f.onChange}>
+                        <Select.Root
+                          value={f.value || undefined}
+                          onValueChange={f.onChange}
+                        >
                           <Select.Trigger>
                             <Select.Value placeholder='Selecione o produto' />
                           </Select.Trigger>
@@ -148,7 +180,9 @@ export function RequisitionForm({
                       )}
                     />
                     {errors.items?.[index]?.productId && (
-                      <Hint.Root hasError>{errors.items[index]?.productId?.message}</Hint.Root>
+                      <Hint.Root hasError>
+                        {errors.items[index]?.productId?.message}
+                      </Hint.Root>
                     )}
                   </div>
                   <div className='space-y-1.5'>
@@ -164,7 +198,9 @@ export function RequisitionForm({
                       </Input.Wrapper>
                     </Input.Root>
                     {errors.items?.[index]?.requestedQuantity && (
-                      <Hint.Root hasError>{errors.items[index]?.requestedQuantity?.message}</Hint.Root>
+                      <Hint.Root hasError>
+                        {errors.items[index]?.requestedQuantity?.message}
+                      </Hint.Root>
                     )}
                   </div>
                   <div className='space-y-1.5'>
@@ -185,7 +221,9 @@ export function RequisitionForm({
                       )}
                     />
                     {errors.items?.[index]?.unitType && (
-                      <Hint.Root hasError>{errors.items[index]?.unitType?.message}</Hint.Root>
+                      <Hint.Root hasError>
+                        {errors.items[index]?.unitType?.message}
+                      </Hint.Root>
                     )}
                   </div>
                   {itemUnitType === 'CX' && (
@@ -203,7 +241,9 @@ export function RequisitionForm({
                         </Input.Wrapper>
                       </Input.Root>
                       {errors.items?.[index]?.unitsPerBox && (
-                        <Hint.Root hasError>{errors.items[index]?.unitsPerBox?.message}</Hint.Root>
+                        <Hint.Root hasError>
+                          {errors.items[index]?.unitsPerBox?.message}
+                        </Hint.Root>
                       )}
                     </div>
                   )}
@@ -212,15 +252,26 @@ export function RequisitionForm({
             );
           })}
 
-          {errors.items?.root && <Hint.Root hasError>{errors.items.root.message}</Hint.Root>}
-          {errors.items?.message && <Hint.Root hasError>{errors.items.message}</Hint.Root>}
+          {errors.items?.root && (
+            <Hint.Root hasError>{errors.items.root.message}</Hint.Root>
+          )}
+          {errors.items?.message && (
+            <Hint.Root hasError>{errors.items.message}</Hint.Root>
+          )}
 
           <Button.Root
             type='button'
             variant='neutral'
             mode='stroke'
             size='small'
-            onClick={() => append({ productId: '', requestedQuantity: 1, unitType: 'UN', unitsPerBox: undefined })}
+            onClick={() =>
+              append({
+                productId: '',
+                requestedQuantity: 1,
+                unitType: 'UN',
+                unitsPerBox: undefined,
+              })
+            }
           >
             <Button.Icon as='i' className='ri-add-line' />
             Adicionar Item
@@ -230,7 +281,9 @@ export function RequisitionForm({
 
       {/* Notes */}
       <fieldset className='rounded-xl border border-stroke-soft-200 bg-bg-white-0 p-5 shadow-regular-xs'>
-        <legend className='text-label-md text-text-strong-950 px-2'>Observacoes</legend>
+        <legend className='px-2 text-label-md text-text-strong-950'>
+          Observacoes
+        </legend>
         <textarea
           {...register('notes')}
           rows={4}

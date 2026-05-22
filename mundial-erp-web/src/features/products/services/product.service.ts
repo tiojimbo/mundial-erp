@@ -32,7 +32,10 @@ export const productService = {
   },
 
   async update(id: string, payload: UpdateProductPayload): Promise<Product> {
-    const { data } = await api.patch<ApiResponse<Product>>(`/products/${id}`, payload);
+    const { data } = await api.patch<ApiResponse<Product>>(
+      `/products/${id}`,
+      payload,
+    );
     return data.data;
   },
 
@@ -69,10 +72,12 @@ export const productService = {
     return data.data;
   },
 
-  async getNextCode(typeId: string): Promise<{ code: string; barcode: string }> {
-    const { data } = await api.get<ApiResponse<{ code: string; barcode: string }>>(
-      `/product-types/${typeId}/next-code`,
-    );
+  async getNextCode(
+    typeId: string,
+  ): Promise<{ code: string; barcode: string }> {
+    const { data } = await api.get<
+      ApiResponse<{ code: string; barcode: string }>
+    >(`/product-types/${typeId}/next-code`);
     return data.data;
   },
 
@@ -85,10 +90,9 @@ export const productService = {
   },
 
   async getBrands(): Promise<Brand[]> {
-    const { data } = await api.get<PaginatedResponse<Brand>>(
-      '/brands',
-      { params: { limit: 100 } },
-    );
+    const { data } = await api.get<PaginatedResponse<Brand>>('/brands', {
+      params: { limit: 100 },
+    });
     return data.data;
   },
 

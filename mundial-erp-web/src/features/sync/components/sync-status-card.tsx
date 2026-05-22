@@ -40,13 +40,15 @@ function getStatusBadgeProps(status: SyncStatus | null) {
 function getStatusIcon(status: SyncStatus | null) {
   switch (status) {
     case 'SUCCESS':
-      return <RiCheckboxCircleLine className="size-4 text-success-base" />;
+      return <RiCheckboxCircleLine className='size-4 text-success-base' />;
     case 'IN_PROGRESS':
-      return <RiLoader4Line className="size-4 animate-spin text-warning-base" />;
+      return (
+        <RiLoader4Line className='size-4 animate-spin text-warning-base' />
+      );
     case 'FAILED':
-      return <RiErrorWarningLine className="size-4 text-error-base" />;
+      return <RiErrorWarningLine className='size-4 text-error-base' />;
     default:
-      return <RiTimeLine className="size-4 text-text-soft-400" />;
+      return <RiTimeLine className='size-4 text-text-soft-400' />;
   }
 }
 
@@ -58,25 +60,27 @@ export function SyncStatusCard({ entity }: SyncStatusCardProps) {
   const badgeProps = getStatusBadgeProps(entity.lastStatus);
 
   return (
-    <div className="flex items-center justify-between rounded-xl border border-stroke-soft-200 bg-bg-white-0 p-4 shadow-xs">
-      <div className="flex items-center gap-3">
+    <div className='shadow-xs flex items-center justify-between rounded-xl border border-stroke-soft-200 bg-bg-white-0 p-4'>
+      <div className='flex items-center gap-3'>
         {getStatusIcon(entity.lastStatus)}
         <div>
-          <p className="text-label-sm text-text-strong-950">
+          <p className='text-label-sm text-text-strong-950'>
             {SYNC_ENTITY_LABELS[entity.entity]}
           </p>
-          <p className="text-paragraph-xs text-text-sub-600">
+          <p className='text-paragraph-xs text-text-sub-600'>
             {formatRelativeTime(entity.lastSyncAt)}
           </p>
         </div>
       </div>
-      <div className="flex items-center gap-3">
-        <span className="text-paragraph-xs text-text-soft-400">
+      <div className='flex items-center gap-3'>
+        <span className='text-paragraph-xs text-text-soft-400'>
           {entity.totalMapped} registros
         </span>
         <StatusBadge.Root {...badgeProps}>
           <StatusBadge.Dot />
-          {entity.lastStatus ? SYNC_STATUS_LABELS[entity.lastStatus] : 'Pendente'}
+          {entity.lastStatus
+            ? SYNC_STATUS_LABELS[entity.lastStatus]
+            : 'Pendente'}
         </StatusBadge.Root>
       </div>
     </div>

@@ -15,25 +15,27 @@ export default function AreaPage() {
   const { data: area, isLoading: isAreaLoading } = useAreaDetail(
     params.areaSlug,
   );
-  const { data: summaries, isLoading: isSummariesLoading } =
-    useAreaSummaries(area?.id ?? '', false);
+  const { data: summaries, isLoading: isSummariesLoading } = useAreaSummaries(
+    area?.id ?? '',
+    false,
+  );
   const [isCreateOpen, setIsCreateOpen] = useState(false);
 
   if (isAreaLoading) {
     return (
-      <div className="flex flex-col gap-4">
-        <div className="h-6 w-64 animate-pulse rounded-lg bg-bg-weak-50" />
-        <div className="h-10 w-96 animate-pulse rounded-lg bg-bg-weak-50" />
-        <div className="h-12 animate-pulse rounded-lg bg-bg-weak-50" />
-        <div className="h-64 animate-pulse rounded-lg bg-bg-weak-50" />
+      <div className='flex flex-col gap-4'>
+        <div className='h-6 w-64 animate-pulse rounded-lg bg-bg-weak-50' />
+        <div className='h-10 w-96 animate-pulse rounded-lg bg-bg-weak-50' />
+        <div className='h-12 animate-pulse rounded-lg bg-bg-weak-50' />
+        <div className='h-64 animate-pulse rounded-lg bg-bg-weak-50' />
       </div>
     );
   }
 
   if (!area) {
     return (
-      <div className="flex flex-col items-center justify-center gap-2 py-20 text-text-soft-400">
-        <p className="text-paragraph-sm">Área não encontrada.</p>
+      <div className='flex flex-col items-center justify-center gap-2 py-20 text-text-soft-400'>
+        <p className='text-paragraph-sm'>Área não encontrada.</p>
       </div>
     );
   }
@@ -55,7 +57,7 @@ export default function AreaPage() {
         parentNameFn={() => area.name}
         deptSlug={area.departmentSlug}
         departmentId={area.departmentId}
-        emptyMessage="Nenhum processo nesta área."
+        emptyMessage='Nenhum processo nesta área.'
         onCreateTask={() => setIsCreateOpen(true)}
         customFieldsScope={{ kind: 'folder', folderId: area.id }}
       />

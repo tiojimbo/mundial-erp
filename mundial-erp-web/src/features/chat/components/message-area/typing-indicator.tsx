@@ -22,9 +22,7 @@ export function TypingIndicator({ channelId }: TypingIndicatorProps) {
 
   return (
     <div className='px-4 py-1'>
-      <span className='text-paragraph-xs text-text-soft-400'>
-        {text}...
-      </span>
+      <span className='text-paragraph-xs text-text-soft-400'>{text}...</span>
     </div>
   );
 }

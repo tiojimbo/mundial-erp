@@ -1,8 +1,4 @@
-import {
-  useQuery,
-  useMutation,
-  useQueryClient,
-} from '@tanstack/react-query';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { companyService } from '../services/company.service';
 import type { UpdateCompanyPayload } from '../types/settings.types';
 
@@ -18,7 +14,8 @@ export function useCompany() {
 export function useUpdateCompany() {
   const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: (payload: UpdateCompanyPayload) => companyService.update(payload),
+    mutationFn: (payload: UpdateCompanyPayload) =>
+      companyService.update(payload),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: COMPANY_KEY });
     },

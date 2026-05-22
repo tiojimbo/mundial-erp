@@ -65,18 +65,13 @@ export const quotationService = {
   async createPurchaseOrder(
     payload: CreatePurchaseOrderPayload,
   ): Promise<PurchaseOrder> {
-    const { data } = await api.post<PurchaseOrder>(
-      '/purchase-orders',
-      payload,
-    );
+    const { data } = await api.post<PurchaseOrder>('/purchase-orders', payload);
     return data;
   },
 
   async getPurchaseOrders(): Promise<PaginatedResponse<PurchaseOrder>> {
-    const { data } = await api.get<PaginatedResponse<PurchaseOrder>>(
-      '/purchase-orders',
-    );
+    const { data } =
+      await api.get<PaginatedResponse<PurchaseOrder>>('/purchase-orders');
     return data;
   },
-
 };

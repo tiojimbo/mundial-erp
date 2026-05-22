@@ -6,6 +6,8 @@ type ProdutoDetalhePageProps = {
   params: { id: string };
 };
 
-export default function ProdutoDetalhePage({ params }: ProdutoDetalhePageProps) {
+export default function ProdutoDetalhePage({
+  params,
+}: ProdutoDetalhePageProps) {
   return <ProductDetail productId={params.id} />;
 }

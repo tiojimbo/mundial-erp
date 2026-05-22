@@ -94,7 +94,9 @@ export class TaskChecklistsService {
       position,
     });
 
-    return ChecklistResponseDto.fromEntity(created as unknown as ChecklistShape);
+    return ChecklistResponseDto.fromEntity(
+      created as unknown as ChecklistShape,
+    );
   }
 
   async updateChecklist(
@@ -112,7 +114,9 @@ export class TaskChecklistsService {
     if (dto.position !== undefined) data.position = dto.position;
 
     const updated = await this.repository.updateChecklist(id, data);
-    return ChecklistResponseDto.fromEntity(updated as unknown as ChecklistShape);
+    return ChecklistResponseDto.fromEntity(
+      updated as unknown as ChecklistShape,
+    );
   }
 
   async removeChecklist(workspaceId: string, id: string): Promise<void> {
@@ -147,9 +151,7 @@ export class TaskChecklistsService {
         dto.parentId,
       ]);
       if (parentExists.length !== 1) {
-        throw new BadRequestException(
-          'parentId nao pertence a esta checklist',
-        );
+        throw new BadRequestException('parentId nao pertence a esta checklist');
       }
     }
 
@@ -159,7 +161,8 @@ export class TaskChecklistsService {
 
     const itemsBefore = (checklist as unknown as ChecklistShape).items ?? [];
     const isFirstItem = itemsBefore.length === 0;
-    const parentWorkItemId = (checklist as unknown as ChecklistShape).workItemId;
+    const parentWorkItemId = (checklist as unknown as ChecklistShape)
+      .workItemId;
     const parentChecklistTitle = (checklist as unknown as ChecklistShape).title;
 
     const created = await this.prisma.$transaction(async (tx) => {
@@ -217,9 +220,7 @@ export class TaskChecklistsService {
         dto.parentId,
       ]);
       if (parentExists.length !== 1) {
-        throw new BadRequestException(
-          'parentId nao pertence a esta checklist',
-        );
+        throw new BadRequestException('parentId nao pertence a esta checklist');
       }
     }
 

@@ -21,12 +21,15 @@ export function CnpjField({
   error,
   inline,
 }: BaseFieldProps<string | null>) {
-  const initial = value === null || value === undefined ? '' : maskCnpj(String(value));
+  const initial =
+    value === null || value === undefined ? '' : maskCnpj(String(value));
   const [localValue, setLocalValue] = useState<string>(initial);
   const debounced = useDebouncedOnChange<string | null>(onChange);
 
   useEffect(() => {
-    setLocalValue(value === null || value === undefined ? '' : maskCnpj(String(value)));
+    setLocalValue(
+      value === null || value === undefined ? '' : maskCnpj(String(value)),
+    );
   }, [value]);
 
   const isReadOnly = readOnly || definition.config?.readOnly === true;
@@ -41,9 +44,9 @@ export function CnpjField({
       {(controlProps) => (
         <input
           {...controlProps}
-          type="text"
-          inputMode="numeric"
-          autoComplete="off"
+          type='text'
+          inputMode='numeric'
+          autoComplete='off'
           className={inline ? inputClassInline : inputClass}
           value={localValue}
           readOnly={isReadOnly}

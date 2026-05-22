@@ -27,9 +27,7 @@ type PrismaMock = {
 };
 
 const buildContext = (workspaceId?: string): ExecutionContext => {
-  const request = workspaceId
-    ? { user: { workspaceId } }
-    : { user: undefined };
+  const request = workspaceId ? { user: { workspaceId } } : { user: undefined };
   return {
     switchToHttp: () => ({
       getRequest: () => request,
@@ -50,13 +48,11 @@ const buildGuard = async (
       {
         provide: ConfigService,
         useValue: {
-          get: jest.fn(
-            (key: string, defaultVal?: unknown): unknown => {
-              if (key === 'FEATURE_TASK_TYPE_TEMPLATES_ENABLED')
-                return globalEnabled;
-              return defaultVal;
-            },
-          ),
+          get: jest.fn((key: string, defaultVal?: unknown): unknown => {
+            if (key === 'FEATURE_TASK_TYPE_TEMPLATES_ENABLED')
+              return globalEnabled;
+            return defaultVal;
+          }),
         },
       },
     ],
@@ -153,7 +149,10 @@ describe('TaskTypeTemplatesGuard', () => {
   it('6. fail-open em erro de DB → libera e loga warn', async () => {
     const guard = await buildGuard(true, prisma);
     const warnSpy = jest
-      .spyOn((guard as unknown as { logger: { warn: jest.Mock } }).logger, 'warn')
+      .spyOn(
+        (guard as unknown as { logger: { warn: jest.Mock } }).logger,
+        'warn',
+      )
       .mockImplementation(() => undefined);
     prisma.workspace.findUnique.mockRejectedValue(new Error('connection lost'));
 

@@ -71,9 +71,10 @@ export function MentionMenu({
   const allItems = [...SPECIAL_MENTIONS, ...userItems];
 
   const filtered = query
-    ? allItems.filter((item) =>
-        item.label.toLowerCase().includes(`@${query}`.toLowerCase()) ||
-        item.label.toLowerCase().includes(query.toLowerCase()),
+    ? allItems.filter(
+        (item) =>
+          item.label.toLowerCase().includes(`@${query}`.toLowerCase()) ||
+          item.label.toLowerCase().includes(query.toLowerCase()),
       )
     : allItems;
 
@@ -197,9 +198,7 @@ function MentionRow({
           {item.value === '@followers' && (
             <RiUserFollowLine className='size-4' />
           )}
-          {item.value === '@assignees' && (
-            <RiUserStarLine className='size-4' />
-          )}
+          {item.value === '@assignees' && <RiUserStarLine className='size-4' />}
         </span>
       ) : (
         <span className='flex size-7 shrink-0 items-center justify-center rounded-full bg-[#7c3aed] text-[10px] font-semibold text-white'>
@@ -207,9 +206,7 @@ function MentionRow({
         </span>
       )}
       <div className='min-w-0 flex-1'>
-        <span className='font-medium text-text-strong-950'>
-          {item.label}
-        </span>
+        <span className='font-medium text-text-strong-950'>{item.label}</span>
         {item.description && (
           <p className='truncate text-[12px] text-text-soft-400'>
             {item.description}

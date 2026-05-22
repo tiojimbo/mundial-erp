@@ -289,11 +289,7 @@ export class WorkItemsService {
     };
   }
 
-  async findGrouped(
-    workspaceId: string,
-    listId: string,
-    showClosed = false,
-  ) {
+  async findGrouped(workspaceId: string, listId: string, showClosed = false) {
     const process = await this.workItemsRepository.findProcessById(
       workspaceId,
       listId,

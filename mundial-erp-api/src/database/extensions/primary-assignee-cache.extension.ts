@@ -43,7 +43,9 @@ export const PRIMARY_ASSIGNEE_CACHE_EXTENSION_NAME =
  * prefixamos explicitamente com `__` e documentamos o escopo restrito.
  */
 export async function __recalcPrimaryAssigneeCache(
-  client: Prisma.TransactionClient | { workItemAssignee: unknown; workItem: unknown },
+  client:
+    | Prisma.TransactionClient
+    | { workItemAssignee: unknown; workItem: unknown },
   workItemId: string,
 ): Promise<void> {
   const tx = client as Prisma.TransactionClient;
@@ -93,8 +95,11 @@ async function collectAffectedWorkItemIds(
   switch (operation) {
     case 'create':
     case 'upsert': {
-      const a = args as { create?: QueryArgsWithWhere; data?: QueryArgsWithWhere['data'] };
-      const data = (a.create as QueryArgsWithWhere | undefined)?.data ?? a.data;
+      const a = args as {
+        create?: QueryArgsWithWhere;
+        data?: QueryArgsWithWhere['data'];
+      };
+      const data = a.create?.data ?? a.data;
       if (data?.workItemId) ids.add(data.workItemId);
       break;
     }
@@ -174,136 +179,164 @@ export const primaryAssigneeCacheExtension = Prisma.defineExtension({
   name: PRIMARY_ASSIGNEE_CACHE_EXTENSION_NAME,
   query: {
     workItemAssignee: {
-      async create<T>(
-        { args, query }: { args: unknown; query: QueryCallback<unknown, T> },
-      ): Promise<T> {
+      async create<T>({
+        args,
+        query,
+      }: {
+        args: unknown;
+        query: QueryCallback<unknown, T>;
+      }): Promise<T> {
         const result = await query(args);
         // Usa o próprio `this` (extended client/tx) para manter atomicidade.
         const affected = await collectAffectedWorkItemIds(
           'workItemAssignee',
           'create',
           args,
-          (this as unknown) as Prisma.TransactionClient,
+          this as unknown as Prisma.TransactionClient,
         );
         for (const id of affected) {
           await __recalcPrimaryAssigneeCache(
-            (this as unknown) as Prisma.TransactionClient,
+            this as unknown as Prisma.TransactionClient,
             id,
           );
         }
         return result;
       },
 
-      async createMany<T>(
-        { args, query }: { args: unknown; query: QueryCallback<unknown, T> },
-      ): Promise<T> {
+      async createMany<T>({
+        args,
+        query,
+      }: {
+        args: unknown;
+        query: QueryCallback<unknown, T>;
+      }): Promise<T> {
         const result = await query(args);
         const affected = await collectAffectedWorkItemIds(
           'workItemAssignee',
           'createMany',
           args,
-          (this as unknown) as Prisma.TransactionClient,
+          this as unknown as Prisma.TransactionClient,
         );
         for (const id of affected) {
           await __recalcPrimaryAssigneeCache(
-            (this as unknown) as Prisma.TransactionClient,
+            this as unknown as Prisma.TransactionClient,
             id,
           );
         }
         return result;
       },
 
-      async update<T>(
-        { args, query }: { args: unknown; query: QueryCallback<unknown, T> },
-      ): Promise<T> {
+      async update<T>({
+        args,
+        query,
+      }: {
+        args: unknown;
+        query: QueryCallback<unknown, T>;
+      }): Promise<T> {
         // Captura ids afetados ANTES da query (caso o where identifique o row).
         const before = await collectAffectedWorkItemIds(
           'workItemAssignee',
           'update',
           args,
-          (this as unknown) as Prisma.TransactionClient,
+          this as unknown as Prisma.TransactionClient,
         );
         const result = await query(args);
         for (const id of before) {
           await __recalcPrimaryAssigneeCache(
-            (this as unknown) as Prisma.TransactionClient,
+            this as unknown as Prisma.TransactionClient,
             id,
           );
         }
         return result;
       },
 
-      async updateMany<T>(
-        { args, query }: { args: unknown; query: QueryCallback<unknown, T> },
-      ): Promise<T> {
+      async updateMany<T>({
+        args,
+        query,
+      }: {
+        args: unknown;
+        query: QueryCallback<unknown, T>;
+      }): Promise<T> {
         const before = await collectAffectedWorkItemIds(
           'workItemAssignee',
           'updateMany',
           args,
-          (this as unknown) as Prisma.TransactionClient,
+          this as unknown as Prisma.TransactionClient,
         );
         const result = await query(args);
         for (const id of before) {
           await __recalcPrimaryAssigneeCache(
-            (this as unknown) as Prisma.TransactionClient,
+            this as unknown as Prisma.TransactionClient,
             id,
           );
         }
         return result;
       },
 
-      async delete<T>(
-        { args, query }: { args: unknown; query: QueryCallback<unknown, T> },
-      ): Promise<T> {
+      async delete<T>({
+        args,
+        query,
+      }: {
+        args: unknown;
+        query: QueryCallback<unknown, T>;
+      }): Promise<T> {
         // Precisamos descobrir o workItemId ANTES do delete.
         const before = await collectAffectedWorkItemIds(
           'workItemAssignee',
           'delete',
           args,
-          (this as unknown) as Prisma.TransactionClient,
+          this as unknown as Prisma.TransactionClient,
         );
         const result = await query(args);
         for (const id of before) {
           await __recalcPrimaryAssigneeCache(
-            (this as unknown) as Prisma.TransactionClient,
+            this as unknown as Prisma.TransactionClient,
             id,
           );
         }
         return result;
       },
 
-      async deleteMany<T>(
-        { args, query }: { args: unknown; query: QueryCallback<unknown, T> },
-      ): Promise<T> {
+      async deleteMany<T>({
+        args,
+        query,
+      }: {
+        args: unknown;
+        query: QueryCallback<unknown, T>;
+      }): Promise<T> {
         const before = await collectAffectedWorkItemIds(
           'workItemAssignee',
           'deleteMany',
           args,
-          (this as unknown) as Prisma.TransactionClient,
+          this as unknown as Prisma.TransactionClient,
         );
         const result = await query(args);
         for (const id of before) {
           await __recalcPrimaryAssigneeCache(
-            (this as unknown) as Prisma.TransactionClient,
+            this as unknown as Prisma.TransactionClient,
             id,
           );
         }
         return result;
       },
 
-      async upsert<T>(
-        { args, query }: { args: unknown; query: QueryCallback<unknown, T> },
-      ): Promise<T> {
+      async upsert<T>({
+        args,
+        query,
+      }: {
+        args: unknown;
+        query: QueryCallback<unknown, T>;
+      }): Promise<T> {
         const before = await collectAffectedWorkItemIds(
           'workItemAssignee',
           'upsert',
           args,
-          (this as unknown) as Prisma.TransactionClient,
+          this as unknown as Prisma.TransactionClient,
         );
         const result = await query(args);
         for (const id of before) {
           await __recalcPrimaryAssigneeCache(
-            (this as unknown) as Prisma.TransactionClient,
+            this as unknown as Prisma.TransactionClient,
             id,
           );
         }

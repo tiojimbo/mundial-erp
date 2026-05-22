@@ -67,9 +67,7 @@ export function APTable() {
       {/* Header */}
       <div className='flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between'>
         <div>
-          <h1 className='text-title-h5 text-text-strong-950'>
-            Contas a Pagar
-          </h1>
+          <h1 className='text-title-h5 text-text-strong-950'>Contas a Pagar</h1>
           <p className='text-paragraph-sm text-text-sub-600'>
             Gerencie os pagamentos a fornecedores e despesas.
           </p>
@@ -106,94 +104,94 @@ export function APTable() {
       </div>
 
       {/* Table */}
-        <Table.Root>
-          <Table.Header>
+      <Table.Root>
+        <Table.Header>
+          <Table.Row>
+            <Table.Head>Descrição</Table.Head>
+            <Table.Head>Fornecedor</Table.Head>
+            <Table.Head>Categoria</Table.Head>
+            <Table.Head className='text-right'>Valor</Table.Head>
+            <Table.Head className='text-right'>Pago</Table.Head>
+            <Table.Head>Vencimento</Table.Head>
+            <Table.Head>Status</Table.Head>
+            <Table.Head className='text-right'>Ações</Table.Head>
+          </Table.Row>
+        </Table.Header>
+        <Table.Body>
+          {isLoading ? (
+            Array.from({ length: 5 }).map((_, i) => (
+              <Table.Row key={i}>
+                {Array.from({ length: 8 }).map((__, j) => (
+                  <Table.Cell key={j}>
+                    <div className='h-4 w-24 animate-pulse rounded bg-bg-weak-50' />
+                  </Table.Cell>
+                ))}
+              </Table.Row>
+            ))
+          ) : items.length === 0 ? (
             <Table.Row>
-              <Table.Head>Descrição</Table.Head>
-              <Table.Head>Fornecedor</Table.Head>
-              <Table.Head>Categoria</Table.Head>
-              <Table.Head className='text-right'>Valor</Table.Head>
-              <Table.Head className='text-right'>Pago</Table.Head>
-              <Table.Head>Vencimento</Table.Head>
-              <Table.Head>Status</Table.Head>
-              <Table.Head className='text-right'>Ações</Table.Head>
+              <Table.Cell colSpan={8} className='text-center'>
+                <p className='py-8 text-paragraph-sm text-text-soft-400'>
+                  {filters.search
+                    ? 'Nenhuma conta a pagar encontrada para esta busca.'
+                    : 'Nenhuma conta a pagar registrada.'}
+                </p>
+              </Table.Cell>
             </Table.Row>
-          </Table.Header>
-          <Table.Body>
-            {isLoading ? (
-              Array.from({ length: 5 }).map((_, i) => (
-                <Table.Row key={i}>
-                  {Array.from({ length: 8 }).map((__, j) => (
-                    <Table.Cell key={j}>
-                      <div className='h-4 w-24 animate-pulse rounded bg-bg-weak-50' />
-                    </Table.Cell>
-                  ))}
-                </Table.Row>
-              ))
-            ) : items.length === 0 ? (
-              <Table.Row>
-                <Table.Cell colSpan={8} className='text-center'>
-                  <p className='py-8 text-paragraph-sm text-text-soft-400'>
-                    {filters.search
-                      ? 'Nenhuma conta a pagar encontrada para esta busca.'
-                      : 'Nenhuma conta a pagar registrada.'}
-                  </p>
+          ) : (
+            items.map((ap) => (
+              <Table.Row key={ap.id}>
+                <Table.Cell>
+                  <button
+                    onClick={() =>
+                      router.push(`/financeiro/contas-a-pagar/${ap.id}`)
+                    }
+                    className='text-left text-label-sm text-text-strong-950 transition hover:text-primary-base'
+                  >
+                    {ap.description}
+                  </button>
+                </Table.Cell>
+                <Table.Cell>
+                  <span className='text-paragraph-sm text-text-sub-600'>
+                    {ap.supplier?.name ?? '—'}
+                  </span>
+                </Table.Cell>
+                <Table.Cell>
+                  <span className='text-paragraph-sm text-text-sub-600'>
+                    {ap.category?.name ?? '—'}
+                  </span>
+                </Table.Cell>
+                <Table.Cell className='text-right font-medium'>
+                  {formatCents(ap.amountCents)}
+                </Table.Cell>
+                <Table.Cell className='text-right'>
+                  {formatCents(ap.paidAmountCents)}
+                </Table.Cell>
+                <Table.Cell>
+                  <span className='text-paragraph-sm text-text-sub-600'>
+                    {formatDate(ap.dueDate)}
+                  </span>
+                </Table.Cell>
+                <Table.Cell>
+                  <PaymentStatusBadge status={ap.status} />
+                </Table.Cell>
+                <Table.Cell className='text-right'>
+                  <Button.Root
+                    asChild
+                    variant='neutral'
+                    mode='ghost'
+                    size='xxsmall'
+                  >
+                    <Link href={`/financeiro/contas-a-pagar/${ap.id}`}>
+                      <Button.Icon as={RiEyeLine} />
+                    </Link>
+                  </Button.Root>
                 </Table.Cell>
               </Table.Row>
-            ) : (
-              items.map((ap) => (
-                <Table.Row key={ap.id}>
-                  <Table.Cell>
-                    <button
-                      onClick={() =>
-                        router.push(`/financeiro/contas-a-pagar/${ap.id}`)
-                      }
-                      className='text-left text-label-sm text-text-strong-950 transition hover:text-primary-base'
-                    >
-                      {ap.description}
-                    </button>
-                  </Table.Cell>
-                  <Table.Cell>
-                    <span className='text-paragraph-sm text-text-sub-600'>
-                      {ap.supplier?.name ?? '—'}
-                    </span>
-                  </Table.Cell>
-                  <Table.Cell>
-                    <span className='text-paragraph-sm text-text-sub-600'>
-                      {ap.category?.name ?? '—'}
-                    </span>
-                  </Table.Cell>
-                  <Table.Cell className='text-right font-medium'>
-                    {formatCents(ap.amountCents)}
-                  </Table.Cell>
-                  <Table.Cell className='text-right'>
-                    {formatCents(ap.paidAmountCents)}
-                  </Table.Cell>
-                  <Table.Cell>
-                    <span className='text-paragraph-sm text-text-sub-600'>
-                      {formatDate(ap.dueDate)}
-                    </span>
-                  </Table.Cell>
-                  <Table.Cell>
-                    <PaymentStatusBadge status={ap.status} />
-                  </Table.Cell>
-                  <Table.Cell className='text-right'>
-                    <Button.Root
-                      asChild
-                      variant='neutral'
-                      mode='ghost'
-                      size='xxsmall'
-                    >
-                      <Link href={`/financeiro/contas-a-pagar/${ap.id}`}>
-                        <Button.Icon as={RiEyeLine} />
-                      </Link>
-                    </Button.Root>
-                  </Table.Cell>
-                </Table.Row>
-              ))
-            )}
-          </Table.Body>
-        </Table.Root>
+            ))
+          )}
+        </Table.Body>
+      </Table.Root>
 
       {/* Pagination */}
       {pagination && pagination.totalPages > 1 && (

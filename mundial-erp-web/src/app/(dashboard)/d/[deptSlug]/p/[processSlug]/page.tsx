@@ -3,10 +3,8 @@
 import { useMemo, useState } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import {
-  RiAddLine,
   RiListCheck2,
   RiLayoutColumnLine,
-  RiChat1Line,
   RiCalendar2Line,
   RiBarChart2Line,
   type RemixiconComponentType,
@@ -51,7 +49,6 @@ const VIEW_TYPE_LABEL: Record<ProcessViewType, string> = {
   CALENDAR: 'Calendário',
   GANTT: 'Gantt',
 };
-
 
 /**
  * Find the matching department + area + process from the sidebar tree using URL slugs.
@@ -142,8 +139,10 @@ export default function GenericProcessPage() {
     return customViews?.find((v) => v.id === activeViewId) ?? null;
   }, [activeViewId, customViews]);
 
-  const isBoardActive = activeViewId === 'board' || activeCustomView?.viewType === 'BOARD';
-  const isCalendarActive = activeViewId === 'calendar' || activeCustomView?.viewType === 'CALENDAR';
+  const isBoardActive =
+    activeViewId === 'board' || activeCustomView?.viewType === 'BOARD';
+  const isCalendarActive =
+    activeViewId === 'calendar' || activeCustomView?.viewType === 'CALENDAR';
 
   const boardTasks: Task[] = useMemo(() => {
     if (!groupedData) return [];
@@ -190,8 +189,7 @@ export default function GenericProcessPage() {
       isPrivate: process.isPrivate,
       areaId: area?.id ?? null,
       areaName: area?.name ?? null,
-      totalItems:
-        groupedData?.reduce((sum, e) => sum + e.tasks.length, 0) ?? 0,
+      totalItems: groupedData?.reduce((sum, e) => sum + e.tasks.length, 0) ?? 0,
       groups: (groupedData ?? []).map((entry) => ({
         statusId: entry.group.id,
         statusName: entry.group.name,
@@ -225,11 +223,11 @@ export default function GenericProcessPage() {
   // Loading state (tree not yet loaded)
   if (isTreeLoading) {
     return (
-      <div className="flex flex-col gap-4">
-        <div className="h-6 w-64 animate-pulse rounded-lg bg-bg-weak-50" />
-        <div className="h-10 w-96 animate-pulse rounded-lg bg-bg-weak-50" />
-        <div className="h-12 animate-pulse rounded-lg bg-bg-weak-50" />
-        <div className="h-64 animate-pulse rounded-lg bg-bg-weak-50" />
+      <div className='flex flex-col gap-4'>
+        <div className='h-6 w-64 animate-pulse rounded-lg bg-bg-weak-50' />
+        <div className='h-10 w-96 animate-pulse rounded-lg bg-bg-weak-50' />
+        <div className='h-12 animate-pulse rounded-lg bg-bg-weak-50' />
+        <div className='h-64 animate-pulse rounded-lg bg-bg-weak-50' />
       </div>
     );
   }
@@ -237,8 +235,8 @@ export default function GenericProcessPage() {
   // Not found state
   if (!match) {
     return (
-      <div className="flex flex-col items-center justify-center gap-2 py-20 text-text-soft-400">
-        <p className="text-paragraph-sm">Processo não encontrado.</p>
+      <div className='flex flex-col items-center justify-center gap-2 py-20 text-text-soft-400'>
+        <p className='text-paragraph-sm'>Processo não encontrado.</p>
       </div>
     );
   }
@@ -246,15 +244,19 @@ export default function GenericProcessPage() {
   const { dept, area, process } = match;
 
   return (
-    <div className="relative -m-4 flex min-h-0 flex-1 flex-col overflow-hidden lg:-m-6">
+    <div className='relative -m-4 flex min-h-0 flex-1 flex-col overflow-hidden lg:-m-6'>
       {/* Page Header — FIXO (não rola) */}
-      <div className="shrink-0 border-b-[0.8px] border-stroke-soft-200">
+      <div className='shrink-0 border-b-[0.8px] border-stroke-soft-200'>
         <BreadcrumbTrail
           items={[
             { label: dept.name, href: `/d/${dept.slug}` },
             ...(area
               ? [
-                  { label: area.name, icon: Folder, href: `/d/${dept.slug}/a/${area.slug}` },
+                  {
+                    label: area.name,
+                    icon: Folder,
+                    href: `/d/${dept.slug}/a/${area.slug}`,
+                  },
                   { label: process.name, icon: LayoutList },
                 ]
               : [{ label: process.name, icon: Folder }]),
@@ -263,9 +265,9 @@ export default function GenericProcessPage() {
         />
 
         {/* Tabs */}
-        <nav className="flex items-center overflow-x-auto border-b border-border px-10">
+        <nav className='flex items-center overflow-x-auto border-b border-border px-10'>
           <button
-            type="button"
+            type='button'
             onClick={() => setActiveViewId('list')}
             onContextMenu={(e) => handleViewContextMenu(e, 'list')}
             className={`relative flex h-[35.5px] items-center gap-1.5 px-3 py-2 text-[13px] font-medium tracking-tight transition-colors ${
@@ -274,11 +276,11 @@ export default function GenericProcessPage() {
                 : 'text-muted-foreground hover:text-foreground'
             }`}
           >
-            <LayoutList className="size-3.5 shrink-0" aria-hidden />
+            <LayoutList className='size-3.5 shrink-0' aria-hidden />
             Lista
           </button>
           <button
-            type="button"
+            type='button'
             onClick={() => setActiveViewId('board')}
             className={`relative flex h-[35.5px] items-center gap-1.5 px-3 py-2 text-[13px] font-medium tracking-tight transition-colors ${
               activeViewId === 'board'
@@ -286,11 +288,11 @@ export default function GenericProcessPage() {
                 : 'text-muted-foreground hover:text-foreground'
             }`}
           >
-            <SquareKanban className="size-3.5 shrink-0" aria-hidden />
+            <SquareKanban className='size-3.5 shrink-0' aria-hidden />
             Quadro
           </button>
           <button
-            type="button"
+            type='button'
             onClick={() => setActiveViewId('calendar')}
             className={`relative flex h-[35.5px] items-center gap-1.5 px-3 py-2 text-[13px] font-medium tracking-tight transition-colors ${
               activeViewId === 'calendar'
@@ -298,7 +300,7 @@ export default function GenericProcessPage() {
                 : 'text-muted-foreground hover:text-foreground'
             }`}
           >
-            <Calendar className="size-3.5 shrink-0" aria-hidden />
+            <Calendar className='size-3.5 shrink-0' aria-hidden />
             Calendário
           </button>
           {customViews?.map((view) => {
@@ -307,7 +309,7 @@ export default function GenericProcessPage() {
             return (
               <button
                 key={view.id}
-                type="button"
+                type='button'
                 onClick={() => setActiveViewId(view.id)}
                 onContextMenu={(e) => handleViewContextMenu(e, view.id)}
                 className={`relative flex h-[35.5px] items-center gap-1.5 px-3 py-2 text-[13px] font-medium tracking-tight transition-colors ${
@@ -316,7 +318,7 @@ export default function GenericProcessPage() {
                     : 'text-muted-foreground hover:text-foreground'
                 }`}
               >
-                <Icon className="size-3.5 shrink-0" />
+                <Icon className='size-3.5 shrink-0' />
                 {view.name}
               </button>
             );
@@ -325,16 +327,15 @@ export default function GenericProcessPage() {
             processId={process.id}
             trigger={
               <button
-                type="button"
-                className="flex h-[35.5px] items-center gap-1.5 px-3 py-2 text-[13px] font-medium tracking-tight text-muted-foreground transition-colors hover:text-foreground"
+                type='button'
+                className='flex h-[35.5px] items-center gap-1.5 px-3 py-2 text-[13px] font-medium tracking-tight text-muted-foreground transition-colors hover:text-foreground'
               >
-                <Plus className="size-3.5 shrink-0" aria-hidden />
+                <Plus className='size-3.5 shrink-0' aria-hidden />
                 Nova Visualização
               </button>
             }
             onCreated={(viewId) => setActiveViewId(viewId)}
           />
-
         </nav>
       </div>
 
@@ -354,20 +355,20 @@ export default function GenericProcessPage() {
 
       {/* Tab Content */}
       {(activeViewId === 'list' || activeCustomView?.viewType === 'LIST') && (
-        <div className="flex min-h-0 flex-1 flex-col overflow-hidden">
+        <div className='flex min-h-0 flex-1 flex-col overflow-hidden'>
           {/* Content: Single ProcessCard — ÚNICO elemento com scroll */}
-          <div className="flex min-h-0 w-full flex-1 flex-col gap-4 overflow-auto pb-24">
+          <div className='flex min-h-0 w-full flex-1 flex-col gap-4 overflow-auto pb-24'>
             {isDataLoading ? (
-              <div className="space-y-4 px-10">
+              <div className='space-y-4 px-10'>
                 {[1, 2, 3].map((i) => (
                   <div
                     key={i}
-                    className="h-48 animate-pulse rounded-xl bg-bg-weak-50"
+                    className='h-48 animate-pulse rounded-xl bg-bg-weak-50'
                   />
                 ))}
               </div>
             ) : processSummary ? (
-              <div className="py-2">
+              <div className='py-2'>
                 <ProcessCardListBody process={processSummary} />
               </div>
             ) : null}
@@ -376,7 +377,7 @@ export default function GenericProcessPage() {
       )}
 
       {isBoardActive && (
-        <div className="flex min-h-0 flex-1 flex-col overflow-hidden px-10 py-4">
+        <div className='flex min-h-0 flex-1 flex-col overflow-hidden px-10 py-4'>
           <TaskBoard
             tasks={boardTasks}
             statuses={boardStatuses}
@@ -387,9 +388,9 @@ export default function GenericProcessPage() {
       )}
 
       {isCalendarActive && (
-        <div className="flex flex-col items-center justify-center gap-2 py-20 text-muted-foreground">
-          <Calendar className="size-8" aria-hidden />
-          <p className="text-[13px]">Visualização Calendário em breve.</p>
+        <div className='flex flex-col items-center justify-center gap-2 py-20 text-muted-foreground'>
+          <Calendar className='size-8' aria-hidden />
+          <p className='text-[13px]'>Visualização Calendário em breve.</p>
         </div>
       )}
 
@@ -397,12 +398,12 @@ export default function GenericProcessPage() {
         activeCustomView.viewType !== 'LIST' &&
         activeCustomView.viewType !== 'BOARD' &&
         activeCustomView.viewType !== 'CALENDAR' && (
-          <div className="flex flex-col items-center justify-center gap-2 py-20 text-muted-foreground">
+          <div className='flex flex-col items-center justify-center gap-2 py-20 text-muted-foreground'>
             {(() => {
               const Icon = VIEW_TYPE_ICON[activeCustomView.viewType];
-              return <Icon className="size-8" />;
+              return <Icon className='size-8' />;
             })()}
-            <p className="text-[13px]">
+            <p className='text-[13px]'>
               Visualização {VIEW_TYPE_LABEL[activeCustomView.viewType]} em
               breve.
             </p>
@@ -419,9 +420,7 @@ export default function GenericProcessPage() {
 
       <ViewContextMenu
         state={contextMenu}
-        onOpenChange={(open) =>
-          setContextMenu((s) => ({ ...s, open }))
-        }
+        onOpenChange={(open) => setContextMenu((s) => ({ ...s, open }))}
         canDelete={isAdmin && contextMenu.viewId !== 'list'}
         onDelete={handleDeleteView}
       />

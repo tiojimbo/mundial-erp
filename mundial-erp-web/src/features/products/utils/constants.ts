@@ -1,4 +1,7 @@
-import type { ProductClassification, ProductStatus } from '../types/product.types';
+import type {
+  ProductClassification,
+  ProductStatus,
+} from '../types/product.types';
 
 export const CLASSIFICATION_LABELS: Record<ProductClassification, string> = {
   FABRICACAO_PROPRIA: 'Fabricação Própria',
@@ -23,11 +26,12 @@ export const STATUS_LABELS: Record<ProductStatus, string> = {
   INACTIVE: 'Inativo',
 };
 
-export const STATUS_COLORS: Record<ProductStatus, 'orange' | 'green' | 'red'> = {
-  DRAFT: 'orange',
-  ACTIVE: 'green',
-  INACTIVE: 'red',
-};
+export const STATUS_COLORS: Record<ProductStatus, 'orange' | 'green' | 'red'> =
+  {
+    DRAFT: 'orange',
+    ACTIVE: 'green',
+    INACTIVE: 'red',
+  };
 
 export const CLASSIFICATION_OPTIONS = [
   { value: 'FABRICACAO_PROPRIA', label: 'Fabricação Própria' },

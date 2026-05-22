@@ -17,11 +17,7 @@
  * determinismo nos filtros/paginacao/cross-tenant.
  */
 import { Test, TestingModule } from '@nestjs/testing';
-import {
-  INestApplication,
-  Logger,
-  ValidationPipe,
-} from '@nestjs/common';
+import { INestApplication, Logger, ValidationPipe } from '@nestjs/common';
 import request from 'supertest';
 import { App } from 'supertest/types';
 import { AppModule } from '../../../src/app.module';
@@ -235,7 +231,9 @@ describe('Task Activities (e2e)', () => {
 
     const result = await pollUntil(async () => {
       const data = await fetchActivities(wsA!.token, taskA!.taskId);
-      return data.items.find((a) => a.type === 'DUE_DATE_CHANGED') ? data : null;
+      return data.items.find((a) => a.type === 'DUE_DATE_CHANGED')
+        ? data
+        : null;
     });
 
     if (!result) {

@@ -1,9 +1,6 @@
 import { create } from 'zustand';
 import { persist, createJSONStorage } from 'zustand/middleware';
-import type {
-  CollapsibleSectionKey,
-  TaskFilters,
-} from '../types/task.types';
+import type { CollapsibleSectionKey, TaskFilters } from '../types/task.types';
 import {
   DEFAULT_ACTIVITY_FILTERS,
   type ActivityFilters,
@@ -56,7 +53,10 @@ type TasksUiActions = {
   setActivitiesPanelOpen: (open: boolean) => void;
   toggleSection: (key: CollapsibleSectionKey) => void;
   setSectionCollapsed: (key: CollapsibleSectionKey, collapsed: boolean) => void;
-  setActivitiesFilter: (taskId: string, patch: Partial<ActivityFilters>) => void;
+  setActivitiesFilter: (
+    taskId: string,
+    patch: Partial<ActivityFilters>,
+  ) => void;
   clearActivitiesFilter: (taskId: string) => void;
   registerSseConnection: (taskId: string) => boolean;
   unregisterSseConnection: (taskId: string) => void;

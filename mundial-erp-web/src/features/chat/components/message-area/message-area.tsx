@@ -38,11 +38,8 @@ export function MessageArea({ channelId }: MessageAreaProps) {
       {/* Header */}
       <div className='flex h-14 shrink-0 items-center justify-between rounded-xl border border-border bg-background px-4'>
         <div className='flex min-w-0 items-center gap-2'>
-          <Hash
-            className='size-4 shrink-0 text-muted-foreground'
-            aria-hidden
-          />
-          <h2 className='truncate text-sm font-semibold'>
+          <Hash className='size-4 shrink-0 text-muted-foreground' aria-hidden />
+          <h2 className='text-sm truncate font-semibold'>
             {channel?.name ?? 'Canal'}
           </h2>
         </div>

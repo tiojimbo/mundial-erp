@@ -20,7 +20,6 @@ export function ProcessCard({
   process,
   parentName,
   deptSlug,
-  departmentId,
 }: ProcessCardProps) {
   const [collapsed, setCollapsed] = useState(false);
 
@@ -31,12 +30,12 @@ export function ProcessCard({
     process.featureRoute || `/d/${deptSlug}/p/${process.slug}`;
 
   return (
-    <div className="mx-4 min-w-fit shrink-0 rounded-xl border border-stroke-soft-200 bg-bg-white-0 md:mx-6 lg:mx-10">
+    <div className='mx-4 min-w-fit shrink-0 rounded-xl border border-stroke-soft-200 bg-bg-white-0 md:mx-6 lg:mx-10'>
       {/* Card Header */}
-      <div className="group/header flex items-center gap-3 px-5 py-4">
+      <div className='group/header flex items-center gap-3 px-5 py-4'>
         {/* Collapse button */}
         <button
-          type="button"
+          type='button'
           onClick={() => setCollapsed((v) => !v)}
           aria-expanded={!collapsed}
           aria-label={collapsed ? 'Expandir lista' : 'Recolher lista'}
@@ -46,38 +45,38 @@ export function ProcessCard({
           )}
         >
           <svg
-            xmlns="http://www.w3.org/2000/svg"
-            width="24"
-            height="24"
-            viewBox="0 0 24 24"
-            fill="none"
-            stroke="currentColor"
-            strokeWidth="2"
-            strokeLinecap="round"
-            strokeLinejoin="round"
+            xmlns='http://www.w3.org/2000/svg'
+            width='24'
+            height='24'
+            viewBox='0 0 24 24'
+            fill='none'
+            stroke='currentColor'
+            strokeWidth='2'
+            strokeLinecap='round'
+            strokeLinejoin='round'
             className={cn(
               'lucide lucide-chevron-right h-3.5 w-3.5 transition-transform duration-200',
               !collapsed && 'rotate-90',
             )}
-            aria-hidden="true"
+            aria-hidden='true'
           >
-            <path d="m9 18 6-6-6-6" />
+            <path d='m9 18 6-6-6-6' />
           </svg>
         </button>
 
         {/* Title */}
-        <div className="flex min-w-0 flex-1 flex-col gap-0.5">
-          <span className="truncate text-subheading-2xs text-text-sub-600">
+        <div className='flex min-w-0 flex-1 flex-col gap-0.5'>
+          <span className='truncate text-subheading-2xs text-text-sub-600'>
             {parentName}
           </span>
-          <div className="flex items-center gap-2">
+          <div className='flex items-center gap-2'>
             <Link
               href={processHref}
-              className="truncate text-label-md text-text-strong-950 hover:underline"
+              className='truncate text-label-md text-text-strong-950 hover:underline'
             >
               {process.name}
             </Link>
-            <span className="text-label-xs tabular-nums text-text-soft-400">
+            <span className='text-label-xs tabular-nums text-text-soft-400'>
               {totalCount}
             </span>
           </div>
@@ -87,13 +86,13 @@ export function ProcessCard({
         <Dropdown.Root>
           <Dropdown.Trigger asChild>
             <button
-              type="button"
-              className="flex size-6 shrink-0 items-center justify-center rounded text-text-soft-400 opacity-0 transition-all hover:bg-bg-weak-50 group-hover/header:opacity-100"
+              type='button'
+              className='flex size-6 shrink-0 items-center justify-center rounded text-text-soft-400 opacity-0 transition-all hover:bg-bg-weak-50 group-hover/header:opacity-100'
             >
-              <RiMoreLine className="size-4" />
+              <RiMoreLine className='size-4' />
             </button>
           </Dropdown.Trigger>
-          <Dropdown.Content align="end" className="w-40">
+          <Dropdown.Content align='end' className='w-40'>
             <Dropdown.Item asChild>
               <Link href={processHref}>Abrir processo</Link>
             </Dropdown.Item>

@@ -4,16 +4,24 @@
 
 import type { Meta, StoryObj } from '@storybook/react';
 import type { CustomFieldDefinition } from '../../types/custom-field.types';
-import { makeCustomFieldDefinition } from "../../types/custom-field.fixtures";
+import { makeCustomFieldDefinition } from '../../types/custom-field.fixtures';
 import { DropdownField } from './dropdown-field';
 
-const baseDef: CustomFieldDefinition = makeCustomFieldDefinition({ id: 'def-drop-1', workspaceId: null, name: 'Forma de pagamento', type: 'DROPDOWN', config: {
+const baseDef: CustomFieldDefinition = makeCustomFieldDefinition({
+  id: 'def-drop-1',
+  workspaceId: null,
+  name: 'Forma de pagamento',
+  type: 'DROPDOWN',
+  config: {
     options: [
       { value: 'PIX', label: 'PIX' },
       { value: 'BOLETO', label: 'Boleto bancario' },
       { value: 'CARTAO', label: 'Cartao de credito' },
     ],
-  }, fixed: true, position: 50 });
+  },
+  fixed: true,
+  position: 50,
+});
 
 const meta: Meta<typeof DropdownField> = {
   title: 'CustomFields/DropdownField',

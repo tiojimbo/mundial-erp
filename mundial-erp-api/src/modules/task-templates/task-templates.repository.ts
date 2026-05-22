@@ -68,14 +68,7 @@ export class TaskTemplatesRepository {
   constructor(private readonly prisma: PrismaService) {}
 
   async findMany(workspaceId: string, params: TemplateFindManyParams) {
-    const {
-      skip = 0,
-      take = 20,
-      scope,
-      spaceId,
-      listId,
-      search,
-    } = params;
+    const { skip = 0, take = 20, scope, spaceId, listId, search } = params;
 
     const where: Prisma.WorkItemTemplateWhereInput = {
       workspaceId,

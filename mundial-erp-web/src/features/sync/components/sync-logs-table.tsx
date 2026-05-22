@@ -1,10 +1,7 @@
 'use client';
 
 import { useState } from 'react';
-import {
-  RiArrowLeftSLine,
-  RiArrowRightSLine,
-} from '@remixicon/react';
+import { RiArrowLeftSLine, RiArrowRightSLine } from '@remixicon/react';
 import * as Table from '@/components/ui/table';
 import * as StatusBadge from '@/components/ui/status-badge';
 import * as Pagination from '@/components/ui/pagination';
@@ -57,7 +54,10 @@ type SyncLogsTableProps = {
   statusFilter?: SyncStatus;
 };
 
-export function SyncLogsTable({ entityFilter, statusFilter }: SyncLogsTableProps) {
+export function SyncLogsTable({
+  entityFilter,
+  statusFilter,
+}: SyncLogsTableProps) {
   const [page, setPage] = useState(1);
   const filters: SyncLogFilters = {
     page,
@@ -89,7 +89,7 @@ export function SyncLogsTable({ entityFilter, statusFilter }: SyncLogsTableProps
             <Table.Row key={i}>
               {Array.from({ length: 7 }).map((__, j) => (
                 <Table.Cell key={j}>
-                  <div className="h-4 w-20 animate-pulse rounded bg-bg-weak-50" />
+                  <div className='h-4 w-20 animate-pulse rounded bg-bg-weak-50' />
                 </Table.Cell>
               ))}
             </Table.Row>
@@ -104,15 +104,17 @@ export function SyncLogsTable({ entityFilter, statusFilter }: SyncLogsTableProps
 
   if (logs.length === 0) {
     return (
-      <div className="flex h-40 items-center justify-center rounded-xl border border-stroke-soft-200">
-        <p className="text-paragraph-sm text-text-soft-400">Nenhum log de sincronização encontrado.</p>
+      <div className='flex h-40 items-center justify-center rounded-xl border border-stroke-soft-200'>
+        <p className='text-paragraph-sm text-text-soft-400'>
+          Nenhum log de sincronização encontrado.
+        </p>
       </div>
     );
   }
 
   return (
-    <div className="space-y-4">
-      <div className="overflow-hidden rounded-xl border border-stroke-soft-200">
+    <div className='space-y-4'>
+      <div className='overflow-hidden rounded-xl border border-stroke-soft-200'>
         <Table.Root>
           <Table.Header>
             <Table.Row>
@@ -130,7 +132,7 @@ export function SyncLogsTable({ entityFilter, statusFilter }: SyncLogsTableProps
               const badgeProps = getStatusBadgeProps(log.status);
               return (
                 <Table.Row key={log.id}>
-                  <Table.Cell className="text-label-sm text-text-strong-950">
+                  <Table.Cell className='text-label-sm text-text-strong-950'>
                     {SYNC_ENTITY_LABELS[log.entity]}
                   </Table.Cell>
                   <Table.Cell>
@@ -143,15 +145,17 @@ export function SyncLogsTable({ entityFilter, statusFilter }: SyncLogsTableProps
                   <Table.Cell>{log.syncedRecords}</Table.Cell>
                   <Table.Cell>
                     {log.failedRecords > 0 ? (
-                      <span className="text-error-base">{log.failedRecords}</span>
+                      <span className='text-error-base'>
+                        {log.failedRecords}
+                      </span>
                     ) : (
                       log.failedRecords
                     )}
                   </Table.Cell>
-                  <Table.Cell className="text-paragraph-xs text-text-sub-600">
+                  <Table.Cell className='text-paragraph-xs text-text-sub-600'>
                     {formatDateTime(log.startedAt)}
                   </Table.Cell>
-                  <Table.Cell className="text-paragraph-xs text-text-sub-600">
+                  <Table.Cell className='text-paragraph-xs text-text-sub-600'>
                     {log.completedAt ? formatDateTime(log.completedAt) : '-'}
                   </Table.Cell>
                 </Table.Row>
@@ -162,7 +166,7 @@ export function SyncLogsTable({ entityFilter, statusFilter }: SyncLogsTableProps
       </div>
 
       {pagination && pagination.totalPages > 1 && (
-        <div className="flex justify-end">
+        <div className='flex justify-end'>
           <Pagination.Root>
             <Pagination.NavButton
               onClick={() => setPage(Math.max(1, pagination.page - 1))}
@@ -173,7 +177,12 @@ export function SyncLogsTable({ entityFilter, statusFilter }: SyncLogsTableProps
             {getPageNumbers(pagination.page, pagination.totalPages).map(
               (p, idx) =>
                 p === '...' ? (
-                  <span key={`ellipsis-${idx}`} className="px-2 text-text-soft-400">...</span>
+                  <span
+                    key={`ellipsis-${idx}`}
+                    className='px-2 text-text-soft-400'
+                  >
+                    ...
+                  </span>
                 ) : (
                   <Pagination.Item
                     key={p}
@@ -185,7 +194,9 @@ export function SyncLogsTable({ entityFilter, statusFilter }: SyncLogsTableProps
                 ),
             )}
             <Pagination.NavButton
-              onClick={() => setPage(Math.min(pagination.totalPages, pagination.page + 1))}
+              onClick={() =>
+                setPage(Math.min(pagination.totalPages, pagination.page + 1))
+              }
               disabled={pagination.page >= pagination.totalPages}
             >
               <Pagination.NavIcon as={RiArrowRightSLine} />

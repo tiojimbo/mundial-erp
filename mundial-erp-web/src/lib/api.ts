@@ -22,7 +22,10 @@ export function getApiErrorMessage(error: unknown): string {
       return `Erro ${ax.response.status} ao contatar o servidor.`;
     }
     const code = ax.code;
-    if (code === 'ECONNABORTED' || ax.message?.toLowerCase().includes('timeout')) {
+    if (
+      code === 'ECONNABORTED' ||
+      ax.message?.toLowerCase().includes('timeout')
+    ) {
       return 'Tempo esgotado ao contatar a API. Tente novamente.';
     }
     if (
@@ -111,12 +114,12 @@ api.interceptors.response.use(
           throw new Error('No refresh token');
         }
 
-        const { data: envelope } = await axios.post<
-          ApiResponse<LoginResponse>
-        >(`${api.defaults.baseURL}/auth/refresh`, { refreshToken });
+        const { data: envelope } = await axios.post<ApiResponse<LoginResponse>>(
+          `${api.defaults.baseURL}/auth/refresh`,
+          { refreshToken },
+        );
 
-        const { accessToken, refreshToken: newRefresh } =
-          envelope.data.tokens;
+        const { accessToken, refreshToken: newRefresh } = envelope.data.tokens;
 
         localStorage.setItem('access_token', accessToken);
         localStorage.setItem('refresh_token', newRefresh);
@@ -144,7 +147,8 @@ api.interceptors.response.use(
         localStorage.removeItem('current_workspace');
         localStorage.removeItem('current_workspace_id');
         if (typeof document !== 'undefined') {
-          document.cookie = 'auth_token=; path=/; expires=Thu, 01 Jan 1970 00:00:00 GMT';
+          document.cookie =
+            'auth_token=; path=/; expires=Thu, 01 Jan 1970 00:00:00 GMT';
         }
 
         if (typeof window !== 'undefined') {

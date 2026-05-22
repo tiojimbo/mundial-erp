@@ -2,10 +2,7 @@
 
 import { useState } from 'react';
 import Link from 'next/link';
-import {
-  RiArrowLeftLine,
-  RiMoneyDollarCircleLine,
-} from '@remixicon/react';
+import { RiArrowLeftLine, RiMoneyDollarCircleLine } from '@remixicon/react';
 import * as Button from '@/components/ui/button';
 import { formatCents, formatDate } from '@/lib/formatters';
 import { useAccountPayable } from '../hooks/use-financial';
@@ -57,9 +54,7 @@ export function APDetail({ apId }: Props) {
             <h1 className='text-title-h5 text-text-strong-950'>
               {ap.description}
             </h1>
-            <p className='text-paragraph-sm text-text-sub-600'>
-              Conta a Pagar
-            </p>
+            <p className='text-paragraph-sm text-text-sub-600'>Conta a Pagar</p>
           </div>
         </div>
         <div className='flex items-center gap-2'>
@@ -92,7 +87,7 @@ export function APDetail({ apId }: Props) {
           <span className='text-paragraph-xs text-text-soft-400'>
             Valor Pago
           </span>
-          <p className='text-title-h6 text-state-success-base'>
+          <p className='text-state-success-base text-title-h6'>
             {formatCents(ap.paidAmountCents)}
           </p>
         </div>
@@ -100,7 +95,7 @@ export function APDetail({ apId }: Props) {
           <span className='text-paragraph-xs text-text-soft-400'>
             Saldo Pendente
           </span>
-          <p className='text-title-h6 text-state-warning-base'>
+          <p className='text-state-warning-base text-title-h6'>
             {formatCents(balanceCents)}
           </p>
         </div>
@@ -119,9 +114,7 @@ export function APDetail({ apId }: Props) {
         <h2 className='mb-4 text-label-md text-text-strong-950'>Detalhes</h2>
         <dl className='grid grid-cols-1 gap-4 md:grid-cols-2'>
           <div>
-            <dt className='text-paragraph-xs text-text-soft-400'>
-              Fornecedor
-            </dt>
+            <dt className='text-paragraph-xs text-text-soft-400'>Fornecedor</dt>
             <dd className='text-paragraph-sm text-text-strong-950'>
               {ap.supplier ? (
                 <Link
@@ -150,9 +143,7 @@ export function APDetail({ apId }: Props) {
             </dd>
           </div>
           <div>
-            <dt className='text-paragraph-xs text-text-soft-400'>
-              Criado em
-            </dt>
+            <dt className='text-paragraph-xs text-text-soft-400'>Criado em</dt>
             <dd className='text-paragraph-sm text-text-strong-950'>
               {formatDate(ap.createdAt)}
             </dd>

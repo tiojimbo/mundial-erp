@@ -1,11 +1,4 @@
-import {
-  Body,
-  Controller,
-  Delete,
-  Get,
-  Param,
-  Post,
-} from '@nestjs/common';
+import { Body, Controller, Delete, Get, Param, Post } from '@nestjs/common';
 import {
   ApiBearerAuth,
   ApiOperation,
@@ -48,10 +41,7 @@ export class StatusTemplatesController {
   @Roles(Role.ADMIN, Role.MANAGER)
   @ApiOperation({ summary: 'Remover template de status' })
   @ApiResponse({ status: 200, type: StatusTemplateResponseDto })
-  remove(
-    @WorkspaceId() workspaceId: string,
-    @Param('id') id: string,
-  ) {
+  remove(@WorkspaceId() workspaceId: string, @Param('id') id: string) {
     return this.service.remove(workspaceId, id);
   }
 }

@@ -47,10 +47,7 @@ describe('PUT /tasks/:id rejeita assigneeIds (HPP-059)', () => {
   });
 
   it('aceita { title: "..." } sem rejeicao (controle positivo)', async () => {
-    const result = await pipe.transform(
-      { title: 'titulo novo' },
-      meta,
-    );
+    const result = await pipe.transform({ title: 'titulo novo' }, meta);
     expect(result).toBeInstanceOf(UpdateTaskDto);
     expect((result as UpdateTaskDto).title).toBe('titulo novo');
   });

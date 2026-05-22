@@ -64,7 +64,11 @@ function buildHarness(opts?: { linkExists?: boolean }) {
   );
 
   Logger.overrideLogger([
-    { log: () => undefined, warn: () => undefined, error: () => undefined } as never,
+    {
+      log: () => undefined,
+      warn: () => undefined,
+      error: () => undefined,
+    } as never,
   ]);
 
   return { service, prisma, repository, outbox, publisher };

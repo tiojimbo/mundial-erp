@@ -29,22 +29,22 @@ export function TaskTypeRow({ task }: TaskTypeRowProps) {
   }
 
   return (
-    <header className="flex items-center gap-2">
+    <header className='flex items-center gap-2'>
       <Dropdown.Root>
         <Dropdown.Trigger asChild>
           <button
-            type="button"
-            aria-label="Alterar tipo da tarefa"
-            className="flex items-center gap-1.5 rounded-lg border border-border/60 bg-muted/40 px-2 text-sm transition-all duration-150 hover:border-border hover:bg-muted active:scale-[0.97]"
+            type='button'
+            aria-label='Alterar tipo da tarefa'
+            className='border-border/60 bg-muted/40 text-sm flex items-center gap-1.5 rounded-lg border px-2 transition-all duration-150 hover:border-border hover:bg-muted active:scale-[0.97]'
             style={{ height: '1.5rem' }}
           >
-            <TriggerIcon className="h-3.5 w-3.5" />
+            <TriggerIcon className='h-3.5 w-3.5' />
             <span>{label}</span>
           </button>
         </Dropdown.Trigger>
         <Dropdown.Content
-          align="start"
-          className="max-h-72 w-56 overflow-y-auto"
+          align='start'
+          className='max-h-72 w-56 overflow-y-auto'
         >
           <Dropdown.Item onSelect={() => apply(null)}>
             Nenhum (sem tipo)

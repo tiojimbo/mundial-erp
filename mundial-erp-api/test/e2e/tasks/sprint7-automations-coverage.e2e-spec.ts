@@ -224,13 +224,26 @@ describe('Sprint 7 — Automations coverage (18 triggers x 21 actions)', () => {
         });
       }
       // Cleanup cascata. Ordem importa pra respeitar FKs.
-      await prisma.customFieldValue.deleteMany({ where: { definition: { workspaceId } } });
-      await prisma.workItemTagLink.deleteMany({ where: { tag: { workspaceId } } });
-      await prisma.workItemComment.deleteMany({ where: { workItem: { list: { spaceId } } } });
-      await prisma.workItemLink.deleteMany({
-        where: { OR: [{ fromTask: { list: { spaceId } } }, { toTask: { list: { spaceId } } }] },
+      await prisma.customFieldValue.deleteMany({
+        where: { definition: { workspaceId } },
       });
-      await prisma.workItemAssignee.deleteMany({ where: { workItem: { list: { spaceId } } } });
+      await prisma.workItemTagLink.deleteMany({
+        where: { tag: { workspaceId } },
+      });
+      await prisma.workItemComment.deleteMany({
+        where: { workItem: { list: { spaceId } } },
+      });
+      await prisma.workItemLink.deleteMany({
+        where: {
+          OR: [
+            { fromTask: { list: { spaceId } } },
+            { toTask: { list: { spaceId } } },
+          ],
+        },
+      });
+      await prisma.workItemAssignee.deleteMany({
+        where: { workItem: { list: { spaceId } } },
+      });
       await prisma.workItem.deleteMany({ where: { list: { spaceId } } });
       await prisma.list.deleteMany({ where: { spaceId } });
       await prisma.customFieldDefinition.deleteMany({ where: { workspaceId } });
@@ -243,7 +256,9 @@ describe('Sprint 7 — Automations coverage (18 triggers x 21 actions)', () => {
         where: { userId: { in: [ownerUserId, secondUserId] } },
       });
       await prisma.workspace.deleteMany({ where: { id: workspaceId } });
-      await prisma.user.deleteMany({ where: { id: { in: [ownerUserId, secondUserId] } } });
+      await prisma.user.deleteMany({
+        where: { id: { in: [ownerUserId, secondUserId] } },
+      });
     } finally {
       await app.close();
     }
@@ -465,7 +480,10 @@ describe('Sprint 7 — Automations coverage (18 triggers x 21 actions)', () => {
         name: 'T6',
         trigger: 'TASK_TYPE_CHANGED',
         compiledActions: [
-          { type: 'change_task_name', params: { name: 'Renomeada via automation' } },
+          {
+            type: 'change_task_name',
+            params: { name: 'Renomeada via automation' },
+          },
         ],
       });
       const taskId = await createTask();
@@ -510,7 +528,10 @@ describe('Sprint 7 — Automations coverage (18 triggers x 21 actions)', () => {
         name: 'T8',
         trigger: 'TASK_START_DATE_CHANGED',
         compiledActions: [
-          { type: 'change_due_date', params: { dueDate: dueDate.toISOString() } },
+          {
+            type: 'change_due_date',
+            params: { dueDate: dueDate.toISOString() },
+          },
         ],
       });
       const taskId = await createTask();
@@ -544,7 +565,9 @@ describe('Sprint 7 — Automations coverage (18 triggers x 21 actions)', () => {
         userId: secondUserId,
       });
       const fired = await waitFor(async () => {
-        const a = await prisma.automation.findUnique({ where: { id: automationId } });
+        const a = await prisma.automation.findUnique({
+          where: { id: automationId },
+        });
         return (a?.executionCount ?? 0) > 0 ? a : null;
       });
       expect(fired).not.toBeNull();
@@ -584,7 +607,10 @@ describe('Sprint 7 — Automations coverage (18 triggers x 21 actions)', () => {
         name: 'T11',
         trigger: 'ASSIGNEE_REMOVED',
         compiledActions: [
-          { type: 'change_start_date', params: { startDate: startDate.toISOString() } },
+          {
+            type: 'change_start_date',
+            params: { startDate: startDate.toISOString() },
+          },
         ],
       });
       const taskId = await createTask();
@@ -607,7 +633,10 @@ describe('Sprint 7 — Automations coverage (18 triggers x 21 actions)', () => {
         compiledActions: [
           {
             type: 'set_custom_field',
-            params: { customFieldDefinitionId: customFieldId, value: 'auto-set' },
+            params: {
+              customFieldDefinitionId: customFieldId,
+              value: 'auto-set',
+            },
           },
         ],
       });
@@ -631,7 +660,10 @@ describe('Sprint 7 — Automations coverage (18 triggers x 21 actions)', () => {
         name: 'T13',
         trigger: 'TAG_REMOVED',
         compiledActions: [
-          { type: 'change_task_type', params: { customTaskTypeId: builtinTaskTypeId } },
+          {
+            type: 'change_task_type',
+            params: { customTaskTypeId: builtinTaskTypeId },
+          },
         ],
       });
       const taskId = await createTask();
@@ -653,7 +685,10 @@ describe('Sprint 7 — Automations coverage (18 triggers x 21 actions)', () => {
         name: 'T14',
         trigger: 'COMMENT_CREATED',
         compiledActions: [
-          { type: 'add_task_link', params: { targetTaskId, linkType: 'RELATES_TO' } },
+          {
+            type: 'add_task_link',
+            params: { targetTaskId, linkType: 'RELATES_TO' },
+          },
         ],
       });
       const taskId = await createTask({ title: 'source' });
@@ -755,7 +790,9 @@ describe('Sprint 7 — Automations coverage (18 triggers x 21 actions)', () => {
       });
       await cronScheduler.tick();
       const list = await waitFor(async () => {
-        const l = await prisma.list.findFirst({ where: { name: cronListName } });
+        const l = await prisma.list.findFirst({
+          where: { name: cronListName },
+        });
         return l ?? null;
       });
       expect(list).not.toBeNull();
@@ -786,7 +823,9 @@ describe('Sprint 7 — Automations coverage (18 triggers x 21 actions)', () => {
         customTaskTypeId: null,
       });
       const fired = await waitFor(async () => {
-        const a = await prisma.automation.findUnique({ where: { id: automationId } });
+        const a = await prisma.automation.findUnique({
+          where: { id: automationId },
+        });
         return (a?.executionCount ?? 0) > 0 ? a : null;
       });
       expect(fired).not.toBeNull();
@@ -840,9 +879,7 @@ describe('Sprint 7 — Automations coverage (18 triggers x 21 actions)', () => {
       const id = await createAutomation({
         name: 'B23',
         trigger: 'TASK_CREATED',
-        conditions: [
-          { field: 'priority', operator: 'EQ', value: 'URGENT' },
-        ],
+        conditions: [{ field: 'priority', operator: 'EQ', value: 'URGENT' }],
         compiledActions: [
           { type: 'change_status', params: { statusId: doneStatusId } },
         ],

@@ -59,7 +59,12 @@ export const Dragging: Story = {
   args: {
     items: [
       { id: '1', title: 'Item 1', resolved: false, parentId: null },
-      { id: '2', title: 'Item 2 (arrastando)', resolved: false, parentId: null },
+      {
+        id: '2',
+        title: 'Item 2 (arrastando)',
+        resolved: false,
+        parentId: null,
+      },
       { id: '3', title: 'Item 3', resolved: false, parentId: null },
     ],
     draggingId: '2',

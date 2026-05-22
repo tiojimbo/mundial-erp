@@ -1,8 +1,4 @@
-import {
-  useQuery,
-  useMutation,
-  useQueryClient,
-} from '@tanstack/react-query';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useRouter } from 'next/navigation';
 import { clientService } from '../services/client.service';
 import type {
@@ -49,8 +45,7 @@ export function useCreateClient() {
   const router = useRouter();
   const qc = useQueryClient();
   return useMutation({
-    mutationFn: (payload: CreateClientPayload) =>
-      clientService.create(payload),
+    mutationFn: (payload: CreateClientPayload) => clientService.create(payload),
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: CLIENTS_KEY });
       router.push('/comercial/clientes');

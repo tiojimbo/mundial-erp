@@ -11,7 +11,7 @@ export function TaskItem({ task }: TaskItemProps) {
   return (
     <Link
       href={`/comercial/pedidos/${task.id}`}
-      className='group relative flex items-center gap-3 border-l-[3px] border-l-transparent px-4 py-2.5 transition-all hover:border-l-primary-alpha-10 hover:bg-accent/40 focus-visible:z-10 focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-inset'
+      className='hover:bg-accent/40 group relative flex items-center gap-3 border-l-[3px] border-l-transparent px-4 py-2.5 transition-all hover:border-l-primary-alpha-10 focus-visible:z-10 focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-ring'
     >
       <div
         className='size-2.5 shrink-0 rounded-full ring-2 ring-background'
@@ -19,10 +19,10 @@ export function TaskItem({ task }: TaskItemProps) {
       />
 
       <div className='min-w-0 flex-1'>
-        <span className='block truncate text-sm font-medium leading-snug'>
+        <span className='text-sm block truncate font-medium leading-snug'>
           {task.name}
         </span>
-        <div className='mt-0.5 flex items-center gap-2 text-[11px] text-muted-foreground/70'>
+        <div className='text-muted-foreground/70 mt-0.5 flex items-center gap-2 text-[11px]'>
           <span className='truncate'>{task.list.name}</span>
         </div>
       </div>

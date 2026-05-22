@@ -303,6 +303,7 @@ export class CustomTaskTypesService {
   private subscribeInvalidation(): void {
     try {
       const subscriber = this.redis.duplicate();
+      // eslint-disable-next-line @typescript-eslint/no-floating-promises
       subscriber.subscribe(
         CustomTaskTypesService.INVALIDATION_CHANNEL,
         (err) => {

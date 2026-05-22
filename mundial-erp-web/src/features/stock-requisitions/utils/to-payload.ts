@@ -1,7 +1,9 @@
 import type { RequisitionFormData } from '../schemas/stock-requisition.schema';
 import type { CreateRequisitionPayload } from '../types/stock-requisition.types';
 
-export function toRequisitionPayload(data: RequisitionFormData): CreateRequisitionPayload {
+export function toRequisitionPayload(
+  data: RequisitionFormData,
+): CreateRequisitionPayload {
   return {
     type: data.type,
     orderId: data.orderId || undefined,

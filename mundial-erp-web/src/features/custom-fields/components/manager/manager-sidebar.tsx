@@ -33,11 +33,11 @@ function getAbbr(name: string): string {
 function DeptAvatar({ abbr, color }: { abbr: string; color: string | null }) {
   return (
     <span
-      className="relative flex size-5 shrink-0 overflow-hidden rounded-[5px]"
+      className='relative flex size-5 shrink-0 overflow-hidden rounded-[5px]'
       style={{ backgroundColor: color || DEPT_COLORS[abbr] || '#6b7280' }}
-      aria-hidden="true"
+      aria-hidden='true'
     >
-      <span className="flex size-full items-center justify-center rounded-[5px] !text-[10px] font-semibold uppercase leading-none text-white">
+      <span className='flex size-full items-center justify-center rounded-[5px] !text-[10px] font-semibold uppercase leading-none text-white'>
         {abbr}
       </span>
     </span>
@@ -55,13 +55,13 @@ function QuickItem({
 }) {
   return (
     <button
-      type="button"
+      type='button'
       onClick={onClick}
       className={cn(
         'flex h-8 w-full cursor-pointer items-center rounded-md px-2 text-left text-paragraph-sm transition-colors',
         active
           ? 'bg-accent font-medium text-foreground'
-          : 'text-foreground hover:bg-accent/60',
+          : 'hover:bg-accent/60 text-foreground',
       )}
     >
       <span>{label}</span>
@@ -93,9 +93,9 @@ function LocationNode({
   onSelect: () => void;
 }) {
   return (
-    <div className="flex items-center" style={{ paddingLeft: depth * 12 }}>
+    <div className='flex items-center' style={{ paddingLeft: depth * 12 }}>
       <button
-        type="button"
+        type='button'
         onClick={onToggle}
         aria-label={expanded ? 'Recolher' : 'Expandir'}
         className={cn(
@@ -111,7 +111,7 @@ function LocationNode({
         />
       </button>
       <button
-        type="button"
+        type='button'
         onClick={onSelect}
         className={cn(
           'flex h-7 flex-1 cursor-pointer items-center gap-2 rounded-md px-2 text-paragraph-sm transition-colors',
@@ -122,20 +122,20 @@ function LocationNode({
           <DeptAvatar abbr={getAbbr(label)} color={color} />
         ) : kind === 'folder' ? (
           expanded ? (
-            <FolderOpen className="text-muted-foreground size-4 shrink-0" />
+            <FolderOpen className='size-4 shrink-0 text-muted-foreground' />
           ) : (
-            <Folder className="text-muted-foreground size-4 shrink-0" />
+            <Folder className='size-4 shrink-0 text-muted-foreground' />
           )
         ) : (
           <List
-            className="text-muted-foreground size-4 shrink-0"
+            className='size-4 shrink-0 text-muted-foreground'
             strokeWidth={2}
           />
         )}
         {kind === 'list' && isPrivate ? (
-          <Lock className="text-muted-foreground size-3 shrink-0" />
+          <Lock className='size-3 shrink-0 text-muted-foreground' />
         ) : null}
-        <span className="truncate">{label}</span>
+        <span className='truncate'>{label}</span>
       </button>
     </div>
   );
@@ -163,63 +163,65 @@ export function ManagerSidebar({ view, onChangeView }: ManagerSidebarProps) {
   }, [treeQuery.data, locSearch]);
 
   return (
-    <aside className="bg-background flex h-full w-72 shrink-0 flex-col border-r">
-      <div className="border-b px-4 py-4">
-        <h2 className="text-label-sm leading-snug">
+    <aside className='flex h-full w-72 shrink-0 flex-col border-r bg-background'>
+      <div className='border-b px-4 py-4'>
+        <h2 className='text-label-sm leading-snug'>
           Gerenciador de campos personalizados
         </h2>
       </div>
-      <div className="flex-1 overflow-y-auto">
-        <div className="space-y-0.5 px-3 py-3">
+      <div className='flex-1 overflow-y-auto'>
+        <div className='space-y-0.5 px-3 py-3'>
           <QuickItem
             active={view.kind === 'all'}
-            label="Todos os campos personalizados"
+            label='Todos os campos personalizados'
             onClick={() => onChangeView({ kind: 'all' })}
           />
           <QuickItem
             active={view.kind === 'workspace'}
-            label="Espaço de trabalho"
+            label='Espaço de trabalho'
             onClick={() => onChangeView({ kind: 'workspace' })}
           />
           <QuickItem
             active={view.kind === 'allGroups'}
-            label="Todos os grupos"
+            label='Todos os grupos'
             onClick={() => onChangeView({ kind: 'allGroups' })}
           />
           <QuickItem
             active={view.kind === 'taskTypeFields'}
-            label="Campos por tipo de tarefa"
+            label='Campos por tipo de tarefa'
             onClick={() => onChangeView({ kind: 'taskTypeFields' })}
           />
         </div>
 
-        <div className="px-3 py-2">
-          <div className="mb-2 flex items-center justify-between px-2">
-            <h3 className="text-[#838383] text-subheading-xs">
+        <div className='px-3 py-2'>
+          <div className='mb-2 flex items-center justify-between px-2'>
+            <h3 className='text-subheading-xs text-[#838383]'>
               Por localização
             </h3>
             <button
-              type="button"
-              aria-label="Buscar local"
+              type='button'
+              aria-label='Buscar local'
               onClick={() => setSearchOpen((v) => !v)}
-              className="text-muted-foreground hover:text-foreground flex h-5 w-5 cursor-pointer items-center justify-center rounded transition-colors"
+              className='flex h-5 w-5 cursor-pointer items-center justify-center rounded text-muted-foreground transition-colors hover:text-foreground'
             >
-              <Search className="h-3.5 w-3.5" />
+              <Search className='h-3.5 w-3.5' />
             </button>
           </div>
           {searchOpen ? (
             <input
-              type="search"
+              type='search'
               autoFocus
-              placeholder="Filtrar..."
+              placeholder='Filtrar...'
               value={locSearch}
               onChange={(e) => setLocSearch(e.target.value)}
-              className="border-input mb-2 h-7 w-full rounded-md border bg-transparent px-2 text-paragraph-xs outline-none focus-visible:ring-[3px] focus-visible:ring-ring/50"
+              className='focus-visible:ring-ring/50 mb-2 h-7 w-full rounded-md border border-input bg-transparent px-2 text-paragraph-xs outline-none focus-visible:ring-[3px]'
             />
           ) : null}
-          <div className="space-y-0.5">
+          <div className='space-y-0.5'>
             {treeQuery.isLoading ? (
-              <p className="text-muted-foreground px-2 text-paragraph-xs">Carregando...</p>
+              <p className='px-2 text-paragraph-xs text-muted-foreground'>
+                Carregando...
+              </p>
             ) : spaces.length > 0 ? (
               spaces.map((space) => {
                 const spaceOpen = expanded.has(space.id);
@@ -230,7 +232,7 @@ export function ManagerSidebar({ view, onChangeView }: ManagerSidebarProps) {
                   <div key={space.id}>
                     <LocationNode
                       label={space.name}
-                      kind="space"
+                      kind='space'
                       color={space.color}
                       isPrivate={false}
                       depth={0}
@@ -245,12 +247,12 @@ export function ManagerSidebar({ view, onChangeView }: ManagerSidebarProps) {
                       }
                     />
                     {spaceOpen ? (
-                      <div className="space-y-0.5">
+                      <div className='space-y-0.5'>
                         {(space.directProcesses ?? []).map((proc) => (
                           <LocationNode
                             key={proc.id}
                             label={proc.name}
-                            kind="list"
+                            kind='list'
                             color={null}
                             isPrivate={proc.isPrivate}
                             depth={1}
@@ -271,7 +273,7 @@ export function ManagerSidebar({ view, onChangeView }: ManagerSidebarProps) {
                             <div key={area.id}>
                               <LocationNode
                                 label={area.name}
-                                kind="folder"
+                                kind='folder'
                                 color={null}
                                 isPrivate={false}
                                 depth={1}
@@ -294,7 +296,7 @@ export function ManagerSidebar({ view, onChangeView }: ManagerSidebarProps) {
                                     <LocationNode
                                       key={proc.id}
                                       label={proc.name}
-                                      kind="list"
+                                      kind='list'
                                       color={null}
                                       isPrivate={proc.isPrivate}
                                       depth={2}
@@ -323,7 +325,7 @@ export function ManagerSidebar({ view, onChangeView }: ManagerSidebarProps) {
                 );
               })
             ) : (
-              <p className="text-muted-foreground px-2 text-paragraph-xs">
+              <p className='px-2 text-paragraph-xs text-muted-foreground'>
                 Sem departamentos
               </p>
             )}

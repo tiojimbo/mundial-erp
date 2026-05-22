@@ -4,13 +4,31 @@ import { useOrderTimeline } from '../../hooks/use-orders';
 import { formatDateTime } from '../../lib/format';
 import type { TimelineEvent } from '../../types/order.types';
 
-const EVENT_ICON_MAP: Record<TimelineEvent['type'], { icon: string; color: string }> = {
-  status_change: { icon: 'ri-arrow-right-circle-line', color: 'text-primary-base' },
-  activity_completed: { icon: 'ri-checkbox-circle-line', color: 'text-state-success-base' },
-  handoff: { icon: 'ri-share-forward-line', color: 'text-state-information-base' },
+const EVENT_ICON_MAP: Record<
+  TimelineEvent['type'],
+  { icon: string; color: string }
+> = {
+  status_change: {
+    icon: 'ri-arrow-right-circle-line',
+    color: 'text-primary-base',
+  },
+  activity_completed: {
+    icon: 'ri-checkbox-circle-line',
+    color: 'text-state-success-base',
+  },
+  handoff: {
+    icon: 'ri-share-forward-line',
+    color: 'text-state-information-base',
+  },
   note: { icon: 'ri-sticky-note-line', color: 'text-text-sub-600' },
-  payment: { icon: 'ri-money-dollar-circle-line', color: 'text-state-success-base' },
-  supply_ready: { icon: 'ri-check-double-line', color: 'text-state-success-base' },
+  payment: {
+    icon: 'ri-money-dollar-circle-line',
+    color: 'text-state-success-base',
+  },
+  supply_ready: {
+    icon: 'ri-check-double-line',
+    color: 'text-state-success-base',
+  },
 };
 
 type Props = {
@@ -48,7 +66,7 @@ export function TimelineTab({ orderId }: Props) {
   return (
     <div className='relative flex flex-col gap-0'>
       {/* Timeline line */}
-      <div className='absolute left-4 top-2 bottom-2 w-px bg-stroke-soft-200' />
+      <div className='absolute bottom-2 left-4 top-2 w-px bg-stroke-soft-200' />
 
       {events.map((event) => {
         const config = EVENT_ICON_MAP[event.type] ?? {
@@ -59,7 +77,9 @@ export function TimelineTab({ orderId }: Props) {
         return (
           <div key={event.id} className='relative flex gap-3 pb-6'>
             {/* Icon */}
-            <div className={`relative z-10 flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-bg-white-0 border border-stroke-soft-200 ${config.color}`}>
+            <div
+              className={`relative z-10 flex h-8 w-8 shrink-0 items-center justify-center rounded-full border border-stroke-soft-200 bg-bg-white-0 ${config.color}`}
+            >
               <i className={`${config.icon} text-base`} />
             </div>
 

@@ -11,13 +11,8 @@ type MessageListProps = {
 };
 
 export function MessageList({ channelId }: MessageListProps) {
-  const {
-    data,
-    isLoading,
-    fetchNextPage,
-    hasNextPage,
-    isFetchingNextPage,
-  } = useMessages(channelId);
+  const { data, isLoading, fetchNextPage, hasNextPage, isFetchingNextPage } =
+    useMessages(channelId);
 
   const scrollRef = useRef<HTMLDivElement>(null);
   const topSentinelRef = useRef<HTMLDivElement>(null);
@@ -81,10 +76,7 @@ export function MessageList({ channelId }: MessageListProps) {
   }
 
   return (
-    <div
-      ref={scrollRef}
-      className='flex flex-1 flex-col overflow-y-auto'
-    >
+    <div ref={scrollRef} className='flex flex-1 flex-col overflow-y-auto'>
       {/* Sentinel for loading older messages */}
       <div ref={topSentinelRef} />
       {isFetchingNextPage && (

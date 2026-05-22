@@ -45,8 +45,8 @@ export function AutomationRow({ automation, onEdit }: AutomationRowProps) {
         )}
         <p className='mt-1 text-[11px] text-text-sub-600'>
           {automation.compiledActions.length} ação(ões) ·{' '}
-          {automation.conditions.length} condição(ões) · {automation.executionCount}{' '}
-          execução(ões)
+          {automation.conditions.length} condição(ões) ·{' '}
+          {automation.executionCount} execução(ões)
           {firstAction && ` · primeira: ${firstAction}`}
         </p>
       </div>
@@ -101,7 +101,7 @@ function ToggleSwitch({
     >
       <span
         className={cn(
-          'pointer-events-none inline-block size-4 transform rounded-full bg-static-white shadow ring-0 transition-transform',
+          'shadow pointer-events-none inline-block size-4 transform rounded-full bg-static-white ring-0 transition-transform',
           checked ? 'translate-x-4' : 'translate-x-0',
         )}
       />

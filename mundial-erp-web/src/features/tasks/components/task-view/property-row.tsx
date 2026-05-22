@@ -15,14 +15,17 @@ export type PropertyRowProps = {
 
 export function PropertyRow({ icon, label, children }: PropertyRowProps) {
   return (
-    <div className="flex h-8 items-center gap-2">
-      <div className="flex min-w-[130px] items-center gap-2 text-[12px] text-muted-foreground">
-        <span className="flex h-3.5 w-3.5 items-center justify-center" aria-hidden="true">
+    <div className='flex h-8 items-center gap-2'>
+      <div className='flex min-w-[130px] items-center gap-2 text-[12px] text-muted-foreground'>
+        <span
+          className='flex h-3.5 w-3.5 items-center justify-center'
+          aria-hidden='true'
+        >
           {icon}
         </span>
         <span>{label}</span>
       </div>
-      <div className="min-w-0 flex-1">{children}</div>
+      <div className='min-w-0 flex-1'>{children}</div>
     </div>
   );
 }

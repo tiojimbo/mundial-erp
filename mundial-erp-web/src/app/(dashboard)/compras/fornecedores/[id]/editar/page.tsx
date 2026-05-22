@@ -12,7 +12,9 @@ type EditarFornecedorPageProps = {
   params: { id: string };
 };
 
-export default function EditarFornecedorPage({ params }: EditarFornecedorPageProps) {
+export default function EditarFornecedorPage({
+  params,
+}: EditarFornecedorPageProps) {
   const id = params.id;
   const { data: supplier, isLoading } = useSupplier(id);
   const updateMutation = useUpdateSupplier(id);

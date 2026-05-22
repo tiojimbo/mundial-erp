@@ -6,7 +6,13 @@ type ClientDataTabProps = {
   client: Client;
 };
 
-function DataRow({ label, value }: { label: string; value: string | null | undefined }) {
+function DataRow({
+  label,
+  value,
+}: {
+  label: string;
+  value: string | null | undefined;
+}) {
   return (
     <div className='flex flex-col gap-0.5'>
       <span className='text-paragraph-xs text-text-soft-400'>{label}</span>
@@ -28,7 +34,9 @@ export function ClientDataTab({ client }: ClientDataTabProps) {
         <div className='grid gap-4 sm:grid-cols-2 lg:grid-cols-3'>
           <DataRow
             label='Tipo de Pessoa'
-            value={client.personType === 'F' ? 'Pessoa Física' : 'Pessoa Jurídica'}
+            value={
+              client.personType === 'F' ? 'Pessoa Física' : 'Pessoa Jurídica'
+            }
           />
           <DataRow
             label={client.personType === 'F' ? 'CPF' : 'CNPJ'}
@@ -86,14 +94,8 @@ export function ClientDataTab({ client }: ClientDataTabProps) {
           Classificação
         </h3>
         <div className='grid gap-4 sm:grid-cols-2'>
-          <DataRow
-            label='Classificação'
-            value={client.classification?.name}
-          />
-          <DataRow
-            label='Rota de Entrega'
-            value={client.deliveryRoute?.name}
-          />
+          <DataRow label='Classificação' value={client.classification?.name} />
+          <DataRow label='Rota de Entrega' value={client.deliveryRoute?.name} />
         </div>
       </div>
     </div>

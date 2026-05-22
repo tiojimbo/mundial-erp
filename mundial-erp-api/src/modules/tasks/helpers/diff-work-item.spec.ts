@@ -206,7 +206,10 @@ describe('diffWorkItem (unit)', () => {
 
     it('treats Date instances with same ms as equal (no event)', () => {
       const iso = '2026-05-01T00:00:00.000Z';
-      const before: WorkItemDiffRow = { ...baseBefore(), dueDate: new Date(iso) };
+      const before: WorkItemDiffRow = {
+        ...baseBefore(),
+        dueDate: new Date(iso),
+      };
       const events = diffWorkItem(
         before,
         { dueDate: new Date(iso) } as Patch,

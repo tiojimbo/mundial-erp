@@ -168,9 +168,7 @@ function resolveActorName(
   if (activity.actor?.name) return activity.actor.name;
   if (!activity.actorId) return activity.actorName ?? 'Sistema';
   return (
-    lookups.users[activity.actorId]?.name ??
-    activity.actorName ??
-    'Alguem'
+    lookups.users[activity.actorId]?.name ?? activity.actorName ?? 'Alguem'
   );
 }
 
@@ -263,17 +261,22 @@ export function formatActivity(
             <Strong>{actor}</Strong> alterou o status
             {fromPill ? (
               <>
-                {' '}de <StatusChip status={fromPill} />
+                {' '}
+                de <StatusChip status={fromPill} />
               </>
             ) : null}
             {toPill ? (
               <>
-                {' '}para <StatusChip status={toPill} />
+                {' '}
+                para <StatusChip status={toPill} />
               </>
             ) : (
               <>
-                {' '}para{' '}
-                <Strong>{resolveStatusLabel(lookups, readString(payload, 'to'))}</Strong>
+                {' '}
+                para{' '}
+                <Strong>
+                  {resolveStatusLabel(lookups, readString(payload, 'to'))}
+                </Strong>
               </>
             )}
           </>
@@ -428,8 +431,8 @@ export function formatActivity(
         icon,
         text: (
           <>
-            <Strong>{actor}</Strong> removeu{' '}
-            {resolveUserName(lookups, userId)} dos observadores
+            <Strong>{actor}</Strong> removeu {resolveUserName(lookups, userId)}{' '}
+            dos observadores
           </>
         ),
       };

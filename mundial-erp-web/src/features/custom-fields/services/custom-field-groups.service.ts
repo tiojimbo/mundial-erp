@@ -8,7 +8,8 @@ export interface CreateCustomFieldGroupPayload {
   position?: number;
 }
 
-export type UpdateCustomFieldGroupPayload = Partial<CreateCustomFieldGroupPayload>;
+export type UpdateCustomFieldGroupPayload =
+  Partial<CreateCustomFieldGroupPayload>;
 
 export const customFieldGroupsService = {
   async list(): Promise<CustomFieldGroupEmbed[]> {

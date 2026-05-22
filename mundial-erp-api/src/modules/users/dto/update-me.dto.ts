@@ -19,7 +19,9 @@ export class UpdateMeDto {
   @IsEmail()
   email?: string;
 
-  @ApiPropertyOptional({ description: 'Senha atual (obrigatória ao trocar senha)' })
+  @ApiPropertyOptional({
+    description: 'Senha atual (obrigatória ao trocar senha)',
+  })
   @ValidateIf((o: UpdateMeDto) => !!o.password)
   @IsString()
   @MinLength(1, { message: 'Senha atual é obrigatória para alterar a senha' })

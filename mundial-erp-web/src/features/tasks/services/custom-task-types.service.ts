@@ -23,9 +23,8 @@ export interface UpdateCustomTaskTypePayload {
 
 export const customTaskTypesService = {
   async list(): Promise<CustomTaskType[]> {
-    const { data } = await api.get<ApiResponse<ListEnvelope>>(
-      '/custom-task-types',
-    );
+    const { data } =
+      await api.get<ApiResponse<ListEnvelope>>('/custom-task-types');
     return data.data.data;
   },
 

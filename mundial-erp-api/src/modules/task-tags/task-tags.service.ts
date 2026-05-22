@@ -38,7 +38,10 @@ export class TaskTagsService {
     private readonly automationEvents?: TaskEventsPublisher,
   ) {}
 
-  private async loadTaskContext(taskId: string, workspaceId: string): Promise<{
+  private async loadTaskContext(
+    taskId: string,
+    workspaceId: string,
+  ): Promise<{
     listId: string;
     folderId: string | null;
     spaceId: string | null;

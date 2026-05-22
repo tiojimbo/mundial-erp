@@ -22,9 +22,12 @@ export const lookupService = {
   },
 
   async getPaymentMethods(): Promise<LookupItem[]> {
-    const { data } = await api.get<ApiResponse<LookupItem[]>>('/payment-methods', {
-      params: { limit: 100 },
-    });
+    const { data } = await api.get<ApiResponse<LookupItem[]>>(
+      '/payment-methods',
+      {
+        params: { limit: 100 },
+      },
+    );
     return data.data ?? [];
   },
 

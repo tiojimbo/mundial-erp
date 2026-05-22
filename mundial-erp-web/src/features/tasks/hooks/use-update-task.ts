@@ -20,8 +20,7 @@ export function useUpdateTask() {
 
   return useMutation<Task, Error, UpdateTaskVars, Context>({
     mutationKey: [workspaceId, 'tasks', 'update'],
-    mutationFn: ({ taskId, payload }) =>
-      tasksService.update(taskId, payload),
+    mutationFn: ({ taskId, payload }) => tasksService.update(taskId, payload),
 
     // Optimistic: atualiza detail imediatamente; rollback em onError.
     onMutate: async ({ taskId, payload }) => {

@@ -106,103 +106,103 @@ export function ARTable() {
       </div>
 
       {/* Table */}
-        <Table.Root>
-          <Table.Header>
+      <Table.Root>
+        <Table.Header>
+          <Table.Row>
+            <Table.Head>Descrição</Table.Head>
+            <Table.Head>Cliente</Table.Head>
+            <Table.Head>Pedido</Table.Head>
+            <Table.Head className='text-right'>Valor</Table.Head>
+            <Table.Head className='text-right'>Pago</Table.Head>
+            <Table.Head>Vencimento</Table.Head>
+            <Table.Head>Status</Table.Head>
+            <Table.Head className='text-right'>Ações</Table.Head>
+          </Table.Row>
+        </Table.Header>
+        <Table.Body>
+          {isLoading ? (
+            Array.from({ length: 5 }).map((_, i) => (
+              <Table.Row key={i}>
+                {Array.from({ length: 8 }).map((__, j) => (
+                  <Table.Cell key={j}>
+                    <div className='h-4 w-24 animate-pulse rounded bg-bg-weak-50' />
+                  </Table.Cell>
+                ))}
+              </Table.Row>
+            ))
+          ) : items.length === 0 ? (
             <Table.Row>
-              <Table.Head>Descrição</Table.Head>
-              <Table.Head>Cliente</Table.Head>
-              <Table.Head>Pedido</Table.Head>
-              <Table.Head className='text-right'>Valor</Table.Head>
-              <Table.Head className='text-right'>Pago</Table.Head>
-              <Table.Head>Vencimento</Table.Head>
-              <Table.Head>Status</Table.Head>
-              <Table.Head className='text-right'>Ações</Table.Head>
+              <Table.Cell colSpan={8} className='text-center'>
+                <p className='py-8 text-paragraph-sm text-text-soft-400'>
+                  {filters.search
+                    ? 'Nenhuma conta a receber encontrada para esta busca.'
+                    : 'Nenhuma conta a receber registrada.'}
+                </p>
+              </Table.Cell>
             </Table.Row>
-          </Table.Header>
-          <Table.Body>
-            {isLoading ? (
-              Array.from({ length: 5 }).map((_, i) => (
-                <Table.Row key={i}>
-                  {Array.from({ length: 8 }).map((__, j) => (
-                    <Table.Cell key={j}>
-                      <div className='h-4 w-24 animate-pulse rounded bg-bg-weak-50' />
-                    </Table.Cell>
-                  ))}
-                </Table.Row>
-              ))
-            ) : items.length === 0 ? (
-              <Table.Row>
-                <Table.Cell colSpan={8} className='text-center'>
-                  <p className='py-8 text-paragraph-sm text-text-soft-400'>
-                    {filters.search
-                      ? 'Nenhuma conta a receber encontrada para esta busca.'
-                      : 'Nenhuma conta a receber registrada.'}
-                  </p>
+          ) : (
+            items.map((ar) => (
+              <Table.Row key={ar.id}>
+                <Table.Cell>
+                  <button
+                    onClick={() =>
+                      router.push(`/financeiro/contas-a-receber/${ar.id}`)
+                    }
+                    className='text-left text-label-sm text-text-strong-950 transition hover:text-primary-base'
+                  >
+                    {ar.description}
+                  </button>
+                </Table.Cell>
+                <Table.Cell>
+                  <span className='text-paragraph-sm text-text-sub-600'>
+                    {ar.client?.name ?? '—'}
+                  </span>
+                </Table.Cell>
+                <Table.Cell>
+                  {ar.order ? (
+                    <Link
+                      href={`/comercial/pedidos/${ar.orderId}`}
+                      className='text-paragraph-sm text-primary-base hover:underline'
+                    >
+                      #{ar.order.orderNumber}
+                    </Link>
+                  ) : (
+                    <span className='text-paragraph-sm text-text-soft-400'>
+                      —
+                    </span>
+                  )}
+                </Table.Cell>
+                <Table.Cell className='text-right font-medium'>
+                  {formatCents(ar.amountCents)}
+                </Table.Cell>
+                <Table.Cell className='text-right'>
+                  {formatCents(ar.paidAmountCents)}
+                </Table.Cell>
+                <Table.Cell>
+                  <span className='text-paragraph-sm text-text-sub-600'>
+                    {formatDate(ar.dueDate)}
+                  </span>
+                </Table.Cell>
+                <Table.Cell>
+                  <PaymentStatusBadge status={ar.status} />
+                </Table.Cell>
+                <Table.Cell className='text-right'>
+                  <Button.Root
+                    asChild
+                    variant='neutral'
+                    mode='ghost'
+                    size='xxsmall'
+                  >
+                    <Link href={`/financeiro/contas-a-receber/${ar.id}`}>
+                      <Button.Icon as={RiEyeLine} />
+                    </Link>
+                  </Button.Root>
                 </Table.Cell>
               </Table.Row>
-            ) : (
-              items.map((ar) => (
-                <Table.Row key={ar.id}>
-                  <Table.Cell>
-                    <button
-                      onClick={() =>
-                        router.push(`/financeiro/contas-a-receber/${ar.id}`)
-                      }
-                      className='text-left text-label-sm text-text-strong-950 transition hover:text-primary-base'
-                    >
-                      {ar.description}
-                    </button>
-                  </Table.Cell>
-                  <Table.Cell>
-                    <span className='text-paragraph-sm text-text-sub-600'>
-                      {ar.client?.name ?? '—'}
-                    </span>
-                  </Table.Cell>
-                  <Table.Cell>
-                    {ar.order ? (
-                      <Link
-                        href={`/comercial/pedidos/${ar.orderId}`}
-                        className='text-paragraph-sm text-primary-base hover:underline'
-                      >
-                        #{ar.order.orderNumber}
-                      </Link>
-                    ) : (
-                      <span className='text-paragraph-sm text-text-soft-400'>
-                        —
-                      </span>
-                    )}
-                  </Table.Cell>
-                  <Table.Cell className='text-right font-medium'>
-                    {formatCents(ar.amountCents)}
-                  </Table.Cell>
-                  <Table.Cell className='text-right'>
-                    {formatCents(ar.paidAmountCents)}
-                  </Table.Cell>
-                  <Table.Cell>
-                    <span className='text-paragraph-sm text-text-sub-600'>
-                      {formatDate(ar.dueDate)}
-                    </span>
-                  </Table.Cell>
-                  <Table.Cell>
-                    <PaymentStatusBadge status={ar.status} />
-                  </Table.Cell>
-                  <Table.Cell className='text-right'>
-                    <Button.Root
-                      asChild
-                      variant='neutral'
-                      mode='ghost'
-                      size='xxsmall'
-                    >
-                      <Link href={`/financeiro/contas-a-receber/${ar.id}`}>
-                        <Button.Icon as={RiEyeLine} />
-                      </Link>
-                    </Button.Root>
-                  </Table.Cell>
-                </Table.Row>
-              ))
-            )}
-          </Table.Body>
-        </Table.Root>
+            ))
+          )}
+        </Table.Body>
+      </Table.Root>
 
       {/* Pagination */}
       {pagination && pagination.totalPages > 1 && (

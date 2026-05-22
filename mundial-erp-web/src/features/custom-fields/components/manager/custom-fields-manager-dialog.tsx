@@ -51,8 +51,7 @@ export function CustomFieldsManagerDialog({
   const selectedDef = useMemo(() => {
     if (!state.selectedDefId) return null;
     return (
-      managerQuery.data?.find((item) => item.id === state.selectedDefId) ??
-      null
+      managerQuery.data?.find((item) => item.id === state.selectedDefId) ?? null
     );
   }, [managerQuery.data, state.selectedDefId]);
 
@@ -61,13 +60,11 @@ export function CustomFieldsManagerDialog({
       <Modal.Root open={open} onOpenChange={(next) => !next && onClose()}>
         <Modal.Content
           showClose={false}
-          overlayClassName="bg-black/60 backdrop-blur-none"
-          className="!w-[1250px] !max-w-[96vw] flex h-[800px] !max-h-[92vh] flex-col overflow-hidden !rounded-xl border-0 !shadow-none p-0"
+          overlayClassName='bg-black/60 backdrop-blur-none'
+          className='flex h-[800px] !max-h-[92vh] !w-[1250px] !max-w-[96vw] flex-col overflow-hidden !rounded-xl border-0 p-0 !shadow-none'
         >
-          <Modal.Title className="sr-only">
-            Campos personalizados
-          </Modal.Title>
-          <div className="flex h-full min-h-0 w-full">
+          <Modal.Title className='sr-only'>Campos personalizados</Modal.Title>
+          <div className='flex h-full min-h-0 w-full'>
             <ManagerSidebar view={state.view} onChangeView={setView} />
             <ManagerFieldsTable
               view={state.view}

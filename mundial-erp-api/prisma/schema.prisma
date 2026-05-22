@@ -1975,6 +1975,13 @@ model OrderSequence {
   @@map("order_sequences")
 }
 
+model OrderCodeSequence {
+  workspaceId String @id @map("workspace_id")
+  lastNumber  Int    @default(0) @map("last_number")
+
+  @@map("order_code_sequences")
+}
+
 // ============================================================================
 // 1.7 — Financial
 // ============================================================================

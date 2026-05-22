@@ -55,7 +55,7 @@ class TaskAttachmentsServiceStub {
     filename: string,
   ): string {
     const uuid = this.uuidV4();
-    const safeName = filename.replace(/[^\w.\-]+/g, '_');
+    const safeName = filename.replace(/[^\w.-]+/g, '_');
     return `${workspaceId}/${workItemId}/${uuid}-${safeName}`;
   }
 

@@ -75,7 +75,7 @@ export function FieldShell({
   }
 
   return (
-    <div className="flex flex-col gap-1">
+    <div className='flex flex-col gap-1'>
       {showLabel ? (
         <label
           htmlFor={id}
@@ -86,7 +86,7 @@ export function FieldShell({
         >
           {definition.name}
           {definition.required ? (
-            <span aria-hidden="true" className="ml-0.5 text-destructive">
+            <span aria-hidden='true' className='ml-0.5 text-destructive'>
               *
             </span>
           ) : null}
@@ -98,15 +98,15 @@ export function FieldShell({
         'aria-describedby': describedBy.length > 0 ? describedBy : undefined,
       })}
       {hint ? (
-        <span id={hintId} className="text-[11px] text-muted-foreground">
+        <span id={hintId} className='text-[11px] text-muted-foreground'>
           {hint}
         </span>
       ) : null}
       {error ? (
         <span
           id={errorId}
-          role="alert"
-          className="text-[11px] font-medium text-destructive"
+          role='alert'
+          className='text-[11px] font-medium text-destructive'
         >
           {error}
         </span>

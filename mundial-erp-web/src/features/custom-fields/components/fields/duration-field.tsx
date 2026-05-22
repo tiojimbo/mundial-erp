@@ -12,7 +12,9 @@ function msToHours(ms: number | null): string {
   if (ms === null || !Number.isFinite(ms)) return '';
   if (ms === 0) return '';
   const hours = ms / MS_PER_HOUR;
-  return Number.isInteger(hours) ? String(hours) : hours.toFixed(2).replace(/\.?0+$/, '');
+  return Number.isInteger(hours)
+    ? String(hours)
+    : hours.toFixed(2).replace(/\.?0+$/, '');
 }
 
 function hoursToMs(raw: string): number | null {
@@ -51,12 +53,12 @@ export function DurationField({
       {(controlProps) => (
         <input
           {...controlProps}
-          type="number"
+          type='number'
           min={0}
           className={inline ? inputClassInline : inputClass}
           value={localValue}
           readOnly={isReadOnly}
-          placeholder="0h"
+          placeholder='0h'
           onChange={(event) => {
             const next = event.target.value;
             setLocalValue(next);

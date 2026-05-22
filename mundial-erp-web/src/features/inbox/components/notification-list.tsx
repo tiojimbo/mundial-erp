@@ -27,10 +27,7 @@ export function NotificationList({
     return (
       <div className='space-y-1 p-2'>
         {Array.from({ length: 6 }).map((_, i) => (
-          <div
-            key={i}
-            className='h-11 w-full animate-pulse rounded bg-muted'
-          />
+          <div key={i} className='h-11 w-full animate-pulse rounded bg-muted' />
         ))}
       </div>
     );

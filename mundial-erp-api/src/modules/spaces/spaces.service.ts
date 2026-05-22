@@ -20,10 +20,25 @@ import { SPACE_RESOURCES } from './resources-metadata';
 import { PrismaService } from '../../database/prisma.service';
 
 const DEFAULT_WORKFLOW_STATUSES = [
-  { name: 'Para Fazer', type: StatusType.NOT_STARTED, color: '#94a3b8', position: 1 },
-  { name: 'Em Andamento', type: StatusType.ACTIVE, color: '#3b82f6', position: 2 },
+  {
+    name: 'Para Fazer',
+    type: StatusType.NOT_STARTED,
+    color: '#94a3b8',
+    position: 1,
+  },
+  {
+    name: 'Em Andamento',
+    type: StatusType.ACTIVE,
+    color: '#3b82f6',
+    position: 2,
+  },
   { name: 'Concluído', type: StatusType.DONE, color: '#22c55e', position: 3 },
-  { name: 'Finalizado', type: StatusType.CLOSED, color: '#16a34a', position: 4 },
+  {
+    name: 'Finalizado',
+    type: StatusType.CLOSED,
+    color: '#16a34a',
+    position: 4,
+  },
 ] as const;
 
 const DEFAULT_FOLDER_NAME = 'Área';
@@ -203,10 +218,7 @@ export class SpacesService {
     return items.map(SpaceDetailDto.fromEntity);
   }
 
-  async findById(
-    workspaceId: string,
-    id: string,
-  ): Promise<SpaceDetailDto> {
+  async findById(workspaceId: string, id: string): Promise<SpaceDetailDto> {
     const entity = await this.spacesRepository.findByIdWithDefaults(
       workspaceId,
       id,
@@ -437,26 +449,20 @@ export class SpacesService {
     return { visibility };
   }
 
-  async remove(
-    workspaceId: string,
-    id: string,
-  ): Promise<{ message: string }> {
+  async remove(workspaceId: string, id: string): Promise<{ message: string }> {
     const entity = await this.spacesRepository.findById(workspaceId, id);
     if (!entity) {
       throw new NotFoundException('Space não encontrado');
     }
     if (entity.isProtected) {
-      throw new ForbiddenException(
-        'Space protegido não pode ser removido',
-      );
+      throw new ForbiddenException('Space protegido não pode ser removido');
     }
     await this.spacesRepository.softDelete(workspaceId, id);
     return { message: 'Space deleted successfully' };
   }
 
   async getSidebarTree(workspaceId: string) {
-    const spaces =
-      await this.spacesRepository.getSidebarTree(workspaceId);
+    const spaces = await this.spacesRepository.getSidebarTree(workspaceId);
     const mapProcess = (l: (typeof spaces)[number]['lists'][number]) => ({
       id: l.id,
       name: l.name,
@@ -501,10 +507,7 @@ export class SpacesService {
     spaceId: string,
     showClosed = false,
   ) {
-    const entity = await this.spacesRepository.findById(
-      workspaceId,
-      spaceId,
-    );
+    const entity = await this.spacesRepository.findById(workspaceId, spaceId);
     if (!entity) {
       throw new NotFoundException('Space não encontrado');
     }

@@ -12,8 +12,7 @@ export function useUpdateTag() {
   const workspaceId = useWorkspaceId();
   return useMutation<TaskTag, Error, Vars>({
     mutationKey: [workspaceId, 'tasks', 'tags', 'update'],
-    mutationFn: ({ tagId, payload }) =>
-      taskTagsService.update(tagId, payload),
+    mutationFn: ({ tagId, payload }) => taskTagsService.update(tagId, payload),
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: taskQueryKeys.tags(workspaceId) });
       qc.invalidateQueries({ queryKey: taskQueryKeys.lists(workspaceId) });

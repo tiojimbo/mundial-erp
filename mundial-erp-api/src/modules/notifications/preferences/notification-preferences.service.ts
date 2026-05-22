@@ -30,9 +30,7 @@ const DEFAULT_PREFERENCES: Array<{
 
 @Injectable()
 export class NotificationPreferencesService {
-  constructor(
-    private readonly repository: NotificationPreferencesRepository,
-  ) {}
+  constructor(private readonly repository: NotificationPreferencesRepository) {}
 
   async listForUser(
     userId: string,

@@ -22,11 +22,7 @@ import {
   deserializeTaskFilters,
   serializeTaskFilters,
 } from '../utils/task-filters-url';
-import type {
-  Task,
-  TaskFilters,
-  TaskPriority,
-} from '../types/task.types';
+import type { Task, TaskFilters, TaskPriority } from '../types/task.types';
 import {
   TaskTable,
   type TaskTableGroup,
@@ -179,7 +175,7 @@ export function TaskListView({
     [router, urlFilters],
   );
 
-const handleBulkDelete = useCallback(async () => {
+  const handleBulkDelete = useCallback(async () => {
     if (selectedIds.length === 0) return;
     const confirmed =
       typeof window !== 'undefined' &&
@@ -215,47 +211,44 @@ const handleBulkDelete = useCallback(async () => {
   const selectedTypes = urlFilters.customTypeIds ?? [];
 
   return (
-    <div className="flex flex-col gap-4">
+    <div className='flex flex-col gap-4'>
       {/* Toolbar */}
-      <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
-        <div className="flex items-center gap-2">
-          <label className="relative w-full md:w-72">
-            <span className="sr-only">Buscar tarefas</span>
+      <div className='flex flex-col gap-3 md:flex-row md:items-center md:justify-between'>
+        <div className='flex items-center gap-2'>
+          <label className='relative w-full md:w-72'>
+            <span className='sr-only'>Buscar tarefas</span>
             <RiSearchLine
-              className="absolute left-3 top-1/2 size-4 -translate-y-1/2 text-text-sub-600"
+              className='absolute left-3 top-1/2 size-4 -translate-y-1/2 text-text-sub-600'
               aria-hidden
             />
             <input
-              type="search"
+              type='search'
               value={searchInput}
               onChange={(event) => setSearchInput(event.target.value)}
-              placeholder="Buscar por titulo..."
-              className="h-9 w-full rounded-md border border-stroke-soft-200 bg-bg-white-0 pl-9 pr-3 text-paragraph-sm text-text-strong-950 shadow-regular-xs outline-none focus:border-stroke-strong-950"
+              placeholder='Buscar por titulo...'
+              className='h-9 w-full rounded-md border border-stroke-soft-200 bg-bg-white-0 pl-9 pr-3 text-paragraph-sm text-text-strong-950 shadow-regular-xs outline-none focus:border-stroke-strong-950'
             />
           </label>
           <button
-            type="button"
+            type='button'
             onClick={() => query.refetch()}
-            className="inline-flex h-9 items-center gap-1 rounded-md border border-stroke-soft-200 bg-bg-white-0 px-3 text-label-xs text-text-sub-600 hover:bg-bg-weak-50"
-            aria-label="Atualizar"
+            className='inline-flex h-9 items-center gap-1 rounded-md border border-stroke-soft-200 bg-bg-white-0 px-3 text-label-xs text-text-sub-600 hover:bg-bg-weak-50'
+            aria-label='Atualizar'
           >
             <RiRefreshLine
-              className={cn(
-                'size-4',
-                query.isFetching && 'animate-spin',
-              )}
+              className={cn('size-4', query.isFetching && 'animate-spin')}
               aria-hidden
             />
             Atualizar
           </button>
         </div>
 
-        <details className="group relative">
-          <summary className="inline-flex h-9 cursor-pointer list-none items-center gap-2 rounded-md border border-stroke-soft-200 bg-bg-white-0 px-3 text-label-xs text-text-sub-600 hover:bg-bg-weak-50">
-            <RiFilter3Line className="size-4" aria-hidden />
+        <details className='group relative'>
+          <summary className='inline-flex h-9 cursor-pointer list-none items-center gap-2 rounded-md border border-stroke-soft-200 bg-bg-white-0 px-3 text-label-xs text-text-sub-600 hover:bg-bg-weak-50'>
+            <RiFilter3Line className='size-4' aria-hidden />
             Filtros
           </summary>
-          <div className="absolute right-0 z-20 mt-2 w-80 rounded-lg border border-stroke-soft-200 bg-bg-white-0 p-3 shadow-regular-md">
+          <div className='absolute right-0 z-20 mt-2 w-80 rounded-lg border border-stroke-soft-200 bg-bg-white-0 p-3 shadow-regular-md'>
             <PriorityFilter
               value={selectedPriority}
               onChange={(next) => updateUrlFilters({ priority: next })}
@@ -277,8 +270,8 @@ const handleBulkDelete = useCallback(async () => {
               }
             />
             <button
-              type="button"
-              className="mt-2 w-full rounded-md border border-stroke-soft-200 px-3 py-1.5 text-label-xs text-text-sub-600 hover:bg-bg-weak-50"
+              type='button'
+              className='mt-2 w-full rounded-md border border-stroke-soft-200 px-3 py-1.5 text-label-xs text-text-sub-600 hover:bg-bg-weak-50'
               onClick={() => {
                 router.replace('?', { scroll: false });
                 setSearchInput('');
@@ -299,18 +292,15 @@ const handleBulkDelete = useCallback(async () => {
           className='space-y-2'
         >
           {Array.from({ length: 8 }).map((_, i) => (
-            <div
-              key={i}
-              className='h-12 animate-pulse rounded-md bg-muted'
-            />
+            <div key={i} className='h-12 animate-pulse rounded-md bg-muted' />
           ))}
         </div>
       ) : tasks.length === 0 ? (
-        <div className='rounded-lg border border-dashed border-border p-8 text-center text-sm text-muted-foreground'>
+        <div className='text-sm rounded-lg border border-dashed border-border p-8 text-center text-muted-foreground'>
           Nenhuma tarefa encontrada. Ajuste os filtros ou crie uma nova tarefa.
         </div>
       ) : (
-        <div className='overflow-x-auto rounded-xl border border-border/60 bg-card/40'>
+        <div className='border-border/60 bg-card/40 overflow-x-auto rounded-xl border'>
           <div className='min-w-[1100px]'>
             <TaskTable
               groups={groups}
@@ -323,15 +313,15 @@ const handleBulkDelete = useCallback(async () => {
 
       {/* Paginacao cursor */}
       {query.hasNextPage && (
-        <div className="flex justify-center">
+        <div className='flex justify-center'>
           <button
-            type="button"
+            type='button'
             onClick={() => query.fetchNextPage()}
             disabled={query.isFetchingNextPage}
-            className="inline-flex h-9 items-center gap-2 rounded-md border border-stroke-soft-200 bg-bg-white-0 px-4 text-label-xs text-text-sub-600 hover:bg-bg-weak-50 disabled:opacity-50"
+            className='inline-flex h-9 items-center gap-2 rounded-md border border-stroke-soft-200 bg-bg-white-0 px-4 text-label-xs text-text-sub-600 hover:bg-bg-weak-50 disabled:opacity-50'
           >
             {query.isFetchingNextPage && (
-              <RiLoader4Line className="size-4 animate-spin" aria-hidden />
+              <RiLoader4Line className='size-4 animate-spin' aria-hidden />
             )}
             Carregar mais
           </button>
@@ -341,20 +331,20 @@ const handleBulkDelete = useCallback(async () => {
       {/* Bulk actions sticky */}
       {selectedIds.length > 0 && (
         <div
-          role="region"
-          aria-label="Acoes em lote"
-          className="sticky bottom-4 z-20 mx-auto flex flex-col gap-2 rounded-lg border border-stroke-soft-200 bg-bg-white-0 p-3 shadow-regular-md md:flex-row md:items-center"
+          role='region'
+          aria-label='Acoes em lote'
+          className='sticky bottom-4 z-20 mx-auto flex flex-col gap-2 rounded-lg border border-stroke-soft-200 bg-bg-white-0 p-3 shadow-regular-md md:flex-row md:items-center'
         >
-          <span className="text-label-sm text-text-strong-950">
+          <span className='text-label-sm text-text-strong-950'>
             {selectedIds.length} selecionada(s)
           </span>
-          <div className="flex flex-wrap items-center gap-2">
+          <div className='flex flex-wrap items-center gap-2'>
             <button
-              type="button"
+              type='button'
               onClick={handleBulkDelete}
-              className="inline-flex h-8 items-center gap-1 rounded-md border border-error-base px-3 text-label-xs text-error-base hover:bg-error-lighter"
+              className='inline-flex h-8 items-center gap-1 rounded-md border border-error-base px-3 text-label-xs text-error-base hover:bg-error-lighter'
             >
-              <RiDeleteBin6Line className="size-4" aria-hidden />
+              <RiDeleteBin6Line className='size-4' aria-hidden />
               Excluir
             </button>
             <BulkChangeStatus
@@ -362,12 +352,12 @@ const handleBulkDelete = useCallback(async () => {
               availableStatuses={buildStatusOptionsFromTasks(tasks)}
             />
             <button
-              type="button"
+              type='button'
               onClick={() => setSelected(new Set())}
-              className="inline-flex h-8 items-center gap-1 rounded-md px-3 text-label-xs text-text-sub-600 hover:bg-bg-weak-50"
-              aria-label="Limpar selecao"
+              className='inline-flex h-8 items-center gap-1 rounded-md px-3 text-label-xs text-text-sub-600 hover:bg-bg-weak-50'
+              aria-label='Limpar selecao'
             >
-              <RiCloseLine className="size-4" aria-hidden />
+              <RiCloseLine className='size-4' aria-hidden />
               Limpar
             </button>
           </div>
@@ -418,17 +408,17 @@ function PriorityFilter({
   onChange: (next: TaskPriority[]) => void;
 }): JSX.Element {
   return (
-    <fieldset className="mb-3">
-      <legend className="mb-1 text-label-xs uppercase text-text-sub-600">
+    <fieldset className='mb-3'>
+      <legend className='mb-1 text-label-xs uppercase text-text-sub-600'>
         Prioridade
       </legend>
-      <div className="flex flex-wrap gap-1">
+      <div className='flex flex-wrap gap-1'>
         {PRIORITY_OPTIONS.map((option) => {
           const selected = value.includes(option.value);
           return (
             <button
               key={option.value}
-              type="button"
+              type='button'
               onClick={() =>
                 onChange(
                   selected
@@ -464,17 +454,17 @@ function TagFilter({
 }): JSX.Element {
   if (options.length === 0) return <></>;
   return (
-    <fieldset className="mb-3">
-      <legend className="mb-1 text-label-xs uppercase text-text-sub-600">
+    <fieldset className='mb-3'>
+      <legend className='mb-1 text-label-xs uppercase text-text-sub-600'>
         Tags
       </legend>
-      <div className="flex flex-wrap gap-1">
+      <div className='flex flex-wrap gap-1'>
         {options.map((option) => {
           const selected = value.includes(option.id);
           return (
             <button
               key={option.id}
-              type="button"
+              type='button'
               onClick={() =>
                 onChange(
                   selected
@@ -510,17 +500,17 @@ function CustomTypeFilter({
 }): JSX.Element {
   if (options.length === 0) return <></>;
   return (
-    <fieldset className="mb-3">
-      <legend className="mb-1 text-label-xs uppercase text-text-sub-600">
+    <fieldset className='mb-3'>
+      <legend className='mb-1 text-label-xs uppercase text-text-sub-600'>
         Tipo custom
       </legend>
-      <div className="flex flex-wrap gap-1">
+      <div className='flex flex-wrap gap-1'>
         {options.map((option) => {
           const selected = value.includes(option.id);
           return (
             <button
               key={option.id}
-              type="button"
+              type='button'
               onClick={() =>
                 onChange(
                   selected
@@ -553,11 +543,11 @@ function ArchivedFilter({
   onChange: (next: boolean | undefined) => void;
 }): JSX.Element {
   return (
-    <fieldset className="mb-3">
-      <legend className="mb-1 text-label-xs uppercase text-text-sub-600">
+    <fieldset className='mb-3'>
+      <legend className='mb-1 text-label-xs uppercase text-text-sub-600'>
         Arquivadas
       </legend>
-      <div className="flex gap-1">
+      <div className='flex gap-1'>
         {[
           { label: 'Nao', value: false },
           { label: 'Sim', value: true },
@@ -567,7 +557,7 @@ function ArchivedFilter({
           return (
             <button
               key={idx}
-              type="button"
+              type='button'
               onClick={() => onChange(option.value)}
               className={cn(
                 'inline-flex h-7 items-center rounded-md border px-2 text-subheading-2xs',
@@ -595,18 +585,18 @@ function BulkChangeStatus({
 }): JSX.Element {
   if (availableStatuses.length === 0) return <></>;
   return (
-    <label className="inline-flex items-center gap-1 rounded-md border border-stroke-soft-200 px-2 text-label-xs text-text-sub-600">
-      <span className="sr-only">Mudar status</span>
+    <label className='inline-flex items-center gap-1 rounded-md border border-stroke-soft-200 px-2 text-label-xs text-text-sub-600'>
+      <span className='sr-only'>Mudar status</span>
       <select
-        className="h-8 bg-transparent px-1 text-label-xs outline-none"
-        defaultValue=""
+        className='h-8 bg-transparent px-1 text-label-xs outline-none'
+        defaultValue=''
         onChange={(event) => {
           const value = event.target.value;
           if (value) onChange(value);
           event.currentTarget.value = '';
         }}
       >
-        <option value="">Mudar status...</option>
+        <option value=''>Mudar status...</option>
         {availableStatuses.map((status) => (
           <option key={status.id} value={status.id}>
             {status.name}

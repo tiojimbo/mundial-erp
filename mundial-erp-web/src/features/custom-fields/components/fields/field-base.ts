@@ -25,18 +25,18 @@ export interface BaseFieldProps<T = unknown> {
 }
 
 export const inputClass = cn(
-  'h-9 w-full rounded-md border border-input bg-background px-3 text-sm text-foreground',
+  'text-sm h-9 w-full rounded-md border border-input bg-background px-3 text-foreground',
   'transition-colors',
   'placeholder:text-muted-foreground/60',
-  'outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-1',
+  'focus-visible:ring-primary outline-none focus-visible:ring-2 focus-visible:ring-offset-1',
   'disabled:cursor-not-allowed disabled:opacity-60',
-  'read-only:cursor-default read-only:bg-muted/40',
+  'read-only:bg-muted/40 read-only:cursor-default',
   'aria-[invalid=true]:border-destructive aria-[invalid=true]:focus-visible:ring-destructive',
 );
 
 export const inputClassInline = cn(
   'h-full w-full bg-transparent text-[13px] text-foreground',
-  'outline-none placeholder:text-muted-foreground/60',
+  'placeholder:text-muted-foreground/60 outline-none',
   'disabled:cursor-not-allowed disabled:opacity-60',
   'read-only:cursor-default',
 );

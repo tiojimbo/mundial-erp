@@ -13,7 +13,9 @@ import type {
 } from '../types/order.types';
 
 export const orderService = {
-  async getAll(filters?: OrderFilters): Promise<PaginatedResponse<OrderSummary>> {
+  async getAll(
+    filters?: OrderFilters,
+  ): Promise<PaginatedResponse<OrderSummary>> {
     const { data } = await api.get<PaginatedResponse<OrderSummary>>('/orders', {
       params: filters,
     });
@@ -71,7 +73,10 @@ export const orderService = {
     await api.post(`/orders/${orderId}/items/${itemId}/supplies`, payload);
   },
 
-  async registerPayment(id: string, payload: RegisterPaymentPayload): Promise<Order> {
+  async registerPayment(
+    id: string,
+    payload: RegisterPaymentPayload,
+  ): Promise<Order> {
     const { data } = await api.patch<Order>(`/orders/${id}/payment`, payload);
     return data;
   },

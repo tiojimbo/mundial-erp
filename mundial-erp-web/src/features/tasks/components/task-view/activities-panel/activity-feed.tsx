@@ -35,7 +35,11 @@ export function ActivityFeed({
   params,
 }: ActivityFeedProps) {
   const query = useActivities(taskId, params, controlled === undefined);
-  const commentsQuery = useComments(taskId, undefined, controlled === undefined);
+  const commentsQuery = useComments(
+    taskId,
+    undefined,
+    controlled === undefined,
+  );
   const activities = useMemo(() => {
     if (controlled !== undefined) return controlled;
     return (query.data as ActivitiesListResponse | undefined)?.items ?? [];
@@ -46,9 +50,7 @@ export function ActivityFeed({
       | { items?: TaskComment[] }
       | TaskComment[]
       | undefined;
-    const list: TaskComment[] = Array.isArray(raw)
-      ? raw
-      : (raw?.items ?? []);
+    const list: TaskComment[] = Array.isArray(raw) ? raw : (raw?.items ?? []);
     const map = new Map<string, TaskComment>();
     for (const c of list) map.set(c.id, c);
     return map;

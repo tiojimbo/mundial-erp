@@ -8,9 +8,14 @@ import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { render, screen, fireEvent, act } from '@testing-library/react';
 import { PhoneField } from './phone-field';
 import type { CustomFieldDefinition } from '../../types/custom-field.types';
-import { makeCustomFieldDefinition } from "../../types/custom-field.fixtures";
+import { makeCustomFieldDefinition } from '../../types/custom-field.fixtures';
 
-const definition: CustomFieldDefinition = makeCustomFieldDefinition({ id: 'def-phone-1', workspaceId: 'ws-1', name: 'Telefone', type: 'PHONE' });
+const definition: CustomFieldDefinition = makeCustomFieldDefinition({
+  id: 'def-phone-1',
+  workspaceId: 'ws-1',
+  name: 'Telefone',
+  type: 'PHONE',
+});
 
 describe('PhoneField (TTT-024)', () => {
   beforeEach(() => {
@@ -65,7 +70,7 @@ describe('PhoneField (TTT-024)', () => {
         definition={definition}
         value={null}
         onChange={onChange}
-        error="Telefone invalido"
+        error='Telefone invalido'
       />,
     );
     const input = screen.getByPlaceholderText('(11) 91234-5678');

@@ -30,13 +30,25 @@ function evaluateOne(
     case ConditionOperator.NEQ:
       return actual !== expected;
     case ConditionOperator.GT:
-      return isComparable(actual, expected) && (actual as number) > (expected as number);
+      return (
+        isComparable(actual, expected) &&
+        (actual as number) > (expected as number)
+      );
     case ConditionOperator.GTE:
-      return isComparable(actual, expected) && (actual as number) >= (expected as number);
+      return (
+        isComparable(actual, expected) &&
+        (actual as number) >= (expected as number)
+      );
     case ConditionOperator.LT:
-      return isComparable(actual, expected) && (actual as number) < (expected as number);
+      return (
+        isComparable(actual, expected) &&
+        (actual as number) < (expected as number)
+      );
     case ConditionOperator.LTE:
-      return isComparable(actual, expected) && (actual as number) <= (expected as number);
+      return (
+        isComparable(actual, expected) &&
+        (actual as number) <= (expected as number)
+      );
     case ConditionOperator.IN:
       return Array.isArray(expected) && expected.includes(actual);
     case ConditionOperator.NOT_IN:
@@ -60,10 +72,7 @@ function evaluateOne(
   }
 }
 
-function readField(
-  snapshot: Record<string, unknown>,
-  path: string,
-): unknown {
+function readField(snapshot: Record<string, unknown>, path: string): unknown {
   if (!path.includes('.')) return snapshot[path];
   return path.split('.').reduce<unknown>((acc, key) => {
     if (acc == null || typeof acc !== 'object') return undefined;

@@ -13,7 +13,9 @@ describe('CheckboxField', () => {
   it('emite true ao marcar', () => {
     const onChange = vi.fn();
     const def = makeCustomFieldDefinition({ type: 'CHECKBOX' });
-    render(<CheckboxField definition={def} value={false} onChange={onChange} />);
+    render(
+      <CheckboxField definition={def} value={false} onChange={onChange} />,
+    );
     fireEvent.click(screen.getByRole('checkbox'));
     expect(onChange).toHaveBeenCalledWith(true);
   });

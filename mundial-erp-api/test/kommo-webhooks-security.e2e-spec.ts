@@ -251,9 +251,7 @@ describe('POST /webhooks/kommo/:workspaceId — Security Contract (ADR-005)', ()
    * helper para nao contaminar runs paralelos nem herdar state de outro
    * cenario.
    */
-  async function setupFixture(
-    subdomainPrefix = 'qa-ws',
-  ): Promise<{
+  async function setupFixture(subdomainPrefix = 'qa-ws'): Promise<{
     workspaceId: string;
     hmacSecret: string;
     subdomain: string;
@@ -376,21 +374,25 @@ describe('POST /webhooks/kommo/:workspaceId — Security Contract (ADR-005)', ()
       mutate: () =>
         'zzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzz',
     },
-  ])('rejects signature mutation "$label" with 401', async ({ mutate }) => {
-    if (skipIfNoDb()) return;
+  ])(
+    'rejects signature mutation "$label" with 401',
+    async ({ mutate }) => {
+      if (skipIfNoDb()) return;
 
-    const { workspaceId, hmacSecret, subdomain } = await setupFixture();
-    const payload = makePayload(subdomain);
-    const { rawBody, signature } = sign(payload, hmacSecret);
+      const { workspaceId, hmacSecret, subdomain } = await setupFixture();
+      const payload = makePayload(subdomain);
+      const { rawBody, signature } = sign(payload, hmacSecret);
 
-    const res = await request(app.getHttpServer())
-      .post(WEBHOOK_PATH(workspaceId))
-      .set('Content-Type', 'application/json')
-      .set(SIG_HEADER, mutate(signature))
-      .send(rawBody);
+      const res = await request(app.getHttpServer())
+        .post(WEBHOOK_PATH(workspaceId))
+        .set('Content-Type', 'application/json')
+        .set(SIG_HEADER, mutate(signature))
+        .send(rawBody);
 
-    expect(res.status).toBe(401);
-  }, 15_000);
+      expect(res.status).toBe(401);
+    },
+    15_000,
+  );
 
   // -------------------------------------------------------------------------
   // 3) Missing signature header → 401

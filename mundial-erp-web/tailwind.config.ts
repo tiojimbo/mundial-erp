@@ -259,9 +259,7 @@ export const borderRadii = {
 const config = {
   darkMode: ['class'],
   safelist: ['.dark'],
-  content: [
-    './src/**/*.{js,ts,jsx,tsx,mdx}',
-  ],
+  content: ['./src/**/*.{js,ts,jsx,tsx,mdx}'],
   theme: {
     colors: {
       gray: {
@@ -662,7 +660,10 @@ const config = {
         },
         'collapsible-down': {
           from: { height: '0', opacity: '0' },
-          to: { height: 'var(--radix-collapsible-content-height)', opacity: '1' },
+          to: {
+            height: 'var(--radix-collapsible-content-height)',
+            opacity: '1',
+          },
         },
         'collapsible-up': {
           from: {

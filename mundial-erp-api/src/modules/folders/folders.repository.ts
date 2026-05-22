@@ -79,7 +79,11 @@ export class FoldersRepository {
     return { items, total };
   }
 
-  async update(_workspaceId: string, id: string, data: Prisma.FolderUpdateInput) {
+  async update(
+    _workspaceId: string,
+    id: string,
+    data: Prisma.FolderUpdateInput,
+  ) {
     return this.prisma.folder.update({ where: { id }, data });
   }
 
@@ -144,10 +148,6 @@ export class FoldersRepository {
 
     const listProcessIds = processes
       .filter((p) => p.processType === ProcessType.LIST)
-      .map((p) => p.id);
-
-    const bpmProcessIds = processes
-      .filter((p) => p.processType === ProcessType.BPM)
       .map((p) => p.id);
 
     const workItemWhere: Prisma.WorkItemWhereInput = {

@@ -10,7 +10,9 @@ type Props = {
 };
 
 export function ProposalsTab({ quotation }: Props) {
-  const hasProposal = ['RECEIVED', 'SELECTED', 'REJECTED'].includes(quotation.status);
+  const hasProposal = ['RECEIVED', 'SELECTED', 'REJECTED'].includes(
+    quotation.status,
+  );
 
   if (!hasProposal) {
     return (
@@ -40,7 +42,9 @@ export function ProposalsTab({ quotation }: Props) {
               <Table.Head>Produto</Table.Head>
               <Table.Head>Código</Table.Head>
               <Table.Head className='text-right'>Qtd Solicitada</Table.Head>
-              <Table.Head className='text-right'>Preço Unit. Proposto</Table.Head>
+              <Table.Head className='text-right'>
+                Preço Unit. Proposto
+              </Table.Head>
               <Table.Head className='text-right'>Total Item</Table.Head>
             </Table.Row>
           </Table.Header>
@@ -57,7 +61,9 @@ export function ProposalsTab({ quotation }: Props) {
                   <Table.Cell className='text-text-sub-600'>
                     {item.product?.code ?? '—'}
                   </Table.Cell>
-                  <Table.Cell className='text-right'>{item.quantity}</Table.Cell>
+                  <Table.Cell className='text-right'>
+                    {item.quantity}
+                  </Table.Cell>
                   <Table.Cell className='text-right'>
                     {formatCents(item.unitPriceCents)}
                   </Table.Cell>
@@ -75,7 +81,9 @@ export function ProposalsTab({ quotation }: Props) {
           <div className='w-64 space-y-1 rounded-lg bg-bg-weak-50 p-4'>
             <div className='flex justify-between text-label-md'>
               <span className='text-text-strong-950'>Total Proposta</span>
-              <span className='text-text-strong-950'>{formatCents(quotation.totalCents)}</span>
+              <span className='text-text-strong-950'>
+                {formatCents(quotation.totalCents)}
+              </span>
             </div>
           </div>
         </div>
@@ -83,7 +91,9 @@ export function ProposalsTab({ quotation }: Props) {
 
       {quotation.notes && (
         <div className='rounded-xl border border-stroke-soft-200 bg-bg-white-0 p-5 shadow-regular-xs'>
-          <h3 className='mb-2 text-label-md text-text-strong-950'>Observações</h3>
+          <h3 className='mb-2 text-label-md text-text-strong-950'>
+            Observações
+          </h3>
           <p className='whitespace-pre-wrap text-paragraph-sm text-text-sub-600'>
             {quotation.notes}
           </p>

@@ -4,10 +4,17 @@
 
 import type { Meta, StoryObj } from '@storybook/react';
 import type { CustomFieldDefinition } from '../../types/custom-field.types';
-import { makeCustomFieldDefinition } from "../../types/custom-field.fixtures";
+import { makeCustomFieldDefinition } from '../../types/custom-field.fixtures';
 import { EmailField } from './email-field';
 
-const baseDef: CustomFieldDefinition = makeCustomFieldDefinition({ id: 'def-email-1', workspaceId: null, name: 'E-mail de contato', type: 'EMAIL', fixed: true, position: 90 });
+const baseDef: CustomFieldDefinition = makeCustomFieldDefinition({
+  id: 'def-email-1',
+  workspaceId: null,
+  name: 'E-mail de contato',
+  type: 'EMAIL',
+  fixed: true,
+  position: 90,
+});
 
 const meta: Meta<typeof EmailField> = {
   title: 'CustomFields/EmailField',

@@ -163,7 +163,7 @@ export function MessageComposer({
         onClose={() => setMentionOpen(false)}
       />
 
-      <div className='overflow-hidden rounded-[14px] border border-stroke-soft-200 bg-bg-white-0 transition-shadow focus-within:border-stroke-strong-950/20 focus-within:shadow-regular-xs'>
+      <div className='focus-within:border-stroke-strong-950/20 overflow-hidden rounded-[14px] border border-stroke-soft-200 bg-bg-white-0 transition-shadow focus-within:shadow-regular-xs'>
         {/* Textarea */}
         <textarea
           ref={textareaRef}
@@ -172,7 +172,7 @@ export function MessageComposer({
           onKeyDown={handleKeyDown}
           placeholder='Escreva uma mensagem...'
           rows={1}
-          className='w-full resize-none bg-transparent px-4 py-3.5 text-paragraph-md text-text-strong-950 outline-none placeholder:text-text-soft-400/60'
+          className='placeholder:text-text-soft-400/60 w-full resize-none bg-transparent px-4 py-3.5 text-paragraph-md text-text-strong-950 outline-none'
           style={{ minHeight: 52 }}
         />
 

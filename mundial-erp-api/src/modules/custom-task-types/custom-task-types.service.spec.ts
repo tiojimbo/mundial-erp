@@ -339,9 +339,9 @@ describe('CustomTaskTypesService.listBySpace', () => {
     const { service, repository } = buildService();
     repository.spaceBelongsToWorkspace.mockResolvedValue(false);
 
-    await expect(
-      service.listBySpace(WS_ID, SPACE_ID),
-    ).rejects.toBeInstanceOf(NotFoundException);
+    await expect(service.listBySpace(WS_ID, SPACE_ID)).rejects.toBeInstanceOf(
+      NotFoundException,
+    );
     expect(repository.findManyBySpace).not.toHaveBeenCalled();
   });
 

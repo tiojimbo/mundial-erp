@@ -25,7 +25,9 @@ function idempotencyHeaders() {
 export const financialService = {
   // ===== Accounts Receivable =====
 
-  async getAR(filters?: ARFilters): Promise<PaginatedResponse<AccountReceivable>> {
+  async getAR(
+    filters?: ARFilters,
+  ): Promise<PaginatedResponse<AccountReceivable>> {
     const { data } = await api.get<PaginatedResponse<AccountReceivable>>(
       '/accounts-receivable',
       { params: filters },
@@ -34,11 +36,15 @@ export const financialService = {
   },
 
   async getARById(id: string): Promise<AccountReceivable> {
-    const { data } = await api.get<AccountReceivable>(`/accounts-receivable/${id}`);
+    const { data } = await api.get<AccountReceivable>(
+      `/accounts-receivable/${id}`,
+    );
     return data;
   },
 
-  async createAR(payload: CreateAccountReceivablePayload): Promise<AccountReceivable> {
+  async createAR(
+    payload: CreateAccountReceivablePayload,
+  ): Promise<AccountReceivable> {
     const { data } = await api.post<AccountReceivable>(
       '/accounts-receivable',
       payload,
@@ -74,7 +80,9 @@ export const financialService = {
     return data;
   },
 
-  async createAP(payload: CreateAccountPayablePayload): Promise<AccountPayable> {
+  async createAP(
+    payload: CreateAccountPayablePayload,
+  ): Promise<AccountPayable> {
     const { data } = await api.post<AccountPayable>(
       '/accounts-payable',
       payload,
@@ -97,11 +105,12 @@ export const financialService = {
 
   // ===== Invoices (NF-e) =====
 
-  async getInvoices(filters?: InvoiceFilters): Promise<PaginatedResponse<Invoice>> {
-    const { data } = await api.get<PaginatedResponse<Invoice>>(
-      '/invoices',
-      { params: filters },
-    );
+  async getInvoices(
+    filters?: InvoiceFilters,
+  ): Promise<PaginatedResponse<Invoice>> {
+    const { data } = await api.get<PaginatedResponse<Invoice>>('/invoices', {
+      params: filters,
+    });
     return data;
   },
 
@@ -137,7 +146,9 @@ export const financialService = {
     return data;
   },
 
-  async openCashRegister(payload: OpenCashRegisterPayload): Promise<CashRegister> {
+  async openCashRegister(
+    payload: OpenCashRegisterPayload,
+  ): Promise<CashRegister> {
     const { data } = await api.post<CashRegister>('/cash-registers', payload);
     return data;
   },
@@ -163,7 +174,9 @@ export const financialService = {
   // ===== Lookups =====
 
   async getCategories(): Promise<FinancialCategory[]> {
-    const { data } = await api.get<FinancialCategory[]>('/financial-categories');
+    const { data } = await api.get<FinancialCategory[]>(
+      '/financial-categories',
+    );
     return data;
   },
 };

@@ -8,7 +8,9 @@ import {
 } from 'class-validator';
 
 export class CreateCommentDto {
-  @ApiProperty({ description: 'ID da tarefa (WorkItem) destino do comentário.' })
+  @ApiProperty({
+    description: 'ID da tarefa (WorkItem) destino do comentário.',
+  })
   @IsString()
   @MinLength(1)
   taskId!: string;

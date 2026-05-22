@@ -109,7 +109,9 @@ export class CreateTaskDto {
   @IsString()
   customTypeId?: string;
 
-  @ApiPropertyOptional({ description: 'Parent task id para criar como subtask' })
+  @ApiPropertyOptional({
+    description: 'Parent task id para criar como subtask',
+  })
   @IsOptional()
   @IsString()
   parentId?: string;

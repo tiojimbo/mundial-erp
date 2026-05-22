@@ -97,8 +97,7 @@ export function CreateTaskDialog({
   >(null);
   const customTypesQuery = useCustomTaskTypes();
   const lockedProcessQuery = useProcess(lockedProcessId ?? '');
-  const defaultTaskTypeId =
-    lockedProcessQuery.data?.defaultTaskTypeId ?? null;
+  const defaultTaskTypeId = lockedProcessQuery.data?.defaultTaskTypeId ?? null;
   const workspaceId = useWorkspaceStore(
     (state) => state.currentWorkspace?.id ?? '',
   );
@@ -149,10 +148,7 @@ export function CreateTaskDialog({
     useDepartment ? (departmentId as string) : '',
     false,
   );
-  const areaQuery = useAreaSummaries(
-    useArea ? (areaId as string) : '',
-    false,
-  );
+  const areaQuery = useAreaSummaries(useArea ? (areaId as string) : '', false);
 
   // Lista de areas derivada (para cascata Department -> Area -> Process).
   const [selectedAreaId, setSelectedAreaId] = useState<string>('');
@@ -167,10 +163,11 @@ export function CreateTaskDialog({
   }, [open, useDepartment]);
 
   const areaOptions = useMemo(() => {
-    if (!useDepartment || !deptQuery.data) return [] as Array<{
-      id: string;
-      name: string;
-    }>;
+    if (!useDepartment || !deptQuery.data)
+      return [] as Array<{
+        id: string;
+        name: string;
+      }>;
     const seen = new Map<string, string>();
     for (const p of deptQuery.data) {
       if (p.areaId && p.areaName && !seen.has(p.areaId)) {
@@ -221,8 +218,7 @@ export function CreateTaskDialog({
   }, [lockedProcessId, lockedProcessName, processId, processOptions]);
 
   const isLoadingContext =
-    (useDepartment && deptQuery.isLoading) ||
-    (useArea && areaQuery.isLoading);
+    (useDepartment && deptQuery.isLoading) || (useArea && areaQuery.isLoading);
 
   const isPending = createTask.isPending || isSubmitting;
 
@@ -280,17 +276,17 @@ export function CreateTaskDialog({
             'rounded-20 bg-bg-white-0 shadow-regular-md',
             'focus:outline-none',
             'data-[state=open]:animate-in data-[state=closed]:animate-out',
-            'data-[state=open]:fade-in-0 data-[state=closed]:fade-out-0',
-            'data-[state=open]:zoom-in-95 data-[state=closed]:zoom-out-95',
+            'data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0',
+            'data-[state=closed]:zoom-out-95 data-[state=open]:zoom-in-95',
           )}
         >
           <form onSubmit={handleSubmit(onSubmit)} noValidate>
             {/* Header */}
-            <div className="relative flex items-start gap-3 border-b border-stroke-soft-200 px-5 py-4">
-              <div className="flex-1 space-y-1">
+            <div className='relative flex items-start gap-3 border-b border-stroke-soft-200 px-5 py-4'>
+              <div className='flex-1 space-y-1'>
                 <Dialog.Title
                   id={titleId}
-                  className="text-label-sm text-text-strong-950"
+                  className='text-label-sm text-text-strong-950'
                 >
                   {lockedProcessQuery.data?.defaultTaskType?.value
                     ? `Nova ${lockedProcessQuery.data.defaultTaskType.value}`
@@ -298,27 +294,27 @@ export function CreateTaskDialog({
                 </Dialog.Title>
                 <Dialog.Description
                   id={descId}
-                  className="text-paragraph-xs text-text-sub-600"
+                  className='text-paragraph-xs text-text-sub-600'
                 >
                   Preencha os campos para criar uma tarefa no processo.
                 </Dialog.Description>
               </div>
               <Dialog.Close asChild>
                 <button
-                  type="button"
-                  aria-label="Fechar"
+                  type='button'
+                  aria-label='Fechar'
                   disabled={isPending}
-                  className="rounded-md p-1 text-text-sub-600 transition-colors hover:bg-bg-weak-50 hover:text-text-strong-950 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-stroke-strong-950/50 disabled:opacity-50"
+                  className='focus-visible:ring-stroke-strong-950/50 rounded-md p-1 text-text-sub-600 transition-colors hover:bg-bg-weak-50 hover:text-text-strong-950 focus-visible:outline-none focus-visible:ring-2 disabled:opacity-50'
                 >
-                  <RiCloseLine className="size-4" />
+                  <RiCloseLine className='size-4' />
                 </button>
               </Dialog.Close>
             </div>
 
             {/* Body */}
-            <div className="space-y-4 p-5">
+            <div className='space-y-4 p-5'>
               {hasNoContext && (
-                <div className="rounded-lg border border-stroke-soft-200 bg-bg-weak-50 px-3 py-2.5 text-paragraph-sm text-text-sub-600">
+                <div className='rounded-lg border border-stroke-soft-200 bg-bg-weak-50 px-3 py-2.5 text-paragraph-sm text-text-sub-600'>
                   Selecione um contexto (departamento, area ou processo) antes
                   de criar a tarefa.
                 </div>
@@ -326,24 +322,24 @@ export function CreateTaskDialog({
 
               {/* Process (locked) */}
               {isLocked && (
-                <div className="space-y-1.5">
-                  <label className="text-label-sm text-text-strong-950">
+                <div className='space-y-1.5'>
+                  <label className='text-label-sm text-text-strong-950'>
                     Processo
                   </label>
-                  <div className="flex items-center gap-2 rounded-lg border border-stroke-soft-200 bg-bg-weak-50 px-3 py-2">
+                  <div className='flex items-center gap-2 rounded-lg border border-stroke-soft-200 bg-bg-weak-50 px-3 py-2'>
                     <RiFolderOpenLine
                       aria-hidden
-                      className="size-4 text-text-sub-600"
+                      className='size-4 text-text-sub-600'
                     />
-                    <span className="truncate text-paragraph-sm text-text-strong-950">
+                    <span className='truncate text-paragraph-sm text-text-strong-950'>
                       {selectedProcess?.name ?? 'Processo atual'}
                     </span>
-                    <span className="ml-auto rounded-md bg-bg-white-0 px-1.5 py-0.5 text-paragraph-xs text-text-sub-600 ring-1 ring-stroke-soft-200">
+                    <span className='ml-auto rounded-md bg-bg-white-0 px-1.5 py-0.5 text-paragraph-xs text-text-sub-600 ring-1 ring-stroke-soft-200'>
                       Fixado
                     </span>
                   </div>
                   <input
-                    type="hidden"
+                    type='hidden'
                     {...register('processId')}
                     value={lockedProcessId}
                     readOnly
@@ -353,22 +349,22 @@ export function CreateTaskDialog({
 
               {/* Cascade: Department -> Area select */}
               {useDepartment && (
-                <div className="space-y-1.5">
+                <div className='space-y-1.5'>
                   <label
-                    htmlFor="create-task-area"
-                    className="text-label-sm text-text-strong-950"
+                    htmlFor='create-task-area'
+                    className='text-label-sm text-text-strong-950'
                   >
-                    Area <span className="text-text-soft-400">(opcional)</span>
+                    Area <span className='text-text-soft-400'>(opcional)</span>
                   </label>
-                  <div className="relative">
+                  <div className='relative'>
                     <select
-                      id="create-task-area"
+                      id='create-task-area'
                       value={selectedAreaId}
                       onChange={(e) => setSelectedAreaId(e.target.value)}
                       disabled={isLoadingContext || areaOptions.length === 0}
-                      className="h-9 w-full appearance-none rounded-lg border border-stroke-soft-200 bg-bg-white-0 pl-3 pr-9 text-paragraph-sm text-text-strong-950 shadow-regular-xs outline-none transition-colors hover:bg-bg-weak-50 focus-visible:border-stroke-strong-950 focus-visible:ring-2 focus-visible:ring-stroke-strong-950/30 disabled:cursor-not-allowed disabled:opacity-60"
+                      className='focus-visible:ring-stroke-strong-950/30 h-9 w-full appearance-none rounded-lg border border-stroke-soft-200 bg-bg-white-0 pl-3 pr-9 text-paragraph-sm text-text-strong-950 shadow-regular-xs outline-none transition-colors hover:bg-bg-weak-50 focus-visible:border-stroke-strong-950 focus-visible:ring-2 disabled:cursor-not-allowed disabled:opacity-60'
                     >
-                      <option value="">Todas as areas</option>
+                      <option value=''>Todas as areas</option>
                       {areaOptions.map((a) => (
                         <option key={a.id} value={a.id}>
                           {a.name}
@@ -377,7 +373,7 @@ export function CreateTaskDialog({
                     </select>
                     <RiArrowDownSLine
                       aria-hidden
-                      className="pointer-events-none absolute right-2.5 top-1/2 size-4 -translate-y-1/2 text-text-sub-600"
+                      className='pointer-events-none absolute right-2.5 top-1/2 size-4 -translate-y-1/2 text-text-sub-600'
                     />
                   </div>
                 </div>
@@ -385,19 +381,19 @@ export function CreateTaskDialog({
 
               {/* Process select (cmdk) */}
               {!isLocked && (useDepartment || useArea) && (
-                <div className="space-y-1.5">
+                <div className='space-y-1.5'>
                   <label
-                    htmlFor="create-task-process"
-                    className="text-label-sm text-text-strong-950"
+                    htmlFor='create-task-process'
+                    className='text-label-sm text-text-strong-950'
                   >
-                    Processo <span className="text-error-base">*</span>
+                    Processo <span className='text-error-base'>*</span>
                   </label>
                   <Controller
-                    name="processId"
+                    name='processId'
                     control={control}
                     render={({ field }) => (
                       <ProcessCombobox
-                        id="create-task-process"
+                        id='create-task-process'
                         value={field.value}
                         onChange={field.onChange}
                         options={processOptions}
@@ -407,7 +403,7 @@ export function CreateTaskDialog({
                     )}
                   />
                   {errors.processId && (
-                    <p className="text-paragraph-xs text-error-base">
+                    <p className='text-paragraph-xs text-error-base'>
                       {errors.processId.message}
                     </p>
                   )}
@@ -415,18 +411,18 @@ export function CreateTaskDialog({
               )}
 
               {/* Title */}
-              <div className="space-y-1.5">
+              <div className='space-y-1.5'>
                 <label
-                  htmlFor="create-task-title"
-                  className="text-label-sm text-text-strong-950"
+                  htmlFor='create-task-title'
+                  className='text-label-sm text-text-strong-950'
                 >
-                  Titulo <span className="text-error-base">*</span>
+                  Titulo <span className='text-error-base'>*</span>
                 </label>
                 <textarea
-                  id="create-task-title"
+                  id='create-task-title'
                   rows={2}
                   autoFocus
-                  placeholder="O que precisa ser feito?"
+                  placeholder='O que precisa ser feito?'
                   aria-invalid={Boolean(errors.title)}
                   {...register('title')}
                   className={cn(
@@ -434,29 +430,29 @@ export function CreateTaskDialog({
                     'placeholder:text-text-soft-400',
                     'focus-visible:ring-2',
                     errors.title
-                      ? 'border-error-base focus-visible:border-error-base focus-visible:ring-error-base/30'
-                      : 'border-stroke-soft-200 hover:bg-bg-weak-50 focus-visible:border-stroke-strong-950 focus-visible:ring-stroke-strong-950/30',
+                      ? 'focus-visible:ring-error-base/30 border-error-base focus-visible:border-error-base'
+                      : 'focus-visible:ring-stroke-strong-950/30 border-stroke-soft-200 hover:bg-bg-weak-50 focus-visible:border-stroke-strong-950',
                   )}
                 />
                 {errors.title && (
-                  <p className="text-paragraph-xs text-error-base">
+                  <p className='text-paragraph-xs text-error-base'>
                     {errors.title.message}
                   </p>
                 )}
               </div>
 
               {/* TTT-042 — Custom task type (opcional) + preview do template */}
-              <div className="space-y-1.5">
+              <div className='space-y-1.5'>
                 <label
-                  htmlFor="create-task-custom-type"
-                  className="text-label-sm text-text-strong-950"
+                  htmlFor='create-task-custom-type'
+                  className='text-label-sm text-text-strong-950'
                 >
                   Tipo de tarefa{' '}
-                  <span className="text-text-soft-400">(opcional)</span>
+                  <span className='text-text-soft-400'>(opcional)</span>
                 </label>
-                <div className="relative">
+                <div className='relative'>
                   <select
-                    id="create-task-custom-type"
+                    id='create-task-custom-type'
                     value={selectedCustomTypeId ?? ''}
                     onChange={(e) =>
                       setSelectedCustomTypeId(e.target.value || null)
@@ -466,9 +462,9 @@ export function CreateTaskDialog({
                       !customTypesQuery.data ||
                       customTypesQuery.data.length === 0
                     }
-                    className="h-9 w-full appearance-none rounded-lg border border-stroke-soft-200 bg-bg-white-0 pl-3 pr-9 text-paragraph-sm text-text-strong-950 shadow-regular-xs outline-none transition-colors hover:bg-bg-weak-50 focus-visible:border-stroke-strong-950 focus-visible:ring-2 focus-visible:ring-stroke-strong-950/30 disabled:cursor-not-allowed disabled:opacity-60"
+                    className='focus-visible:ring-stroke-strong-950/30 h-9 w-full appearance-none rounded-lg border border-stroke-soft-200 bg-bg-white-0 pl-3 pr-9 text-paragraph-sm text-text-strong-950 shadow-regular-xs outline-none transition-colors hover:bg-bg-weak-50 focus-visible:border-stroke-strong-950 focus-visible:ring-2 disabled:cursor-not-allowed disabled:opacity-60'
                   >
-                    <option value="">Padrao (Tarefa)</option>
+                    <option value=''>Padrao (Tarefa)</option>
                     {(customTypesQuery.data ?? []).map((t) => (
                       <option key={t.id} value={t.id}>
                         {t.value}
@@ -477,7 +473,7 @@ export function CreateTaskDialog({
                   </select>
                   <RiArrowDownSLine
                     aria-hidden
-                    className="pointer-events-none absolute right-2.5 top-1/2 size-4 -translate-y-1/2 text-text-sub-600"
+                    className='pointer-events-none absolute right-2.5 top-1/2 size-4 -translate-y-1/2 text-text-sub-600'
                   />
                 </div>
 
@@ -489,18 +485,18 @@ export function CreateTaskDialog({
               </div>
 
               {/* Description */}
-              <div className="space-y-1.5">
+              <div className='space-y-1.5'>
                 <label
-                  htmlFor="create-task-description"
-                  className="text-label-sm text-text-strong-950"
+                  htmlFor='create-task-description'
+                  className='text-label-sm text-text-strong-950'
                 >
                   Descricao{' '}
-                  <span className="text-text-soft-400">(opcional)</span>
+                  <span className='text-text-soft-400'>(opcional)</span>
                 </label>
                 <textarea
-                  id="create-task-description"
+                  id='create-task-description'
                   rows={4}
-                  placeholder="Contexto, links, criterios de aceite..."
+                  placeholder='Contexto, links, criterios de aceite...'
                   aria-invalid={Boolean(errors.description)}
                   {...register('description')}
                   className={cn(
@@ -508,31 +504,31 @@ export function CreateTaskDialog({
                     'placeholder:text-text-soft-400',
                     'focus-visible:ring-2',
                     errors.description
-                      ? 'border-error-base focus-visible:border-error-base focus-visible:ring-error-base/30'
-                      : 'border-stroke-soft-200 hover:bg-bg-weak-50 focus-visible:border-stroke-strong-950 focus-visible:ring-stroke-strong-950/30',
+                      ? 'focus-visible:ring-error-base/30 border-error-base focus-visible:border-error-base'
+                      : 'focus-visible:ring-stroke-strong-950/30 border-stroke-soft-200 hover:bg-bg-weak-50 focus-visible:border-stroke-strong-950',
                   )}
                 />
                 {errors.description && (
-                  <p className="text-paragraph-xs text-error-base">
+                  <p className='text-paragraph-xs text-error-base'>
                     {errors.description.message}
                   </p>
                 )}
               </div>
 
               {/* Priority + DueDate */}
-              <div className="grid grid-cols-2 gap-3">
-                <div className="space-y-1.5">
+              <div className='grid grid-cols-2 gap-3'>
+                <div className='space-y-1.5'>
                   <label
-                    htmlFor="create-task-priority"
-                    className="text-label-sm text-text-strong-950"
+                    htmlFor='create-task-priority'
+                    className='text-label-sm text-text-strong-950'
                   >
                     Prioridade
                   </label>
-                  <div className="relative">
+                  <div className='relative'>
                     <select
-                      id="create-task-priority"
+                      id='create-task-priority'
                       {...register('priority')}
-                      className="h-9 w-full appearance-none rounded-lg border border-stroke-soft-200 bg-bg-white-0 pl-3 pr-9 text-paragraph-sm text-text-strong-950 shadow-regular-xs outline-none transition-colors hover:bg-bg-weak-50 focus-visible:border-stroke-strong-950 focus-visible:ring-2 focus-visible:ring-stroke-strong-950/30"
+                      className='focus-visible:ring-stroke-strong-950/30 h-9 w-full appearance-none rounded-lg border border-stroke-soft-200 bg-bg-white-0 pl-3 pr-9 text-paragraph-sm text-text-strong-950 shadow-regular-xs outline-none transition-colors hover:bg-bg-weak-50 focus-visible:border-stroke-strong-950 focus-visible:ring-2'
                     >
                       {PRIORITIES.map((p) => (
                         <option key={p.value} value={p.value}>
@@ -542,48 +538,45 @@ export function CreateTaskDialog({
                     </select>
                     <RiArrowDownSLine
                       aria-hidden
-                      className="pointer-events-none absolute right-2.5 top-1/2 size-4 -translate-y-1/2 text-text-sub-600"
+                      className='pointer-events-none absolute right-2.5 top-1/2 size-4 -translate-y-1/2 text-text-sub-600'
                     />
                   </div>
                 </div>
-                <div className="space-y-1.5">
+                <div className='space-y-1.5'>
                   <label
-                    htmlFor="create-task-duedate"
-                    className="text-label-sm text-text-strong-950"
+                    htmlFor='create-task-duedate'
+                    className='text-label-sm text-text-strong-950'
                   >
                     Prazo
                   </label>
                   <input
-                    id="create-task-duedate"
-                    type="date"
+                    id='create-task-duedate'
+                    type='date'
                     {...register('dueDate')}
-                    className="h-9 w-full rounded-lg border border-stroke-soft-200 bg-bg-white-0 px-3 text-paragraph-sm text-text-strong-950 shadow-regular-xs outline-none transition-colors hover:bg-bg-weak-50 focus-visible:border-stroke-strong-950 focus-visible:ring-2 focus-visible:ring-stroke-strong-950/30"
+                    className='focus-visible:ring-stroke-strong-950/30 h-9 w-full rounded-lg border border-stroke-soft-200 bg-bg-white-0 px-3 text-paragraph-sm text-text-strong-950 shadow-regular-xs outline-none transition-colors hover:bg-bg-weak-50 focus-visible:border-stroke-strong-950 focus-visible:ring-2'
                   />
                 </div>
               </div>
             </div>
 
             {/* Footer */}
-            <div className="flex items-center justify-end gap-2 border-t border-stroke-soft-200 px-5 py-4">
+            <div className='flex items-center justify-end gap-2 border-t border-stroke-soft-200 px-5 py-4'>
               <button
-                type="button"
+                type='button'
                 onClick={() => handleOpenChange(false)}
                 disabled={isPending}
-                className="inline-flex h-9 items-center justify-center gap-2 rounded-lg border border-stroke-soft-200 bg-bg-white-0 px-3 text-label-sm text-text-sub-600 shadow-regular-xs transition-colors hover:bg-bg-weak-50 hover:text-text-strong-950 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-stroke-strong-950/50 disabled:cursor-not-allowed disabled:opacity-50"
+                className='focus-visible:ring-stroke-strong-950/50 inline-flex h-9 items-center justify-center gap-2 rounded-lg border border-stroke-soft-200 bg-bg-white-0 px-3 text-label-sm text-text-sub-600 shadow-regular-xs transition-colors hover:bg-bg-weak-50 hover:text-text-strong-950 focus-visible:outline-none focus-visible:ring-2 disabled:cursor-not-allowed disabled:opacity-50'
               >
                 Cancelar
               </button>
               <button
-                type="submit"
+                type='submit'
                 aria-busy={isPending}
                 disabled={isPending || hasNoContext}
-                className="inline-flex h-9 items-center justify-center gap-2 rounded-lg bg-primary-base px-3 text-label-sm text-static-white shadow-regular-xs transition-colors hover:bg-primary-darker focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-base/50 disabled:cursor-not-allowed disabled:opacity-60"
+                className='focus-visible:ring-primary-base/50 inline-flex h-9 items-center justify-center gap-2 rounded-lg bg-primary-base px-3 text-label-sm text-static-white shadow-regular-xs transition-colors hover:bg-primary-darker focus-visible:outline-none focus-visible:ring-2 disabled:cursor-not-allowed disabled:opacity-60'
               >
                 {isPending && (
-                  <RiLoader4Line
-                    aria-hidden
-                    className="size-4 animate-spin"
-                  />
+                  <RiLoader4Line aria-hidden className='size-4 animate-spin' />
                 )}
                 Criar
               </button>
@@ -629,13 +622,13 @@ function ProcessCombobox({
   }, [options, query]);
 
   return (
-    <div className="relative">
+    <div className='relative'>
       <button
         id={id}
-        type="button"
-        role="combobox"
+        type='button'
+        role='combobox'
         aria-expanded={open}
-        aria-haspopup="listbox"
+        aria-haspopup='listbox'
         aria-controls={listboxId}
         onClick={() => setOpen((p) => !p)}
         disabled={isLoading || options.length === 0}
@@ -643,22 +636,22 @@ function ProcessCombobox({
           'flex h-9 w-full items-center gap-2 rounded-lg border bg-bg-white-0 px-3 text-left text-paragraph-sm shadow-regular-xs transition-colors',
           'focus-visible:outline-none focus-visible:ring-2',
           invalid
-            ? 'border-error-base focus-visible:border-error-base focus-visible:ring-error-base/30'
-            : 'border-stroke-soft-200 hover:bg-bg-weak-50 focus-visible:border-stroke-strong-950 focus-visible:ring-stroke-strong-950/30',
+            ? 'focus-visible:ring-error-base/30 border-error-base focus-visible:border-error-base'
+            : 'focus-visible:ring-stroke-strong-950/30 border-stroke-soft-200 hover:bg-bg-weak-50 focus-visible:border-stroke-strong-950',
           'disabled:cursor-not-allowed disabled:opacity-60',
         )}
       >
         <RiFolderOpenLine
           aria-hidden
-          className="size-4 shrink-0 text-text-sub-600"
+          className='size-4 shrink-0 text-text-sub-600'
         />
         {selected ? (
-          <span className="flex-1 truncate text-text-strong-950">
+          <span className='flex-1 truncate text-text-strong-950'>
             {selected.areaName ? `${selected.areaName} > ` : ''}
             {selected.name}
           </span>
         ) : (
-          <span className="flex-1 truncate text-text-soft-400">
+          <span className='flex-1 truncate text-text-soft-400'>
             {isLoading
               ? 'Carregando...'
               : options.length === 0
@@ -668,34 +661,31 @@ function ProcessCombobox({
         )}
         <RiArrowDownSLine
           aria-hidden
-          className="size-4 shrink-0 text-text-sub-600"
+          className='size-4 shrink-0 text-text-sub-600'
         />
       </button>
 
       {open && (
         <div
           id={listboxId}
-          role="listbox"
+          role='listbox'
           className={cn(
             'absolute left-0 right-0 top-[calc(100%+4px)] z-[60]',
             'overflow-hidden rounded-xl border border-stroke-soft-200 bg-bg-white-0 shadow-regular-md',
           )}
         >
-          <Command shouldFilter={false} className="flex flex-col">
-            <div className="flex items-center gap-2 border-b border-stroke-soft-200 px-3 py-2">
-              <RiSearchLine
-                aria-hidden
-                className="size-4 text-text-sub-600"
-              />
+          <Command shouldFilter={false} className='flex flex-col'>
+            <div className='flex items-center gap-2 border-b border-stroke-soft-200 px-3 py-2'>
+              <RiSearchLine aria-hidden className='size-4 text-text-sub-600' />
               <Command.Input
                 value={query}
                 onValueChange={setQuery}
-                placeholder="Buscar processo..."
-                className="w-full bg-transparent text-paragraph-sm text-text-strong-950 outline-none placeholder:text-text-soft-400"
+                placeholder='Buscar processo...'
+                className='w-full bg-transparent text-paragraph-sm text-text-strong-950 outline-none placeholder:text-text-soft-400'
               />
             </div>
-            <Command.List className="max-h-56 overflow-y-auto p-1">
-              <Command.Empty className="px-3 py-4 text-center text-paragraph-xs text-text-sub-600">
+            <Command.List className='max-h-56 overflow-y-auto p-1'>
+              <Command.Empty className='px-3 py-4 text-center text-paragraph-xs text-text-sub-600'>
                 Nenhum processo encontrado.
               </Command.Empty>
               {filtered.map((opt) => (
@@ -715,15 +705,15 @@ function ProcessCombobox({
                 >
                   <RiFolderOpenLine
                     aria-hidden
-                    className="size-4 text-text-sub-600"
+                    className='size-4 text-text-sub-600'
                   />
-                  <span className="flex-1 truncate">
+                  <span className='flex-1 truncate'>
                     {opt.areaName ? (
                       <>
-                        <span className="text-text-sub-600">
+                        <span className='text-text-sub-600'>
                           {opt.areaName}
                         </span>
-                        <span className="px-1 text-text-soft-400">/</span>
+                        <span className='px-1 text-text-soft-400'>/</span>
                       </>
                     ) : null}
                     {opt.name}
@@ -731,7 +721,7 @@ function ProcessCombobox({
                   {opt.id === value && (
                     <RiCheckLine
                       aria-hidden
-                      className="size-4 text-primary-base"
+                      className='size-4 text-primary-base'
                     />
                   )}
                 </Command.Item>
@@ -759,9 +749,7 @@ function ProcessCombobox({
  */
 type CustomTypeTemplatePreviewProps = {
   selectedTypeName: string | null;
-  template:
-    | import('../hooks/use-task-type-template').TaskTypeTemplate
-    | null;
+  template: import('../hooks/use-task-type-template').TaskTypeTemplate | null;
   isFetching: boolean;
 };
 
@@ -775,8 +763,8 @@ function CustomTypeTemplatePreview({
   if (isFetching) {
     return (
       <div
-        aria-busy="true"
-        className="rounded-lg border border-stroke-soft-200 bg-bg-weak-50 px-3 py-2 text-paragraph-xs text-text-sub-600"
+        aria-busy='true'
+        className='rounded-lg border border-stroke-soft-200 bg-bg-weak-50 px-3 py-2 text-paragraph-xs text-text-sub-600'
       >
         Carregando template do tipo...
       </div>
@@ -785,7 +773,7 @@ function CustomTypeTemplatePreview({
 
   if (!template) {
     return (
-      <div className="rounded-lg border border-stroke-soft-200 bg-bg-weak-50 px-3 py-2 text-paragraph-xs text-text-sub-600">
+      <div className='rounded-lg border border-stroke-soft-200 bg-bg-weak-50 px-3 py-2 text-paragraph-xs text-text-sub-600'>
         Tipo <strong>{selectedTypeName}</strong> sem template configurado — a
         tarefa sera criada como padrao.
       </div>
@@ -800,22 +788,22 @@ function CustomTypeTemplatePreview({
   return (
     <section
       aria-label={`Resumo do template ${selectedTypeName}`}
-      className="space-y-2 rounded-lg border border-stroke-soft-200 bg-bg-weak-50 px-3 py-2.5 text-paragraph-xs text-text-sub-600"
+      className='space-y-2 rounded-lg border border-stroke-soft-200 bg-bg-weak-50 px-3 py-2.5 text-paragraph-xs text-text-sub-600'
     >
-      <p className="font-medium text-text-strong-950">
+      <p className='font-medium text-text-strong-950'>
         Este tipo possui template:
       </p>
-      <ul className="space-y-1">
+      <ul className='space-y-1'>
         {fieldsCount > 0 && (
           <li>
-            <span aria-hidden="true">[campos]</span> {fieldsCount} campo
+            <span aria-hidden='true'>[campos]</span> {fieldsCount} campo
             {fieldsCount === 1 ? '' : 's'} personalizado
             {fieldsCount === 1 ? '' : 's'}
           </li>
         )}
         {categories.length > 0 && (
           <li>
-            <span aria-hidden="true">[anexos]</span> {categories.length}{' '}
+            <span aria-hidden='true'>[anexos]</span> {categories.length}{' '}
             categoria{categories.length === 1 ? '' : 's'} de anexo
             {requiredCategories > 0
               ? ` (${requiredCategories} obrigatoria${
@@ -826,7 +814,7 @@ function CustomTypeTemplatePreview({
         )}
         {hasDefaultDescription && (
           <li>
-            <span aria-hidden="true">[descricao]</span> Descricao padrao sera
+            <span aria-hidden='true'>[descricao]</span> Descricao padrao sera
             aplicada
           </li>
         )}
@@ -834,8 +822,8 @@ function CustomTypeTemplatePreview({
 
       {categories.length > 0 && (
         <ul
-          aria-label="Categorias de anexo"
-          className="flex flex-wrap gap-1.5 pt-1"
+          aria-label='Categorias de anexo'
+          className='flex flex-wrap gap-1.5 pt-1'
         >
           {categories.map((cat) => (
             <li key={cat.slug}>
@@ -849,7 +837,7 @@ function CustomTypeTemplatePreview({
               >
                 {cat.label}
                 {cat.required && (
-                  <span aria-hidden="true" className="opacity-80">
+                  <span aria-hidden='true' className='opacity-80'>
                     (obrig.)
                   </span>
                 )}

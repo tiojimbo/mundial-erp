@@ -34,10 +34,7 @@ export class TimeEntriesController {
   @Roles(Role.ADMIN, Role.MANAGER, Role.OPERATOR, Role.VIEWER)
   @ApiOperation({ summary: 'Listar registros de tempo de uma task' })
   @ApiResponse({ status: 200, type: [TimeEntryResponseDto] })
-  findAll(
-    @WorkspaceId() workspaceId: string,
-    @Param('taskId') taskId: string,
-  ) {
+  findAll(@WorkspaceId() workspaceId: string, @Param('taskId') taskId: string) {
     return this.service.findByTask(workspaceId, taskId);
   }
 

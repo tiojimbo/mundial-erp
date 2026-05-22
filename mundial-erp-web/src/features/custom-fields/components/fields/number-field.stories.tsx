@@ -4,10 +4,18 @@
 
 import type { Meta, StoryObj } from '@storybook/react';
 import type { CustomFieldDefinition } from '../../types/custom-field.types';
-import { makeCustomFieldDefinition } from "../../types/custom-field.fixtures";
+import { makeCustomFieldDefinition } from '../../types/custom-field.fixtures';
 import { NumberField } from './number-field';
 
-const baseDef: CustomFieldDefinition = makeCustomFieldDefinition({ id: 'def-num-1', workspaceId: null, name: 'Quantidade', type: 'NUMBER', config: { min: 0, max: 9999, hint: 'Use numeros inteiros.' }, fixed: true, position: 20 });
+const baseDef: CustomFieldDefinition = makeCustomFieldDefinition({
+  id: 'def-num-1',
+  workspaceId: null,
+  name: 'Quantidade',
+  type: 'NUMBER',
+  config: { min: 0, max: 9999, hint: 'Use numeros inteiros.' },
+  fixed: true,
+  position: 20,
+});
 
 const meta: Meta<typeof NumberField> = {
   title: 'CustomFields/NumberField',

@@ -41,7 +41,7 @@ export function TextField({
       {(controlProps) => (
         <input
           {...controlProps}
-          type="text"
+          type='text'
           className={inline ? inputClassInline : inputClass}
           value={localValue}
           readOnly={isReadOnly}

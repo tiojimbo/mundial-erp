@@ -63,6 +63,7 @@ export class HoppeErrorFilter implements ExceptionFilter {
 }
 
 function httpReason(status: number): string {
+  // eslint-disable-next-line @typescript-eslint/no-unsafe-enum-comparison
   const entry = Object.entries(HttpStatus).find(([, v]) => v === status);
   if (!entry) return 'Error';
   return entry[0]

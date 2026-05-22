@@ -10,9 +10,14 @@ import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { render, screen, fireEvent, act } from '@testing-library/react';
 import { TextField } from './text-field';
 import type { CustomFieldDefinition } from '../../types/custom-field.types';
-import { makeCustomFieldDefinition } from "../../types/custom-field.fixtures";
+import { makeCustomFieldDefinition } from '../../types/custom-field.fixtures';
 
-const definition: CustomFieldDefinition = makeCustomFieldDefinition({ id: 'def-text-1', workspaceId: 'ws-1', name: 'Descricao', type: 'TEXT' });
+const definition: CustomFieldDefinition = makeCustomFieldDefinition({
+  id: 'def-text-1',
+  workspaceId: 'ws-1',
+  name: 'Descricao',
+  type: 'TEXT',
+});
 
 describe('TextField (TTT-024)', () => {
   beforeEach(() => {
@@ -83,7 +88,7 @@ describe('TextField (TTT-024)', () => {
         definition={definition}
         value={null}
         onChange={onChange}
-        error="Campo obrigatorio"
+        error='Campo obrigatorio'
       />,
     );
 
@@ -102,9 +107,7 @@ describe('TextField (TTT-024)', () => {
       <TextField definition={readOnlyDef} value={'fixo'} onChange={onChange} />,
     );
 
-    const input = screen.getByPlaceholderText(
-      'Descricao',
-    ) as HTMLInputElement;
+    const input = screen.getByPlaceholderText('Descricao') as HTMLInputElement;
     expect(input.readOnly).toBe(true);
   });
 });

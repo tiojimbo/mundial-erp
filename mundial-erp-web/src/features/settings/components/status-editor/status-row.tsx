@@ -21,7 +21,10 @@ export interface StatusDraft {
 
 export interface StatusRowProps {
   status: StatusDraft;
-  onUpdate: (id: string, patch: Partial<Pick<StatusDraft, 'name' | 'color'>>) => void;
+  onUpdate: (
+    id: string,
+    patch: Partial<Pick<StatusDraft, 'name' | 'color'>>,
+  ) => void;
   onRemove: (id: string) => void;
   canRemove: boolean;
   dragDisabled: boolean;
@@ -39,7 +42,8 @@ export function StatusRow({
   onColorPickerOpenChange,
 }: StatusRowProps) {
   const inputRef = useRef<HTMLInputElement>(null);
-  const [paletteOpen, setPaletteOpen] = useState<boolean>(!!autoOpenColorPicker);
+  const [paletteOpen, setPaletteOpen] =
+    useState<boolean>(!!autoOpenColorPicker);
 
   const {
     attributes,
@@ -75,18 +79,19 @@ export function StatusRow({
       )}
     >
       <button
-        type="button"
-        aria-label="Arrastar para reordenar"
+        type='button'
+        aria-label='Arrastar para reordenar'
         disabled={dragDisabled}
         className={cn(
           'flex size-5 items-center justify-center rounded text-text-soft-400',
-          !dragDisabled && 'cursor-grab hover:bg-bg-weak-50 active:cursor-grabbing',
+          !dragDisabled &&
+            'cursor-grab hover:bg-bg-weak-50 active:cursor-grabbing',
           dragDisabled && 'cursor-not-allowed opacity-40',
         )}
         {...attributes}
         {...listeners}
       >
-        <GripVertical className="size-3.5" />
+        <GripVertical className='size-3.5' />
       </button>
 
       <StatusIcon type={status.type} color={status.color} size={14} />
@@ -95,27 +100,27 @@ export function StatusRow({
         ref={inputRef}
         value={status.name}
         onChange={(e) => onUpdate(status.id, { name: e.target.value })}
-        placeholder="Nome do status"
-        className="flex-1 bg-transparent text-[14px] font-normal uppercase text-text-strong-950 outline-none placeholder:normal-case placeholder:text-text-soft-400"
+        placeholder='Nome do status'
+        className='flex-1 bg-transparent text-[14px] font-normal uppercase text-text-strong-950 outline-none placeholder:normal-case placeholder:text-text-soft-400'
       />
 
       <Popover.Root open={paletteOpen} onOpenChange={handlePaletteOpenChange}>
         <Popover.Trigger asChild>
           <button
-            type="button"
-            aria-label="Alterar cor"
-            className="flex size-5 items-center justify-center rounded-full transition hover:ring-2 hover:ring-stroke-soft-200"
+            type='button'
+            aria-label='Alterar cor'
+            className='flex size-5 items-center justify-center rounded-full transition hover:ring-2 hover:ring-stroke-soft-200'
           >
             <span
-              className="size-3.5 rounded-full"
+              className='size-3.5 rounded-full'
               style={{ backgroundColor: status.color }}
             />
           </button>
         </Popover.Trigger>
         <Popover.Content
-          align="end"
+          align='end'
           sideOffset={6}
-          className="w-max p-2.5"
+          className='w-max p-2.5'
           showArrow={false}
         >
           <ColorPalette
@@ -131,14 +136,14 @@ export function StatusRow({
       <Dropdown.Root>
         <Dropdown.Trigger asChild>
           <button
-            type="button"
-            aria-label="Mais acoes"
-            className="flex size-5 items-center justify-center rounded text-text-sub-600 hover:bg-bg-weak-50"
+            type='button'
+            aria-label='Mais acoes'
+            className='flex size-5 items-center justify-center rounded text-text-sub-600 hover:bg-bg-weak-50'
           >
-            <MoreHorizontal className="size-3.5" />
+            <MoreHorizontal className='size-3.5' />
           </button>
         </Dropdown.Trigger>
-        <Dropdown.Content align="end" className="w-40">
+        <Dropdown.Content align='end' className='w-40'>
           <Dropdown.Item onSelect={handleRenameClick}>
             <Dropdown.ItemIcon as={Pencil} />
             Renomear

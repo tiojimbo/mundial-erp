@@ -8,7 +8,10 @@ import {
 } from '@remixicon/react';
 import { InboxFilterPopover } from './inbox-filter-popover';
 import { ConfirmDialog } from './confirm-dialog';
-import type { InboxView, NotificationFilters } from '../types/notification.types';
+import type {
+  InboxView,
+  NotificationFilters,
+} from '../types/notification.types';
 
 type InboxToolbarProps = {
   view: InboxView;
@@ -53,7 +56,7 @@ export function InboxToolbar({
       <div className='flex items-center gap-1'>
         {!isCleared && (
           <button
-            className='inline-flex items-center gap-1.5 rounded-lg px-2.5 py-1.5 text-label-xs text-muted-foreground transition-colors hover:bg-muted hover:text-foreground disabled:pointer-events-none disabled:text-muted-foreground/40'
+            className='disabled:text-muted-foreground/40 inline-flex items-center gap-1.5 rounded-lg px-2.5 py-1.5 text-label-xs text-muted-foreground transition-colors hover:bg-muted hover:text-foreground disabled:pointer-events-none'
             onClick={onMarkAllRead}
             disabled={isEmpty}
           >
@@ -64,7 +67,7 @@ export function InboxToolbar({
 
         {isCleared ? (
           <button
-            className='inline-flex items-center gap-1.5 rounded-lg px-2.5 py-1.5 text-label-xs text-destructive transition-colors hover:bg-destructive/10 disabled:pointer-events-none disabled:text-muted-foreground/40'
+            className='hover:bg-destructive/10 disabled:text-muted-foreground/40 inline-flex items-center gap-1.5 rounded-lg px-2.5 py-1.5 text-label-xs text-destructive transition-colors disabled:pointer-events-none'
             onClick={() => setShowDeleteDialog(true)}
             disabled={isEmpty}
           >
@@ -73,7 +76,7 @@ export function InboxToolbar({
           </button>
         ) : (
           <button
-            className='inline-flex items-center gap-1.5 rounded-lg px-2.5 py-1.5 text-label-xs text-muted-foreground transition-colors hover:bg-muted hover:text-foreground disabled:pointer-events-none disabled:text-muted-foreground/40'
+            className='disabled:text-muted-foreground/40 inline-flex items-center gap-1.5 rounded-lg px-2.5 py-1.5 text-label-xs text-muted-foreground transition-colors hover:bg-muted hover:text-foreground disabled:pointer-events-none'
             onClick={() => setShowClearDialog(true)}
             disabled={isEmpty}
           >

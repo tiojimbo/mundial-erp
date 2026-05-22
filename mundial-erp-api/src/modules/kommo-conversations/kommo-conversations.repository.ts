@@ -70,9 +70,7 @@ export class KommoConversationsRepository {
       workspaceId,
       kommoChatId,
       account: { connect: { id: accountId } },
-      ...(fields.leadId
-        ? { lead: { connect: { id: fields.leadId } } }
-        : {}),
+      ...(fields.leadId ? { lead: { connect: { id: fields.leadId } } } : {}),
       ...(fields.responsibleAgentId
         ? { responsibleAgent: { connect: { id: fields.responsibleAgentId } } }
         : {}),

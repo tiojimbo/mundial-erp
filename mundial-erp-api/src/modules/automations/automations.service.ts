@@ -192,7 +192,8 @@ export class AutomationsService {
       ...(dto.scopeType !== undefined && { scopeType: dto.scopeType }),
       ...(dto.scopeId !== undefined && { scopeId: dto.scopeId }),
       ...(dto.compiledActions !== undefined && {
-        compiledActions: dto.compiledActions as unknown as Prisma.InputJsonValue,
+        compiledActions:
+          dto.compiledActions as unknown as Prisma.InputJsonValue,
       }),
       ...(dto.conditions !== undefined && {
         conditions: dto.conditions as unknown as Prisma.InputJsonValue,

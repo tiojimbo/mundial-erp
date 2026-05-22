@@ -19,7 +19,11 @@
  */
 
 import { Injectable, Logger } from '@nestjs/common';
-import { KommoWebhookEvent, KommoWebhookEventStatus, Prisma } from '@prisma/client';
+import {
+  KommoWebhookEvent,
+  KommoWebhookEventStatus,
+  Prisma,
+} from '@prisma/client';
 import { PrismaService } from '../../database/prisma.service';
 
 export interface UpsertWebhookEventInput {

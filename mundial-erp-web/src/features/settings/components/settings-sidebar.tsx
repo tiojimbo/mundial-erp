@@ -22,14 +22,26 @@ type NavItem = {
 };
 
 const hubItems: NavItem[] = [
-  { label: 'Configurações', href: '/configuracoes/empresa', icon: RiSettings4Line },
+  {
+    label: 'Configurações',
+    href: '/configuracoes/empresa',
+    icon: RiSettings4Line,
+  },
   { label: 'Pessoas', href: '/configuracoes/pessoas', icon: RiTeamLine },
   { label: 'API', href: '/configuracoes/api', icon: RiKey2Line },
 ];
 
 const personalItems: NavItem[] = [
-  { label: 'Minha conta', href: '/configuracoes/minha-conta', icon: RiUserLine },
-  { label: 'Notificações', href: '/configuracoes/notificacoes', icon: RiNotification3Line },
+  {
+    label: 'Minha conta',
+    href: '/configuracoes/minha-conta',
+    icon: RiUserLine,
+  },
+  {
+    label: 'Notificações',
+    href: '/configuracoes/notificacoes',
+    icon: RiNotification3Line,
+  },
 ];
 
 function NavLink({ item, isActive }: { item: NavItem; isActive: boolean }) {
@@ -66,7 +78,7 @@ export function SettingsSidebar() {
       <div className='px-3 py-4'>
         <Link
           href='/inicio'
-          className='flex items-center gap-1 text-paragraph-sm text-sidebar-foreground transition-colors hover:text-sidebar-foreground/80'
+          className='hover:text-sidebar-foreground/80 flex items-center gap-1 text-paragraph-sm text-sidebar-foreground transition-colors'
         >
           <RiArrowLeftSLine className='size-4' />
           Voltar ao espaço de trabalho

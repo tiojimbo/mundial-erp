@@ -27,10 +27,10 @@ export function TaskGroup({
   return (
     <div
       id={id}
-      className='flex flex-col overflow-hidden rounded-xl border border-border/60 bg-card/50'
+      className='border-border/60 bg-card/50 flex flex-col overflow-hidden rounded-xl border'
     >
       <button
-        className='flex w-full items-center gap-2.5 px-4 py-3 text-sm font-semibold outline-none transition-colors hover:bg-accent/30 focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-inset'
+        className='text-sm hover:bg-accent/30 flex w-full items-center gap-2.5 px-4 py-3 font-semibold outline-none transition-colors focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-ring'
         onClick={() => setExpanded((v) => !v)}
       >
         <RiArrowDownSLine
@@ -48,7 +48,7 @@ export function TaskGroup({
       </button>
 
       {expanded && (
-        <div className='divide-y divide-border/40 border-t border-border/40'>
+        <div className='divide-border/40 border-border/40 divide-y border-t'>
           {tasks.map((task) => (
             <TaskItem key={task.id} task={task} />
           ))}

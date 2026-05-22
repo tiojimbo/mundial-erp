@@ -11,7 +11,10 @@ export function CostsTab({ order }: Props) {
   const consumptions = order.consumptions ?? [];
   const losses = order.losses ?? [];
 
-  const materiaCost = consumptions.reduce((acc, c) => acc + c.totalCostCents, 0);
+  const materiaCost = consumptions.reduce(
+    (acc, c) => acc + c.totalCostCents,
+    0,
+  );
   const lossCost = losses.reduce((acc, l) => acc + (l.costCents ?? 0), 0);
   const totalCost = materiaCost + lossCost;
 
@@ -41,7 +44,7 @@ export function CostsTab({ order }: Props) {
               Perdas
             </span>
           </div>
-          <p className='mt-1 text-title-h5 text-state-error-base'>
+          <p className='text-state-error-base mt-1 text-title-h5'>
             {formatCents(lossCost)}
           </p>
           <p className='text-paragraph-xs text-text-sub-600'>
@@ -70,7 +73,8 @@ export function CostsTab({ order }: Props) {
           </h4>
           <div className='flex flex-col gap-2'>
             {consumptions.map((c) => {
-              const percentage = totalCost > 0 ? (c.totalCostCents / totalCost) * 100 : 0;
+              const percentage =
+                totalCost > 0 ? (c.totalCostCents / totalCost) * 100 : 0;
               return (
                 <div
                   key={c.id}

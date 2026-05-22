@@ -1,8 +1,5 @@
 import { api } from '@/lib/api';
-import type {
-  ApiResponse,
-  CursorPaginatedResponse,
-} from '@/types/api.types';
+import type { ApiResponse, CursorPaginatedResponse } from '@/types/api.types';
 import type {
   Message,
   MessageFilters,
@@ -22,10 +19,7 @@ export const messageService = {
     return data;
   },
 
-  async send(
-    channelId: string,
-    payload: SendMessagePayload,
-  ): Promise<Message> {
+  async send(channelId: string, payload: SendMessagePayload): Promise<Message> {
     const { data } = await api.post<ApiResponse<Message>>(
       `/chat/channels/${channelId}/messages`,
       payload,
@@ -33,10 +27,7 @@ export const messageService = {
     return data.data;
   },
 
-  async getById(
-    channelId: string,
-    messageId: string,
-  ): Promise<Message> {
+  async getById(channelId: string, messageId: string): Promise<Message> {
     const { data } = await api.get<ApiResponse<Message>>(
       `/chat/channels/${channelId}/messages/${messageId}`,
     );

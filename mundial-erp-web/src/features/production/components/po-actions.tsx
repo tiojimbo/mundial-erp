@@ -17,29 +17,40 @@ type Props = {
 };
 
 export function POActions({ order }: Props) {
-  const [confirmAction, setConfirmAction] = useState<'start' | 'complete' | 'cancel' | null>(null);
+  const [confirmAction, setConfirmAction] = useState<
+    'start' | 'complete' | 'cancel' | null
+  >(null);
 
   const startMutation = useStartProduction(order.id);
   const completeMutation = useCompleteProduction(order.id);
   const cancelMutation = useCancelProduction(order.id);
 
   const isLoading =
-    startMutation.isPending || completeMutation.isPending || cancelMutation.isPending;
+    startMutation.isPending ||
+    completeMutation.isPending ||
+    cancelMutation.isPending;
 
   function handleConfirm() {
     if (confirmAction === 'start') {
-      startMutation.mutate(undefined, { onSuccess: () => setConfirmAction(null) });
+      startMutation.mutate(undefined, {
+        onSuccess: () => setConfirmAction(null),
+      });
     } else if (confirmAction === 'complete') {
-      completeMutation.mutate(undefined, { onSuccess: () => setConfirmAction(null) });
+      completeMutation.mutate(undefined, {
+        onSuccess: () => setConfirmAction(null),
+      });
     } else if (confirmAction === 'cancel') {
-      cancelMutation.mutate(undefined, { onSuccess: () => setConfirmAction(null) });
+      cancelMutation.mutate(undefined, {
+        onSuccess: () => setConfirmAction(null),
+      });
     }
   }
 
   const confirmMessages = {
     start: {
       title: 'Iniciar Producao',
-      description: 'Deseja iniciar a producao desta ordem? O status sera alterado para "Em Producao".',
+      description:
+        'Deseja iniciar a producao desta ordem? O status sera alterado para "Em Producao".',
       variant: 'primary' as const,
     },
     complete: {
@@ -50,7 +61,8 @@ export function POActions({ order }: Props) {
     },
     cancel: {
       title: 'Cancelar Producao',
-      description: 'Tem certeza que deseja cancelar esta ordem de producao? Esta acao nao pode ser desfeita.',
+      description:
+        'Tem certeza que deseja cancelar esta ordem de producao? Esta acao nao pode ser desfeita.',
       variant: 'error' as const,
     },
   };
@@ -139,7 +151,11 @@ export function POActions({ order }: Props) {
                 Cancelar
               </Button.Root>
               <Button.Root
-                variant={confirmMessages[confirmAction].variant === 'error' ? 'error' : 'primary'}
+                variant={
+                  confirmMessages[confirmAction].variant === 'error'
+                    ? 'error'
+                    : 'primary'
+                }
                 mode='filled'
                 size='small'
                 onClick={handleConfirm}

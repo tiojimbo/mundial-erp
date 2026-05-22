@@ -43,11 +43,7 @@ export const TASK_ACTIVITY_TYPES = [
 
 export type TaskActivityTypeLiteral = (typeof TASK_ACTIVITY_TYPES)[number];
 
-export const activityFilterGroupSchema = z.enum([
-  'ALL',
-  'ACTIVITY',
-  'COMMENT',
-]);
+export const activityFilterGroupSchema = z.enum(['ALL', 'ACTIVITY', 'COMMENT']);
 
 export type ActivityFilterGroup = z.infer<typeof activityFilterGroupSchema>;
 

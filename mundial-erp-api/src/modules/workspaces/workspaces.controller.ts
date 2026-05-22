@@ -125,7 +125,8 @@ export class WorkspacesController {
   @Get(':id/users')
   @SkipWorkspaceGuard()
   @ApiOperation({
-    summary: 'Listar usuarios do workspace com permission + flags (Hoppe-style)',
+    summary:
+      'Listar usuarios do workspace com permission + flags (Hoppe-style)',
   })
   @ApiResponse({ status: 200, type: WorkspaceUsersResponseDto })
   listUsers(
@@ -144,10 +145,7 @@ export class WorkspacesController {
   })
   @ApiResponse({ status: 200, type: MyPermissionResponseDto })
   @ApiResponse({ status: 403, description: 'Usuario nao e membro' })
-  getMyPermission(
-    @Param('id') id: string,
-    @CurrentUser('sub') userId: string,
-  ) {
+  getMyPermission(@Param('id') id: string, @CurrentUser('sub') userId: string) {
     return this.workspacesService.getMyPermission(id, userId);
   }
 
@@ -161,13 +159,12 @@ export class WorkspacesController {
   }
 
   @Get(':id/sidebar-order')
-  @ApiOperation({ summary: 'Ordem do sidebar do membro logado neste workspace' })
+  @ApiOperation({
+    summary: 'Ordem do sidebar do membro logado neste workspace',
+  })
   @ApiResponse({ status: 200, type: SidebarOrderResponseDto })
   @ApiResponse({ status: 404, description: 'Usuario nao e membro' })
-  getSidebarOrder(
-    @Param('id') id: string,
-    @CurrentUser('sub') userId: string,
-  ) {
+  getSidebarOrder(@Param('id') id: string, @CurrentUser('sub') userId: string) {
     return this.workspacesService.getSidebarOrder(id, userId);
   }
 

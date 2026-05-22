@@ -143,7 +143,9 @@ export class AutomationsRepository {
       where: { id },
       data: {
         ...(data.name !== undefined && { name: data.name }),
-        ...(data.description !== undefined && { description: data.description }),
+        ...(data.description !== undefined && {
+          description: data.description,
+        }),
         ...(data.trigger !== undefined && { trigger: data.trigger }),
         ...(data.scopeType !== undefined && { scopeType: data.scopeType }),
         ...(data.scopeId !== undefined && { scopeId: data.scopeId }),

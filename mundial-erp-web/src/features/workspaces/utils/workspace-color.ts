@@ -25,7 +25,9 @@ export function getWorkspaceColor(name: string): string {
   for (let i = 0; i < name.length; i++) {
     hash = (hash * 31 + name.charCodeAt(i)) | 0;
   }
-  return WORKSPACE_COLOR_PALETTE[Math.abs(hash) % WORKSPACE_COLOR_PALETTE.length];
+  return WORKSPACE_COLOR_PALETTE[
+    Math.abs(hash) % WORKSPACE_COLOR_PALETTE.length
+  ];
 }
 
 export function toWorkspaceUI(workspace: Workspace): WorkspaceUI {

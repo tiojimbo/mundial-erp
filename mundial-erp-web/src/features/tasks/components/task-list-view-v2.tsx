@@ -17,7 +17,10 @@ function isOverdue(dueDate: string): boolean {
 }
 
 function PriorityBadge({ priority }: { priority: Task['priority'] }) {
-  const colorMap: Record<Task['priority'], 'red' | 'orange' | 'blue' | 'gray' | 'green'> = {
+  const colorMap: Record<
+    Task['priority'],
+    'red' | 'orange' | 'blue' | 'gray' | 'green'
+  > = {
     URGENT: 'red',
     HIGH: 'orange',
     NORMAL: 'blue',
@@ -101,7 +104,9 @@ function GroupSection({
               ) : (
                 entry.tasks.map((task) => {
                   const overdue =
-                    task.dueDate && !task.completedAt && isOverdue(task.dueDate);
+                    task.dueDate &&
+                    !task.completedAt &&
+                    isOverdue(task.dueDate);
                   return (
                     <Table.Row key={task.id}>
                       <Table.Cell>
@@ -165,7 +170,10 @@ export function TaskListView({ processId }: { processId: string }) {
     return (
       <div className='flex flex-col gap-4'>
         {Array.from({ length: 3 }).map((_, i) => (
-          <div key={i} className='h-20 animate-pulse rounded-lg bg-bg-weak-50' />
+          <div
+            key={i}
+            className='h-20 animate-pulse rounded-lg bg-bg-weak-50'
+          />
         ))}
       </div>
     );

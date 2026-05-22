@@ -20,10 +20,7 @@ import { CreateTaskDto } from './dtos/create-task.dto';
 import { UpdateTaskDto } from './dtos/update-task.dto';
 import { AssignTaskDto } from './dtos/assign-task.dto';
 import { MergeTasksDto } from './dtos/merge-tasks.dto';
-import {
-  TaskResponseDto,
-  TaskListAssigneeDto,
-} from './dtos/task-response.dto';
+import { TaskResponseDto, TaskListAssigneeDto } from './dtos/task-response.dto';
 import {
   TaskDetailResponseDto,
   TaskWatcherSummaryDto,
@@ -40,6 +37,7 @@ import { WatchersSyncService } from './services/watchers-sync.service';
 import { TagsSyncService } from './services/tags-sync.service';
 import { diffWorkItem } from './helpers/diff-work-item';
 import { TaskEventsPublisher } from '../automations/events/task-events.publisher';
+import { OrderCodeService } from './order-code.service';
 
 /**
  * Envelope canonico `{data, meta}` retornado por todas as rotas deste modulo.
@@ -79,6 +77,9 @@ const SPACE_GROUPED_CAP = 500;
 const LIST_GROUPED_CAP = 500;
 const SUBTASKS_CAP = 500;
 const MY_TASKS_CAP = 1000;
+
+const NO_STATUS_GROUP_ID = 'no-status';
+const NO_STATUS_GROUP_COLOR = '#94a3b8';
 
 @Injectable()
 export class TasksService {
@@ -125,6 +126,8 @@ export class TasksService {
     private readonly templatesMetrics?: TaskTypeTemplatesMetrics,
     @Optional()
     private readonly automationEvents?: TaskEventsPublisher,
+    @Optional()
+    private readonly orderCode?: OrderCodeService,
   ) {}
 
   /**
@@ -228,6 +231,14 @@ export class TasksService {
       });
 
       const taskId = created.id;
+
+      if (this.orderCode) {
+        await this.orderCode.fillOnCreate(tx, {
+          taskId,
+          workspaceId,
+          customTypeId,
+        });
+      }
 
       if (dto.assigneeIds?.length) {
         await this.assigneesSync.syncAssignees(tx, {
@@ -440,7 +451,7 @@ export class TasksService {
         label: string;
         type: 'STATUS';
         collapsed: boolean;
-        field: 'statusId';
+        field: string;
         position: number;
         viewId: string | null;
         color: string;
@@ -479,20 +490,44 @@ export class TasksService {
       }
     }
 
-    return statuses.map((status) => ({
+    const groups = statuses.map((status) => ({
       group: {
         id: status.id,
         name: status.name,
-        label: status.type,
+        label: status.type as string,
         type: 'STATUS' as const,
         collapsed: false,
-        field: 'statusId' as const,
+        field: 'statusId' as string,
         position: status.position,
         viewId: params.viewId ?? null,
         color: status.color,
       },
       tasks: tasksByStatus.get(status.id) ?? [],
     }));
+
+    const scopeStatusIds = new Set(statuses.map((s) => s.id));
+    const orphanTasks: TaskResponseDto[] = [];
+    for (const [statusId, list] of tasksByStatus) {
+      if (!scopeStatusIds.has(statusId)) orphanTasks.push(...list);
+    }
+    if (orphanTasks.length > 0) {
+      groups.push({
+        group: {
+          id: NO_STATUS_GROUP_ID,
+          name: 'Sem status',
+          label: 'NOT_STARTED',
+          type: 'STATUS' as const,
+          collapsed: false,
+          field: 'NO_CATEGORY',
+          position: statuses.length,
+          viewId: params.viewId ?? null,
+          color: NO_STATUS_GROUP_COLOR,
+        },
+        tasks: orphanTasks,
+      });
+    }
+
+    return groups;
   }
 
   /**
@@ -706,8 +741,7 @@ export class TasksService {
         unknown
       >;
       const dto = TaskResponseDto.fromRow(taskRow);
-      const statusType = (row as { status?: { type?: string } }).status
-        ?.type;
+      const statusType = (row as { status?: { type?: string } }).status?.type;
       if (
         statusType === 'DONE' ||
         statusType === 'CLOSED' ||
@@ -820,8 +854,7 @@ export class TasksService {
       if (!view || !view.list) {
         throw new NotFoundException('View nao encontrada');
       }
-      const spaceId =
-        view.list.spaceId ?? view.list.folder?.spaceId ?? null;
+      const spaceId = view.list.spaceId ?? view.list.folder?.spaceId ?? null;
       if (!spaceId || view.list.space?.workspaceId !== workspaceId) {
         throw new NotFoundException('View nao encontrada');
       }
@@ -855,7 +888,11 @@ export class TasksService {
     if (level === 'folder' && params.folderId) {
       const folder = await this.prisma.folder.findFirst({
         where: { id: params.folderId, deletedAt: null },
-        select: { id: true, spaceId: true, space: { select: { workspaceId: true } } },
+        select: {
+          id: true,
+          spaceId: true,
+          space: { select: { workspaceId: true } },
+        },
       });
       if (!folder || folder.space.workspaceId !== workspaceId) {
         throw new NotFoundException('Folder nao encontrado');
@@ -876,7 +913,12 @@ export class TasksService {
       if (!space) {
         throw new NotFoundException('Space nao encontrado');
       }
-      return { level: 'space', id: space.id, spaceId: space.id, folderId: null };
+      return {
+        level: 'space',
+        id: space.id,
+        spaceId: space.id,
+        folderId: null,
+      };
     }
 
     throw new BadRequestException(

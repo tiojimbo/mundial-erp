@@ -57,7 +57,5 @@ describe('Kommo Dashboard — SQL/JSON Injection Resistance (T-T1..T-T5, T-D1, T
   it.todo(
     'Valid control payload (kommoConversations + status=OPEN + EQUALS) → 200 (sanity check that fuzz does not break happy path)',
   );
-  it.todo(
-    'Rejection latency < 50ms (validation before any DB round-trip)',
-  );
+  it.todo('Rejection latency < 50ms (validation before any DB round-trip)');
 });

@@ -6,7 +6,10 @@ import * as Button from '@/components/ui/button';
 import * as Table from '@/components/ui/table';
 import * as Modal from '@/components/ui/modal';
 import { formatDate } from '@/lib/formatters';
-import { RequisitionStatusBadge, RequisitionTypeBadge } from './requisition-status-badge';
+import {
+  RequisitionStatusBadge,
+  RequisitionTypeBadge,
+} from './requisition-status-badge';
 import {
   useStockRequisition,
   useCancelRequisition,
@@ -19,7 +22,11 @@ type Props = {
 };
 
 export function RequisitionDetail({ requisitionId }: Props) {
-  const { data: requisition, isLoading, error } = useStockRequisition(requisitionId);
+  const {
+    data: requisition,
+    isLoading,
+    error,
+  } = useStockRequisition(requisitionId);
   const cancelMutation = useCancelRequisition(requisitionId);
   const { notification } = useNotification();
   const [showCancelModal, setShowCancelModal] = useState(false);
@@ -39,7 +46,9 @@ export function RequisitionDetail({ requisitionId }: Props) {
     return (
       <div className='flex flex-col items-center justify-center gap-4 py-16'>
         <i className='ri-error-warning-line text-4xl text-state-error-base' />
-        <p className='text-paragraph-md text-text-strong-950'>Requisicao nao encontrada</p>
+        <p className='text-paragraph-md text-text-strong-950'>
+          Requisicao nao encontrada
+        </p>
         <Link href='/compras/requisicoes'>
           <Button.Root variant='neutral' mode='stroke' size='small'>
             Voltar para lista
@@ -88,7 +97,8 @@ export function RequisitionDetail({ requisitionId }: Props) {
             </div>
             <p className='text-paragraph-xs text-text-soft-400'>
               Solicitada em {formatDate(requisition.requestedAt)}
-              {requisition.processedAt && ` · Processada em ${formatDate(requisition.processedAt)}`}
+              {requisition.processedAt &&
+                ` · Processada em ${formatDate(requisition.processedAt)}`}
             </p>
           </div>
         </div>
@@ -132,25 +142,33 @@ export function RequisitionDetail({ requisitionId }: Props) {
       <div className='rounded-xl border border-stroke-soft-200 bg-bg-white-0 p-5 shadow-regular-xs'>
         <div className='grid grid-cols-1 gap-4 md:grid-cols-4'>
           <div>
-            <span className='text-subheading-2xs uppercase text-text-soft-400'>Solicitante</span>
+            <span className='text-subheading-2xs uppercase text-text-soft-400'>
+              Solicitante
+            </span>
             <p className='text-paragraph-sm text-text-strong-950'>
               {requisition.requestedByName ?? '-'}
             </p>
           </div>
           <div>
-            <span className='text-subheading-2xs uppercase text-text-soft-400'>Aprovado por</span>
+            <span className='text-subheading-2xs uppercase text-text-soft-400'>
+              Aprovado por
+            </span>
             <p className='text-paragraph-sm text-text-strong-950'>
               {requisition.approvedByName ?? '-'}
             </p>
           </div>
           <div>
-            <span className='text-subheading-2xs uppercase text-text-soft-400'>Pedido vinculado</span>
+            <span className='text-subheading-2xs uppercase text-text-soft-400'>
+              Pedido vinculado
+            </span>
             <p className='text-paragraph-sm text-text-strong-950'>
               {requisition.orderNumber ?? 'Nenhum'}
             </p>
           </div>
           <div>
-            <span className='text-subheading-2xs uppercase text-text-soft-400'>Processamento</span>
+            <span className='text-subheading-2xs uppercase text-text-soft-400'>
+              Processamento
+            </span>
             <p className='text-paragraph-sm text-text-strong-950'>
               {processedCount}/{totalCount} itens
             </p>
@@ -158,7 +176,9 @@ export function RequisitionDetail({ requisitionId }: Props) {
         </div>
         {requisition.notes && (
           <div className='mt-4 border-t border-stroke-soft-200 pt-4'>
-            <span className='text-subheading-2xs uppercase text-text-soft-400'>Observacoes</span>
+            <span className='text-subheading-2xs uppercase text-text-soft-400'>
+              Observacoes
+            </span>
             <p className='mt-1 text-paragraph-sm text-text-sub-600'>
               {requisition.notes}
             </p>
@@ -169,7 +189,9 @@ export function RequisitionDetail({ requisitionId }: Props) {
       {/* Items table */}
       <div className='rounded-xl border border-stroke-soft-200 bg-bg-white-0 shadow-regular-xs'>
         <div className='border-b border-stroke-soft-200 px-5 py-3'>
-          <h2 className='text-label-md text-text-strong-950'>Itens da Requisicao</h2>
+          <h2 className='text-label-md text-text-strong-950'>
+            Itens da Requisicao
+          </h2>
         </div>
         <Table.Root>
           <Table.Header>
@@ -202,11 +224,13 @@ export function RequisitionDetail({ requisitionId }: Props) {
                 </Table.Cell>
                 <Table.Cell className='text-center'>
                   {item.processed ? (
-                    <span className='inline-flex items-center gap-1 text-paragraph-xs text-state-success-base'>
+                    <span className='text-state-success-base inline-flex items-center gap-1 text-paragraph-xs'>
                       <i className='ri-check-line' /> Processado
                     </span>
                   ) : (
-                    <span className='text-paragraph-xs text-text-soft-400'>Pendente</span>
+                    <span className='text-paragraph-xs text-text-soft-400'>
+                      Pendente
+                    </span>
                   )}
                 </Table.Cell>
               </Table.Row>
@@ -238,7 +262,9 @@ export function RequisitionDetail({ requisitionId }: Props) {
               onClick={() => cancelMutation.mutate()}
               disabled={cancelMutation.isPending}
             >
-              {cancelMutation.isPending ? 'Cancelando...' : 'Confirmar Cancelamento'}
+              {cancelMutation.isPending
+                ? 'Cancelando...'
+                : 'Confirmar Cancelamento'}
             </Button.Root>
           </Modal.Footer>
         </Modal.Content>

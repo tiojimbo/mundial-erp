@@ -27,12 +27,13 @@ export const PURCHASE_ORDER_STATUSES = [
 
 export type PurchaseOrderStatus = (typeof PURCHASE_ORDER_STATUSES)[number];
 
-export const PURCHASE_ORDER_STATUS_LABELS: Record<PurchaseOrderStatus, string> = {
-  PENDING: 'Pendente',
-  CONFIRMED: 'Confirmado',
-  RECEIVED: 'Recebido',
-  CANCELLED: 'Cancelado',
-};
+export const PURCHASE_ORDER_STATUS_LABELS: Record<PurchaseOrderStatus, string> =
+  {
+    PENDING: 'Pendente',
+    CONFIRMED: 'Confirmado',
+    RECEIVED: 'Recebido',
+    CANCELLED: 'Cancelado',
+  };
 
 // ===== Entities =====
 

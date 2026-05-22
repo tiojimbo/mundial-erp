@@ -38,7 +38,9 @@ export function OrderDossier({ orderId }: Props) {
     return (
       <div className='flex flex-col items-center justify-center gap-4 py-16'>
         <i className='ri-error-warning-line text-4xl text-state-error-base' />
-        <p className='text-paragraph-md text-text-strong-950'>Pedido nao encontrado</p>
+        <p className='text-paragraph-md text-text-strong-950'>
+          Pedido nao encontrado
+        </p>
         <Link href='/comercial/pedidos'>
           <Button.Root variant='neutral' mode='stroke' size='small'>
             Voltar para lista
@@ -67,10 +69,13 @@ export function OrderDossier({ orderId }: Props) {
               <OrderStatusBadge status={order.status} />
             </div>
             {order.title && (
-              <p className='text-paragraph-sm text-text-sub-600'>{order.title}</p>
+              <p className='text-paragraph-sm text-text-sub-600'>
+                {order.title}
+              </p>
             )}
             <p className='text-paragraph-xs text-text-soft-400'>
-              Cliente: {order.client?.name ?? '-'} · Criado por: {order.createdByUser?.name ?? '-'}
+              Cliente: {order.client?.name ?? '-'} · Criado por:{' '}
+              {order.createdByUser?.name ?? '-'}
             </p>
           </div>
         </div>

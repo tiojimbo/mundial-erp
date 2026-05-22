@@ -31,11 +31,11 @@ export function CheckboxField({
           onCheckedChange={(next) => onChange(next === true)}
           className={
             inline
-              ? 'peer cursor-pointer size-3.5 shrink-0 rounded-[4px] border border-input shadow-xs transition-shadow outline-none focus-visible:ring-[3px] focus-visible:ring-ring/50 data-[state=checked]:bg-foreground data-[state=checked]:border-foreground data-[state=checked]:text-background disabled:cursor-not-allowed disabled:opacity-60'
-              : 'peer size-4 shrink-0 rounded-[4px] border border-input bg-background shadow-xs transition-shadow outline-none focus-visible:ring-[3px] focus-visible:ring-ring/50 data-[state=checked]:bg-foreground data-[state=checked]:border-foreground data-[state=checked]:text-background disabled:cursor-not-allowed disabled:opacity-60'
+              ? 'shadow-xs focus-visible:ring-ring/50 peer size-3.5 shrink-0 cursor-pointer rounded-[4px] border border-input outline-none transition-shadow focus-visible:ring-[3px] disabled:cursor-not-allowed disabled:opacity-60 data-[state=checked]:border-foreground data-[state=checked]:bg-foreground data-[state=checked]:text-background'
+              : 'shadow-xs focus-visible:ring-ring/50 peer size-4 shrink-0 rounded-[4px] border border-input bg-background outline-none transition-shadow focus-visible:ring-[3px] disabled:cursor-not-allowed disabled:opacity-60 data-[state=checked]:border-foreground data-[state=checked]:bg-foreground data-[state=checked]:text-background'
           }
         >
-          <Checkbox.Indicator className="flex items-center justify-center">
+          <Checkbox.Indicator className='flex items-center justify-center'>
             <Check className={inline ? 'size-3' : 'size-3.5'} strokeWidth={3} />
           </Checkbox.Indicator>
         </Checkbox.Root>

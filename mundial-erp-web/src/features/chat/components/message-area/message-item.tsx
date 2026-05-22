@@ -117,9 +117,8 @@ export function MessageItem({ message, hideThreadPreview }: MessageItemProps) {
     setShowDeleteModal(false);
   };
 
-
   return (
-    <div className='group relative flex gap-3 px-4 py-1 transition-colors hover:bg-bg-weak-50/40'>
+    <div className='hover:bg-bg-weak-50/40 group relative flex gap-3 px-4 py-1 transition-colors'>
       {/* Avatar */}
       <div className='mt-0.5 flex size-8 shrink-0 items-center justify-center rounded-full bg-primary-base text-[12px] font-semibold text-white'>
         {initials}
@@ -131,9 +130,7 @@ export function MessageItem({ message, hideThreadPreview }: MessageItemProps) {
           <span className='text-label-sm font-semibold text-text-strong-950'>
             {message.author.name}
           </span>
-          <span className='text-paragraph-xs text-text-soft-400'>
-            {time}
-          </span>
+          <span className='text-paragraph-xs text-text-soft-400'>{time}</span>
           {message.editedAt && (
             <span className='text-paragraph-xs text-text-soft-400'>
               (editado)
@@ -155,7 +152,7 @@ export function MessageItem({ message, hideThreadPreview }: MessageItemProps) {
               value={editContent}
               onChange={(e) => setEditContent(e.target.value)}
               onKeyDown={handleEditKeyDown}
-              className='w-full resize-none rounded-lg border border-stroke-soft-200 bg-bg-white-0 px-3 py-2 text-paragraph-sm text-text-strong-950 outline-none focus:border-primary-base/30 focus:shadow-regular-xs'
+              className='focus:border-primary-base/30 w-full resize-none rounded-lg border border-stroke-soft-200 bg-bg-white-0 px-3 py-2 text-paragraph-sm text-text-strong-950 outline-none focus:shadow-regular-xs'
               rows={2}
             />
             <div className='mt-1 flex items-center gap-2'>
@@ -181,9 +178,7 @@ export function MessageItem({ message, hideThreadPreview }: MessageItemProps) {
         ) : (
           <div
             className={`mt-0.5 text-paragraph-sm leading-relaxed ${
-              isDeleted
-                ? 'italic text-text-soft-400'
-                : 'text-text-strong-950'
+              isDeleted ? 'italic text-text-soft-400' : 'text-text-strong-950'
             }`}
           >
             {isDeleted ? message.content : renderMentions(message.content)}
@@ -191,35 +186,44 @@ export function MessageItem({ message, hideThreadPreview }: MessageItemProps) {
         )}
 
         {/* Thread preview banner — estilo ClickUp */}
-        {message.replyCount > 0 && !message.parentMessageId && !hideThreadPreview && (
-          <div className='relative mt-1 pl-4'>
-            {/* Linha curva de conexao */}
-            <div className='absolute left-0 top-0 h-4 w-4 rounded-bl-lg border-b border-l border-stroke-soft-200' />
-          <button
-            onClick={() => openThread(message.id)}
-            className='mt-2 flex w-full max-w-[400px] items-center gap-2.5 rounded-lg border border-stroke-soft-200 px-3 py-2 transition-colors hover:bg-bg-weak-50'
-          >
-            {/* Avatar do autor (representando ultimo respondente) */}
-            <div className='flex size-6 shrink-0 items-center justify-center rounded-full bg-primary-base text-[9px] font-semibold text-white'>
-              {initials}
+        {message.replyCount > 0 &&
+          !message.parentMessageId &&
+          !hideThreadPreview && (
+            <div className='relative mt-1 pl-4'>
+              {/* Linha curva de conexao */}
+              <div className='absolute left-0 top-0 h-4 w-4 rounded-bl-lg border-b border-l border-stroke-soft-200' />
+              <button
+                onClick={() => openThread(message.id)}
+                className='mt-2 flex w-full max-w-[400px] items-center gap-2.5 rounded-lg border border-stroke-soft-200 px-3 py-2 transition-colors hover:bg-bg-weak-50'
+              >
+                {/* Avatar do autor (representando ultimo respondente) */}
+                <div className='flex size-6 shrink-0 items-center justify-center rounded-full bg-primary-base text-[9px] font-semibold text-white'>
+                  {initials}
+                </div>
+                {/* Contagem + texto */}
+                <span className='text-[13px] font-medium text-primary-base'>
+                  {message.replyCount}{' '}
+                  {message.replyCount === 1 ? 'resposta' : 'respostas'}
+                </span>
+                <span className='text-[13px] text-text-soft-400'>
+                  Exibir conversa
+                </span>
+                {/* Seta */}
+                <span className='ml-auto text-text-soft-400'>
+                  <svg
+                    width='16'
+                    height='16'
+                    viewBox='0 0 24 24'
+                    fill='none'
+                    stroke='currentColor'
+                    strokeWidth='2'
+                  >
+                    <path d='m9 18 6-6-6-6' />
+                  </svg>
+                </span>
+              </button>
             </div>
-            {/* Contagem + texto */}
-            <span className='text-[13px] font-medium text-primary-base'>
-              {message.replyCount}{' '}
-              {message.replyCount === 1 ? 'resposta' : 'respostas'}
-            </span>
-            <span className='text-[13px] text-text-soft-400'>
-              Exibir conversa
-            </span>
-            {/* Seta */}
-            <span className='ml-auto text-text-soft-400'>
-              <svg width='16' height='16' viewBox='0 0 24 24' fill='none' stroke='currentColor' strokeWidth='2'>
-                <path d='m9 18 6-6-6-6' />
-              </svg>
-            </span>
-          </button>
-          </div>
-        )}
+          )}
       </div>
 
       {/* Hover actions */}
@@ -294,8 +298,8 @@ export function MessageItem({ message, hideThreadPreview }: MessageItemProps) {
 
             {/* Descricao */}
             <p className='mt-1.5 text-[14px] leading-relaxed text-text-sub-600'>
-              Tem certeza de que deseja excluir esta mensagem? Não será
-              possível recuperá-la.
+              Tem certeza de que deseja excluir esta mensagem? Não será possível
+              recuperá-la.
             </p>
           </div>
 
@@ -309,9 +313,7 @@ export function MessageItem({ message, hideThreadPreview }: MessageItemProps) {
                 <span className='text-[14px] font-semibold text-text-strong-950'>
                   {message.author.name}
                 </span>
-                <span className='text-[12px] text-text-soft-400'>
-                  {time}
-                </span>
+                <span className='text-[12px] text-text-soft-400'>{time}</span>
               </div>
             </div>
             <p className='mt-1.5 pl-[42px] text-[14px] leading-relaxed text-text-sub-600'>
@@ -366,7 +368,7 @@ function renderMentions(text: string): React.ReactNode[] {
     parts.push(
       <span
         key={`${match.index}-${mention}`}
-        className='inline-flex items-center rounded bg-primary-base/10 px-1 py-0.5 text-[13px] font-medium text-primary-base'
+        className='bg-primary-base/10 inline-flex items-center rounded px-1 py-0.5 text-[13px] font-medium text-primary-base'
       >
         {mention}
       </span>,

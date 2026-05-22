@@ -18,8 +18,8 @@ export function Breadcrumb({ items }: BreadcrumbProps) {
     <BreadcrumbUI.Root>
       {/* Home */}
       <BreadcrumbUI.Item asChild>
-        <Link href="/inicio">
-          <BreadcrumbUI.Icon as={RiHome5Line} className="size-4" />
+        <Link href='/inicio'>
+          <BreadcrumbUI.Icon as={RiHome5Line} className='size-4' />
         </Link>
       </BreadcrumbUI.Item>
 
@@ -27,8 +27,11 @@ export function Breadcrumb({ items }: BreadcrumbProps) {
         const isLast = index === items.length - 1;
 
         return (
-          <span key={`${item.label}-${index}`} className="flex items-center gap-1.5">
-            <BreadcrumbUI.ArrowIcon as={RiArrowRightSLine} className="size-4" />
+          <span
+            key={`${item.label}-${index}`}
+            className='flex items-center gap-1.5'
+          >
+            <BreadcrumbUI.ArrowIcon as={RiArrowRightSLine} className='size-4' />
             <BreadcrumbUI.Item active={isLast} asChild={!isLast && !!item.href}>
               {!isLast && item.href ? (
                 <Link href={item.href}>{item.label}</Link>

@@ -4,10 +4,17 @@
 
 import type { Meta, StoryObj } from '@storybook/react';
 import type { CustomFieldDefinition } from '../../types/custom-field.types';
-import { makeCustomFieldDefinition } from "../../types/custom-field.fixtures";
+import { makeCustomFieldDefinition } from '../../types/custom-field.fixtures';
 import { UrlField } from './url-field';
 
-const baseDef: CustomFieldDefinition = makeCustomFieldDefinition({ id: 'def-url-1', workspaceId: null, name: 'Link da proposta', type: 'URL', fixed: true, position: 80 });
+const baseDef: CustomFieldDefinition = makeCustomFieldDefinition({
+  id: 'def-url-1',
+  workspaceId: null,
+  name: 'Link da proposta',
+  type: 'URL',
+  fixed: true,
+  position: 80,
+});
 
 const meta: Meta<typeof UrlField> = {
   title: 'CustomFields/UrlField',
@@ -24,7 +31,10 @@ export const Empty: Story = {
 };
 
 export const Filled: Story = {
-  args: { definition: baseDef, value: 'https://mundial.example.com/proposta/123' },
+  args: {
+    definition: baseDef,
+    value: 'https://mundial.example.com/proposta/123',
+  },
 };
 
 export const WithError: Story = {

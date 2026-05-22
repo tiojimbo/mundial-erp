@@ -10,12 +10,7 @@ import type { TaskStatus } from '../../types/task.types';
 
 type StatusType = TaskStatus['type'];
 
-const TYPE_ORDER: StatusType[] = [
-  'NOT_STARTED',
-  'ACTIVE',
-  'DONE',
-  'CLOSED',
-];
+const TYPE_ORDER: StatusType[] = ['NOT_STARTED', 'ACTIVE', 'DONE', 'CLOSED'];
 
 const TYPE_LABEL: Record<StatusType, string> = {
   NOT_STARTED: 'Não iniciado',
@@ -29,15 +24,15 @@ function StatusIndicator({ status }: { status: TaskStatus }) {
 
   if (status.type === 'NOT_STARTED') {
     return (
-      <svg width="16" height="16" viewBox="0 0 24 24" className="mr-2 shrink-0">
+      <svg width='16' height='16' viewBox='0 0 24 24' className='mr-2 shrink-0'>
         <circle
-          cx="12"
-          cy="12"
-          r="8.5"
+          cx='12'
+          cy='12'
+          r='8.5'
           stroke={color}
-          strokeWidth="1.8"
-          strokeDasharray="3.5 3"
-          fill="none"
+          strokeWidth='1.8'
+          strokeDasharray='3.5 3'
+          fill='none'
         />
       </svg>
     );
@@ -51,17 +46,17 @@ function StatusIndicator({ status }: { status: TaskStatus }) {
     const largeArc = progress > 0.5 ? 1 : 0;
     const clipId = `clip-${status.id}`;
     return (
-      <svg width="16" height="16" viewBox="0 0 24 24" className="mr-2 shrink-0">
+      <svg width='16' height='16' viewBox='0 0 24 24' className='mr-2 shrink-0'>
         <circle
-          cx="12"
-          cy="12"
-          r="8.5"
+          cx='12'
+          cy='12'
+          r='8.5'
           stroke={color}
-          strokeWidth="1.8"
-          fill="none"
+          strokeWidth='1.8'
+          fill='none'
         />
         <clipPath id={clipId}>
-          <circle cx="12" cy="12" r="7.6" />
+          <circle cx='12' cy='12' r='7.6' />
         </clipPath>
         <path
           d={`M 12,12 L 12,3.5 A 8.5,8.5 0 ${largeArc} 1 ${x},${y} Z`}
@@ -73,14 +68,14 @@ function StatusIndicator({ status }: { status: TaskStatus }) {
   }
 
   return (
-    <svg width="16" height="16" viewBox="0 0 24 24" className="mr-2 shrink-0">
-      <circle cx="12" cy="12" r="8.5" fill={color} />
+    <svg width='16' height='16' viewBox='0 0 24 24' className='mr-2 shrink-0'>
+      <circle cx='12' cy='12' r='8.5' fill={color} />
       <path
-        d="M8.5 12.5L11 15L15.5 10"
-        stroke="white"
-        strokeWidth="2"
-        strokeLinecap="round"
-        strokeLinejoin="round"
+        d='M8.5 12.5L11 15L15.5 10'
+        stroke='white'
+        strokeWidth='2'
+        strokeLinecap='round'
+        strokeLinejoin='round'
       />
     </svg>
   );
@@ -111,57 +106,57 @@ export function StatusBadge({
   }, [availableStatuses]);
 
   return (
-    <div className="-mx-1.5 rounded-lg px-1.5 py-0.5 transition-colors hover:bg-accent/50">
-      <div className="flex items-center gap-1.5">
+    <div className='hover:bg-accent/50 -mx-1.5 rounded-lg px-1.5 py-0.5 transition-colors'>
+      <div className='flex items-center gap-1.5'>
         <Popover.Root open={open} onOpenChange={setOpen}>
           <Popover.Trigger asChild>
             <button
-              type="button"
+              type='button'
               aria-label={`Alterar status: ${status.name}`}
-              className="group/split inline-flex h-[22px] cursor-pointer items-center rounded-[4px] hover:opacity-80"
+              className='group/split inline-flex h-[22px] cursor-pointer items-center rounded-[4px] hover:opacity-80'
               style={{ backgroundColor: color }}
             >
-              <span className="flex h-full items-center whitespace-nowrap rounded-l-[4px] px-2.5 text-[11px] font-medium uppercase tracking-wide text-white">
+              <span className='flex h-full items-center whitespace-nowrap rounded-l-[4px] px-2.5 text-[11px] font-medium uppercase tracking-wide text-white'>
                 {status.name}
               </span>
-              <span className="flex h-full w-6 items-center justify-center rounded-r-[4px] border-l border-white/20">
+              <span className='flex h-full w-6 items-center justify-center rounded-r-[4px] border-l border-white/20'>
                 <svg
-                  width="8"
-                  height="8"
-                  viewBox="0 0 10 10"
-                  fill="white"
-                  aria-hidden="true"
+                  width='8'
+                  height='8'
+                  viewBox='0 0 10 10'
+                  fill='white'
+                  aria-hidden='true'
                 >
-                  <path d="M3 2 L8 5 L3 8 Z" />
+                  <path d='M3 2 L8 5 L3 8 Z' />
                 </svg>
               </span>
             </button>
           </Popover.Trigger>
           <Popover.Content
-            align="start"
+            align='start'
             sideOffset={4}
             showArrow={false}
             unstyled
             style={{ width: 220, height: 309.6 }}
-            className="overflow-hidden rounded-lg border border-border bg-popover text-popover-foreground shadow-md"
+            className='shadow-md overflow-hidden rounded-lg border border-border bg-popover text-popover-foreground'
           >
-            <Command className="flex h-full flex-col">
-              <div className="flex items-center gap-2 border-b border-border px-3 py-2">
-                <Search className="h-3.5 w-3.5 text-muted-foreground" />
+            <Command className='flex h-full flex-col'>
+              <div className='flex items-center gap-2 border-b border-border px-3 py-2'>
+                <Search className='h-3.5 w-3.5 text-muted-foreground' />
                 <Command.Input
-                  placeholder="Buscar status..."
-                  className="flex-1 bg-transparent text-[13px] outline-none placeholder:text-muted-foreground"
+                  placeholder='Buscar status...'
+                  className='flex-1 bg-transparent text-[13px] outline-none placeholder:text-muted-foreground'
                 />
               </div>
-              <Command.List className="min-h-0 flex-1 overflow-y-auto p-1">
-                <Command.Empty className="py-6 text-center text-[12px] text-muted-foreground">
+              <Command.List className='min-h-0 flex-1 overflow-y-auto p-1'>
+                <Command.Empty className='py-6 text-center text-[12px] text-muted-foreground'>
                   Nenhum status encontrado.
                 </Command.Empty>
                 {grouped.map(({ type, items }) => (
                   <Command.Group
                     key={type}
                     heading={TYPE_LABEL[type]}
-                    className="[&_[cmdk-group-heading]]:px-2 [&_[cmdk-group-heading]]:py-1.5 [&_[cmdk-group-heading]]:text-[11px] [&_[cmdk-group-heading]]:text-muted-foreground"
+                    className='[&_[cmdk-group-heading]]:px-2 [&_[cmdk-group-heading]]:py-1.5 [&_[cmdk-group-heading]]:text-[11px] [&_[cmdk-group-heading]]:text-muted-foreground'
                   >
                     {items.map((s) => {
                       const selected = s.id === status.id;
@@ -179,11 +174,11 @@ export function StatusBadge({
                           )}
                         >
                           <StatusIndicator status={s} />
-                          <span className="truncate text-[11px] uppercase tracking-wide">
+                          <span className='truncate text-[11px] uppercase tracking-wide'>
                             {s.name}
                           </span>
                           {selected && (
-                            <Check className="ml-auto h-3.5 w-3.5 flex-shrink-0" />
+                            <Check className='ml-auto h-3.5 w-3.5 flex-shrink-0' />
                           )}
                         </Command.Item>
                       );
@@ -196,12 +191,12 @@ export function StatusBadge({
         </Popover.Root>
 
         <button
-          type="button"
+          type='button'
           onClick={onToggleComplete}
-          aria-label="Concluir tarefa"
-          className="flex h-[22px] w-[22px] cursor-pointer items-center justify-center rounded-[4px] border border-border text-muted-foreground transition-colors hover:bg-accent hover:text-foreground"
+          aria-label='Concluir tarefa'
+          className='flex h-[22px] w-[22px] cursor-pointer items-center justify-center rounded-[4px] border border-border text-muted-foreground transition-colors hover:bg-accent hover:text-foreground'
         >
-          <Check className="h-3 w-3" />
+          <Check className='h-3 w-3' />
         </button>
       </div>
     </div>

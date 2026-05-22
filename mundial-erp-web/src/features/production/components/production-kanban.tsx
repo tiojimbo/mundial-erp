@@ -6,7 +6,10 @@ import * as Badge from '@/components/ui/badge';
 import * as TabMenu from '@/components/ui/tab-menu-horizontal';
 
 import { useDebounce } from '@/hooks/use-debounce';
-import { useProductionOrders, useSeparationOrders } from '../hooks/use-production';
+import {
+  useProductionOrders,
+  useSeparationOrders,
+} from '../hooks/use-production';
 import { POStatusBadge, SOStatusBadge } from './po-status-badge';
 import { formatDate } from '@/lib/formatters';
 import type {
@@ -24,9 +27,24 @@ type KanbanColumn = {
 };
 
 const KANBAN_COLUMNS: KanbanColumn[] = [
-  { status: 'PENDING', label: 'Pendente', icon: 'ri-time-line', color: 'border-t-orange-400' },
-  { status: 'IN_PROGRESS', label: 'Em Producao', icon: 'ri-hammer-line', color: 'border-t-purple-400' },
-  { status: 'COMPLETED', label: 'Concluida', icon: 'ri-checkbox-circle-line', color: 'border-t-green-400' },
+  {
+    status: 'PENDING',
+    label: 'Pendente',
+    icon: 'ri-time-line',
+    color: 'border-t-orange-400',
+  },
+  {
+    status: 'IN_PROGRESS',
+    label: 'Em Producao',
+    icon: 'ri-hammer-line',
+    color: 'border-t-purple-400',
+  },
+  {
+    status: 'COMPLETED',
+    label: 'Concluida',
+    icon: 'ri-checkbox-circle-line',
+    color: 'border-t-green-400',
+  },
 ];
 
 const COLUMN_LIMIT = 20;
@@ -37,7 +55,7 @@ function ProductionKanbanCard({ po }: { po: ProductionOrderSummary }) {
   return (
     <Link
       href={`/producao/ordens/${po.id}`}
-      className='block rounded-lg border border-stroke-soft-200 bg-bg-white-0 p-3 shadow-sm transition-shadow hover:shadow-md'
+      className='shadow-sm hover:shadow-md block rounded-lg border border-stroke-soft-200 bg-bg-white-0 p-3 transition-shadow'
     >
       <div className='mb-2 flex items-center justify-between'>
         <span className='text-label-sm font-medium text-primary-base'>
@@ -95,7 +113,9 @@ function KanbanColumnComponent({
         className={`mb-3 flex items-center gap-2 rounded-t-lg border-t-4 ${column.color} bg-bg-weak-50 px-3 py-2`}
       >
         <i className={`${column.icon} text-lg`} />
-        <span className='text-label-sm text-text-strong-950'>{column.label}</span>
+        <span className='text-label-sm text-text-strong-950'>
+          {column.label}
+        </span>
         <Badge.Root color='gray' variant='lighter' size='small'>
           {total}
         </Badge.Root>
@@ -104,7 +124,10 @@ function KanbanColumnComponent({
       <div className='flex flex-col gap-2'>
         {isLoading ? (
           Array.from({ length: 3 }).map((_, i) => (
-            <div key={i} className='h-28 animate-pulse rounded-lg bg-bg-weak-50' />
+            <div
+              key={i}
+              className='h-28 animate-pulse rounded-lg bg-bg-weak-50'
+            />
           ))
         ) : orders.length === 0 ? (
           <div className='flex items-center justify-center rounded-lg border border-dashed border-stroke-soft-200 px-3 py-8 text-paragraph-sm text-text-soft-400'>
@@ -128,7 +151,10 @@ function SeparationOrdersList() {
     return (
       <div className='flex flex-col gap-3'>
         {Array.from({ length: 3 }).map((_, i) => (
-          <div key={i} className='h-16 animate-pulse rounded-lg bg-bg-weak-50' />
+          <div
+            key={i}
+            className='h-16 animate-pulse rounded-lg bg-bg-weak-50'
+          />
         ))}
       </div>
     );
@@ -162,7 +188,8 @@ function SeparationCard({ so }: { so: SeparationOrderSummary }) {
             <SOStatusBadge status={so.status} />
           </div>
           <p className='text-paragraph-xs text-text-sub-600'>
-            Pedido #{so.order?.orderNumber ?? '-'} · {so.order?.client?.name ?? '-'}
+            Pedido #{so.order?.orderNumber ?? '-'} ·{' '}
+            {so.order?.client?.name ?? '-'}
           </p>
         </div>
       </div>
@@ -233,48 +260,48 @@ export function ProductionKanban() {
 
       <TabMenu.Root defaultValue='producao'>
         <TabMenu.List>
-            <TabMenu.Trigger value='producao'>
-              <TabMenu.Icon as='i' className='ri-hammer-line' />
-              Ordens de Producao
-            </TabMenu.Trigger>
-            <TabMenu.Trigger value='separacao'>
-              <TabMenu.Icon as='i' className='ri-inbox-unarchive-line' />
-              Ordens de Separacao
-            </TabMenu.Trigger>
-          </TabMenu.List>
+          <TabMenu.Trigger value='producao'>
+            <TabMenu.Icon as='i' className='ri-hammer-line' />
+            Ordens de Producao
+          </TabMenu.Trigger>
+          <TabMenu.Trigger value='separacao'>
+            <TabMenu.Icon as='i' className='ri-inbox-unarchive-line' />
+            Ordens de Separacao
+          </TabMenu.Trigger>
+        </TabMenu.List>
 
-          <TabMenu.Content value='producao' className='pt-4'>
-            {/* Search */}
-            <div className='mb-4 flex items-center gap-3'>
-              <div className='relative flex-1'>
-                <i className='ri-search-line absolute left-3 top-1/2 -translate-y-1/2 text-text-soft-400' />
-                <input
-                  type='text'
-                  placeholder='Buscar por codigo, pedido ou cliente...'
-                  value={search}
-                  onChange={(e) => setSearch(e.target.value)}
-                  className='w-full rounded-lg border border-stroke-soft-200 py-2 pl-9 pr-3 text-paragraph-sm focus:border-primary-base focus:outline-none'
-                />
-              </div>
+        <TabMenu.Content value='producao' className='pt-4'>
+          {/* Search */}
+          <div className='mb-4 flex items-center gap-3'>
+            <div className='relative flex-1'>
+              <i className='ri-search-line absolute left-3 top-1/2 -translate-y-1/2 text-text-soft-400' />
+              <input
+                type='text'
+                placeholder='Buscar por codigo, pedido ou cliente...'
+                value={search}
+                onChange={(e) => setSearch(e.target.value)}
+                className='w-full rounded-lg border border-stroke-soft-200 py-2 pl-9 pr-3 text-paragraph-sm focus:border-primary-base focus:outline-none'
+              />
             </div>
+          </div>
 
-            {/* Kanban Board */}
-            <div className='flex gap-4 overflow-x-auto pb-4'>
-              {columns.map(({ column, orders, isLoading, total }) => (
-                <KanbanColumnComponent
-                  key={column.status}
-                  column={column}
-                  orders={orders}
-                  isLoading={isLoading}
-                  total={total}
-                />
-              ))}
-            </div>
-          </TabMenu.Content>
+          {/* Kanban Board */}
+          <div className='flex gap-4 overflow-x-auto pb-4'>
+            {columns.map(({ column, orders, isLoading, total }) => (
+              <KanbanColumnComponent
+                key={column.status}
+                column={column}
+                orders={orders}
+                isLoading={isLoading}
+                total={total}
+              />
+            ))}
+          </div>
+        </TabMenu.Content>
 
-          <TabMenu.Content value='separacao' className='pt-4'>
-            <SeparationOrdersList />
-          </TabMenu.Content>
+        <TabMenu.Content value='separacao' className='pt-4'>
+          <SeparationOrdersList />
+        </TabMenu.Content>
       </TabMenu.Root>
     </div>
   );

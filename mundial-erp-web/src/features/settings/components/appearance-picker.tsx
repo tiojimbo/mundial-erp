@@ -91,9 +91,7 @@ export function AppearancePicker() {
             <span
               className={cn(
                 'text-label-sm',
-                isSelected
-                  ? 'text-text-strong-950'
-                  : 'text-text-sub-600',
+                isSelected ? 'text-text-strong-950' : 'text-text-sub-600',
               )}
             >
               {option.label}

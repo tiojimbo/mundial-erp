@@ -5,11 +5,7 @@
 process.env.FEATURE_TASK_TYPE_TEMPLATES_ENABLED = 'true';
 
 import { Test, TestingModule } from '@nestjs/testing';
-import {
-  INestApplication,
-  Logger,
-  ValidationPipe,
-} from '@nestjs/common';
+import { INestApplication, Logger, ValidationPipe } from '@nestjs/common';
 import request from 'supertest';
 import { App } from 'supertest/types';
 import { AppModule } from '../../../src/app.module';
@@ -68,37 +64,218 @@ const ORDER_FIELDS: Array<{
   config: Record<string, unknown> | null;
   sortOrder: number;
 }> = [
-  { id: 'cfd-order-order_number', key: 'order_number', label: 'Numero do pedido', type: 'TEXT', required: false, config: { readOnly: true, hint: 'Gerado ao mover para FATURAR' }, sortOrder: 0 },
-  { id: 'cfd-order-client_cnpj', key: 'client_cnpj', label: 'CNPJ do cliente', type: 'CNPJ', required: false, config: null, sortOrder: 1 },
-  { id: 'cfd-order-client_cpf', key: 'client_cpf', label: 'CPF do cliente', type: 'CPF', required: false, config: null, sortOrder: 2 },
-  { id: 'cfd-order-client_name', key: 'client_name', label: 'Nome/Razao social', type: 'TEXT', required: true, config: null, sortOrder: 3 },
-  { id: 'cfd-order-client_email', key: 'client_email', label: 'E-mail', type: 'EMAIL', required: false, config: null, sortOrder: 4 },
-  { id: 'cfd-order-client_phone', key: 'client_phone', label: 'Telefone', type: 'PHONE', required: false, config: null, sortOrder: 5 },
-  { id: 'cfd-order-delivery_address', key: 'delivery_address', label: 'Endereco de entrega', type: 'TEXT', required: false, config: null, sortOrder: 6 },
-  { id: 'cfd-order-delivery_deadline', key: 'delivery_deadline', label: 'Prazo de entrega', type: 'DATE', required: false, config: null, sortOrder: 7 },
-  { id: 'cfd-order-proposal_validity_days', key: 'proposal_validity_days', label: 'Validade da proposta (dias)', type: 'NUMBER', required: false, config: { min: 1, default: 7 }, sortOrder: 8 },
-  { id: 'cfd-order-subtotal', key: 'subtotal', label: 'Subtotal', type: 'CURRENCY', required: false, config: null, sortOrder: 9 },
-  { id: 'cfd-order-freight', key: 'freight', label: 'Frete', type: 'CURRENCY', required: false, config: { default: 0 }, sortOrder: 10 },
-  { id: 'cfd-order-discount', key: 'discount', label: 'Desconto', type: 'CURRENCY', required: false, config: { default: 0 }, sortOrder: 11 },
-  { id: 'cfd-order-total', key: 'total', label: 'Total', type: 'CURRENCY', required: false, config: { readOnly: true }, sortOrder: 12 },
-  { id: 'cfd-order-paid_amount', key: 'paid_amount', label: 'Valor pago', type: 'CURRENCY', required: false, config: { default: 0 }, sortOrder: 13 },
-  { id: 'cfd-order-payment_method', key: 'payment_method', label: 'Forma de pagamento', type: 'DROPDOWN', required: false, config: { options: [{ value: 'PIX', label: 'PIX' }, { value: 'BOLETO', label: 'Boleto' }, { value: 'CARTAO', label: 'Cartao' }, { value: 'DINHEIRO', label: 'Dinheiro' }, { value: 'TRANSFERENCIA', label: 'Transferencia' }] }, sortOrder: 14 },
-  { id: 'cfd-order-should_produce', key: 'should_produce', label: 'Produzir?', type: 'DROPDOWN', required: false, config: { options: [{ value: 'SIM', label: 'Sim' }, { value: 'NAO', label: 'Nao' }] }, sortOrder: 15 },
-  { id: 'cfd-order-is_resale', key: 'is_resale', label: 'Revenda?', type: 'DROPDOWN', required: false, config: { options: [{ value: 'SIM', label: 'Sim' }, { value: 'NAO', label: 'Nao' }] }, sortOrder: 16 },
+  {
+    id: 'cfd-order-order_number',
+    key: 'order_number',
+    label: 'Numero do pedido',
+    type: 'TEXT',
+    required: false,
+    config: { readOnly: true, hint: 'Gerado ao mover para FATURAR' },
+    sortOrder: 0,
+  },
+  {
+    id: 'cfd-order-client_cnpj',
+    key: 'client_cnpj',
+    label: 'CNPJ do cliente',
+    type: 'CNPJ',
+    required: false,
+    config: null,
+    sortOrder: 1,
+  },
+  {
+    id: 'cfd-order-client_cpf',
+    key: 'client_cpf',
+    label: 'CPF do cliente',
+    type: 'CPF',
+    required: false,
+    config: null,
+    sortOrder: 2,
+  },
+  {
+    id: 'cfd-order-client_name',
+    key: 'client_name',
+    label: 'Nome/Razao social',
+    type: 'TEXT',
+    required: true,
+    config: null,
+    sortOrder: 3,
+  },
+  {
+    id: 'cfd-order-client_email',
+    key: 'client_email',
+    label: 'E-mail',
+    type: 'EMAIL',
+    required: false,
+    config: null,
+    sortOrder: 4,
+  },
+  {
+    id: 'cfd-order-client_phone',
+    key: 'client_phone',
+    label: 'Telefone',
+    type: 'PHONE',
+    required: false,
+    config: null,
+    sortOrder: 5,
+  },
+  {
+    id: 'cfd-order-delivery_address',
+    key: 'delivery_address',
+    label: 'Endereco de entrega',
+    type: 'TEXT',
+    required: false,
+    config: null,
+    sortOrder: 6,
+  },
+  {
+    id: 'cfd-order-delivery_deadline',
+    key: 'delivery_deadline',
+    label: 'Prazo de entrega',
+    type: 'DATE',
+    required: false,
+    config: null,
+    sortOrder: 7,
+  },
+  {
+    id: 'cfd-order-proposal_validity_days',
+    key: 'proposal_validity_days',
+    label: 'Validade da proposta (dias)',
+    type: 'NUMBER',
+    required: false,
+    config: { min: 1, default: 7 },
+    sortOrder: 8,
+  },
+  {
+    id: 'cfd-order-subtotal',
+    key: 'subtotal',
+    label: 'Subtotal',
+    type: 'CURRENCY',
+    required: false,
+    config: null,
+    sortOrder: 9,
+  },
+  {
+    id: 'cfd-order-freight',
+    key: 'freight',
+    label: 'Frete',
+    type: 'CURRENCY',
+    required: false,
+    config: { default: 0 },
+    sortOrder: 10,
+  },
+  {
+    id: 'cfd-order-discount',
+    key: 'discount',
+    label: 'Desconto',
+    type: 'CURRENCY',
+    required: false,
+    config: { default: 0 },
+    sortOrder: 11,
+  },
+  {
+    id: 'cfd-order-total',
+    key: 'total',
+    label: 'Total',
+    type: 'CURRENCY',
+    required: false,
+    config: { readOnly: true },
+    sortOrder: 12,
+  },
+  {
+    id: 'cfd-order-paid_amount',
+    key: 'paid_amount',
+    label: 'Valor pago',
+    type: 'CURRENCY',
+    required: false,
+    config: { default: 0 },
+    sortOrder: 13,
+  },
+  {
+    id: 'cfd-order-payment_method',
+    key: 'payment_method',
+    label: 'Forma de pagamento',
+    type: 'DROPDOWN',
+    required: false,
+    config: {
+      options: [
+        { value: 'PIX', label: 'PIX' },
+        { value: 'BOLETO', label: 'Boleto' },
+        { value: 'CARTAO', label: 'Cartao' },
+        { value: 'DINHEIRO', label: 'Dinheiro' },
+        { value: 'TRANSFERENCIA', label: 'Transferencia' },
+      ],
+    },
+    sortOrder: 14,
+  },
+  {
+    id: 'cfd-order-should_produce',
+    key: 'should_produce',
+    label: 'Produzir?',
+    type: 'DROPDOWN',
+    required: false,
+    config: {
+      options: [
+        { value: 'SIM', label: 'Sim' },
+        { value: 'NAO', label: 'Nao' },
+      ],
+    },
+    sortOrder: 15,
+  },
+  {
+    id: 'cfd-order-is_resale',
+    key: 'is_resale',
+    label: 'Revenda?',
+    type: 'DROPDOWN',
+    required: false,
+    config: {
+      options: [
+        { value: 'SIM', label: 'Sim' },
+        { value: 'NAO', label: 'Nao' },
+      ],
+    },
+    sortOrder: 16,
+  },
 ];
 
 const ORDER_ATTACHMENT_CATEGORIES: AttachmentCategory[] = [
-  { slug: 'proposta', label: 'Proposta assinada', required: false, mimeWhitelist: ['application/pdf'] },
-  { slug: 'comprovante', label: 'Comprovante pagamento', required: true, mimeWhitelist: ['application/pdf', 'image/jpeg', 'image/png'] },
-  { slug: 'nota_fiscal', label: 'Nota fiscal NF-e', required: false, mimeWhitelist: ['application/pdf', 'application/xml'] },
+  {
+    slug: 'proposta',
+    label: 'Proposta assinada',
+    required: false,
+    mimeWhitelist: ['application/pdf'],
+  },
+  {
+    slug: 'comprovante',
+    label: 'Comprovante pagamento',
+    required: true,
+    mimeWhitelist: ['application/pdf', 'image/jpeg', 'image/png'],
+  },
+  {
+    slug: 'nota_fiscal',
+    label: 'Nota fiscal NF-e',
+    required: false,
+    mimeWhitelist: ['application/pdf', 'application/xml'],
+  },
 ];
 
 const ORDER_DEFAULT_BLOCKS = [
-  { type: 'heading', props: { level: 2 }, content: [{ type: 'text', text: 'Itens do pedido' }] },
+  {
+    type: 'heading',
+    props: { level: 2 },
+    content: [{ type: 'text', text: 'Itens do pedido' }],
+  },
   { type: 'paragraph', content: [] },
-  { type: 'heading', props: { level: 2 }, content: [{ type: 'text', text: 'Entrega' }] },
+  {
+    type: 'heading',
+    props: { level: 2 },
+    content: [{ type: 'text', text: 'Entrega' }],
+  },
   { type: 'paragraph', content: [] },
-  { type: 'heading', props: { level: 2 }, content: [{ type: 'text', text: 'Observacoes' }] },
+  {
+    type: 'heading',
+    props: { level: 2 },
+    content: [{ type: 'text', text: 'Observacoes' }],
+  },
   { type: 'paragraph', content: [] },
 ];
 
@@ -111,24 +288,106 @@ const STOCK_FIELDS: Array<{
   config: Record<string, unknown> | null;
   sortOrder: number;
 }> = [
-  { id: 'cfd-stockreq-requisition_code', key: 'requisition_code', label: 'Codigo da requisicao', type: 'TEXT', required: false, config: { readOnly: true, hint: 'Formato REQ-AAAAMMDD-NNN' }, sortOrder: 0 },
-  { id: 'cfd-stockreq-type', key: 'type', label: 'Tipo', type: 'DROPDOWN', required: true, config: { options: [{ value: 'VENDA', label: 'Venda' }, { value: 'INTERNO', label: 'Interno' }] }, sortOrder: 1 },
-  { id: 'cfd-stockreq-linked_order_number', key: 'linked_order_number', label: 'N° do pedido vinculado', type: 'TEXT', required: false, config: { hint: 'Obrigatorio se tipo = Venda', requiredWhen: { field: 'type', equals: 'VENDA' } }, sortOrder: 2 },
-  { id: 'cfd-stockreq-client_name', key: 'client_name', label: 'Cliente vinculado', type: 'TEXT', required: false, config: null, sortOrder: 3 },
-  { id: 'cfd-stockreq-requester_area', key: 'requester_area', label: 'Area solicitante', type: 'TEXT', required: false, config: null, sortOrder: 4 },
-  { id: 'cfd-stockreq-requested_date', key: 'requested_date', label: 'Data de solicitacao', type: 'DATE', required: true, config: null, sortOrder: 5 },
-  { id: 'cfd-stockreq-processed_date', key: 'processed_date', label: 'Data de processamento', type: 'DATE', required: false, config: null, sortOrder: 6 },
+  {
+    id: 'cfd-stockreq-requisition_code',
+    key: 'requisition_code',
+    label: 'Codigo da requisicao',
+    type: 'TEXT',
+    required: false,
+    config: { readOnly: true, hint: 'Formato REQ-AAAAMMDD-NNN' },
+    sortOrder: 0,
+  },
+  {
+    id: 'cfd-stockreq-type',
+    key: 'type',
+    label: 'Tipo',
+    type: 'DROPDOWN',
+    required: true,
+    config: {
+      options: [
+        { value: 'VENDA', label: 'Venda' },
+        { value: 'INTERNO', label: 'Interno' },
+      ],
+    },
+    sortOrder: 1,
+  },
+  {
+    id: 'cfd-stockreq-linked_order_number',
+    key: 'linked_order_number',
+    label: 'N° do pedido vinculado',
+    type: 'TEXT',
+    required: false,
+    config: {
+      hint: 'Obrigatorio se tipo = Venda',
+      requiredWhen: { field: 'type', equals: 'VENDA' },
+    },
+    sortOrder: 2,
+  },
+  {
+    id: 'cfd-stockreq-client_name',
+    key: 'client_name',
+    label: 'Cliente vinculado',
+    type: 'TEXT',
+    required: false,
+    config: null,
+    sortOrder: 3,
+  },
+  {
+    id: 'cfd-stockreq-requester_area',
+    key: 'requester_area',
+    label: 'Area solicitante',
+    type: 'TEXT',
+    required: false,
+    config: null,
+    sortOrder: 4,
+  },
+  {
+    id: 'cfd-stockreq-requested_date',
+    key: 'requested_date',
+    label: 'Data de solicitacao',
+    type: 'DATE',
+    required: true,
+    config: null,
+    sortOrder: 5,
+  },
+  {
+    id: 'cfd-stockreq-processed_date',
+    key: 'processed_date',
+    label: 'Data de processamento',
+    type: 'DATE',
+    required: false,
+    config: null,
+    sortOrder: 6,
+  },
 ];
 
 const STOCK_ATTACHMENT_CATEGORIES: AttachmentCategory[] = [
-  { slug: 'requisicao_pdf', label: 'Requisicao PDF', required: false, mimeWhitelist: ['application/pdf'] },
-  { slug: 'comprovante_separacao', label: 'Comprovante separacao', required: false, mimeWhitelist: ['image/jpeg', 'image/png', 'application/pdf'] },
+  {
+    slug: 'requisicao_pdf',
+    label: 'Requisicao PDF',
+    required: false,
+    mimeWhitelist: ['application/pdf'],
+  },
+  {
+    slug: 'comprovante_separacao',
+    label: 'Comprovante separacao',
+    required: false,
+    mimeWhitelist: ['image/jpeg', 'image/png', 'application/pdf'],
+  },
 ];
 
 const STOCK_DEFAULT_BLOCKS = [
-  { type: 'heading', props: { level: 2 }, content: [{ type: 'text', text: 'Itens solicitados' }] },
+  {
+    type: 'heading',
+    props: { level: 2 },
+    content: [{ type: 'text', text: 'Itens solicitados' }],
+  },
   { type: 'paragraph', content: [] },
-  { type: 'heading', props: { level: 2 }, content: [{ type: 'text', text: 'Observacoes de separacao' }] },
+  {
+    type: 'heading',
+    props: { level: 2 },
+    content: [{ type: 'text', text: 'Observacoes de separacao' }],
+  },
   { type: 'paragraph', content: [] },
 ];
 
@@ -166,44 +425,38 @@ describe('Task Type Templates - GET detail (e2e)', () => {
       prisma = app.get(PrismaService);
       await prisma.$queryRaw`SELECT 1`;
 
-      await ensureBuiltinTemplate(
-        prisma,
-        {
-          customTaskType: {
-            id: 'builtin-order',
-            name: 'Pedido',
-            namePlural: 'Pedidos',
-            description:
-              'Pedido de venda do processo Comercial — ciclo Orcamento -> Faturamento -> Producao -> Entrega.',
-            icon: 'ShoppingCart',
-            color: '#2563eb',
-            sortOrder: 2,
-          },
-          templateId: 'template-order',
-          attachmentCategories: ORDER_ATTACHMENT_CATEGORIES,
-          defaultDescriptionBlocks: ORDER_DEFAULT_BLOCKS,
-          fields: ORDER_FIELDS,
+      await ensureBuiltinTemplate(prisma, {
+        customTaskType: {
+          id: 'builtin-order',
+          name: 'Pedido',
+          namePlural: 'Pedidos',
+          description:
+            'Pedido de venda do processo Comercial — ciclo Orcamento -> Faturamento -> Producao -> Entrega.',
+          icon: 'ShoppingCart',
+          color: '#2563eb',
+          sortOrder: 2,
         },
-      );
-      await ensureBuiltinTemplate(
-        prisma,
-        {
-          customTaskType: {
-            id: 'builtin-stock-request',
-            name: 'Requisicao de Estoque',
-            namePlural: 'Requisicoes de Estoque',
-            description:
-              'Requisicao interna ou de venda do processo Compras/Suprimentos.',
-            icon: 'PackageOpen',
-            color: '#059669',
-            sortOrder: 3,
-          },
-          templateId: 'template-stock-request',
-          attachmentCategories: STOCK_ATTACHMENT_CATEGORIES,
-          defaultDescriptionBlocks: STOCK_DEFAULT_BLOCKS,
-          fields: STOCK_FIELDS,
+        templateId: 'template-order',
+        attachmentCategories: ORDER_ATTACHMENT_CATEGORIES,
+        defaultDescriptionBlocks: ORDER_DEFAULT_BLOCKS,
+        fields: ORDER_FIELDS,
+      });
+      await ensureBuiltinTemplate(prisma, {
+        customTaskType: {
+          id: 'builtin-stock-request',
+          name: 'Requisicao de Estoque',
+          namePlural: 'Requisicoes de Estoque',
+          description:
+            'Requisicao interna ou de venda do processo Compras/Suprimentos.',
+          icon: 'PackageOpen',
+          color: '#059669',
+          sortOrder: 3,
         },
-      );
+        templateId: 'template-stock-request',
+        attachmentCategories: STOCK_ATTACHMENT_CATEGORIES,
+        defaultDescriptionBlocks: STOCK_DEFAULT_BLOCKS,
+        fields: STOCK_FIELDS,
+      });
 
       wsA = await createTestWorkspace(app);
       wsB = await createTestWorkspace(app);

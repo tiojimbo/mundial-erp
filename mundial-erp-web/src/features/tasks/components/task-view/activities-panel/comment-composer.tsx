@@ -45,8 +45,8 @@ const BlockNoteEditor = dynamic<{
         value={value}
         onChange={(e) => onChange(e.target.value)}
         placeholder={placeholder}
-        aria-label="Escrever comentario"
-        className="w-full resize-none bg-transparent text-sm outline-none placeholder:italic placeholder:text-muted-foreground"
+        aria-label='Escrever comentario'
+        className='text-sm w-full resize-none bg-transparent outline-none placeholder:italic placeholder:text-muted-foreground'
         rows={2}
       />
     );
@@ -71,10 +71,10 @@ function IconBtn({
 }) {
   return (
     <button
-      type="button"
+      type='button'
       aria-label={label}
       onClick={onClick}
-      className="flex h-7 w-7 items-center justify-center rounded-md text-muted-foreground transition-colors duration-150 hover:bg-muted"
+      className='flex h-7 w-7 items-center justify-center rounded-md text-muted-foreground transition-colors duration-150 hover:bg-muted'
     >
       {children}
     </button>
@@ -115,49 +115,49 @@ export function CommentComposer({ taskId, onSubmit }: CommentComposerProps) {
 
   return (
     <footer
-      className="space-y-2 border-t border-border/60 p-3"
+      className='border-border/60 space-y-2 border-t p-3'
       onKeyDown={handleKey}
     >
-      <div className="min-h-[44px]">
+      <div className='min-h-[44px]'>
         <BlockNoteEditor
           value={value}
           onChange={setValue}
           placeholder="Digite texto ou use '/' para comandos"
         />
       </div>
-      <div className="flex items-center justify-between">
-        <div className="flex items-center gap-1">
-          <IconBtn label="Emoji">
-            <Smile className="h-4 w-4" />
+      <div className='flex items-center justify-between'>
+        <div className='flex items-center gap-1'>
+          <IconBtn label='Emoji'>
+            <Smile className='h-4 w-4' />
           </IconBtn>
-          <IconBtn label="Anexar arquivo">
-            <Paperclip className="h-4 w-4" />
+          <IconBtn label='Anexar arquivo'>
+            <Paperclip className='h-4 w-4' />
           </IconBtn>
-          <IconBtn label="Gravar audio">
-            <Mic className="h-4 w-4" />
+          <IconBtn label='Gravar audio'>
+            <Mic className='h-4 w-4' />
           </IconBtn>
-          <IconBtn label="Mencionar">
-            <AtSign className="h-4 w-4" />
+          <IconBtn label='Mencionar'>
+            <AtSign className='h-4 w-4' />
           </IconBtn>
-          <IconBtn label="Atribuir">
-            <UserPlus className="h-4 w-4" />
+          <IconBtn label='Atribuir'>
+            <UserPlus className='h-4 w-4' />
           </IconBtn>
-          <IconBtn label="Codigo">
-            <Code2 className="h-4 w-4" />
+          <IconBtn label='Codigo'>
+            <Code2 className='h-4 w-4' />
           </IconBtn>
-          <IconBtn label="IA">
-            <Sparkles className="h-4 w-4" />
+          <IconBtn label='IA'>
+            <Sparkles className='h-4 w-4' />
           </IconBtn>
         </div>
         <button
-          type="button"
+          type='button'
           onClick={() => void submit()}
           disabled={!value.trim() || submitting}
-          aria-label="Enviar comentario"
+          aria-label='Enviar comentario'
           data-task-id={taskId}
-          className="inline-flex h-9 items-center gap-1.5 rounded-[10px] bg-primary px-2.5 text-sm font-medium text-primary-foreground shadow-sm transition-opacity duration-150 hover:opacity-90 disabled:opacity-50"
+          className='bg-primary text-sm text-primary-foreground shadow-sm inline-flex h-9 items-center gap-1.5 rounded-[10px] px-2.5 font-medium transition-opacity duration-150 hover:opacity-90 disabled:opacity-50'
         >
-          <Send className="h-3.5 w-3.5" />
+          <Send className='h-3.5 w-3.5' />
           Comentar
         </button>
       </div>

@@ -32,13 +32,13 @@ type BlockNoteEditorProps = TaskDescriptionProps;
 function TaskDescriptionFallback({ value }: TaskDescriptionProps) {
   return (
     <div
-      className="prose prose-sm max-w-none text-foreground"
-      aria-label="Descricao da tarefa (edicao indisponivel sem JavaScript)"
+      className='prose prose-sm max-w-none text-foreground'
+      aria-label='Descricao da tarefa (edicao indisponivel sem JavaScript)'
     >
       {value ? (
         value
       ) : (
-        <span className="text-muted-foreground">Sem descricao.</span>
+        <span className='text-muted-foreground'>Sem descricao.</span>
       )}
     </div>
   );
@@ -58,8 +58,8 @@ const TaskDescriptionEditor: ComponentType<BlockNoteEditorProps> = dynamic(
     ssr: false,
     loading: () => (
       <div
-        className="prose prose-sm max-w-none animate-pulse text-muted-foreground"
-        aria-live="polite"
+        className='prose prose-sm max-w-none animate-pulse text-muted-foreground'
+        aria-live='polite'
       >
         Carregando editor...
       </div>

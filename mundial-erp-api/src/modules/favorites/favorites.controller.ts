@@ -36,13 +36,11 @@ export class FavoritesController {
 
   @Get('favorites')
   @ApiOperation({
-    summary: 'Listar favoritos do usuario agrupados por bucket (TOP/SIDEBAR/BOTTOM)',
+    summary:
+      'Listar favoritos do usuario agrupados por bucket (TOP/SIDEBAR/BOTTOM)',
   })
   @ApiResponse({ status: 200, type: GroupedFavoritesResponseDto })
-  findAll(
-    @CurrentUser() user: JwtPayload,
-    @WorkspaceId() workspaceId: string,
-  ) {
+  findAll(@CurrentUser() user: JwtPayload, @WorkspaceId() workspaceId: string) {
     return this.service.findAll(user.sub, workspaceId);
   }
 
@@ -79,7 +77,10 @@ export class FavoritesController {
   @HttpCode(HttpStatus.CREATED)
   @ApiOperation({ summary: 'Criar favorito (idempotente)' })
   @ApiResponse({ status: 201, type: FavoriteResponseDto })
-  @ApiResponse({ status: 404, description: 'Entidade nao encontrada no workspace' })
+  @ApiResponse({
+    status: 404,
+    description: 'Entidade nao encontrada no workspace',
+  })
   create(
     @CurrentUser() user: JwtPayload,
     @WorkspaceId() workspaceId: string,

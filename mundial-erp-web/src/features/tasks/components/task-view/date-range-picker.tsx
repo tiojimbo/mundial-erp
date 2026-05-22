@@ -16,7 +16,10 @@ export type DateRangePickerProps = {
   startDate: string | null;
   dueDate: string | null;
   placeholder?: string;
-  onChange?: (range: { startDate: string | null; dueDate: string | null }) => void;
+  onChange?: (range: {
+    startDate: string | null;
+    dueDate: string | null;
+  }) => void;
 };
 
 function formatDate(iso: string | null): string | null {
@@ -39,37 +42,37 @@ export function DateRangePicker({
   if (!label) {
     return (
       <button
-        type="button"
+        type='button'
         onClick={() => setOpen(true)}
-        aria-label="Definir datas"
-        className="flex items-center gap-1.5 text-[13px] font-normal text-muted-foreground/60 hover:text-muted-foreground"
+        aria-label='Definir datas'
+        className='text-muted-foreground/60 flex items-center gap-1.5 text-[13px] font-normal hover:text-muted-foreground'
       >
-        <CalendarIcon className="h-3.5 w-3.5" />
+        <CalendarIcon className='h-3.5 w-3.5' />
         {placeholder}
       </button>
     );
   }
 
   return (
-    <div className="relative inline-flex">
+    <div className='relative inline-flex'>
       <button
-        type="button"
+        type='button'
         onClick={() => setOpen((v) => !v)}
-        aria-haspopup="dialog"
+        aria-haspopup='dialog'
         aria-expanded={open}
         aria-label={`Datas: ${label}`}
-        className="flex items-center gap-1.5 rounded-md px-1.5 py-0.5 text-[13px] text-foreground transition-colors hover:bg-muted"
+        className='flex items-center gap-1.5 rounded-md px-1.5 py-0.5 text-[13px] text-foreground transition-colors hover:bg-muted'
       >
-        <CalendarIcon className="h-3.5 w-3.5 text-muted-foreground" />
+        <CalendarIcon className='h-3.5 w-3.5 text-muted-foreground' />
         <span>{label}</span>
       </button>
       {open && (
         <div
-          role="dialog"
-          aria-label="Selecionar datas"
-          className="absolute left-0 top-full z-20 mt-1 rounded-[10px] border border-border bg-popover p-3 text-[13px] shadow-lg"
+          role='dialog'
+          aria-label='Selecionar datas'
+          className='shadow-lg absolute left-0 top-full z-20 mt-1 rounded-[10px] border border-border bg-popover p-3 text-[13px]'
         >
-          <p className="text-muted-foreground">
+          <p className='text-muted-foreground'>
             TODO: react-day-picker em modo range.
           </p>
         </div>

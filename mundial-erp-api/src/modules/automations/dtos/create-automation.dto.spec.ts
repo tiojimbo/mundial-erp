@@ -122,7 +122,9 @@ describe('CreateAutomationDto — @ValidateIf scopes e cron', () => {
         scopeType: 'WORKSPACE',
         compiledActions: validActions,
       });
-      expect(errors.find((e) => e.property === 'cronExpression')).toBeUndefined();
+      expect(
+        errors.find((e) => e.property === 'cronExpression'),
+      ).toBeUndefined();
       expect(errors.find((e) => e.property === 'timezone')).toBeUndefined();
     });
   });

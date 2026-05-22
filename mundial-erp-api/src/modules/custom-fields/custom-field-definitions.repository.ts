@@ -276,7 +276,6 @@ export class CustomFieldDefinitionsRepository {
     return { folderId: folder.id, spaceId: folder.spaceId };
   }
 
-
   async findTaskTypesForDefinitions(
     definitionIds: string[],
   ): Promise<Map<string, { id: string; name: string }>> {
@@ -351,7 +350,9 @@ export class CustomFieldDefinitionsRepository {
     return r.count;
   }
 
-  async findScopeLinks(defIds: string[]): Promise<
+  async findScopeLinks(
+    defIds: string[],
+  ): Promise<
     Map<string, { listIds: string[]; folderIds: string[]; spaceIds: string[] }>
   > {
     const map = new Map<

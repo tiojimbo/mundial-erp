@@ -30,7 +30,7 @@ export function TaskCard({
     <button
       type='button'
       onClick={onClick}
-      className='block w-full rounded-lg border border-stroke-soft-200 bg-bg-white-0 p-3 text-left shadow-sm transition-shadow hover:shadow-md'
+      className='shadow-sm hover:shadow-md block w-full rounded-lg border border-stroke-soft-200 bg-bg-white-0 p-3 text-left transition-shadow'
     >
       <p className='truncate text-paragraph-sm text-text-strong-950'>
         {task.title}

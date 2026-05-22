@@ -165,139 +165,139 @@ export function ProductTable() {
             <Select.Value placeholder='Status' />
           </Select.Trigger>
           <Select.Content>
-            {(
-              Object.entries(STATUS_LABELS) as [ProductStatus, string][]
-            ).map(([value, label]) => (
-              <Select.Item key={value} value={value}>
-                {label}
-              </Select.Item>
-            ))}
+            {(Object.entries(STATUS_LABELS) as [ProductStatus, string][]).map(
+              ([value, label]) => (
+                <Select.Item key={value} value={value}>
+                  {label}
+                </Select.Item>
+              ),
+            )}
           </Select.Content>
         </Select.Root>
       </div>
 
       {/* Table */}
-        <Table.Root>
-          <Table.Header>
-            <Table.Row>
-              <Table.Head>Código</Table.Head>
-              <Table.Head>Nome</Table.Head>
-              <Table.Head>Classificação</Table.Head>
-              <Table.Head>Departamento</Table.Head>
-              <Table.Head>Preço Venda</Table.Head>
-              <Table.Head>Status</Table.Head>
-              <Table.Head className='text-right'>Ações</Table.Head>
-            </Table.Row>
-          </Table.Header>
-          <Table.Body>
-            {isLoading ? (
-              Array.from({ length: 5 }).map((_, i) => (
-                <Table.Row key={i}>
-                  {Array.from({ length: 7 }).map((__, j) => (
-                    <Table.Cell key={j}>
-                      <div className='h-4 w-24 animate-pulse rounded bg-bg-weak-50' />
-                    </Table.Cell>
-                  ))}
-                </Table.Row>
-              ))
-            ) : products.length === 0 ? (
-              <Table.Row>
-                <Table.Cell colSpan={7} className='text-center'>
-                  <p className='py-8 text-paragraph-sm text-text-soft-400'>
-                    {filters.search
-                      ? 'Nenhum produto encontrado para esta busca.'
-                      : 'Nenhum produto cadastrado.'}
-                  </p>
-                </Table.Cell>
+      <Table.Root>
+        <Table.Header>
+          <Table.Row>
+            <Table.Head>Código</Table.Head>
+            <Table.Head>Nome</Table.Head>
+            <Table.Head>Classificação</Table.Head>
+            <Table.Head>Departamento</Table.Head>
+            <Table.Head>Preço Venda</Table.Head>
+            <Table.Head>Status</Table.Head>
+            <Table.Head className='text-right'>Ações</Table.Head>
+          </Table.Row>
+        </Table.Header>
+        <Table.Body>
+          {isLoading ? (
+            Array.from({ length: 5 }).map((_, i) => (
+              <Table.Row key={i}>
+                {Array.from({ length: 7 }).map((__, j) => (
+                  <Table.Cell key={j}>
+                    <div className='h-4 w-24 animate-pulse rounded bg-bg-weak-50' />
+                  </Table.Cell>
+                ))}
               </Table.Row>
-            ) : (
-              products.map((product) => (
-                <Table.Row key={product.id}>
-                  <Table.Cell>
-                    <span className='font-mono text-label-sm text-text-strong-950'>
-                      {product.code}
-                    </span>
-                  </Table.Cell>
-                  <Table.Cell>
-                    <button
-                      onClick={() =>
-                        router.push(`/compras/produtos/${product.id}`)
-                      }
-                      className='text-left text-label-sm text-text-strong-950 transition hover:text-primary-base'
-                    >
-                      {product.name}
-                    </button>
-                  </Table.Cell>
-                  <Table.Cell>
-                    {product.classification && (
-                      <Badge.Root
-                        variant='lighter'
-                        color={CLASSIFICATION_COLORS[product.classification]}
-                        size='small'
-                      >
-                        {CLASSIFICATION_LABELS[product.classification]}
-                      </Badge.Root>
-                    )}
-                  </Table.Cell>
-                  <Table.Cell>
-                    <span className='text-paragraph-sm text-text-sub-600'>
-                      {product.departmentCategory?.name || '—'}
-                    </span>
-                  </Table.Cell>
-                  <Table.Cell>
-                    <span className='text-paragraph-sm text-text-sub-600'>
-                      {product.salePrice
-                        ? formatCurrency(product.salePrice / 100)
-                        : '—'}
-                    </span>
-                  </Table.Cell>
-                  <Table.Cell>
+            ))
+          ) : products.length === 0 ? (
+            <Table.Row>
+              <Table.Cell colSpan={7} className='text-center'>
+                <p className='py-8 text-paragraph-sm text-text-soft-400'>
+                  {filters.search
+                    ? 'Nenhum produto encontrado para esta busca.'
+                    : 'Nenhum produto cadastrado.'}
+                </p>
+              </Table.Cell>
+            </Table.Row>
+          ) : (
+            products.map((product) => (
+              <Table.Row key={product.id}>
+                <Table.Cell>
+                  <span className='font-mono text-label-sm text-text-strong-950'>
+                    {product.code}
+                  </span>
+                </Table.Cell>
+                <Table.Cell>
+                  <button
+                    onClick={() =>
+                      router.push(`/compras/produtos/${product.id}`)
+                    }
+                    className='text-left text-label-sm text-text-strong-950 transition hover:text-primary-base'
+                  >
+                    {product.name}
+                  </button>
+                </Table.Cell>
+                <Table.Cell>
+                  {product.classification && (
                     <Badge.Root
                       variant='lighter'
-                      color={STATUS_COLORS[product.status]}
+                      color={CLASSIFICATION_COLORS[product.classification]}
                       size='small'
                     >
-                      {STATUS_LABELS[product.status]}
+                      {CLASSIFICATION_LABELS[product.classification]}
                     </Badge.Root>
-                  </Table.Cell>
-                  <Table.Cell className='text-right'>
-                    <div className='flex items-center justify-end gap-1'>
-                      <Button.Root
-                        asChild
-                        variant='neutral'
-                        mode='ghost'
-                        size='xxsmall'
-                      >
-                        <Link href={`/compras/produtos/${product.id}`}>
-                          <Button.Icon as={RiEyeLine} />
-                        </Link>
-                      </Button.Root>
-                      <Button.Root
-                        asChild
-                        variant='neutral'
-                        mode='ghost'
-                        size='xxsmall'
-                      >
-                        <Link href={`/compras/produtos/${product.id}/editar`}>
-                          <Button.Icon as={RiEditLine} />
-                        </Link>
-                      </Button.Root>
-                      <Button.Root
-                        variant='error'
-                        mode='ghost'
-                        size='xxsmall'
-                        onClick={() => handleDelete(product.id, product.name)}
-                        disabled={deleteMutation.isPending}
-                      >
-                        <Button.Icon as={RiDeleteBinLine} />
-                      </Button.Root>
-                    </div>
-                  </Table.Cell>
-                </Table.Row>
-              ))
-            )}
-          </Table.Body>
-        </Table.Root>
+                  )}
+                </Table.Cell>
+                <Table.Cell>
+                  <span className='text-paragraph-sm text-text-sub-600'>
+                    {product.departmentCategory?.name || '—'}
+                  </span>
+                </Table.Cell>
+                <Table.Cell>
+                  <span className='text-paragraph-sm text-text-sub-600'>
+                    {product.salePrice
+                      ? formatCurrency(product.salePrice / 100)
+                      : '—'}
+                  </span>
+                </Table.Cell>
+                <Table.Cell>
+                  <Badge.Root
+                    variant='lighter'
+                    color={STATUS_COLORS[product.status]}
+                    size='small'
+                  >
+                    {STATUS_LABELS[product.status]}
+                  </Badge.Root>
+                </Table.Cell>
+                <Table.Cell className='text-right'>
+                  <div className='flex items-center justify-end gap-1'>
+                    <Button.Root
+                      asChild
+                      variant='neutral'
+                      mode='ghost'
+                      size='xxsmall'
+                    >
+                      <Link href={`/compras/produtos/${product.id}`}>
+                        <Button.Icon as={RiEyeLine} />
+                      </Link>
+                    </Button.Root>
+                    <Button.Root
+                      asChild
+                      variant='neutral'
+                      mode='ghost'
+                      size='xxsmall'
+                    >
+                      <Link href={`/compras/produtos/${product.id}/editar`}>
+                        <Button.Icon as={RiEditLine} />
+                      </Link>
+                    </Button.Root>
+                    <Button.Root
+                      variant='error'
+                      mode='ghost'
+                      size='xxsmall'
+                      onClick={() => handleDelete(product.id, product.name)}
+                      disabled={deleteMutation.isPending}
+                    >
+                      <Button.Icon as={RiDeleteBinLine} />
+                    </Button.Root>
+                  </div>
+                </Table.Cell>
+              </Table.Row>
+            ))
+          )}
+        </Table.Body>
+      </Table.Root>
 
       {/* Pagination */}
       {pagination && pagination.totalPages > 1 && (

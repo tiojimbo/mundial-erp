@@ -26,10 +26,7 @@ export class SectorsService {
       .replace(/(^-|-$)/g, '');
   }
 
-  private async assertSpaceInWorkspace(
-    workspaceId: string,
-    spaceId: string,
-  ) {
+  private async assertSpaceInWorkspace(workspaceId: string, spaceId: string) {
     const space = await this.spacesRepository.findById(workspaceId, spaceId);
     if (!space) {
       throw new NotFoundException('Departamento não encontrado');

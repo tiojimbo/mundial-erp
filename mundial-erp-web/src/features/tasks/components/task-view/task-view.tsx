@@ -96,7 +96,12 @@ export function TaskView({ taskId }: TaskViewProps) {
     }
   }, [bp, activitiesPanelOpen]);
 
-  const { data: task, isLoading, isError, refetch } = useTask(taskId, {
+  const {
+    data: task,
+    isLoading,
+    isError,
+    refetch,
+  } = useTask(taskId, {
     include: [
       'subtasks',
       'checklists',
@@ -137,7 +142,7 @@ export function TaskView({ taskId }: TaskViewProps) {
       <div className='flex h-full items-center justify-center bg-background p-4'>
         <div
           role='alert'
-          className='flex flex-col items-center gap-3 rounded-[14px] bg-card p-8 text-center shadow-sm'
+          className='shadow-sm flex flex-col items-center gap-3 rounded-[14px] bg-card p-8 text-center'
         >
           <p className='text-sm font-medium text-foreground'>
             Nao foi possivel carregar a tarefa.
@@ -145,7 +150,7 @@ export function TaskView({ taskId }: TaskViewProps) {
           <button
             type='button'
             onClick={() => refetch()}
-            className='h-9 rounded-[10px] bg-primary px-4 text-sm font-medium text-primary-foreground transition-opacity duration-150 hover:opacity-90'
+            className='bg-primary text-sm text-primary-foreground h-9 rounded-[10px] px-4 font-medium transition-opacity duration-150 hover:opacity-90'
           >
             Tentar novamente
           </button>
@@ -167,7 +172,7 @@ export function TaskView({ taskId }: TaskViewProps) {
     >
       <section
         className={cn(
-          'flex min-w-0 flex-1 flex-col overflow-hidden rounded-[14px] bg-card shadow-sm',
+          'shadow-sm flex min-w-0 flex-1 flex-col overflow-hidden rounded-[14px] bg-card',
         )}
       >
         <div className='flex flex-1 flex-col gap-6 overflow-y-auto px-6 py-5'>
@@ -207,7 +212,7 @@ export function TaskView({ taskId }: TaskViewProps) {
           type='button'
           aria-label='Abrir painel de atividades'
           onClick={() => setActivitiesPanelOpen(true)}
-          className='h-10 w-6 self-center rounded-xl bg-card shadow-sm transition-opacity duration-150 hover:opacity-90'
+          className='shadow-sm h-10 w-6 self-center rounded-xl bg-card transition-opacity duration-150 hover:opacity-90'
         >
           <ChevronsLeft className='mx-auto h-4 w-4 text-muted-foreground' />
         </button>
@@ -237,7 +242,7 @@ export function TaskView({ taskId }: TaskViewProps) {
 function TaskViewSkeleton() {
   return (
     <div className='flex h-full gap-4 bg-background p-4' aria-busy='true'>
-      <section className='flex flex-1 flex-col overflow-hidden rounded-[14px] bg-card p-6 shadow-sm'>
+      <section className='shadow-sm flex flex-1 flex-col overflow-hidden rounded-[14px] bg-card p-6'>
         <div className='h-6 w-20 animate-pulse rounded-lg bg-muted' />
         <div className='mt-4 h-9 w-2/3 animate-pulse rounded bg-muted' />
         <div className='mt-6 grid grid-cols-2 gap-x-8 gap-y-3'>
@@ -247,7 +252,7 @@ function TaskViewSkeleton() {
         </div>
         <div className='mt-6 h-24 animate-pulse rounded bg-muted' />
       </section>
-      <aside className='hidden w-[400px] animate-pulse rounded-[14px] bg-card shadow-sm lg:block' />
+      <aside className='shadow-sm hidden w-[400px] animate-pulse rounded-[14px] bg-card lg:block' />
     </div>
   );
 }

@@ -74,36 +74,34 @@ interface ProjectedActivityRow {
  * (STATUS_CHANGED, DEPENDENCY_UNBLOCKED, MERGED_INTO) tem handler dedicado
  * e nao aparecem aqui.
  */
-const ACTIVITY_ONLY_EVENT_TYPES: ReadonlySet<TaskOutboxEventType> = new Set(
-  [
-    'CREATED',
-    'RENAMED',
-    'DESCRIPTION_CHANGED',
-    'PRIORITY_CHANGED',
-    'DUE_DATE_CHANGED',
-    'START_DATE_CHANGED',
-    'POINTS_CHANGED',
-    'ARCHIVED',
-    'UNARCHIVED',
-    'CUSTOM_TYPE_CHANGED',
-    'LINK_ADDED',
-    'LINK_REMOVED',
-    'DEPENDENCY_ADDED',
-    'DEPENDENCY_REMOVED',
-    'CHECKLIST_CREATED',
-    'CHECKLIST_ITEM_RESOLVED',
-    'ATTACHMENT_ADDED',
-    'SUBTASK_ADDED',
-    'SUBTASK_COMPLETED',
-    'COMMENT_ADDED',
-    'ASSIGNEE_ADDED',
-    'ASSIGNEE_REMOVED',
-    'WATCHER_ADDED',
-    'WATCHER_REMOVED',
-    'TAG_ADDED',
-    'TAG_REMOVED',
-  ] satisfies readonly TaskOutboxEventType[],
-);
+const ACTIVITY_ONLY_EVENT_TYPES: ReadonlySet<TaskOutboxEventType> = new Set([
+  'CREATED',
+  'RENAMED',
+  'DESCRIPTION_CHANGED',
+  'PRIORITY_CHANGED',
+  'DUE_DATE_CHANGED',
+  'START_DATE_CHANGED',
+  'POINTS_CHANGED',
+  'ARCHIVED',
+  'UNARCHIVED',
+  'CUSTOM_TYPE_CHANGED',
+  'LINK_ADDED',
+  'LINK_REMOVED',
+  'DEPENDENCY_ADDED',
+  'DEPENDENCY_REMOVED',
+  'CHECKLIST_CREATED',
+  'CHECKLIST_ITEM_RESOLVED',
+  'ATTACHMENT_ADDED',
+  'SUBTASK_ADDED',
+  'SUBTASK_COMPLETED',
+  'COMMENT_ADDED',
+  'ASSIGNEE_ADDED',
+  'ASSIGNEE_REMOVED',
+  'WATCHER_ADDED',
+  'WATCHER_REMOVED',
+  'TAG_ADDED',
+  'TAG_REMOVED',
+] satisfies readonly TaskOutboxEventType[]);
 
 // Validacao de build-time: todo membro do set deve existir em TASK_OUTBOX_EVENT_TYPES.
 // Se alguem remover um eventType da constante mas esquecer de atualizar o set acima,
@@ -128,7 +126,9 @@ function validateActivityOnlySet(logger: Logger): void {
  * `COMMENT_ADDED` para `comment.created` e `ATTACHMENT_ADDED` para
  * `attachment.scan_completed` quando enriquecermos o payload no worker.
  */
-function mapOutboxEventToSse(_eventType: TaskOutboxEventType): TaskSseServerEventType {
+function mapOutboxEventToSse(
+  _eventType: TaskOutboxEventType,
+): TaskSseServerEventType {
   // Padrao atual: tudo que vira activity e notificado como activity.created.
   // O cliente invalida `activities` + `detail` queries a partir dai.
   void _eventType;
@@ -204,13 +204,17 @@ export class TaskOutboxWorker extends WorkerHost {
 
     const row = await this.repo.findById(eventId);
     if (!row) {
-      this.logger.warn(`task-outbox: eventId=${eventId} não encontrado após markProcessing.`);
+      this.logger.warn(
+        `task-outbox: eventId=${eventId} não encontrado após markProcessing.`,
+      );
       return;
     }
 
     // 2. Idempotência — se já COMPLETED, não reaplicar. (Guarda contra reentrância.)
     if (await this.repo.isAlreadyCompleted(eventId)) {
-      this.logger.debug(`task-outbox: eventId=${eventId} já COMPLETED, pulando.`);
+      this.logger.debug(
+        `task-outbox: eventId=${eventId} já COMPLETED, pulando.`,
+      );
       return;
     }
 
@@ -255,13 +259,15 @@ export class TaskOutboxWorker extends WorkerHost {
         await this.repo.markDead(eventId, msg);
         this.recordMetric(eventType, 'DEAD', durationMs);
         if (this.dlq) {
-          await this.dlq.add('dead', { eventId, eventType, lastError: msg }).catch((dlqErr) => {
-            this.logger.error(
-              `task-outbox: falha ao publicar no DLQ (eventId=${eventId}): ${
-                dlqErr instanceof Error ? dlqErr.message : String(dlqErr)
-              }`,
-            );
-          });
+          await this.dlq
+            .add('dead', { eventId, eventType, lastError: msg })
+            .catch((dlqErr) => {
+              this.logger.error(
+                `task-outbox: falha ao publicar no DLQ (eventId=${eventId}): ${
+                  dlqErr instanceof Error ? dlqErr.message : String(dlqErr)
+                }`,
+              );
+            });
         }
         // Não relançar — job BullMQ é considerado processado; o row está DEAD.
         return;
@@ -272,7 +278,8 @@ export class TaskOutboxWorker extends WorkerHost {
 
       // Relança para o BullMQ reagendar com backoff exponencial + jitter.
       const base =
-        TASK_OUTBOX_RETRY.BASE_DELAY_MS * Math.pow(2, Math.max(0, attempts - 1));
+        TASK_OUTBOX_RETRY.BASE_DELAY_MS *
+        Math.pow(2, Math.max(0, attempts - 1));
       const delay = base + jitterMs(base, TASK_OUTBOX_RETRY.JITTER_FRACTION);
       await job.moveToDelayed(Date.now() + delay, job.token).catch(() => {
         // Se moveToDelayed falhar, relança o erro e deixa BullMQ aplicar sua política.
@@ -340,7 +347,9 @@ export class TaskOutboxWorker extends WorkerHost {
     // Usa `as unknown as` para não quebrar typecheck quando faltam delegates.
     const db = this.prisma as unknown as {
       workItemStatusHistory?: {
-        findFirst: (args: unknown) => Promise<{ id: string; enteredAt: Date } | null>;
+        findFirst: (
+          args: unknown,
+        ) => Promise<{ id: string; enteredAt: Date } | null>;
         update: (args: unknown) => Promise<unknown>;
         create: (args: unknown) => Promise<unknown>;
       };
@@ -366,7 +375,9 @@ export class TaskOutboxWorker extends WorkerHost {
         orderBy: { enteredAt: 'desc' },
       });
       if (open) {
-        const duration = Math.floor((now.getTime() - open.enteredAt.getTime()) / 1_000);
+        const duration = Math.floor(
+          (now.getTime() - open.enteredAt.getTime()) / 1_000,
+        );
         await txAny.workItemStatusHistory!.update({
           where: { id: open.id },
           data: { leftAt: now, durationSeconds: duration },
@@ -425,7 +436,7 @@ export class TaskOutboxWorker extends WorkerHost {
         payload: payload as unknown as Prisma.InputJsonValue,
       },
       include: { actor: { select: { id: true, name: true } } },
-    } as unknown as Parameters<typeof db.workItemActivity.create>[0]);
+    } as unknown);
     return row;
   }
 
@@ -478,7 +489,8 @@ export class TaskOutboxWorker extends WorkerHost {
 
     // Depois notifica watchers + primary assignee.
     const recipients = new Set<string>();
-    if (payload.primaryAssigneeUserId) recipients.add(payload.primaryAssigneeUserId);
+    if (payload.primaryAssigneeUserId)
+      recipients.add(payload.primaryAssigneeUserId);
     for (const uid of payload.watcherUserIds ?? []) recipients.add(uid);
 
     for (const userId of recipients) {
@@ -513,7 +525,8 @@ export class TaskOutboxWorker extends WorkerHost {
     const ssePublished = this.publishToSse('MERGED_INTO', aggregateId, row);
 
     const recipients = new Set<string>();
-    if (payload.primaryAssigneeUserId) recipients.add(payload.primaryAssigneeUserId);
+    if (payload.primaryAssigneeUserId)
+      recipients.add(payload.primaryAssigneeUserId);
     for (const uid of payload.watcherUserIds ?? []) recipients.add(uid);
 
     for (const userId of recipients) {

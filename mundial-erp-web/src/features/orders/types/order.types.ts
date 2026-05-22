@@ -37,10 +37,18 @@ export const ORDER_STATUS_STEPS: OrderStatus[] = [
 
 export type OrderItemSupplyStatus = 'PENDING' | 'READY';
 
-export type PaymentStatus = 'PENDING' | 'PARTIAL' | 'PAID' | 'OVERDUE' | 'CANCELLED';
+export type PaymentStatus =
+  | 'PENDING'
+  | 'PARTIAL'
+  | 'PAID'
+  | 'OVERDUE'
+  | 'CANCELLED';
 
 // Import + re-export from shared — single source of truth
-import type { ProductionOrderStatus, SeparationOrderStatus } from '@/types/production.types';
+import type {
+  ProductionOrderStatus,
+  SeparationOrderStatus,
+} from '@/types/production.types';
 export type { ProductionOrderStatus, SeparationOrderStatus };
 
 // ===== Entities =====
@@ -296,7 +304,13 @@ export type OrderSummary = {
 
 export type TimelineEvent = {
   id: string;
-  type: 'status_change' | 'activity_completed' | 'handoff' | 'note' | 'payment' | 'supply_ready';
+  type:
+    | 'status_change'
+    | 'activity_completed'
+    | 'handoff'
+    | 'note'
+    | 'payment'
+    | 'supply_ready';
   description: string;
   userId: string | null;
   userName: string | null;

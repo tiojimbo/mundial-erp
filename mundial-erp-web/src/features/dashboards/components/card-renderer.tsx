@@ -43,7 +43,12 @@ type CardRendererProps = {
   isLoading: boolean;
 };
 
-export function CardRenderer({ type, title, data, isLoading }: CardRendererProps) {
+export function CardRenderer({
+  type,
+  title,
+  data,
+  isLoading,
+}: CardRendererProps) {
   if (isLoading) {
     return (
       <div className='flex h-full items-center justify-center'>
@@ -95,10 +100,10 @@ function KPICard({ title, data }: { title: string; data: CardDataResponse }) {
       {trend && (
         <div className='mt-1 flex items-center gap-1'>
           {trend.direction === 'up' && (
-            <RiArrowUpSLine className='size-4 text-state-success-base' />
+            <RiArrowUpSLine className='text-state-success-base size-4' />
           )}
           {trend.direction === 'down' && (
-            <RiArrowDownSLine className='size-4 text-state-error-base' />
+            <RiArrowDownSLine className='text-state-error-base size-4' />
           )}
           {trend.direction === 'neutral' && (
             <RiSubtractLine className='size-4 text-text-soft-400' />
@@ -124,9 +129,19 @@ function KPICard({ title, data }: { title: string; data: CardDataResponse }) {
 function BarChartCard({ data }: { data: CardDataResponse }) {
   return (
     <ResponsiveContainer width='100%' height='100%'>
-      <BarChart data={data.points} margin={{ top: 8, right: 8, bottom: 0, left: -16 }}>
-        <CartesianGrid strokeDasharray='3 3' stroke='var(--color-stroke-soft-200)' />
-        <XAxis dataKey='label' tick={{ fontSize: 11 }} stroke='var(--color-text-soft-400)' />
+      <BarChart
+        data={data.points}
+        margin={{ top: 8, right: 8, bottom: 0, left: -16 }}
+      >
+        <CartesianGrid
+          strokeDasharray='3 3'
+          stroke='var(--color-stroke-soft-200)'
+        />
+        <XAxis
+          dataKey='label'
+          tick={{ fontSize: 11 }}
+          stroke='var(--color-text-soft-400)'
+        />
         <YAxis tick={{ fontSize: 11 }} stroke='var(--color-text-soft-400)' />
         <Tooltip
           contentStyle={{
@@ -144,9 +159,19 @@ function BarChartCard({ data }: { data: CardDataResponse }) {
 function LineChartCard({ data }: { data: CardDataResponse }) {
   return (
     <ResponsiveContainer width='100%' height='100%'>
-      <LineChart data={data.points} margin={{ top: 8, right: 8, bottom: 0, left: -16 }}>
-        <CartesianGrid strokeDasharray='3 3' stroke='var(--color-stroke-soft-200)' />
-        <XAxis dataKey='label' tick={{ fontSize: 11 }} stroke='var(--color-text-soft-400)' />
+      <LineChart
+        data={data.points}
+        margin={{ top: 8, right: 8, bottom: 0, left: -16 }}
+      >
+        <CartesianGrid
+          strokeDasharray='3 3'
+          stroke='var(--color-stroke-soft-200)'
+        />
+        <XAxis
+          dataKey='label'
+          tick={{ fontSize: 11 }}
+          stroke='var(--color-text-soft-400)'
+        />
         <YAxis tick={{ fontSize: 11 }} stroke='var(--color-text-soft-400)' />
         <Tooltip
           contentStyle={{
@@ -186,7 +211,10 @@ function PieChartCard({ data }: { data: CardDataResponse }) {
           style={{ fontSize: 11 }}
         >
           {data.points.map((_, index) => (
-            <Cell key={index} fill={CHART_COLORS[index % CHART_COLORS.length]} />
+            <Cell
+              key={index}
+              fill={CHART_COLORS[index % CHART_COLORS.length]}
+            />
           ))}
         </Pie>
         <Tooltip
@@ -215,7 +243,10 @@ function DonutCard({ data }: { data: CardDataResponse }) {
           nameKey='label'
         >
           {data.points.map((_, index) => (
-            <Cell key={index} fill={CHART_COLORS[index % CHART_COLORS.length]} />
+            <Cell
+              key={index}
+              fill={CHART_COLORS[index % CHART_COLORS.length]}
+            />
           ))}
         </Pie>
         <Tooltip
@@ -234,9 +265,19 @@ function DonutCard({ data }: { data: CardDataResponse }) {
 function AreaChartCard({ data }: { data: CardDataResponse }) {
   return (
     <ResponsiveContainer width='100%' height='100%'>
-      <AreaChart data={data.points} margin={{ top: 8, right: 8, bottom: 0, left: -16 }}>
-        <CartesianGrid strokeDasharray='3 3' stroke='var(--color-stroke-soft-200)' />
-        <XAxis dataKey='label' tick={{ fontSize: 11 }} stroke='var(--color-text-soft-400)' />
+      <AreaChart
+        data={data.points}
+        margin={{ top: 8, right: 8, bottom: 0, left: -16 }}
+      >
+        <CartesianGrid
+          strokeDasharray='3 3'
+          stroke='var(--color-stroke-soft-200)'
+        />
+        <XAxis
+          dataKey='label'
+          tick={{ fontSize: 11 }}
+          stroke='var(--color-text-soft-400)'
+        />
         <YAxis tick={{ fontSize: 11 }} stroke='var(--color-text-soft-400)' />
         <Tooltip
           contentStyle={{
@@ -279,9 +320,19 @@ function StackedBarCard({ data }: { data: CardDataResponse }) {
 
   return (
     <ResponsiveContainer width='100%' height='100%'>
-      <BarChart data={chartData} margin={{ top: 8, right: 8, bottom: 0, left: -16 }}>
-        <CartesianGrid strokeDasharray='3 3' stroke='var(--color-stroke-soft-200)' />
-        <XAxis dataKey='label' tick={{ fontSize: 11 }} stroke='var(--color-text-soft-400)' />
+      <BarChart
+        data={chartData}
+        margin={{ top: 8, right: 8, bottom: 0, left: -16 }}
+      >
+        <CartesianGrid
+          strokeDasharray='3 3'
+          stroke='var(--color-stroke-soft-200)'
+        />
+        <XAxis
+          dataKey='label'
+          tick={{ fontSize: 11 }}
+          stroke='var(--color-text-soft-400)'
+        />
         <YAxis tick={{ fontSize: 11 }} stroke='var(--color-text-soft-400)' />
         <Tooltip
           contentStyle={{
@@ -318,7 +369,10 @@ function TableCard({ data }: { data: CardDataResponse }) {
         </thead>
         <tbody>
           {data.points.map((point, i) => (
-            <tr key={i} className='border-b border-stroke-soft-200 last:border-0'>
+            <tr
+              key={i}
+              className='border-b border-stroke-soft-200 last:border-0'
+            >
               <td className='py-2 text-paragraph-xs text-text-strong-950'>
                 {point.label}
               </td>

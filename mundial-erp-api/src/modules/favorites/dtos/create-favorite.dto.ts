@@ -1,6 +1,13 @@
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 import { FavoriteEntity, FavoritePosition } from '@prisma/client';
-import { IsEnum, IsInt, IsOptional, IsString, Length, Min } from 'class-validator';
+import {
+  IsEnum,
+  IsInt,
+  IsOptional,
+  IsString,
+  Length,
+  Min,
+} from 'class-validator';
 
 export class CreateFavoriteDto {
   @ApiProperty({ enum: FavoriteEntity })
@@ -12,7 +19,10 @@ export class CreateFavoriteDto {
   @Length(1, 64)
   entityId!: string;
 
-  @ApiPropertyOptional({ enum: FavoritePosition, default: FavoritePosition.SIDEBAR })
+  @ApiPropertyOptional({
+    enum: FavoritePosition,
+    default: FavoritePosition.SIDEBAR,
+  })
   @IsOptional()
   @IsEnum(FavoritePosition)
   position?: FavoritePosition;

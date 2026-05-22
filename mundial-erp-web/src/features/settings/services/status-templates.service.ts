@@ -25,9 +25,8 @@ export type CreateStatusTemplatePayload = {
 
 export const statusTemplatesService = {
   async findAll(): Promise<StatusTemplate[]> {
-    const { data: envelope } = await api.get<ApiResponse<StatusTemplate[]>>(
-      `/status-templates`,
-    );
+    const { data: envelope } =
+      await api.get<ApiResponse<StatusTemplate[]>>(`/status-templates`);
     return envelope.data;
   },
 

@@ -42,7 +42,9 @@ describe('primary-assignee-cache extension', () => {
   describe('__recalcPrimaryAssigneeCache', () => {
     it('define cache=userId quando existe assignee com isPrimary=true', async () => {
       const tx = createMockTx();
-      tx.workItemAssignee.findFirst.mockResolvedValue({ userId: 'user-primary' });
+      tx.workItemAssignee.findFirst.mockResolvedValue({
+        userId: 'user-primary',
+      });
 
       await __recalcPrimaryAssigneeCache(tx as never, 'wi-1');
 
@@ -75,7 +77,9 @@ describe('primary-assignee-cache extension', () => {
       // Após o delete do primary, a query retorna o mais antigo remanescente
       // (orderBy assignedAt asc é o desempate).
       const tx = createMockTx();
-      tx.workItemAssignee.findFirst.mockResolvedValue({ userId: 'user-oldest' });
+      tx.workItemAssignee.findFirst.mockResolvedValue({
+        userId: 'user-oldest',
+      });
 
       await __recalcPrimaryAssigneeCache(tx as never, 'wi-3');
 

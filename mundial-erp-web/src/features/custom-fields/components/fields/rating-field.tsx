@@ -28,29 +28,28 @@ export function RatingField({
       showLabel={!inline}
     >
       {(controlProps) => (
-        <div
-          className="flex items-center gap-0.5"
-          {...controlProps}
-        >
+        <div className='flex items-center gap-0.5' {...controlProps}>
           {Array.from({ length: maxStars }).map((_, index) => {
             const star = index + 1;
             const active = star <= current;
             return (
               <button
                 key={star}
-                type="button"
+                type='button'
                 disabled={isReadOnly}
                 onClick={() => onChange(star === current ? 0 : star)}
                 aria-label={`${star} de ${maxStars}`}
                 className={
-                  isReadOnly ? 'p-0 cursor-not-allowed' : 'p-0 transition-colors'
+                  isReadOnly
+                    ? 'cursor-not-allowed p-0'
+                    : 'p-0 transition-colors'
                 }
               >
                 <Star
                   className={
                     active
-                      ? 'h-4 w-4 fill-amber-400 text-amber-400'
-                      : 'h-4 w-4 text-muted-foreground/30'
+                      ? 'fill-amber-400 text-amber-400 h-4 w-4'
+                      : 'text-muted-foreground/30 h-4 w-4'
                   }
                 />
               </button>

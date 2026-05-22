@@ -48,10 +48,7 @@ export const taskAttachmentsService = {
     await api.delete(`/attachments/${attachmentId}`);
   },
 
-  async uploadToSignedUrl(
-    uploadUrl: string,
-    file: File,
-  ): Promise<void> {
+  async uploadToSignedUrl(uploadUrl: string, file: File): Promise<void> {
     const response = await fetch(uploadUrl, {
       method: 'PUT',
       body: file,

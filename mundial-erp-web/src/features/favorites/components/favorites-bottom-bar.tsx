@@ -10,11 +10,11 @@ export function FavoritesBottomBar() {
 
   return (
     <div
-      role="region"
-      aria-label="Favoritos fixos no rodape"
-      className="favorites-bar-scroll w-full min-w-0 max-w-full touch-pan-x overflow-x-auto overscroll-x-contain border-t border-border/40 bg-background/95 px-3 py-2 backdrop-blur"
+      role='region'
+      aria-label='Favoritos fixos no rodape'
+      className='favorites-bar-scroll border-border/40 bg-background/95 w-full min-w-0 max-w-full touch-pan-x overflow-x-auto overscroll-x-contain border-t px-3 py-2 backdrop-blur'
     >
-      <div className="flex w-max min-w-full flex-nowrap items-center gap-2">
+      <div className='flex w-max min-w-full flex-nowrap items-center gap-2'>
         {items.map((fav) => (
           <FavoriteChip key={fav.id} favorite={fav} />
         ))}

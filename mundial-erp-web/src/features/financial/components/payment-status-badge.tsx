@@ -20,11 +20,7 @@ type Props = {
 
 export function PaymentStatusBadge({ status }: Props) {
   return (
-    <Badge.Root
-      color={STATUS_COLOR_MAP[status]}
-      variant='lighter'
-      size='small'
-    >
+    <Badge.Root color={STATUS_COLOR_MAP[status]} variant='lighter' size='small'>
       <Badge.Dot />
       {PAYMENT_STATUS_LABELS[status]}
     </Badge.Root>

@@ -107,8 +107,7 @@ export class ActionRunnerService {
 
   private async changeStatus(taskId: string, params: Record<string, unknown>) {
     const statusId = String(params.statusId ?? '');
-    if (!statusId)
-      return this.skip('change_status', 'statusId vazio');
+    if (!statusId) return this.skip('change_status', 'statusId vazio');
     await this.prisma.workItem.update({
       where: { id: taskId },
       data: { statusId },
@@ -126,7 +125,10 @@ export class ActionRunnerService {
     return this.ok('move_to_list');
   }
 
-  private async changePriority(taskId: string, params: Record<string, unknown>) {
+  private async changePriority(
+    taskId: string,
+    params: Record<string, unknown>,
+  ) {
     const priority = String(params.priority ?? '') as TaskPriority;
     if (!priority) return this.skip('change_priority', 'priority vazio');
     await this.prisma.workItem.update({
@@ -167,7 +169,10 @@ export class ActionRunnerService {
     return this.ok('change_assignees');
   }
 
-  private async changeTaskName(taskId: string, params: Record<string, unknown>) {
+  private async changeTaskName(
+    taskId: string,
+    params: Record<string, unknown>,
+  ) {
     const name = String(params.name ?? '');
     if (!name) return this.skip('change_task_name', 'name vazio');
     await this.prisma.workItem.update({
@@ -177,7 +182,10 @@ export class ActionRunnerService {
     return this.ok('change_task_name');
   }
 
-  private async changeTaskType(taskId: string, params: Record<string, unknown>) {
+  private async changeTaskType(
+    taskId: string,
+    params: Record<string, unknown>,
+  ) {
     const customTaskTypeId = String(params.customTaskTypeId ?? '');
     if (!customTaskTypeId)
       return this.skip('change_task_type', 'customTaskTypeId vazio');
@@ -214,7 +222,10 @@ export class ActionRunnerService {
     return this.ok('change_tags');
   }
 
-  private async setCustomField(taskId: string, params: Record<string, unknown>) {
+  private async setCustomField(
+    taskId: string,
+    params: Record<string, unknown>,
+  ) {
     const definitionId = String(params.customFieldDefinitionId ?? '');
     if (!definitionId)
       return this.skip('set_custom_field', 'customFieldDefinitionId vazio');
@@ -250,7 +261,10 @@ export class ActionRunnerService {
     };
   }
 
-  private async setTimeEstimate(taskId: string, params: Record<string, unknown>) {
+  private async setTimeEstimate(
+    taskId: string,
+    params: Record<string, unknown>,
+  ) {
     const minutes = Number(params.estimateMinutes ?? 0);
     if (!Number.isFinite(minutes))
       return this.skip('set_time_estimate', 'estimateMinutes invalido');
@@ -402,7 +416,8 @@ export class ActionRunnerService {
         estimatedMinutes: true,
       },
     });
-    if (!source) return this.skip('duplicate_task', 'task origem nao encontrada');
+    if (!source)
+      return this.skip('duplicate_task', 'task origem nao encontrada');
     const targetListId = String(params.targetListId ?? source.listId);
     await this.prisma.workItem.create({
       data: {

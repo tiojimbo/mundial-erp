@@ -19,11 +19,7 @@
 process.env.FEATURE_TASK_TYPE_TEMPLATES_ENABLED = 'true';
 
 import { Test, TestingModule } from '@nestjs/testing';
-import {
-  INestApplication,
-  Logger,
-  ValidationPipe,
-} from '@nestjs/common';
+import { INestApplication, Logger, ValidationPipe } from '@nestjs/common';
 import request from 'supertest';
 import { App } from 'supertest/types';
 import { AppModule } from '../../../src/app.module';
@@ -200,7 +196,11 @@ describe('GET /task-type-templates (e2e)', () => {
 
   const createOwnTemplateFor = async (
     workspaceId: string,
-  ): Promise<{ templateId: string; customTypeId: string; definitionId: string }> => {
+  ): Promise<{
+    templateId: string;
+    customTypeId: string;
+    definitionId: string;
+  }> => {
     const uniq = `${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
     const customType = await prisma.customTaskType.create({
       data: {
@@ -311,7 +311,8 @@ describe('GET /task-type-templates (e2e)', () => {
         userId: viewerInA.userId,
         email: viewerInA.email,
         token: select.body.data.accessToken as string,
-        refreshToken: select.body.data.refreshToken as string ?? refreshedRefresh,
+        refreshToken:
+          (select.body.data.refreshToken as string) ?? refreshedRefresh,
       };
 
       const own = await createOwnTemplateFor(wsA.workspaceId);

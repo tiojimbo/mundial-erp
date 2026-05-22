@@ -9,7 +9,9 @@ import type {
 } from '../types/supplier.types';
 
 export const supplierService = {
-  async getAll(filters?: SupplierFilters): Promise<PaginatedResponse<Supplier>> {
+  async getAll(
+    filters?: SupplierFilters,
+  ): Promise<PaginatedResponse<Supplier>> {
     const { data } = await api.get<PaginatedResponse<Supplier>>('/suppliers', {
       params: filters,
     });

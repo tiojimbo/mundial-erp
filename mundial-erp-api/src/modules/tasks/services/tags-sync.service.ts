@@ -1,4 +1,10 @@
-import { Inject, Injectable, Logger, Optional, forwardRef } from '@nestjs/common';
+import {
+  Inject,
+  Injectable,
+  Logger,
+  Optional,
+  forwardRef,
+} from '@nestjs/common';
 import { Prisma } from '@prisma/client';
 import { TaskOutboxService } from '../../task-outbox/task-outbox.service';
 import { TaskEventsPublisher } from '../../automations/events/task-events.publisher';
@@ -129,7 +135,12 @@ export class TagsSyncService {
     pending: PendingTagEvent[],
   ): void {
     setImmediate(() => {
-      void this.emitTagAutomationEvents(taskId, actorUserId, workspaceId, pending);
+      void this.emitTagAutomationEvents(
+        taskId,
+        actorUserId,
+        workspaceId,
+        pending,
+      );
     });
   }
 
@@ -184,7 +195,12 @@ export class TagsSyncService {
             folderId: true,
             spaceId: true,
             space: { select: { workspaceId: true } },
-            folder: { select: { spaceId: true, space: { select: { workspaceId: true } } } },
+            folder: {
+              select: {
+                spaceId: true,
+                space: { select: { workspaceId: true } },
+              },
+            },
           },
         },
       },

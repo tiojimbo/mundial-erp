@@ -52,9 +52,7 @@ export function ProcessContextBar() {
       {/* Step Indicator */}
       {hasProcess && (
         <div className='flex items-center gap-3'>
-          <span className='text-label-xs text-text-sub-600'>
-            {processName}
-          </span>
+          <span className='text-label-xs text-text-sub-600'>{processName}</span>
           <div className='flex items-center gap-1'>
             {steps.map((step) => (
               <div
@@ -89,9 +87,7 @@ export function ProcessContextBar() {
       {entityTag && (
         <>
           <div className='h-5 w-px bg-stroke-soft-200' />
-          <Tag.Root variant='stroke'>
-            {entityTag}
-          </Tag.Root>
+          <Tag.Root variant='stroke'>{entityTag}</Tag.Root>
         </>
       )}
     </div>

@@ -96,8 +96,7 @@ export class SpacesController {
   @Get(':id/process-summaries')
   @Roles(Role.ADMIN, Role.MANAGER, Role.OPERATOR, Role.VIEWER)
   @ApiOperation({
-    summary:
-      'Resumo consolidado de todas as lists do space (LIST + BPM)',
+    summary: 'Resumo consolidado de todas as lists do space (LIST + BPM)',
   })
   @ApiResponse({ status: 200 })
   @ApiResponse({ status: 404, description: 'Space não encontrado' })
@@ -117,10 +116,7 @@ export class SpacesController {
   @SkipResponseTransform()
   @Roles(Role.ADMIN, Role.MANAGER, Role.OPERATOR, Role.VIEWER)
   @ApiOperation({ summary: 'Metadata de filters/sortOptions do space' })
-  getResources(
-    @WorkspaceId() workspaceId: string,
-    @Param('id') id: string,
-  ) {
+  getResources(@WorkspaceId() workspaceId: string, @Param('id') id: string) {
     return this.spacesService.getResources(workspaceId, id);
   }
 
@@ -128,10 +124,7 @@ export class SpacesController {
   @SkipResponseTransform()
   @Roles(Role.ADMIN, Role.MANAGER, Role.OPERATOR, Role.VIEWER)
   @ApiOperation({ summary: 'Listar membros do space' })
-  listMembers(
-    @WorkspaceId() workspaceId: string,
-    @Param('id') id: string,
-  ) {
+  listMembers(@WorkspaceId() workspaceId: string, @Param('id') id: string) {
     return this.spacesService.listMembers(workspaceId, id);
   }
 
@@ -186,10 +179,7 @@ export class SpacesController {
   @SkipResponseTransform()
   @Roles(Role.ADMIN, Role.MANAGER, Role.OPERATOR, Role.VIEWER)
   @ApiOperation({ summary: 'Visibility atual do space' })
-  getVisibility(
-    @WorkspaceId() workspaceId: string,
-    @Param('id') id: string,
-  ) {
+  getVisibility(@WorkspaceId() workspaceId: string, @Param('id') id: string) {
     return this.spacesService.getVisibility(workspaceId, id);
   }
 
@@ -209,10 +199,7 @@ export class SpacesController {
   @SkipResponseTransform()
   @Roles(Role.ADMIN, Role.MANAGER, Role.OPERATOR, Role.VIEWER)
   @ApiOperation({ summary: 'Listar statuses do space (paridade Hoppe)' })
-  listStatuses(
-    @WorkspaceId() workspaceId: string,
-    @Param('id') id: string,
-  ) {
+  listStatuses(@WorkspaceId() workspaceId: string, @Param('id') id: string) {
     return this.spacesService.listStatuses(workspaceId, id);
   }
 

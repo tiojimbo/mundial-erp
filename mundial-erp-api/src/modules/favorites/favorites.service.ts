@@ -40,11 +40,15 @@ export class FavoritesService {
     entityType: FavoriteEntity,
     pagination: PaginationDto,
   ) {
-    const { items, total } = await this.repository.findAll(userId, workspaceId, {
-      entityType,
-      skip: pagination.skip,
-      take: pagination.limit,
-    });
+    const { items, total } = await this.repository.findAll(
+      userId,
+      workspaceId,
+      {
+        entityType,
+        skip: pagination.skip,
+        take: pagination.limit,
+      },
+    );
     const entityMap = await this.repository.hydrateEntities(workspaceId, items);
     return {
       items: items.map((entity) =>

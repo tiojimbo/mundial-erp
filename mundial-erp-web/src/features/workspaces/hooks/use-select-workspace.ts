@@ -8,9 +8,7 @@ import { WORKSPACES_KEY } from './use-workspaces';
 export function useSelectWorkspace() {
   const qc = useQueryClient();
   const router = useRouter();
-  const setCurrentWorkspace = useWorkspaceStore(
-    (s) => s.setCurrentWorkspace,
-  );
+  const setCurrentWorkspace = useWorkspaceStore((s) => s.setCurrentWorkspace);
 
   return useMutation({
     mutationFn: (workspaceId: string) => workspaceService.select(workspaceId),

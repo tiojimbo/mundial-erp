@@ -30,7 +30,7 @@ export function RollupField({
           className={
             inline
               ? 'block w-full bg-transparent px-3 text-[13px] text-foreground'
-              : 'block h-9 rounded-md border border-input bg-muted/40 px-3 text-sm leading-9 text-foreground'
+              : 'bg-muted/40 text-sm block h-9 rounded-md border border-input px-3 leading-9 text-foreground'
           }
         >
           {formatValue(value)}

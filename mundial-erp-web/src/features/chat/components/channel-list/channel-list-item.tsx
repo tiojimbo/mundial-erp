@@ -40,9 +40,7 @@ export function ChannelListItem({ channel }: ChannelListItemProps) {
         <ChannelIcon type={channel.type} name={channel.name} />
       )}
 
-      <span className='min-w-0 flex-1 truncate'>
-        {channel.name ?? 'DM'}
-      </span>
+      <span className='min-w-0 flex-1 truncate'>{channel.name ?? 'DM'}</span>
 
       {unreadCount > 0 && (
         <span className='flex min-w-[18px] items-center justify-center rounded-full bg-[oklch(14.5%_0_0)] px-1 text-[10px] font-semibold text-white'>
@@ -53,25 +51,19 @@ export function ChannelListItem({ channel }: ChannelListItemProps) {
   );
 }
 
-function ChannelIcon({
-  type,
-  name,
-}: {
-  type: string;
-  name: string | null;
-}) {
+function ChannelIcon({ type, name }: { type: string; name: string | null }) {
   const abbr = name?.substring(0, 2).toUpperCase() ?? '';
   const colorClass = DEPT_BADGE_COLORS[abbr] ?? 'bg-gray-500';
 
   return (
     <span className='relative inline-block size-5 shrink-0'>
       {type === 'PRIVATE' ? (
-        <RiLockLine className='absolute top-0 left-0 size-4 text-[oklch(55.6%_0_0)]' />
+        <RiLockLine className='absolute left-0 top-0 size-4 text-[oklch(55.6%_0_0)]' />
       ) : (
-        <RiHashtag className='absolute top-0 left-0 size-4 text-[oklch(55.6%_0_0)]' />
+        <RiHashtag className='absolute left-0 top-0 size-4 text-[oklch(55.6%_0_0)]' />
       )}
       <span
-        className={`absolute -right-0.5 -bottom-0.5 flex size-3 items-center justify-center rounded-[3px] text-[5px] leading-none font-semibold text-white ${colorClass}`}
+        className={`absolute -bottom-0.5 -right-0.5 flex size-3 items-center justify-center rounded-[3px] text-[5px] font-semibold leading-none text-white ${colorClass}`}
       >
         {abbr}
       </span>

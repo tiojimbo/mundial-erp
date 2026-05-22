@@ -75,8 +75,8 @@ export function TaskTitle({
   }, []);
 
   return (
-    <div className="relative">
-      <h1 className="sr-only">{value || 'Tarefa sem titulo'}</h1>
+    <div className='relative'>
+      <h1 className='sr-only'>{value || 'Tarefa sem titulo'}</h1>
       <textarea
         ref={ref}
         value={value}
@@ -85,15 +85,15 @@ export function TaskTitle({
           setValue(e.target.value);
           schedulePersist(e.target.value);
         }}
-        placeholder="Titulo da tarefa"
-        aria-label="Titulo da tarefa"
+        placeholder='Titulo da tarefa'
+        aria-label='Titulo da tarefa'
         rows={1}
-        className="w-full resize-none bg-transparent text-[24px] font-bold leading-[1.25] text-foreground outline-none placeholder:text-muted-foreground/60 focus-visible:ring-2 focus-visible:ring-ring/50"
+        className='placeholder:text-muted-foreground/60 focus-visible:ring-ring/50 w-full resize-none bg-transparent text-[24px] font-bold leading-[1.25] text-foreground outline-none focus-visible:ring-2'
       />
       {saving !== 'idle' && (
         <span
-          aria-live="polite"
-          className="absolute -top-2 right-0 text-[11px] text-muted-foreground"
+          aria-live='polite'
+          className='absolute -top-2 right-0 text-[11px] text-muted-foreground'
         >
           {saving === 'saving' ? 'Salvando...' : 'Salvo'}
         </span>

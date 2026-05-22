@@ -1,5 +1,8 @@
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
-import { NotificationChannel, NotificationPreferenceType } from '@prisma/client';
+import {
+  NotificationChannel,
+  NotificationPreferenceType,
+} from '@prisma/client';
 import {
   ArrayUnique,
   IsArray,

@@ -109,7 +109,7 @@ export function ActivitiesHeader({ taskId, onClose }: ActivitiesHeaderProps) {
   }
 
   return (
-    <header className='flex h-12 items-center justify-between border-b border-border/60 px-4'>
+    <header className='border-border/60 flex h-12 items-center justify-between border-b px-4'>
       <h2 className='text-sm font-semibold'>Atividades</h2>
       <div className='flex items-center gap-1'>
         <IconButton label='Buscar atividades'>
@@ -131,7 +131,7 @@ export function ActivitiesHeader({ taskId, onClose }: ActivitiesHeaderProps) {
               <Filter className='h-4 w-4' />
               {hasActiveFilter ? (
                 <span
-                  className='absolute right-1 top-1 block size-1.5 rounded-full bg-primary'
+                  className='bg-primary absolute right-1 top-1 block size-1.5 rounded-full'
                   aria-hidden='true'
                 />
               ) : null}
@@ -165,7 +165,10 @@ export function ActivitiesHeader({ taskId, onClose }: ActivitiesHeaderProps) {
                       key={opt.value}
                       className='flex cursor-pointer items-center gap-2 text-[13px] text-foreground'
                     >
-                      <RadioGroup.Item value={opt.value} id={`type-${opt.value}`} />
+                      <RadioGroup.Item
+                        value={opt.value}
+                        id={`type-${opt.value}`}
+                      />
                       <span>{opt.label}</span>
                     </label>
                   ))}
@@ -202,7 +205,7 @@ export function ActivitiesHeader({ taskId, onClose }: ActivitiesHeaderProps) {
 
               {/* TODO Sprint 5.1: integrar AssigneeMultiPicker para `actorIds`. */}
 
-              <div className='flex items-center justify-end gap-2 border-t border-border/60 pt-3'>
+              <div className='border-border/60 flex items-center justify-end gap-2 border-t pt-3'>
                 <button
                   type='button'
                   onClick={handleClear}
@@ -213,7 +216,7 @@ export function ActivitiesHeader({ taskId, onClose }: ActivitiesHeaderProps) {
                 <button
                   type='button'
                   onClick={handleApply}
-                  className='h-8 rounded-md bg-primary px-3 text-[12px] font-medium text-primary-foreground transition-opacity hover:opacity-90'
+                  className='bg-primary text-primary-foreground h-8 rounded-md px-3 text-[12px] font-medium transition-opacity hover:opacity-90'
                 >
                   Aplicar
                 </button>

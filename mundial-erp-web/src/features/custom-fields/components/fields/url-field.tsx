@@ -40,9 +40,9 @@ export function UrlField({
       {(controlProps) => (
         <input
           {...controlProps}
-          type="url"
-          inputMode="url"
-          autoComplete="url"
+          type='url'
+          inputMode='url'
+          autoComplete='url'
           className={inline ? inputClassInline : inputClass}
           value={localValue}
           readOnly={isReadOnly}

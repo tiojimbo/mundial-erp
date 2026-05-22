@@ -8,6 +8,7 @@ import type {
   AreaConfig,
   AreaDetailConfig,
 } from '../types/settings.types';
+import type { StatusInheritPayload } from './processes.service';
 
 export const departmentsService = {
   async getAll(): Promise<DepartmentConfig[]> {
@@ -25,7 +26,10 @@ export const departmentsService = {
     return data;
   },
 
-  async update(id: string, payload: UpdateDepartmentPayload): Promise<DepartmentConfig> {
+  async update(
+    id: string,
+    payload: UpdateDepartmentPayload,
+  ): Promise<DepartmentConfig> {
     const { data } = await api.put<DepartmentConfig>(`/spaces/${id}`, payload);
     return data;
   },
@@ -44,12 +48,22 @@ export const departmentsService = {
     return data;
   },
 
-  async updateArea(id: string, payload: UpdateAreaPayload): Promise<AreaConfig> {
+  async updateArea(
+    id: string,
+    payload: UpdateAreaPayload,
+  ): Promise<AreaConfig> {
     const { data } = await api.put<AreaConfig>(`/folders/${id}`, payload);
     return data;
   },
 
   async removeArea(id: string): Promise<void> {
     await api.delete(`/folders/${id}`);
+  },
+
+  async updateAreaStatusInherit(
+    id: string,
+    payload: StatusInheritPayload,
+  ): Promise<void> {
+    await api.put(`/folders/${id}/status`, payload);
   },
 };

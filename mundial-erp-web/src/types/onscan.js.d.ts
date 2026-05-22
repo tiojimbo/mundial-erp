@@ -23,7 +23,10 @@ declare module 'onscan.js' {
     detachFrom(element: Document | HTMLElement): void;
     isAttachedTo(element: Document | HTMLElement): boolean;
     getOptions(element: Document | HTMLElement): OnScanOptions;
-    setOptions(element: Document | HTMLElement, options: Partial<OnScanOptions>): void;
+    setOptions(
+      element: Document | HTMLElement,
+      options: Partial<OnScanOptions>,
+    ): void;
     simulate(element: Document | HTMLElement, code: string): void;
   }
 

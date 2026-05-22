@@ -30,10 +30,7 @@ function applyToggle(
       );
       const next: CommentReaction[] = has
         ? existing.filter((r) => !(r.emoji === emoji && r.userId === userId))
-        : [
-            ...existing,
-            { emoji, userId, createdAt: new Date().toISOString() },
-          ];
+        : [...existing, { emoji, userId, createdAt: new Date().toISOString() }];
       return { ...c, reactions: next };
     }),
   };
@@ -49,7 +46,8 @@ export function useToggleReaction() {
     mutationFn: ({ commentId, emoji }: Vars) =>
       taskCommentsService.toggleReaction(commentId, emoji),
     onMutate: async ({ taskId, commentId, emoji }) => {
-      if (!userId) return { previous: [] as Array<[readonly unknown[], unknown]> };
+      if (!userId)
+        return { previous: [] as Array<[readonly unknown[], unknown]> };
       const key = taskQueryKeys.comments(workspaceId, taskId);
       await qc.cancelQueries({ queryKey: key });
       const previous = qc.getQueriesData<CommentsPage>({ queryKey: key });

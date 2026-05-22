@@ -18,9 +18,15 @@ const EVENT_ICON_MAP: Record<
   { icon: ComponentType<{ className?: string }>; color: string }
 > = {
   status_change: { icon: RiArrowRightCircleLine, color: 'text-primary-base' },
-  proposal_received: { icon: RiMailCheckLine, color: 'text-state-information-base' },
+  proposal_received: {
+    icon: RiMailCheckLine,
+    color: 'text-state-information-base',
+  },
   selected: { icon: RiCheckboxCircleLine, color: 'text-state-success-base' },
-  order_created: { icon: RiShoppingCart2Line, color: 'text-state-success-base' },
+  order_created: {
+    icon: RiShoppingCart2Line,
+    color: 'text-state-success-base',
+  },
 };
 
 type Props = {

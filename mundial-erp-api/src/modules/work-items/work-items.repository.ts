@@ -76,8 +76,7 @@ export class WorkItemsRepository {
 
     if (listId) where.listId = listId;
     if (statusId) where.statusId = statusId;
-    if (primaryAssigneeCache)
-      where.primaryAssigneeCache = primaryAssigneeCache;
+    if (primaryAssigneeCache) where.primaryAssigneeCache = primaryAssigneeCache;
     if (priority) where.priority = priority;
     if (itemType) where.itemType = itemType;
 

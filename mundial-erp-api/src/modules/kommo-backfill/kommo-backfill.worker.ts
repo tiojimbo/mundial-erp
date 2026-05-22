@@ -51,6 +51,7 @@ export interface KommoBackfillJobData {
 export class KommoBackfillWorker extends WorkerHost {
   private readonly logger = new Logger(KommoBackfillWorker.name);
 
+  // eslint-disable-next-line @typescript-eslint/require-await
   async process(job: Job<KommoBackfillJobData>): Promise<void> {
     const { workspaceId, accountId, daysBack, restart, requestId } = job.data;
     this.logger.log({

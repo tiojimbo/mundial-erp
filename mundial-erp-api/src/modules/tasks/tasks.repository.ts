@@ -110,7 +110,7 @@ function buildWhere(
     where.customTypeId = { in: filters.customTypeIds };
   }
   if (filters.priority?.length) {
-    where.priority = { in: filters.priority as TaskPriority[] };
+    where.priority = { in: filters.priority };
   }
   if (filters.archived === true) {
     where.archived = true;
@@ -165,7 +165,10 @@ function buildOrderBy(
   if (field === 'id') {
     return [{ id: dir }];
   }
-  return [{ [field]: dir } as Prisma.WorkItemOrderByWithRelationInput, { id: dir }];
+  return [
+    { [field]: dir } as Prisma.WorkItemOrderByWithRelationInput,
+    { id: dir },
+  ];
 }
 
 @Injectable()
@@ -390,10 +393,7 @@ export class TasksRepository {
   }
 
   /** Recarrega pelo select padrao — util apos update de colecoes sem campos escalares. */
-  async findBySelect(
-    taskId: string,
-    tx?: Prisma.TransactionClient,
-  ) {
+  async findBySelect(taskId: string, tx?: Prisma.TransactionClient) {
     return this.client(tx).workItem.findUniqueOrThrow({
       where: { id: taskId },
       select: TASK_LIST_SELECT,
@@ -508,10 +508,7 @@ export class TasksRepository {
   }
 
   /** Resolve o proximo frontier de parents para BFS de merge-cycle. */
-  async findParentsForCycleCheck(
-    ids: string[],
-    tx: Prisma.TransactionClient,
-  ) {
+  async findParentsForCycleCheck(ids: string[], tx: Prisma.TransactionClient) {
     return tx.workItem.findMany({
       where: { id: { in: ids } },
       select: { id: true, parentId: true },
@@ -957,11 +954,7 @@ export class TasksRepository {
    * (`list.folder.spaceId`). Tenant isolation via `space.workspaceId` em
    * ambos os ramos. Limite duro `take: 500` evita dataset ilimitado.
    */
-  async findBySpaceGrouped(
-    workspaceId: string,
-    spaceId: string,
-    take: number,
-  ) {
+  async findBySpaceGrouped(workspaceId: string, spaceId: string, take: number) {
     return this.prisma.workItem.findMany({
       where: {
         deletedAt: null,

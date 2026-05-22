@@ -43,50 +43,50 @@ export function DashboardList() {
       </div>
 
       {/* Body */}
-        {/* Loading */}
-        {isLoading && (
-          <div className='grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-3'>
-            {Array.from({ length: 6 }).map((_, i) => (
-              <div
-                key={i}
-                className='h-40 animate-pulse rounded-lg bg-bg-weak-50'
-              />
-            ))}
-          </div>
-        )}
+      {/* Loading */}
+      {isLoading && (
+        <div className='grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-3'>
+          {Array.from({ length: 6 }).map((_, i) => (
+            <div
+              key={i}
+              className='h-40 animate-pulse rounded-lg bg-bg-weak-50'
+            />
+          ))}
+        </div>
+      )}
 
-        {/* Empty State */}
-        {!isLoading && dashboards.length === 0 && (
-          <div className='flex flex-col items-center justify-center gap-4 rounded-lg border border-dashed border-stroke-soft-200 py-16'>
-            <RiDashboardLine className='size-12 text-text-soft-400' />
-            <div className='text-center'>
-              <p className='text-label-md text-text-strong-950'>
-                Nenhum painel criado
-              </p>
-              <p className='text-paragraph-sm text-text-sub-600'>
-                Crie seu primeiro dashboard para visualizar KPIs.
-              </p>
-            </div>
-            <Button.Root
-              variant='primary'
-              mode='filled'
-              size='small'
-              onClick={() => router.push('/paineis/novo')}
-            >
-              <Button.Icon as={RiAddLine} />
-              Criar Painel
-            </Button.Root>
+      {/* Empty State */}
+      {!isLoading && dashboards.length === 0 && (
+        <div className='flex flex-col items-center justify-center gap-4 rounded-lg border border-dashed border-stroke-soft-200 py-16'>
+          <RiDashboardLine className='size-12 text-text-soft-400' />
+          <div className='text-center'>
+            <p className='text-label-md text-text-strong-950'>
+              Nenhum painel criado
+            </p>
+            <p className='text-paragraph-sm text-text-sub-600'>
+              Crie seu primeiro dashboard para visualizar KPIs.
+            </p>
           </div>
-        )}
+          <Button.Root
+            variant='primary'
+            mode='filled'
+            size='small'
+            onClick={() => router.push('/paineis/novo')}
+          >
+            <Button.Icon as={RiAddLine} />
+            Criar Painel
+          </Button.Root>
+        </div>
+      )}
 
-        {/* Dashboard Cards */}
-        {!isLoading && dashboards.length > 0 && (
-          <div className='grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-3'>
-            {dashboards.map((dashboard) => (
-              <DashboardCard key={dashboard.id} dashboard={dashboard} />
-            ))}
-          </div>
-        )}
+      {/* Dashboard Cards */}
+      {!isLoading && dashboards.length > 0 && (
+        <div className='grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-3'>
+          {dashboards.map((dashboard) => (
+            <DashboardCard key={dashboard.id} dashboard={dashboard} />
+          ))}
+        </div>
+      )}
     </div>
   );
 }

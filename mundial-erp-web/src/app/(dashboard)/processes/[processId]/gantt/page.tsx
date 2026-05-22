@@ -35,11 +35,12 @@ export default function ProcessGanttPage({ params }: PageProps): JSX.Element {
   );
 
   return (
-    <div className="flex flex-col gap-4">
+    <div className='flex flex-col gap-4'>
       <header>
-        <h1 className="text-title-h4 text-text-strong-950">Gantt</h1>
-        <p className="text-paragraph-sm text-text-sub-600">
-          Linha do tempo das tarefas do processo. Dependencias mostradas em leitura.
+        <h1 className='text-title-h4 text-text-strong-950'>Gantt</h1>
+        <p className='text-paragraph-sm text-text-sub-600'>
+          Linha do tempo das tarefas do processo. Dependencias mostradas em
+          leitura.
         </p>
       </header>
       <TaskGantt tasks={tasks} isLoading={tasksQuery.isLoading} />

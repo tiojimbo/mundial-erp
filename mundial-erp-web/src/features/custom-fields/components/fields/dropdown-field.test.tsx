@@ -3,17 +3,23 @@
  * Owner: Tatiana Brandao.
  */
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
-import { render, screen, fireEvent, act } from '@testing-library/react';
+import { render, screen } from '@testing-library/react';
 import { DropdownField } from './dropdown-field';
 import type { CustomFieldDefinition } from '../../types/custom-field.types';
-import { makeCustomFieldDefinition } from "../../types/custom-field.fixtures";
+import { makeCustomFieldDefinition } from '../../types/custom-field.fixtures';
 
-const definition: CustomFieldDefinition = makeCustomFieldDefinition({ id: 'def-dropdown-1', workspaceId: 'ws-1', name: 'Status', type: 'DROPDOWN', config: {
+const definition: CustomFieldDefinition = makeCustomFieldDefinition({
+  id: 'def-dropdown-1',
+  workspaceId: 'ws-1',
+  name: 'Status',
+  type: 'DROPDOWN',
+  config: {
     options: [
       { value: 'open', label: 'Aberto' },
       { value: 'closed', label: 'Fechado' },
     ],
-  } });
+  },
+});
 
 describe('DropdownField (TTT-024)', () => {
   beforeEach(() => {
@@ -72,7 +78,7 @@ describe('DropdownField (TTT-024)', () => {
         definition={definition}
         value={null}
         onChange={onChange}
-        error="Selecione uma opcao"
+        error='Selecione uma opcao'
       />,
     );
     const select = screen.getByRole('combobox', { name: /status/i });

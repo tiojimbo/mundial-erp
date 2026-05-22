@@ -124,10 +124,7 @@ export class TimeEntriesService {
 
     const startTime = new Date(dto.startTime);
     const endTime = new Date(dto.endTime);
-    if (
-      Number.isNaN(startTime.getTime()) ||
-      Number.isNaN(endTime.getTime())
-    ) {
+    if (Number.isNaN(startTime.getTime()) || Number.isNaN(endTime.getTime())) {
       throw new BadRequestException('startTime/endTime invalidos');
     }
     if (endTime.getTime() <= startTime.getTime()) {

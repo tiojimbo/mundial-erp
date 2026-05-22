@@ -28,7 +28,6 @@ import { TaskResponseDto } from './dtos/task-response.dto';
 import {
   BulkDeleteTasksDto,
   BulkUpdateTasksDto,
-  BulkUpdateTaskItemDto,
 } from './dtos/bulk-update-tasks.dto';
 import { TaskDetailResponseDto } from './dtos/task-detail-response.dto';
 import { ParseTaskIncludePipe } from './pipes/parse-task-include.pipe';
@@ -146,8 +145,7 @@ export class TasksController {
   @Get('tasks/my-tasks')
   @Roles(Role.ADMIN, Role.MANAGER, Role.OPERATOR, Role.VIEWER)
   @ApiOperation({
-    summary:
-      'Tasks atribuidas ao caller agrupadas por bucket temporal (Hoppe)',
+    summary: 'Tasks atribuidas ao caller agrupadas por bucket temporal (Hoppe)',
   })
   @ApiQuery({
     name: 'tz',
@@ -169,7 +167,11 @@ export class TasksController {
     summary: 'Tasks agrupadas por status (Hoppe). Aceita viewId ou level+id',
   })
   @ApiQuery({ name: 'viewId', required: false })
-  @ApiQuery({ name: 'level', required: false, enum: ['list', 'folder', 'space'] })
+  @ApiQuery({
+    name: 'level',
+    required: false,
+    enum: ['list', 'folder', 'space'],
+  })
   @ApiQuery({ name: 'listId', required: false })
   @ApiQuery({ name: 'folderId', required: false })
   @ApiQuery({ name: 'spaceId', required: false })
@@ -260,7 +262,9 @@ export class TasksController {
 
   @Put('tasks/:taskId')
   @Roles(Role.ADMIN, Role.MANAGER, Role.OPERATOR)
-  @ApiOperation({ summary: 'Atualizacao de task (PUT estilo Hoppe, partial body)' })
+  @ApiOperation({
+    summary: 'Atualizacao de task (PUT estilo Hoppe, partial body)',
+  })
   @ApiResponse({ status: 200, type: TaskResponseDto })
   @ApiResponse({ status: 404, description: 'Task nao encontrada' })
   update(

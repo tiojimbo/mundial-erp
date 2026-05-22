@@ -49,10 +49,7 @@ function getInitials(name: string) {
     .toUpperCase();
 }
 
-export function MembersPopover({
-  channelId,
-  children,
-}: MembersPopoverProps) {
+export function MembersPopover({ channelId, children }: MembersPopoverProps) {
   const [open, setOpen] = useState(false);
   const [mode, setMode] = useState<Mode>('list');
   const [activeTab, setActiveTab] = useState<Tab>('followers');
@@ -70,6 +67,7 @@ export function MembersPopover({
       : undefined,
   );
 
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   const members: ChannelMember[] =
     data?.pages.flatMap((page) => page.data) ?? [];
 
@@ -92,8 +90,7 @@ export function MembersPopover({
     const q = searchInput.toLowerCase();
     return outside.filter(
       (u) =>
-        u.name.toLowerCase().includes(q) ||
-        u.email.toLowerCase().includes(q),
+        u.name.toLowerCase().includes(q) || u.email.toLowerCase().includes(q),
     );
   }, [usersData, memberUserIds, searchInput]);
 
@@ -228,7 +225,7 @@ export function MembersPopover({
                 }
                 value={searchInput}
                 onChange={(e) => setSearchInput(e.target.value)}
-                className='w-full rounded-lg border border-stroke-soft-200 px-3 py-1.5 text-paragraph-xs text-text-strong-950 outline-none placeholder:text-text-soft-400 focus:border-stroke-strong-950/20'
+                className='focus:border-stroke-strong-950/20 w-full rounded-lg border border-stroke-soft-200 px-3 py-1.5 text-paragraph-xs text-text-strong-950 outline-none placeholder:text-text-soft-400'
               />
             </div>
 

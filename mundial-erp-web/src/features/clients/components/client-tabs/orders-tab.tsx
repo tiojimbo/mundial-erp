@@ -12,7 +12,10 @@ type ClientOrdersTabProps = {
 };
 
 function getStatusBadge(status: string) {
-  const map: Record<string, { label: string; color: 'green' | 'blue' | 'orange' | 'red' | 'gray' }> = {
+  const map: Record<
+    string,
+    { label: string; color: 'green' | 'blue' | 'orange' | 'red' | 'gray' }
+  > = {
     COMPLETED: { label: 'Concluído', color: 'green' },
     IN_PROGRESS: { label: 'Em Andamento', color: 'blue' },
     PENDING: { label: 'Pendente', color: 'orange' },

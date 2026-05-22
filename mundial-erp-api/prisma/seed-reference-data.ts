@@ -729,6 +729,44 @@ async function main() {
   );
 
   // =========================================================================
+  // 2b. CODIGO DO PEDIDO (campo computado, builtin global)
+  // =========================================================================
+  const orderCodeConfig: Prisma.InputJsonValue = {
+    readOnly: true,
+    hint: 'Gerado automaticamente ao criar o pedido',
+  };
+  await prisma.customFieldDefinition.upsert({
+    where: { id: 'cfd-builtin-order_code' },
+    update: {
+      workspaceId: null,
+      customTaskTypeId: 'builtin-order',
+      key: 'order_code',
+      label: 'Codigo do Pedido',
+      type: 'NUMBER',
+      required: false,
+      config: orderCodeConfig,
+      fillMethod: 'computed',
+      isBuiltin: true,
+      sortOrder: 0,
+    },
+    create: {
+      id: 'cfd-builtin-order_code',
+      workspaceId: null,
+      customTaskTypeId: 'builtin-order',
+      key: 'order_code',
+      name: 'Codigo do Pedido',
+      label: 'Codigo do Pedido',
+      type: 'NUMBER',
+      required: false,
+      config: orderCodeConfig,
+      fillMethod: 'computed',
+      isBuiltin: true,
+      sortOrder: 0,
+    },
+  });
+  console.log('  ✔ Campo computado Codigo do Pedido');
+
+  // =========================================================================
   // 3. MAIN COMPANY (Mundial Telhas)
   // =========================================================================
   const company = await prisma.company.upsert({

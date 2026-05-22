@@ -33,10 +33,10 @@ export function CustomTaskTypesList(): JSX.Element {
   if (typesQuery.isLoading) {
     return (
       <div
-        role="status"
-        aria-busy="true"
-        aria-live="polite"
-        className="h-32 animate-pulse rounded-lg bg-bg-weak-50"
+        role='status'
+        aria-busy='true'
+        aria-live='polite'
+        className='h-32 animate-pulse rounded-lg bg-bg-weak-50'
       />
     );
   }
@@ -44,26 +44,26 @@ export function CustomTaskTypesList(): JSX.Element {
   const types = typesQuery.data ?? [];
   if (types.length === 0) {
     return (
-      <div className="rounded-lg border border-dashed border-stroke-soft-200 p-6 text-center text-paragraph-sm text-text-sub-600">
+      <div className='rounded-lg border border-dashed border-stroke-soft-200 p-6 text-center text-paragraph-sm text-text-sub-600'>
         Nenhum tipo custom disponivel.
       </div>
     );
   }
 
   return (
-    <ul role="list" className="flex flex-col gap-2">
+    <ul role='list' className='flex flex-col gap-2'>
       {types.map((type) => {
         const Icon = getIconByName(type.icon);
         const hasTemplate = withTemplate.has(type.id);
         return (
           <li
             key={type.id}
-            role="listitem"
-            className="flex items-center gap-3 rounded-md border border-stroke-soft-200 bg-bg-white-0 p-3"
+            role='listitem'
+            className='flex items-center gap-3 rounded-md border border-stroke-soft-200 bg-bg-white-0 p-3'
           >
             <div
               aria-hidden
-              className="flex size-8 items-center justify-center rounded-full"
+              className='flex size-8 items-center justify-center rounded-full'
               style={{
                 backgroundColor: type.color
                   ? `${type.color}1A`
@@ -71,24 +71,24 @@ export function CustomTaskTypesList(): JSX.Element {
                 color: type.color ?? 'var(--text-sub-600)',
               }}
             >
-              <Icon className="size-4" aria-hidden />
+              <Icon className='size-4' aria-hidden />
             </div>
-            <div className="flex-1">
-              <p className="text-label-sm text-text-strong-950">{type.value}</p>
-              <p className="text-paragraph-xs text-text-sub-600">
+            <div className='flex-1'>
+              <p className='text-label-sm text-text-strong-950'>{type.value}</p>
+              <p className='text-paragraph-xs text-text-sub-600'>
                 {type.workspaceId
                   ? 'Especifico do workspace'
                   : 'Disponivel globalmente'}
               </p>
             </div>
             {type.isBuiltin && (
-              <span className="inline-flex h-6 items-center rounded-md bg-bg-weak-50 px-2 text-subheading-2xs text-text-sub-600">
+              <span className='inline-flex h-6 items-center rounded-md bg-bg-weak-50 px-2 text-subheading-2xs text-text-sub-600'>
                 Builtin
               </span>
             )}
             {hasTemplate && (
               <span
-                className="inline-flex h-6 items-center gap-1 rounded-md bg-feature-lighter px-2 text-subheading-2xs text-feature-base"
+                className='inline-flex h-6 items-center gap-1 rounded-md bg-feature-lighter px-2 text-subheading-2xs text-feature-base'
                 aria-label={`${type.value} possui template configurado`}
               >
                 Template

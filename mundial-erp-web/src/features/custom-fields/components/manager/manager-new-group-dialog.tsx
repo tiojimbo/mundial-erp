@@ -42,53 +42,55 @@ export function ManagerNewGroupDialog({
 
   return (
     <Modal.Root open={open} onOpenChange={(next) => !next && onClose()}>
-      <Modal.Content overlayClassName="bg-black/60 backdrop-blur-none">
+      <Modal.Content overlayClassName='bg-black/60 backdrop-blur-none'>
         <Modal.Header>
           <Modal.Title>Novo grupo</Modal.Title>
         </Modal.Header>
         <form onSubmit={handleSubmit}>
-          <Modal.Body className="flex flex-col gap-3">
-            <label className="flex flex-col gap-1 text-paragraph-sm">
-              <span className="text-[11px] font-medium uppercase tracking-wide text-muted-foreground">
+          <Modal.Body className='flex flex-col gap-3'>
+            <label className='flex flex-col gap-1 text-paragraph-sm'>
+              <span className='text-[11px] font-medium uppercase tracking-wide text-muted-foreground'>
                 Nome
               </span>
               <input
-                type="text"
+                type='text'
                 value={name}
                 onChange={(e) => setName(e.target.value)}
                 required
                 autoFocus
-                className="h-9 rounded-md border border-input bg-background px-3 text-paragraph-sm"
+                className='h-9 rounded-md border border-input bg-background px-3 text-paragraph-sm'
               />
             </label>
-            <label className="flex flex-col gap-1 text-paragraph-sm">
-              <span className="text-[11px] font-medium uppercase tracking-wide text-muted-foreground">
+            <label className='flex flex-col gap-1 text-paragraph-sm'>
+              <span className='text-[11px] font-medium uppercase tracking-wide text-muted-foreground'>
                 Cor (hex, opcional)
               </span>
               <input
-                type="text"
+                type='text'
                 value={color}
                 onChange={(e) => setColor(e.target.value)}
-                placeholder="#3b82f6"
-                className="h-9 rounded-md border border-input bg-background px-3 text-paragraph-sm"
+                placeholder='#3b82f6'
+                className='h-9 rounded-md border border-input bg-background px-3 text-paragraph-sm'
               />
             </label>
             {createMutation.isError ? (
-              <p className="text-paragraph-xs text-destructive">Erro ao criar grupo.</p>
+              <p className='text-paragraph-xs text-destructive'>
+                Erro ao criar grupo.
+              </p>
             ) : null}
           </Modal.Body>
           <Modal.Footer>
             <button
-              type="button"
+              type='button'
               onClick={onClose}
-              className="rounded-md border border-input bg-background px-3 py-2 text-paragraph-sm hover:bg-muted/60"
+              className='hover:bg-muted/60 rounded-md border border-input bg-background px-3 py-2 text-paragraph-sm'
             >
               Cancelar
             </button>
             <button
-              type="submit"
+              type='submit'
               disabled={createMutation.isPending}
-              className="rounded-md bg-primary-base px-3 py-2 text-paragraph-sm font-medium text-static-white hover:opacity-90 disabled:opacity-50"
+              className='rounded-md bg-primary-base px-3 py-2 text-paragraph-sm font-medium text-static-white hover:opacity-90 disabled:opacity-50'
             >
               {createMutation.isPending ? 'Criando...' : 'Criar grupo'}
             </button>

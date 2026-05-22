@@ -122,94 +122,90 @@ export function PriceTableList() {
       </div>
 
       {/* Table */}
-        <Table.Root>
-          <Table.Header>
+      <Table.Root>
+        <Table.Header>
+          <Table.Row>
+            <Table.Head>Nome</Table.Head>
+            <Table.Head>Padrão</Table.Head>
+            <Table.Head>Qtd Itens</Table.Head>
+            <Table.Head className='text-right'>Ações</Table.Head>
+          </Table.Row>
+        </Table.Header>
+        <Table.Body>
+          {isLoading ? (
+            Array.from({ length: 3 }).map((_, i) => (
+              <Table.Row key={i}>
+                {Array.from({ length: 4 }).map((__, j) => (
+                  <Table.Cell key={j}>
+                    <div className='h-4 w-24 animate-pulse rounded bg-bg-weak-50' />
+                  </Table.Cell>
+                ))}
+              </Table.Row>
+            ))
+          ) : !tables || tables.length === 0 ? (
             <Table.Row>
-              <Table.Head>Nome</Table.Head>
-              <Table.Head>Padrão</Table.Head>
-              <Table.Head>Qtd Itens</Table.Head>
-              <Table.Head className='text-right'>Ações</Table.Head>
+              <Table.Cell colSpan={4} className='text-center'>
+                <p className='py-8 text-paragraph-sm text-text-soft-400'>
+                  Nenhuma tabela de preço cadastrada.
+                </p>
+              </Table.Cell>
             </Table.Row>
-          </Table.Header>
-          <Table.Body>
-            {isLoading ? (
-              Array.from({ length: 3 }).map((_, i) => (
-                <Table.Row key={i}>
-                  {Array.from({ length: 4 }).map((__, j) => (
-                    <Table.Cell key={j}>
-                      <div className='h-4 w-24 animate-pulse rounded bg-bg-weak-50' />
-                    </Table.Cell>
-                  ))}
-                </Table.Row>
-              ))
-            ) : !tables || tables.length === 0 ? (
-              <Table.Row>
-                <Table.Cell colSpan={4} className='text-center'>
-                  <p className='py-8 text-paragraph-sm text-text-soft-400'>
-                    Nenhuma tabela de preço cadastrada.
-                  </p>
+          ) : (
+            tables.map((table) => (
+              <Table.Row key={table.id}>
+                <Table.Cell>
+                  <Link
+                    href={`/compras/tabelas-preco/${table.id}`}
+                    className='text-label-sm text-text-strong-950 transition hover:text-primary-base'
+                  >
+                    {table.name}
+                  </Link>
+                </Table.Cell>
+                <Table.Cell>
+                  {table.isDefault ? (
+                    <Badge.Root variant='lighter' color='green' size='small'>
+                      <Badge.Icon as={RiStarFill} />
+                      Padrão
+                    </Badge.Root>
+                  ) : (
+                    <span className='text-paragraph-sm text-text-soft-400'>
+                      —
+                    </span>
+                  )}
+                </Table.Cell>
+                <Table.Cell>
+                  <span className='text-paragraph-sm text-text-sub-600'>
+                    {table.items?.length ?? 0}
+                  </span>
+                </Table.Cell>
+                <Table.Cell className='text-right'>
+                  <div className='flex items-center justify-end gap-1'>
+                    <Button.Root
+                      asChild
+                      variant='neutral'
+                      mode='ghost'
+                      size='xxsmall'
+                    >
+                      <Link href={`/compras/tabelas-preco/${table.id}`}>
+                        <Button.Icon as={RiEditLine} />
+                      </Link>
+                    </Button.Root>
+                    <Button.Root
+                      variant='error'
+                      mode='ghost'
+                      size='xxsmall'
+                      onClick={() => handleDelete(table.id, table.name)}
+                      disabled={deleteMutation.isPending}
+                    >
+                      <Button.Icon as={RiDeleteBinLine} />
+                    </Button.Root>
+                  </div>
                 </Table.Cell>
               </Table.Row>
-            ) : (
-              tables.map((table) => (
-                <Table.Row key={table.id}>
-                  <Table.Cell>
-                    <Link
-                      href={`/compras/tabelas-preco/${table.id}`}
-                      className='text-label-sm text-text-strong-950 transition hover:text-primary-base'
-                    >
-                      {table.name}
-                    </Link>
-                  </Table.Cell>
-                  <Table.Cell>
-                    {table.isDefault ? (
-                      <Badge.Root
-                        variant='lighter'
-                        color='green'
-                        size='small'
-                      >
-                        <Badge.Icon as={RiStarFill} />
-                        Padrão
-                      </Badge.Root>
-                    ) : (
-                      <span className='text-paragraph-sm text-text-soft-400'>
-                        —
-                      </span>
-                    )}
-                  </Table.Cell>
-                  <Table.Cell>
-                    <span className='text-paragraph-sm text-text-sub-600'>
-                      {table.items?.length ?? 0}
-                    </span>
-                  </Table.Cell>
-                  <Table.Cell className='text-right'>
-                    <div className='flex items-center justify-end gap-1'>
-                      <Button.Root
-                        asChild
-                        variant='neutral'
-                        mode='ghost'
-                        size='xxsmall'
-                      >
-                        <Link href={`/compras/tabelas-preco/${table.id}`}>
-                          <Button.Icon as={RiEditLine} />
-                        </Link>
-                      </Button.Root>
-                      <Button.Root
-                        variant='error'
-                        mode='ghost'
-                        size='xxsmall'
-                        onClick={() => handleDelete(table.id, table.name)}
-                        disabled={deleteMutation.isPending}
-                      >
-                        <Button.Icon as={RiDeleteBinLine} />
-                      </Button.Root>
-                    </div>
-                  </Table.Cell>
-                </Table.Row>
-              ))
-            )}
-          </Table.Body>
-        </Table.Root>
+            ))
+          )}
+        </Table.Body>
+      </Table.Root>
     </div>
   );
 }

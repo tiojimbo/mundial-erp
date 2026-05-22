@@ -42,7 +42,10 @@ export function SalesReportView() {
       {isLoading && (
         <div className='grid grid-cols-1 gap-4 md:grid-cols-4'>
           {Array.from({ length: 4 }).map((_, i) => (
-            <div key={i} className='h-24 animate-pulse rounded-lg bg-bg-weak-50' />
+            <div
+              key={i}
+              className='h-24 animate-pulse rounded-lg bg-bg-weak-50'
+            />
           ))}
         </div>
       )}
@@ -80,9 +83,9 @@ export function SalesReportView() {
               <p className='text-paragraph-xs text-text-sub-600'>Crescimento</p>
               <div className='mt-1 flex items-center gap-1'>
                 {report.summary.growthPercentage >= 0 ? (
-                  <RiArrowUpLine className='size-4 text-state-success-base' />
+                  <RiArrowUpLine className='text-state-success-base size-4' />
                 ) : (
-                  <RiArrowDownLine className='size-4 text-state-error-base' />
+                  <RiArrowDownLine className='text-state-error-base size-4' />
                 )}
                 <p
                   className={`text-title-h6 ${
@@ -162,7 +165,8 @@ export function SalesReportView() {
                         {item.productName}
                       </p>
                       <p className='text-paragraph-xs text-text-soft-400'>
-                        {item.quantitySold} vendido{item.quantitySold !== 1 ? 's' : ''}
+                        {item.quantitySold} vendido
+                        {item.quantitySold !== 1 ? 's' : ''}
                       </p>
                     </div>
                     <p className='text-label-sm text-text-strong-950'>
@@ -189,7 +193,8 @@ export function SalesReportView() {
                         {item.clientName}
                       </p>
                       <p className='text-paragraph-xs text-text-soft-400'>
-                        {item.ordersCount} pedido{item.ordersCount !== 1 ? 's' : ''}
+                        {item.ordersCount} pedido
+                        {item.ordersCount !== 1 ? 's' : ''}
                       </p>
                     </div>
                     <p className='text-label-sm text-text-strong-950'>

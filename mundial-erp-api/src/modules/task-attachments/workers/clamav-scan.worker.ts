@@ -54,6 +54,7 @@ export class ClamAvScanWorker extends WorkerHost implements OnModuleInit {
     super();
   }
 
+  // eslint-disable-next-line @typescript-eslint/require-await
   async onModuleInit(): Promise<void> {
     // Inicializacao lazy — permite subir a API mesmo sem ClamAV disponivel
     // (erro aparece so no primeiro scan).

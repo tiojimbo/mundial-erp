@@ -4,10 +4,17 @@
 
 import type { Meta, StoryObj } from '@storybook/react';
 import type { CustomFieldDefinition } from '../../types/custom-field.types';
-import { makeCustomFieldDefinition } from "../../types/custom-field.fixtures";
+import { makeCustomFieldDefinition } from '../../types/custom-field.fixtures';
 import { CpfField } from './cpf-field';
 
-const baseDef: CustomFieldDefinition = makeCustomFieldDefinition({ id: 'def-cpf-1', workspaceId: null, name: 'CPF do responsavel', type: 'CPF', fixed: true, position: 60 });
+const baseDef: CustomFieldDefinition = makeCustomFieldDefinition({
+  id: 'def-cpf-1',
+  workspaceId: null,
+  name: 'CPF do responsavel',
+  type: 'CPF',
+  fixed: true,
+  position: 60,
+});
 
 const meta: Meta<typeof CpfField> = {
   title: 'CustomFields/CpfField',

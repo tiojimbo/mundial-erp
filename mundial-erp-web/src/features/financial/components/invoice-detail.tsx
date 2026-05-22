@@ -164,7 +164,7 @@ export function InvoiceDetail({ invoiceId }: Props) {
           <p className='text-title-h6 text-text-strong-950'>
             {invoice.cancelledAt
               ? formatDate(invoice.cancelledAt)
-              : invoice.company?.tradeName ?? '—'}
+              : (invoice.company?.tradeName ?? '—')}
           </p>
         </div>
       </div>

@@ -114,8 +114,7 @@ export function useBulkUpdatePriceTableItems(tableId: string) {
       notification({
         status: 'error',
         title: 'Erro ao salvar preços',
-        description:
-          error.message || 'Não foi possível atualizar os preços.',
+        description: error.message || 'Não foi possível atualizar os preços.',
       });
     },
   });

@@ -28,7 +28,9 @@ export const TRANSITIONS: StatusTransition[] = [
       if (!order.items || order.items.length === 0) {
         return 'Pedido deve ter ao menos 1 item';
       }
-      const hasItemWithoutPrice = order.items.some((i) => i.unitPriceCents <= 0);
+      const hasItemWithoutPrice = order.items.some(
+        (i) => i.unitPriceCents <= 0,
+      );
       if (hasItemWithoutPrice) {
         return 'Todos os itens devem ter preco preenchido';
       }
@@ -74,12 +76,16 @@ export const TRANSITIONS: StatusTransition[] = [
       const allPOsCompleted = order.productionOrders?.every(
         (po) => po.status === 'COMPLETED',
       );
-      if (!allPOsCompleted) return 'Todas as ordens de producao devem estar concluidas';
+      if (!allPOsCompleted)
+        return 'Todas as ordens de producao devem estar concluidas';
 
-      const allSuppliesReady = order.items?.every((item) =>
-        item.supplies.length === 0 || item.supplies.every((s) => s.status === 'READY'),
+      const allSuppliesReady = order.items?.every(
+        (item) =>
+          item.supplies.length === 0 ||
+          item.supplies.every((s) => s.status === 'READY'),
       );
-      if (!allSuppliesReady) return 'Todos os insumos devem estar marcados como prontos';
+      if (!allSuppliesReady)
+        return 'Todos os insumos devem estar marcados como prontos';
 
       const hasSO = order.separationOrders && order.separationOrders.length > 0;
       if (hasSO) {
@@ -137,14 +143,21 @@ export function getAvailableTransitions(
     if (t.allowedRoles && t.allowedRoles.length > 0 && userRole) {
       if (!t.allowedRoles.includes(userRole)) return false;
     }
-    if (t.allowedDepartments && t.allowedDepartments.length > 0 && userDepartment) {
+    if (
+      t.allowedDepartments &&
+      t.allowedDepartments.length > 0 &&
+      userDepartment
+    ) {
       if (!t.allowedDepartments.includes(userDepartment)) return false;
     }
     return true;
   });
 }
 
-export function isStatusAfter(current: OrderStatus, targets: OrderStatus[]): boolean {
+export function isStatusAfter(
+  current: OrderStatus,
+  targets: OrderStatus[],
+): boolean {
   const currentIdx = STATUS_FLOW.indexOf(current);
   return targets.some((t) => currentIdx >= STATUS_FLOW.indexOf(t));
 }

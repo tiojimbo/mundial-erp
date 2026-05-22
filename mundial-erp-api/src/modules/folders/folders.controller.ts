@@ -92,10 +92,7 @@ export class FoldersController {
   @SkipResponseTransform()
   @Roles(Role.ADMIN, Role.MANAGER, Role.OPERATOR, Role.VIEWER)
   @ApiOperation({ summary: 'Metadata de filters/sortOptions do folder' })
-  getResources(
-    @WorkspaceId() workspaceId: string,
-    @Param('id') id: string,
-  ) {
+  getResources(@WorkspaceId() workspaceId: string, @Param('id') id: string) {
     return this.foldersService.getResources(workspaceId, id);
   }
 
@@ -103,10 +100,7 @@ export class FoldersController {
   @SkipResponseTransform()
   @Roles(Role.ADMIN, Role.MANAGER, Role.OPERATOR, Role.VIEWER)
   @ApiOperation({ summary: 'Visibility atual do folder' })
-  getVisibility(
-    @WorkspaceId() workspaceId: string,
-    @Param('id') id: string,
-  ) {
+  getVisibility(@WorkspaceId() workspaceId: string, @Param('id') id: string) {
     return this.foldersService.getVisibility(workspaceId, id);
   }
 
@@ -130,10 +124,7 @@ export class FoldersController {
   @SkipResponseTransform()
   @Roles(Role.ADMIN, Role.MANAGER, Role.OPERATOR, Role.VIEWER)
   @ApiOperation({ summary: 'Listar membros do folder' })
-  listMembers(
-    @WorkspaceId() workspaceId: string,
-    @Param('id') id: string,
-  ) {
+  listMembers(@WorkspaceId() workspaceId: string, @Param('id') id: string) {
     return this.foldersService.listMembers(workspaceId, id);
   }
 
@@ -190,10 +181,7 @@ export class FoldersController {
   @ApiOperation({
     summary: 'Listar statuses do folder (vazio se inheritance != CUSTOM)',
   })
-  listStatuses(
-    @WorkspaceId() workspaceId: string,
-    @Param('id') id: string,
-  ) {
+  listStatuses(@WorkspaceId() workspaceId: string, @Param('id') id: string) {
     return this.foldersService.listStatuses(workspaceId, id);
   }
 

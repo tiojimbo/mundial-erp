@@ -55,14 +55,14 @@ export function TaskTable({
   onToggleSelect,
 }: TaskTableProps): JSX.Element {
   return (
-    <table className="w-full border-separate border-spacing-0 text-left text-paragraph-sm">
+    <table className='w-full border-separate border-spacing-0 text-left text-paragraph-sm'>
       <thead>
-        <tr className="text-label-xs uppercase text-text-sub-600">
-          <th className="w-10 bg-bg-weak-50 px-3 py-2 first:rounded-l-lg" />
-          <th className="bg-bg-weak-50 px-3 py-2">Tarefa</th>
-          <th className="bg-bg-weak-50 px-3 py-2">Inicio</th>
-          <th className="bg-bg-weak-50 px-3 py-2">Prazo</th>
-          <th className="bg-bg-weak-50 px-3 py-2 last:rounded-r-lg">
+        <tr className='text-label-xs uppercase text-text-sub-600'>
+          <th className='w-10 bg-bg-weak-50 px-3 py-2 first:rounded-l-lg' />
+          <th className='bg-bg-weak-50 px-3 py-2'>Tarefa</th>
+          <th className='bg-bg-weak-50 px-3 py-2'>Inicio</th>
+          <th className='bg-bg-weak-50 px-3 py-2'>Prazo</th>
+          <th className='bg-bg-weak-50 px-3 py-2 last:rounded-r-lg'>
             Responsaveis
           </th>
         </tr>
@@ -93,17 +93,17 @@ function GroupBlock({
   return (
     <>
       <tr>
-        <td colSpan={5} className="px-3 pb-2 pt-4">
-          <div className="flex items-center gap-2">
+        <td colSpan={5} className='px-3 pb-2 pt-4'>
+          <div className='flex items-center gap-2'>
             <span
               aria-hidden
-              className="inline-block size-2 rounded-full"
+              className='inline-block size-2 rounded-full'
               style={{ backgroundColor: group.statusColor }}
             />
-            <span className="text-label-sm text-text-strong-950">
+            <span className='text-label-sm text-text-strong-950'>
               {group.label}
             </span>
-            <span className="text-subheading-2xs text-text-sub-600">
+            <span className='text-subheading-2xs text-text-sub-600'>
               {group.count}
             </span>
           </div>
@@ -134,21 +134,19 @@ function Row({
   const due = formatDate(task.dueDate);
 
   return (
-    <tr className="group/row border-b border-stroke-soft-200 hover:bg-bg-weak-50">
-      <td className="px-3 py-2">
+    <tr className='group/row border-b border-stroke-soft-200 hover:bg-bg-weak-50'>
+      <td className='px-3 py-2'>
         <Checkbox.Root
           checked={selected}
-          onCheckedChange={(value) =>
-            onToggleSelect(task.id, value === true)
-          }
+          onCheckedChange={(value) => onToggleSelect(task.id, value === true)}
           aria-label={`Selecionar tarefa ${task.title}`}
         />
       </td>
-      <td className="px-3 py-2">
-        <div className="flex items-center gap-2">
+      <td className='px-3 py-2'>
+        <div className='flex items-center gap-2'>
           <span
             aria-hidden
-            className="inline-block size-2 shrink-0 rounded-full"
+            className='inline-block size-2 shrink-0 rounded-full'
             style={{ backgroundColor: task.statusColor }}
           />
           {(() => {
@@ -156,25 +154,25 @@ function Row({
             return (
               <TypeIcon
                 aria-hidden
-                className="size-3.5 shrink-0 text-text-sub-600"
+                className='size-3.5 shrink-0 text-text-sub-600'
               />
             );
           })()}
           <Link
             href={task.href}
-            className="line-clamp-1 text-label-sm text-text-strong-950 hover:underline"
+            className='line-clamp-1 text-label-sm text-text-strong-950 hover:underline'
           >
             {task.title}
           </Link>
         </div>
       </td>
-      <td className="px-3 py-2 text-subheading-2xs text-text-sub-600">
-        <span className="inline-flex items-center gap-1">
-          <RiCalendarLine className="size-3" aria-hidden />
+      <td className='px-3 py-2 text-subheading-2xs text-text-sub-600'>
+        <span className='inline-flex items-center gap-1'>
+          <RiCalendarLine className='size-3' aria-hidden />
           {start.label}
         </span>
       </td>
-      <td className="px-3 py-2 text-subheading-2xs">
+      <td className='px-3 py-2 text-subheading-2xs'>
         <span
           className={cn(
             'inline-flex items-center gap-1 rounded-md px-1.5 py-0.5',
@@ -184,15 +182,15 @@ function Row({
             due.tone === 'none' && 'text-faded-base',
           )}
         >
-          <RiCalendarLine className="size-3" aria-hidden />
+          <RiCalendarLine className='size-3' aria-hidden />
           {due.label}
         </span>
       </td>
-      <td className="px-3 py-2">
+      <td className='px-3 py-2'>
         {task.assignees.length > 0 ? (
-          <AvatarGroup.Root size="24">
+          <AvatarGroup.Root size='24'>
             {task.assignees.slice(0, 3).map((assignee) => (
-              <Avatar.Root key={assignee.id} size="24">
+              <Avatar.Root key={assignee.id} size='24'>
                 <span aria-hidden>
                   {assignee.name?.slice(0, 1).toUpperCase() ?? '?'}
                 </span>
@@ -205,7 +203,7 @@ function Row({
             )}
           </AvatarGroup.Root>
         ) : (
-          <span className="text-subheading-2xs text-faded-base">—</span>
+          <span className='text-subheading-2xs text-faded-base'>—</span>
         )}
       </td>
     </tr>

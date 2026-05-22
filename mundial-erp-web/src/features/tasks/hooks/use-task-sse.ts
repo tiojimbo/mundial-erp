@@ -1,9 +1,6 @@
 import { useEffect, useRef } from 'react';
 import { useQueryClient } from '@tanstack/react-query';
-import {
-  TaskSSEClient,
-  type TaskSseEvent,
-} from '../lib/sse-client';
+import { TaskSSEClient, type TaskSseEvent } from '../lib/sse-client';
 import { taskQueryKeys } from '../lib/query-keys';
 import { useWorkspaceId } from '../lib/use-workspace-id';
 
@@ -37,7 +34,7 @@ export function useTaskSse(taskId: string, options: Options = {}) {
 
     const token =
       typeof window !== 'undefined'
-        ? localStorage.getItem('access_token') ?? undefined
+        ? (localStorage.getItem('access_token') ?? undefined)
         : undefined;
 
     const client = new TaskSSEClient({

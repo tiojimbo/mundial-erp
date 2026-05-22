@@ -87,28 +87,13 @@ describe('KommoApiClient.validateHmac', () => {
     // Cast forca runtime check — simula payload vindo de JSON externo que
     // tentaria "sha1" ou "md5".
     expect(
-      client.validateHmac(
-        body,
-        sig,
-        secret,
-        'sha1' as unknown as 'sha256',
-      ),
+      client.validateHmac(body, sig, secret, 'sha1' as unknown as 'sha256'),
     ).toBe(false);
     expect(
-      client.validateHmac(
-        body,
-        sig,
-        secret,
-        'md5' as unknown as 'sha256',
-      ),
+      client.validateHmac(body, sig, secret, 'md5' as unknown as 'sha256'),
     ).toBe(false);
     expect(
-      client.validateHmac(
-        body,
-        sig,
-        secret,
-        '' as unknown as 'sha256',
-      ),
+      client.validateHmac(body, sig, secret, '' as unknown as 'sha256'),
     ).toBe(false);
   });
 

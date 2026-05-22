@@ -53,11 +53,11 @@ export class TaskTagsController {
   @Roles(Role.ADMIN, Role.MANAGER, Role.OPERATOR)
   @ApiOperation({ summary: 'Criar tag (spaceId obrigatorio)' })
   @ApiResponse({ status: 201, type: TaskTagResponseDto })
-  @ApiResponse({ status: 409, description: 'Nome ja existe (case-insensitive)' })
-  create(
-    @WorkspaceId() workspaceId: string,
-    @Body() dto: CreateTaskTagDto,
-  ) {
+  @ApiResponse({
+    status: 409,
+    description: 'Nome ja existe (case-insensitive)',
+  })
+  create(@WorkspaceId() workspaceId: string, @Body() dto: CreateTaskTagDto) {
     return this.service.create(workspaceId, dto);
   }
 

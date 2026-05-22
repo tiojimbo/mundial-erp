@@ -77,9 +77,9 @@ export const statusesService = {
   },
 
   async getRequiredFields(statusId: string): Promise<StatusRequiredField[]> {
-    const { data: envelope } = await api.get<ApiResponse<StatusRequiredField[]>>(
-      `/status/${statusId}/required-fields`,
-    );
+    const { data: envelope } = await api.get<
+      ApiResponse<StatusRequiredField[]>
+    >(`/status/${statusId}/required-fields`);
     return envelope.data;
   },
 
@@ -87,10 +87,9 @@ export const statusesService = {
     statusId: string,
     customFieldIds: string[],
   ): Promise<StatusRequiredField[]> {
-    const { data: envelope } = await api.put<ApiResponse<StatusRequiredField[]>>(
-      `/status/${statusId}/required-fields`,
-      { customFieldIds },
-    );
+    const { data: envelope } = await api.put<
+      ApiResponse<StatusRequiredField[]>
+    >(`/status/${statusId}/required-fields`, { customFieldIds });
     return envelope.data;
   },
 };

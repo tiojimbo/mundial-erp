@@ -14,8 +14,7 @@ export function PercentageField({
   error,
   inline,
 }: BaseFieldProps<number | null>) {
-  const initial =
-    value === null || value === undefined ? '' : String(value);
+  const initial = value === null || value === undefined ? '' : String(value);
   const [localValue, setLocalValue] = useState<string>(initial);
   const debounced = useDebouncedOnChange<number | null>(onChange);
 
@@ -35,11 +34,11 @@ export function PercentageField({
       showLabel={!inline}
     >
       {(controlProps) => (
-        <div className="relative flex items-center">
+        <div className='relative flex items-center'>
           <input
             {...controlProps}
-            type="number"
-            inputMode="decimal"
+            type='number'
+            inputMode='decimal'
             className={inline ? inputClassInline : inputClass}
             value={localValue}
             readOnly={isReadOnly}
@@ -59,8 +58,8 @@ export function PercentageField({
             }}
           />
           <span
-            aria-hidden="true"
-            className="pointer-events-none absolute right-3 text-xs text-muted-foreground"
+            aria-hidden='true'
+            className='text-xs pointer-events-none absolute right-3 text-muted-foreground'
           >
             %
           </span>

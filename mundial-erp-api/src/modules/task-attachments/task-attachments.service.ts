@@ -58,7 +58,7 @@ const ROLES_MAY_DELETE: ReadonlySet<Role> = new Set<Role>([
 function sanitizeFilename(input: string): string {
   // remove caminhos/barras, limita a [a-zA-Z0-9._-], corta a 128 chars.
   const base = input.replace(/[\\/]+/g, '_');
-  return base.replace(/[^\w.\-]+/g, '_').slice(0, 128) || 'file';
+  return base.replace(/[^\w.-]+/g, '_').slice(0, 128) || 'file';
 }
 
 @Injectable()

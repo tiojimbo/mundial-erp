@@ -137,7 +137,8 @@ describe('Automation execution (e2e) — Tarefa 5 sprint imediato', () => {
         })
         .expect(201);
 
-      const automationId = (automation.body.data ?? automation.body).id as string;
+      const automationId = (automation.body.data ?? automation.body)
+        .id as string;
       expect(automationId).toBeDefined();
 
       const taskRes = await request(app.getHttpServer())

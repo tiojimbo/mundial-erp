@@ -95,23 +95,17 @@ export function PriceTableEditor({ tableId }: Props) {
     updateMutation.mutate({ isDefault: !table.isDefault });
   }, [table, updateMutation]);
 
-  const handlePriceChange = useCallback(
-    (productId: string, value: string) => {
-      setEditedPrices((prev) => ({ ...prev, [productId]: value }));
-    },
-    [],
-  );
+  const handlePriceChange = useCallback((productId: string, value: string) => {
+    setEditedPrices((prev) => ({ ...prev, [productId]: value }));
+  }, []);
 
-  const handleUndoItem = useCallback(
-    (productId: string) => {
-      setEditedPrices((prev) => {
-        const next = { ...prev };
-        delete next[productId];
-        return next;
-      });
-    },
-    [],
-  );
+  const handleUndoItem = useCallback((productId: string) => {
+    setEditedPrices((prev) => {
+      const next = { ...prev };
+      delete next[productId];
+      return next;
+    });
+  }, []);
 
   const handleBulkSave = useCallback(() => {
     if (!table?.items) return;
@@ -245,9 +239,7 @@ export function PriceTableEditor({ tableId }: Props) {
               disabled={updateMutation.isPending}
             >
               <Button.Icon as={table.isDefault ? RiStarFill : RiStarLine} />
-              {table.isDefault
-                ? 'Remover como Padrão'
-                : 'Definir como Padrão'}
+              {table.isDefault ? 'Remover como Padrão' : 'Definir como Padrão'}
             </Button.Root>
           </div>
 
@@ -355,10 +347,7 @@ export function PriceTableEditor({ tableId }: Props) {
                           <Input.Input
                             value={displayValue}
                             onChange={(e) =>
-                              handlePriceChange(
-                                item.productId,
-                                e.target.value,
-                              )
+                              handlePriceChange(item.productId, e.target.value)
                             }
                             placeholder='0,00'
                           />

@@ -56,6 +56,7 @@ export function AutomationsModal({
   const actions = useAutomationActions();
   useAutomationStatuses();
 
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   const all = automations.data ?? [];
   const activeCount = all.filter((a) => a.isActive).length;
   const inactiveCount = all.length - activeCount;
@@ -140,181 +141,186 @@ export function AutomationsModal({
             />
           ) : (
             <>
-            {/* Header com tabs */}
-            <div className='flex shrink-0 items-center justify-between border-b border-stroke-soft-200 px-5 py-3'>
-              <div className='flex items-center gap-2.5'>
-                <Zap className='size-5 fill-[#ffb900] text-[#ffb900]' />
-                <h2 className='text-label-sm text-text-strong-950'>
-                  Automações
-                </h2>
-              </div>
-              <nav className='flex items-center gap-1'>
-                {TABS.map((t) => (
-                  <button
-                    key={t.id}
-                    type='button'
-                    onClick={() => setTab(t.id)}
-                    className={cn(
-                      'rounded-md px-3 py-1.5 text-paragraph-xs font-medium transition-colors',
-                      tab === t.id
-                        ? 'bg-bg-weak-50 text-text-strong-950'
-                        : 'text-text-sub-600 hover:text-text-strong-950',
-                    )}
-                  >
-                    {t.label}
-                  </button>
-                ))}
-              </nav>
-              <Dialog.Close asChild>
-                <button
-                  type='button'
-                  aria-label='Fechar'
-                  className='inline-flex size-7 items-center justify-center rounded-md text-text-sub-600 hover:bg-bg-weak-50 hover:text-text-strong-950'
-                >
-                  <RiCloseLine className='size-4' />
-                </button>
-              </Dialog.Close>
-            </div>
-
-          {tab === 'manage' ? (
-            <>
-              {/* Toolbar: escopo + Add */}
+              {/* Header com tabs */}
               <div className='flex shrink-0 items-center justify-between border-b border-stroke-soft-200 px-5 py-3'>
-                <select
-                  disabled
-                  value='workspace'
-                  className='h-8 rounded-md border border-stroke-soft-200 bg-bg-white-0 px-2 text-paragraph-xs text-text-sub-600'
-                >
-                  <option value='workspace'>Todo o workspace</option>
-                </select>
-
-                <button
-                  type='button'
-                  onClick={openCreate}
-                  className='inline-flex h-8 items-center gap-1.5 rounded-md border border-stroke-soft-200 bg-bg-white-0 px-2.5 text-paragraph-xs text-text-strong-950 hover:bg-bg-weak-50'
-                >
-                  <RiAddLine className='size-3.5' />
-                  Adicionar automação
-                </button>
-              </div>
-
-              {/* Filtros */}
-              <div className='flex shrink-0 items-center justify-between border-b border-stroke-soft-200 px-5 py-2.5'>
-                <div className='flex items-center gap-2'>
-                  <button
-                    type='button'
-                    onClick={() => setStatusFilter('active')}
-                    className={cn(
-                      'inline-flex items-center gap-1.5 rounded-full px-3 py-1 text-paragraph-xs font-medium transition-colors',
-                      statusFilter === 'active'
-                        ? 'bg-bg-strong-950 text-static-white'
-                        : 'text-text-sub-600 hover:text-text-strong-950',
-                    )}
-                  >
-                    Ativas
-                    <span
+                <div className='flex items-center gap-2.5'>
+                  <Zap className='size-5 fill-[#ffb900] text-[#ffb900]' />
+                  <h2 className='text-label-sm text-text-strong-950'>
+                    Automações
+                  </h2>
+                </div>
+                <nav className='flex items-center gap-1'>
+                  {TABS.map((t) => (
+                    <button
+                      key={t.id}
+                      type='button'
+                      onClick={() => setTab(t.id)}
                       className={cn(
-                        'inline-flex h-4 min-w-[16px] items-center justify-center rounded px-1 text-[10px]',
-                        statusFilter === 'active'
-                          ? 'bg-static-white/20 text-static-white'
-                          : 'bg-bg-weak-50 text-text-sub-600',
+                        'rounded-md px-3 py-1.5 text-paragraph-xs font-medium transition-colors',
+                        tab === t.id
+                          ? 'bg-bg-weak-50 text-text-strong-950'
+                          : 'text-text-sub-600 hover:text-text-strong-950',
                       )}
                     >
-                      {activeCount}
-                    </span>
-                  </button>
+                      {t.label}
+                    </button>
+                  ))}
+                </nav>
+                <Dialog.Close asChild>
                   <button
                     type='button'
-                    onClick={() => setStatusFilter('inactive')}
-                    className={cn(
-                      'inline-flex items-center gap-1.5 rounded-full px-3 py-1 text-paragraph-xs font-medium transition-colors',
-                      statusFilter === 'inactive'
-                        ? 'bg-bg-strong-950 text-static-white'
-                        : 'text-text-sub-600 hover:text-text-strong-950',
-                    )}
+                    aria-label='Fechar'
+                    className='inline-flex size-7 items-center justify-center rounded-md text-text-sub-600 hover:bg-bg-weak-50 hover:text-text-strong-950'
                   >
-                    Inativas
-                    <span
-                      className={cn(
-                        'inline-flex h-4 min-w-[16px] items-center justify-center rounded px-1 text-[10px]',
-                        statusFilter === 'inactive'
-                          ? 'bg-static-white/20 text-static-white'
-                          : 'bg-bg-weak-50 text-text-sub-600',
-                      )}
-                    >
-                      {inactiveCount}
-                    </span>
+                    <RiCloseLine className='size-4' />
                   </button>
-                </div>
-
-                <div className='flex items-center gap-2'>
-                  <FilterChip
-                    label='Trigger'
-                    value={triggerFilter}
-                    onChange={setTriggerFilter}
-                    options={(triggers.data ?? []).map((t) => ({
-                      value: t.id,
-                      label: t.label,
-                    }))}
-                  />
-                  <FilterChip
-                    label='Condição'
-                    value={conditionFilter}
-                    onChange={setConditionFilter}
-                    options={conditionFields.map((f) => ({
-                      value: f,
-                      label: f,
-                    }))}
-                  />
-                  <FilterChip
-                    label='Ação'
-                    value={actionFilter}
-                    onChange={setActionFilter}
-                    options={(actions.data ?? []).map((a) => ({
-                      value: a.id,
-                      label: a.label,
-                    }))}
-                  />
-                  <FilterChip
-                    label='Criado por'
-                    value={updatedByFilter}
-                    onChange={setUpdatedByFilter}
-                    options={creators.map((id) => ({
-                      value: id,
-                      label: id.slice(0, 8),
-                    }))}
-                  />
-                </div>
+                </Dialog.Close>
               </div>
 
-              {/* Conteúdo */}
-              <div className='relative flex-1 overflow-y-auto'>
-                {automations.isLoading ? (
-                  <div className='py-16 text-center text-paragraph-sm text-text-sub-600'>
-                    Carregando automações...
+              {tab === 'manage' ? (
+                <>
+                  {/* Toolbar: escopo + Add */}
+                  <div className='flex shrink-0 items-center justify-between border-b border-stroke-soft-200 px-5 py-3'>
+                    <select
+                      disabled
+                      value='workspace'
+                      className='h-8 rounded-md border border-stroke-soft-200 bg-bg-white-0 px-2 text-paragraph-xs text-text-sub-600'
+                    >
+                      <option value='workspace'>Todo o workspace</option>
+                    </select>
+
+                    <button
+                      type='button'
+                      onClick={openCreate}
+                      className='inline-flex h-8 items-center gap-1.5 rounded-md border border-stroke-soft-200 bg-bg-white-0 px-2.5 text-paragraph-xs text-text-strong-950 hover:bg-bg-weak-50'
+                    >
+                      <RiAddLine className='size-3.5' />
+                      Adicionar automação
+                    </button>
                   </div>
-                ) : automations.isError ? (
-                  <div className='py-16 text-center text-paragraph-sm text-error-base'>
-                    Erro ao carregar automações.
-                  </div>
-                ) : filtered.length === 0 ? (
-                  <EmptyState onCreate={openCreate} hasAny={all.length > 0} />
-                ) : (
-                  <div className='divide-y divide-stroke-soft-200'>
-                    {filtered.map((a) => (
-                      <AutomationRow
-                        key={a.id}
-                        automation={a}
-                        onEdit={openEdit}
+
+                  {/* Filtros */}
+                  <div className='flex shrink-0 items-center justify-between border-b border-stroke-soft-200 px-5 py-2.5'>
+                    <div className='flex items-center gap-2'>
+                      <button
+                        type='button'
+                        onClick={() => setStatusFilter('active')}
+                        className={cn(
+                          'inline-flex items-center gap-1.5 rounded-full px-3 py-1 text-paragraph-xs font-medium transition-colors',
+                          statusFilter === 'active'
+                            ? 'bg-bg-strong-950 text-static-white'
+                            : 'text-text-sub-600 hover:text-text-strong-950',
+                        )}
+                      >
+                        Ativas
+                        <span
+                          className={cn(
+                            'inline-flex h-4 min-w-[16px] items-center justify-center rounded px-1 text-[10px]',
+                            statusFilter === 'active'
+                              ? 'bg-static-white/20 text-static-white'
+                              : 'bg-bg-weak-50 text-text-sub-600',
+                          )}
+                        >
+                          {activeCount}
+                        </span>
+                      </button>
+                      <button
+                        type='button'
+                        onClick={() => setStatusFilter('inactive')}
+                        className={cn(
+                          'inline-flex items-center gap-1.5 rounded-full px-3 py-1 text-paragraph-xs font-medium transition-colors',
+                          statusFilter === 'inactive'
+                            ? 'bg-bg-strong-950 text-static-white'
+                            : 'text-text-sub-600 hover:text-text-strong-950',
+                        )}
+                      >
+                        Inativas
+                        <span
+                          className={cn(
+                            'inline-flex h-4 min-w-[16px] items-center justify-center rounded px-1 text-[10px]',
+                            statusFilter === 'inactive'
+                              ? 'bg-static-white/20 text-static-white'
+                              : 'bg-bg-weak-50 text-text-sub-600',
+                          )}
+                        >
+                          {inactiveCount}
+                        </span>
+                      </button>
+                    </div>
+
+                    <div className='flex items-center gap-2'>
+                      <FilterChip
+                        label='Trigger'
+                        value={triggerFilter}
+                        onChange={setTriggerFilter}
+                        options={(triggers.data ?? []).map((t) => ({
+                          value: t.id,
+                          label: t.label,
+                        }))}
                       />
-                    ))}
+                      <FilterChip
+                        label='Condição'
+                        value={conditionFilter}
+                        onChange={setConditionFilter}
+                        options={conditionFields.map((f) => ({
+                          value: f,
+                          label: f,
+                        }))}
+                      />
+                      <FilterChip
+                        label='Ação'
+                        value={actionFilter}
+                        onChange={setActionFilter}
+                        options={(actions.data ?? []).map((a) => ({
+                          value: a.id,
+                          label: a.label,
+                        }))}
+                      />
+                      <FilterChip
+                        label='Criado por'
+                        value={updatedByFilter}
+                        onChange={setUpdatedByFilter}
+                        options={creators.map((id) => ({
+                          value: id,
+                          label: id.slice(0, 8),
+                        }))}
+                      />
+                    </div>
                   </div>
-                )}
-              </div>
-            </>
-          ) : (
-            <ComingSoon tabLabel={TABS.find((t) => t.id === tab)?.label ?? ''} />
-          )}
+
+                  {/* Conteúdo */}
+                  <div className='relative flex-1 overflow-y-auto'>
+                    {automations.isLoading ? (
+                      <div className='py-16 text-center text-paragraph-sm text-text-sub-600'>
+                        Carregando automações...
+                      </div>
+                    ) : automations.isError ? (
+                      <div className='py-16 text-center text-paragraph-sm text-error-base'>
+                        Erro ao carregar automações.
+                      </div>
+                    ) : filtered.length === 0 ? (
+                      <EmptyState
+                        onCreate={openCreate}
+                        hasAny={all.length > 0}
+                      />
+                    ) : (
+                      <div className='divide-y divide-stroke-soft-200'>
+                        {filtered.map((a) => (
+                          <AutomationRow
+                            key={a.id}
+                            automation={a}
+                            onEdit={openEdit}
+                          />
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                </>
+              ) : (
+                <ComingSoon
+                  tabLabel={TABS.find((t) => t.id === tab)?.label ?? ''}
+                />
+              )}
             </>
           )}
         </Dialog.Content>

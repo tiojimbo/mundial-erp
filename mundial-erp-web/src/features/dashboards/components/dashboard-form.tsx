@@ -59,7 +59,7 @@ export function DashboardForm({
           </Input.Wrapper>
         </Input.Root>
         {errors.name && (
-          <p className='text-paragraph-xs text-state-error-base'>
+          <p className='text-state-error-base text-paragraph-xs'>
             {errors.name.message}
           </p>
         )}
@@ -67,9 +67,7 @@ export function DashboardForm({
 
       {/* Description */}
       <div className='space-y-1.5'>
-        <label className='text-label-sm text-text-strong-950'>
-          Descrição
-        </label>
+        <label className='text-label-sm text-text-strong-950'>Descrição</label>
         <Input.Root>
           <Input.Wrapper>
             <Input.Input
@@ -79,7 +77,7 @@ export function DashboardForm({
           </Input.Wrapper>
         </Input.Root>
         {errors.description && (
-          <p className='text-paragraph-xs text-state-error-base'>
+          <p className='text-state-error-base text-paragraph-xs'>
             {errors.description.message}
           </p>
         )}

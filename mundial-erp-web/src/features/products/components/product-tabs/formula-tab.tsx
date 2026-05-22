@@ -32,10 +32,7 @@ export function ProductFormulaTab({
     return (
       <div className='space-y-3'>
         {Array.from({ length: 3 }).map((_, i) => (
-          <div
-            key={i}
-            className='h-12 animate-pulse rounded bg-bg-weak-50'
-          />
+          <div key={i} className='h-12 animate-pulse rounded bg-bg-weak-50' />
         ))}
       </div>
     );
@@ -56,9 +53,7 @@ export function ProductFormulaTab({
     <div className='space-y-6'>
       <div className='rounded-xl border border-stroke-soft-200 bg-bg-white-0 p-5 shadow-regular-xs'>
         <div className='mb-4 flex items-center justify-between'>
-          <h3 className='text-label-sm text-text-strong-950'>
-            {formula.name}
-          </h3>
+          <h3 className='text-label-sm text-text-strong-950'>{formula.name}</h3>
           <span className='text-paragraph-sm text-text-sub-600'>
             Rendimento: {formula.yieldQuantity}
           </span>

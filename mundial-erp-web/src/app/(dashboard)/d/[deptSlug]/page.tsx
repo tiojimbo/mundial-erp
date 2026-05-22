@@ -21,19 +21,19 @@ export default function DepartmentPage() {
 
   if (isDeptLoading) {
     return (
-      <div className="flex flex-col gap-4">
-        <div className="h-6 w-64 animate-pulse rounded-lg bg-bg-weak-50" />
-        <div className="h-10 w-96 animate-pulse rounded-lg bg-bg-weak-50" />
-        <div className="h-12 animate-pulse rounded-lg bg-bg-weak-50" />
-        <div className="h-64 animate-pulse rounded-lg bg-bg-weak-50" />
+      <div className='flex flex-col gap-4'>
+        <div className='h-6 w-64 animate-pulse rounded-lg bg-bg-weak-50' />
+        <div className='h-10 w-96 animate-pulse rounded-lg bg-bg-weak-50' />
+        <div className='h-12 animate-pulse rounded-lg bg-bg-weak-50' />
+        <div className='h-64 animate-pulse rounded-lg bg-bg-weak-50' />
       </div>
     );
   }
 
   if (!department) {
     return (
-      <div className="flex flex-col items-center justify-center gap-2 py-20 text-text-soft-400">
-        <p className="text-paragraph-sm">Departamento não encontrado.</p>
+      <div className='flex flex-col items-center justify-center gap-2 py-20 text-text-soft-400'>
+        <p className='text-paragraph-sm'>Departamento não encontrado.</p>
       </div>
     );
   }
@@ -56,7 +56,7 @@ export default function DepartmentPage() {
         }
         deptSlug={department.slug}
         departmentId={department.id}
-        emptyMessage="Nenhum processo neste departamento."
+        emptyMessage='Nenhum processo neste departamento.'
         onCreateTask={() => setIsCreateOpen(true)}
         customFieldsScope={{ kind: 'space', spaceId: department.id }}
       />

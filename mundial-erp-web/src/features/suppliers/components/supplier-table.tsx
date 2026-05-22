@@ -31,7 +31,9 @@ export function SupplierTable() {
     search: '',
   });
   const [searchInput, setSearchInput] = useState('');
-  const [activeFilter, setActiveFilter] = useState<boolean | undefined>(undefined);
+  const [activeFilter, setActiveFilter] = useState<boolean | undefined>(
+    undefined,
+  );
   const debouncedSearch = useDebounce(searchInput, 300);
   const { data, isLoading } = useSuppliers(filters);
   const deleteMutation = useDeleteSupplier();
@@ -138,130 +140,134 @@ export function SupplierTable() {
       </div>
 
       {/* Table */}
-        <Table.Root>
-          <Table.Header>
+      <Table.Root>
+        <Table.Header>
+          <Table.Row>
+            <Table.Head>Nome</Table.Head>
+            <Table.Head>CPF/CNPJ</Table.Head>
+            <Table.Head>Tipo</Table.Head>
+            <Table.Head>Cidade/UF</Table.Head>
+            <Table.Head>Telefone</Table.Head>
+            <Table.Head>Status</Table.Head>
+            <Table.Head className='text-right'>Ações</Table.Head>
+          </Table.Row>
+        </Table.Header>
+        <Table.Body>
+          {isLoading ? (
+            Array.from({ length: 5 }).map((_, i) => (
+              <Table.Row key={i}>
+                {Array.from({ length: 7 }).map((__, j) => (
+                  <Table.Cell key={j}>
+                    <div className='h-4 w-24 animate-pulse rounded bg-bg-weak-50' />
+                  </Table.Cell>
+                ))}
+              </Table.Row>
+            ))
+          ) : suppliers.length === 0 ? (
             <Table.Row>
-              <Table.Head>Nome</Table.Head>
-              <Table.Head>CPF/CNPJ</Table.Head>
-              <Table.Head>Tipo</Table.Head>
-              <Table.Head>Cidade/UF</Table.Head>
-              <Table.Head>Telefone</Table.Head>
-              <Table.Head>Status</Table.Head>
-              <Table.Head className='text-right'>Ações</Table.Head>
+              <Table.Cell colSpan={7} className='text-center'>
+                <p className='py-8 text-paragraph-sm text-text-soft-400'>
+                  {filters.search
+                    ? 'Nenhum fornecedor encontrado para esta busca.'
+                    : 'Nenhum fornecedor cadastrado.'}
+                </p>
+              </Table.Cell>
             </Table.Row>
-          </Table.Header>
-          <Table.Body>
-            {isLoading ? (
-              Array.from({ length: 5 }).map((_, i) => (
-                <Table.Row key={i}>
-                  {Array.from({ length: 7 }).map((__, j) => (
-                    <Table.Cell key={j}>
-                      <div className='h-4 w-24 animate-pulse rounded bg-bg-weak-50' />
-                    </Table.Cell>
-                  ))}
-                </Table.Row>
-              ))
-            ) : suppliers.length === 0 ? (
-              <Table.Row>
-                <Table.Cell colSpan={7} className='text-center'>
-                  <p className='py-8 text-paragraph-sm text-text-soft-400'>
-                    {filters.search
-                      ? 'Nenhum fornecedor encontrado para esta busca.'
-                      : 'Nenhum fornecedor cadastrado.'}
-                  </p>
+          ) : (
+            suppliers.map((supplier) => (
+              <Table.Row key={supplier.id}>
+                <Table.Cell>
+                  <button
+                    onClick={() =>
+                      router.push(`/compras/fornecedores/${supplier.id}`)
+                    }
+                    className='text-left text-label-sm text-text-strong-950 transition hover:text-primary-base'
+                  >
+                    {supplier.name}
+                    {supplier.tradeName && (
+                      <span className='ml-1 text-paragraph-xs text-text-soft-400'>
+                        ({supplier.tradeName})
+                      </span>
+                    )}
+                  </button>
+                </Table.Cell>
+                <Table.Cell>
+                  <span className='text-paragraph-sm text-text-sub-600'>
+                    {formatCpfCnpj(supplier.cpfCnpj)}
+                  </span>
+                </Table.Cell>
+                <Table.Cell>
+                  <Badge.Root
+                    variant='lighter'
+                    color={supplier.personType === 'F' ? 'blue' : 'purple'}
+                    size='small'
+                  >
+                    {supplier.personType === 'F'
+                      ? 'Pessoa Física'
+                      : 'Pessoa Jurídica'}
+                  </Badge.Root>
+                </Table.Cell>
+                <Table.Cell>
+                  <span className='text-paragraph-sm text-text-sub-600'>
+                    {supplier.city && supplier.state
+                      ? `${supplier.city}/${supplier.state}`
+                      : '—'}
+                  </span>
+                </Table.Cell>
+                <Table.Cell>
+                  <span className='text-paragraph-sm text-text-sub-600'>
+                    {supplier.phone || '—'}
+                  </span>
+                </Table.Cell>
+                <Table.Cell>
+                  <Badge.Root
+                    variant='lighter'
+                    color={supplier.isActive ? 'green' : 'red'}
+                    size='small'
+                  >
+                    {supplier.isActive ? 'Ativo' : 'Inativo'}
+                  </Badge.Root>
+                </Table.Cell>
+                <Table.Cell className='text-right'>
+                  <div className='flex items-center justify-end gap-1'>
+                    <Button.Root
+                      asChild
+                      variant='neutral'
+                      mode='ghost'
+                      size='xxsmall'
+                    >
+                      <Link href={`/compras/fornecedores/${supplier.id}`}>
+                        <Button.Icon as={RiEyeLine} />
+                      </Link>
+                    </Button.Root>
+                    <Button.Root
+                      asChild
+                      variant='neutral'
+                      mode='ghost'
+                      size='xxsmall'
+                    >
+                      <Link
+                        href={`/compras/fornecedores/${supplier.id}/editar`}
+                      >
+                        <Button.Icon as={RiEditLine} />
+                      </Link>
+                    </Button.Root>
+                    <Button.Root
+                      variant='error'
+                      mode='ghost'
+                      size='xxsmall'
+                      onClick={() => handleDelete(supplier.id, supplier.name)}
+                      disabled={deleteMutation.isPending}
+                    >
+                      <Button.Icon as={RiDeleteBinLine} />
+                    </Button.Root>
+                  </div>
                 </Table.Cell>
               </Table.Row>
-            ) : (
-              suppliers.map((supplier) => (
-                <Table.Row key={supplier.id}>
-                  <Table.Cell>
-                    <button
-                      onClick={() =>
-                        router.push(`/compras/fornecedores/${supplier.id}`)
-                      }
-                      className='text-left text-label-sm text-text-strong-950 transition hover:text-primary-base'
-                    >
-                      {supplier.name}
-                      {supplier.tradeName && (
-                        <span className='ml-1 text-paragraph-xs text-text-soft-400'>
-                          ({supplier.tradeName})
-                        </span>
-                      )}
-                    </button>
-                  </Table.Cell>
-                  <Table.Cell>
-                    <span className='text-paragraph-sm text-text-sub-600'>
-                      {formatCpfCnpj(supplier.cpfCnpj)}
-                    </span>
-                  </Table.Cell>
-                  <Table.Cell>
-                    <Badge.Root
-                      variant='lighter'
-                      color={supplier.personType === 'F' ? 'blue' : 'purple'}
-                      size='small'
-                    >
-                      {supplier.personType === 'F' ? 'Pessoa Física' : 'Pessoa Jurídica'}
-                    </Badge.Root>
-                  </Table.Cell>
-                  <Table.Cell>
-                    <span className='text-paragraph-sm text-text-sub-600'>
-                      {supplier.city && supplier.state
-                        ? `${supplier.city}/${supplier.state}`
-                        : '—'}
-                    </span>
-                  </Table.Cell>
-                  <Table.Cell>
-                    <span className='text-paragraph-sm text-text-sub-600'>
-                      {supplier.phone || '—'}
-                    </span>
-                  </Table.Cell>
-                  <Table.Cell>
-                    <Badge.Root
-                      variant='lighter'
-                      color={supplier.isActive ? 'green' : 'red'}
-                      size='small'
-                    >
-                      {supplier.isActive ? 'Ativo' : 'Inativo'}
-                    </Badge.Root>
-                  </Table.Cell>
-                  <Table.Cell className='text-right'>
-                    <div className='flex items-center justify-end gap-1'>
-                      <Button.Root
-                        asChild
-                        variant='neutral'
-                        mode='ghost'
-                        size='xxsmall'
-                      >
-                        <Link href={`/compras/fornecedores/${supplier.id}`}>
-                          <Button.Icon as={RiEyeLine} />
-                        </Link>
-                      </Button.Root>
-                      <Button.Root
-                        asChild
-                        variant='neutral'
-                        mode='ghost'
-                        size='xxsmall'
-                      >
-                        <Link href={`/compras/fornecedores/${supplier.id}/editar`}>
-                          <Button.Icon as={RiEditLine} />
-                        </Link>
-                      </Button.Root>
-                      <Button.Root
-                        variant='error'
-                        mode='ghost'
-                        size='xxsmall'
-                        onClick={() => handleDelete(supplier.id, supplier.name)}
-                        disabled={deleteMutation.isPending}
-                      >
-                        <Button.Icon as={RiDeleteBinLine} />
-                      </Button.Root>
-                    </div>
-                  </Table.Cell>
-                </Table.Row>
-              ))
-            )}
-          </Table.Body>
-        </Table.Root>
+            ))
+          )}
+        </Table.Body>
+      </Table.Root>
 
       {/* Pagination */}
       {pagination && pagination.totalPages > 1 && (

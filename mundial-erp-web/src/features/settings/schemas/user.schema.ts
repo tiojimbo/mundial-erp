@@ -10,10 +10,17 @@ export const createUserSchema = z.object({
   department: z.string().min(1, 'Departamento é obrigatório'),
 });
 
-export const updateUserSchema = createUserSchema.partial().omit({ password: true }).extend({
-  password: z.string().min(8, 'Mínimo de 8 caracteres').optional().or(z.literal('')),
-  isActive: z.boolean().optional(),
-});
+export const updateUserSchema = createUserSchema
+  .partial()
+  .omit({ password: true })
+  .extend({
+    password: z
+      .string()
+      .min(8, 'Mínimo de 8 caracteres')
+      .optional()
+      .or(z.literal('')),
+    isActive: z.boolean().optional(),
+  });
 
 export type CreateUserFormData = z.infer<typeof createUserSchema>;
 export type UpdateUserFormData = z.infer<typeof updateUserSchema>;

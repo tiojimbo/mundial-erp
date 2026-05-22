@@ -80,23 +80,23 @@ export function CurrencyField({
       {(controlProps) => {
         if (inline) {
           return (
-            <div className="flex w-full items-center gap-1">
+            <div className='flex w-full items-center gap-1'>
               {displayValue.length > 0 ? (
                 <span
-                  aria-hidden="true"
-                  className="shrink-0 text-[13px] text-foreground"
+                  aria-hidden='true'
+                  className='shrink-0 text-[13px] text-foreground'
                 >
                   R$
                 </span>
               ) : null}
               <input
                 {...controlProps}
-                type="text"
-                inputMode="decimal"
+                type='text'
+                inputMode='decimal'
                 className={inputClassInline}
                 value={displayValue}
                 readOnly={isReadOnly}
-                placeholder="-"
+                placeholder='-'
                 onChange={(event) => handleChange(event.target.value)}
                 onFocus={handleFocus}
                 onBlur={handleBlur}
@@ -105,21 +105,21 @@ export function CurrencyField({
           );
         }
         return (
-          <div className="relative">
+          <div className='relative'>
             <span
-              aria-hidden="true"
-              className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-sm text-foreground"
+              aria-hidden='true'
+              className='text-sm pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-foreground'
             >
               R$
             </span>
             <input
               {...controlProps}
-              type="text"
-              inputMode="decimal"
+              type='text'
+              inputMode='decimal'
               className={`${inputClass} pl-9`}
               value={displayValue}
               readOnly={isReadOnly}
-              placeholder="0,00"
+              placeholder='0,00'
               onChange={(event) => handleChange(event.target.value)}
               onFocus={handleFocus}
               onBlur={handleBlur}

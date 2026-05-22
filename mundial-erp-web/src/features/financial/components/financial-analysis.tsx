@@ -63,7 +63,7 @@ export function FinancialAnalysis() {
       {/* Receivable Section */}
       <div>
         <h2 className='mb-3 flex items-center gap-2 text-label-md text-text-strong-950'>
-          <RiArrowUpLine className='size-4 text-state-success-base' />
+          <RiArrowUpLine className='text-state-success-base size-4' />
           Contas a Receber
         </h2>
         <div className='grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-4'>
@@ -98,7 +98,7 @@ export function FinancialAnalysis() {
       {/* Payable Section */}
       <div>
         <h2 className='mb-3 flex items-center gap-2 text-label-md text-text-strong-950'>
-          <RiArrowDownLine className='size-4 text-state-error-base' />
+          <RiArrowDownLine className='text-state-error-base size-4' />
           Contas a Pagar
         </h2>
         <div className='grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-4'>
@@ -151,7 +151,9 @@ export function FinancialAnalysis() {
                   Status
                 </span>
                 <p className='text-label-sm text-text-strong-950'>
-                  {summary.cashBalance.isOpen ? 'Caixa aberto' : 'Caixa fechado'}
+                  {summary.cashBalance.isOpen
+                    ? 'Caixa aberto'
+                    : 'Caixa fechado'}
                 </p>
               </div>
             </div>
@@ -207,7 +209,13 @@ const COLOR_MAP: Record<SummaryCardProps['color'], string> = {
   error: 'text-state-error-base',
 };
 
-function SummaryCard({ icon: Icon, label, value, subtitle, color }: SummaryCardProps) {
+function SummaryCard({
+  icon: Icon,
+  label,
+  value,
+  subtitle,
+  color,
+}: SummaryCardProps) {
   return (
     <div className='rounded-lg border border-stroke-soft-200 p-4'>
       <div className='mb-2 flex items-center gap-2'>

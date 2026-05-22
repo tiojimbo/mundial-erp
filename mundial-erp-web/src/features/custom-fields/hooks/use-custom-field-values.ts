@@ -10,8 +10,7 @@ import type {
 } from '../types/custom-field.types';
 
 export const customFieldValuesQueryKeys = {
-  all: (workspaceId: string) =>
-    [workspaceId, 'custom-field-values'] as const,
+  all: (workspaceId: string) => [workspaceId, 'custom-field-values'] as const,
   byTask: (workspaceId: string, taskId: string) =>
     [...customFieldValuesQueryKeys.all(workspaceId), taskId] as const,
 };

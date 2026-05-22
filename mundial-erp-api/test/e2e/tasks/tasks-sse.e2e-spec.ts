@@ -21,11 +21,7 @@
  *   - Worker do outbox inativo (nao ha push em tempo real)
  */
 import { Test, TestingModule } from '@nestjs/testing';
-import {
-  INestApplication,
-  Logger,
-  ValidationPipe,
-} from '@nestjs/common';
+import { INestApplication, Logger, ValidationPipe } from '@nestjs/common';
 import request from 'supertest';
 import type { App } from 'supertest/types';
 import type { AddressInfo } from 'net';
@@ -54,7 +50,11 @@ interface EventSourceLike {
   onmessage: ((ev: { data: string; lastEventId?: string }) => void) | null;
   addEventListener(
     type: string,
-    listener: (ev: { data: string; lastEventId?: string; type?: string }) => void,
+    listener: (ev: {
+      data: string;
+      lastEventId?: string;
+      type?: string;
+    }) => void,
   ): void;
   close(): void;
 }
@@ -111,16 +111,14 @@ const collectEvents = (
     const out: NamedEvent[] = [];
     const timer = setTimeout(() => resolve(out), timeoutMs);
 
-    const handler = (name: string) => (ev: {
-      data: string;
-      lastEventId?: string;
-    }) => {
-      out.push({ type: name, data: ev.data, lastEventId: ev.lastEventId });
-      if (out.length >= minCount) {
-        clearTimeout(timer);
-        resolve(out);
-      }
-    };
+    const handler =
+      (name: string) => (ev: { data: string; lastEventId?: string }) => {
+        out.push({ type: name, data: ev.data, lastEventId: ev.lastEventId });
+        if (out.length >= minCount) {
+          clearTimeout(timer);
+          resolve(out);
+        }
+      };
 
     for (const n of eventNames) {
       es.addEventListener(n, handler(n));

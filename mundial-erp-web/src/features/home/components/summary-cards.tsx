@@ -17,11 +17,36 @@ type CardDef = {
 };
 
 const cards: CardDef[] = [
-  { label: 'ATRASADAS', key: 'overdueCount', icon: RiAlertLine, sectionId: 'overdue' },
-  { label: 'PARA HOJE', key: 'dueTodayCount', icon: RiCalendarCheckLine, sectionId: 'dueToday' },
-  { label: 'PRÓXIMOS DIAS', key: 'dueNextDaysCount', icon: RiCalendarLine, sectionId: 'dueByDay' },
-  { label: 'SEM DATA', key: 'noDueDateCount', icon: RiIndeterminateCircleLine, sectionId: 'noDueDate' },
-  { label: 'CONCLUÍDAS (7D)', key: 'completedCount', icon: RiCheckboxCircleLine, sectionId: 'recentlyCompleted' },
+  {
+    label: 'ATRASADAS',
+    key: 'overdueCount',
+    icon: RiAlertLine,
+    sectionId: 'overdue',
+  },
+  {
+    label: 'PARA HOJE',
+    key: 'dueTodayCount',
+    icon: RiCalendarCheckLine,
+    sectionId: 'dueToday',
+  },
+  {
+    label: 'PRÓXIMOS DIAS',
+    key: 'dueNextDaysCount',
+    icon: RiCalendarLine,
+    sectionId: 'dueByDay',
+  },
+  {
+    label: 'SEM DATA',
+    key: 'noDueDateCount',
+    icon: RiIndeterminateCircleLine,
+    sectionId: 'noDueDate',
+  },
+  {
+    label: 'CONCLUÍDAS (7D)',
+    key: 'completedCount',
+    icon: RiCheckboxCircleLine,
+    sectionId: 'recentlyCompleted',
+  },
 ];
 
 type SummaryCardsProps = {
@@ -30,7 +55,11 @@ type SummaryCardsProps = {
   onScrollTo: (sectionId: string) => void;
 };
 
-export function SummaryCards({ summary, isLoading, onScrollTo }: SummaryCardsProps) {
+export function SummaryCards({
+  summary,
+  isLoading,
+  onScrollTo,
+}: SummaryCardsProps) {
   if (isLoading || !summary) {
     return (
       <div className='grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-5'>
@@ -58,7 +87,7 @@ export function SummaryCards({ summary, isLoading, onScrollTo }: SummaryCardsPro
         return (
           <button
             key={card.key}
-            className='group relative flex min-h-[94px] min-w-[179px] cursor-pointer flex-col gap-3 overflow-hidden rounded-xl border bg-card p-4 text-left transition-shadow hover:shadow-md'
+            className='hover:shadow-md group relative flex min-h-[94px] min-w-[179px] cursor-pointer flex-col gap-3 overflow-hidden rounded-xl border bg-card p-4 text-left transition-shadow'
             aria-label={`${card.label}: ${count} tarefas. Clique para navegar.`}
             onClick={() => onScrollTo(card.sectionId)}
           >
@@ -74,7 +103,7 @@ export function SummaryCards({ summary, isLoading, onScrollTo }: SummaryCardsPro
                 {count}
               </span>
               {card.key === 'noDueDateCount' && count !== totalActive && (
-                <span className='text-[10px] text-muted-foreground/60'>
+                <span className='text-muted-foreground/60 text-[10px]'>
                   / {totalActive}
                 </span>
               )}

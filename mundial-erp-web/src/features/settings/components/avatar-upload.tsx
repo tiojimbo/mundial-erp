@@ -98,7 +98,7 @@ export function AvatarUpload() {
         </Avatar.Root>
 
         {/* Hover overlay */}
-        <div className='absolute inset-0 flex items-center justify-center rounded-full bg-static-black/40 opacity-0 transition-opacity group-hover:opacity-100'>
+        <div className='bg-static-black/40 absolute inset-0 flex items-center justify-center rounded-full opacity-0 transition-opacity group-hover:opacity-100'>
           <RiCameraLine className='size-6 text-static-white' />
         </div>
       </button>

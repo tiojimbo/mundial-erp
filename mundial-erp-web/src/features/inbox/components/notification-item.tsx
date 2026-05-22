@@ -1,7 +1,7 @@
-'use client'
+'use client';
 
-import { useCallback } from 'react'
-import { useRouter } from 'next/navigation'
+import { useCallback } from 'react';
+import { useRouter } from 'next/navigation';
 import {
   RiAlertLine,
   RiTimeLine,
@@ -11,29 +11,32 @@ import {
   RiMailLine,
   RiMailOpenLine,
   RiCheckLine,
-} from '@remixicon/react'
+} from '@remixicon/react';
 
 import type {
   Notification,
   NotificationType,
-} from '../types/notification.types'
-import { formatNotificationTime } from '../lib/date'
+} from '../types/notification.types';
+import { formatNotificationTime } from '../lib/date';
 
-const ICON_MAP: Record<NotificationType, React.ComponentType<{ className?: string }>> = {
+const ICON_MAP: Record<
+  NotificationType,
+  React.ComponentType<{ className?: string }>
+> = {
   'task.overdue': RiAlertLine,
   'task.due_soon': RiTimeLine,
-  'message': RiChat1Line,
-  'mention': RiAtLine,
-  'system': RiNotification3Line,
-}
+  message: RiChat1Line,
+  mention: RiAtLine,
+  system: RiNotification3Line,
+};
 
 type NotificationItemProps = {
-  notification: Notification
-  onRead: (id: string) => void
-  onUnread: (id: string) => void
-  onClear: (id: string) => void
-  onNavigate: (url: string) => void
-}
+  notification: Notification;
+  onRead: (id: string) => void;
+  onUnread: (id: string) => void;
+  onClear: (id: string) => void;
+  onNavigate: (url: string) => void;
+};
 
 export function NotificationItem({
   notification,
@@ -42,65 +45,67 @@ export function NotificationItem({
   onClear,
   onNavigate: _onNavigate,
 }: NotificationItemProps) {
-  const router = useRouter()
-  const isUnread = notification.status === 'unread'
-  const Icon = ICON_MAP[notification.type] ?? RiNotification3Line
-  const timeLabel = formatNotificationTime(notification.createdAt)
+  const router = useRouter();
+  const isUnread = notification.status === 'unread';
+  const Icon = ICON_MAP[notification.type] ?? RiNotification3Line;
+  const timeLabel = formatNotificationTime(notification.createdAt);
 
   const handleClick = useCallback(() => {
     if (isUnread) {
-      onRead(notification.id)
+      onRead(notification.id);
     }
     if (notification.entityUrl) {
-      router.push(notification.entityUrl)
+      router.push(notification.entityUrl);
     }
-  }, [notification, isUnread, onRead, router])
+  }, [notification, isUnread, onRead, router]);
 
   const handleToggleRead = useCallback(
     (e: React.MouseEvent) => {
-      e.stopPropagation()
+      e.stopPropagation();
       if (isUnread) {
-        onRead(notification.id)
+        onRead(notification.id);
       } else {
-        onUnread(notification.id)
+        onUnread(notification.id);
       }
     },
     [notification.id, isUnread, onRead, onUnread],
-  )
+  );
 
   const handleClear = useCallback(
     (e: React.MouseEvent) => {
-      e.stopPropagation()
-      onClear(notification.id)
+      e.stopPropagation();
+      onClear(notification.id);
     },
     [notification.id, onClear],
-  )
+  );
 
   const handleKeyDown = useCallback(
     (e: React.KeyboardEvent) => {
       if (e.key === 'Enter' || e.key === ' ') {
-        e.preventDefault()
-        handleClick()
+        e.preventDefault();
+        handleClick();
       }
     },
     [handleClick],
-  )
+  );
 
   return (
     <div
-      className={`group/notification relative cursor-pointer transition-colors bg-background hover:bg-muted/50 ${
-        isUnread ? 'before:absolute before:inset-y-0 before:left-0 before:w-[3px] before:bg-primary' : ''
+      className={`group/notification hover:bg-muted/50 relative cursor-pointer bg-background transition-colors ${
+        isUnread
+          ? 'before:bg-primary before:absolute before:inset-y-0 before:left-0 before:w-[3px]'
+          : ''
       }`}
       onClick={handleClick}
       onKeyDown={handleKeyDown}
-      role="button"
+      role='button'
       tabIndex={0}
     >
-      <div className="flex items-center gap-3 px-4 py-2.5">
-        <div className="min-w-0">
-          <div className="flex items-center gap-2.5">
-            <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-md bg-muted transition-opacity hover:opacity-75">
-              <Icon className="h-3.5 w-3.5 text-muted-foreground" />
+      <div className='flex items-center gap-3 px-4 py-2.5'>
+        <div className='min-w-0'>
+          <div className='flex items-center gap-2.5'>
+            <span className='flex h-6 w-6 shrink-0 items-center justify-center rounded-md bg-muted transition-opacity hover:opacity-75'>
+              <Icon className='h-3.5 w-3.5 text-muted-foreground' />
             </span>
             <span
               className={`truncate text-foreground ${
@@ -111,40 +116,44 @@ export function NotificationItem({
             </span>
           </div>
         </div>
-        <span className="shrink-0 text-paragraph-sm text-muted-foreground/40">&mdash;</span>
-        <div className="min-w-0 flex-1">
-          <span className="truncate text-paragraph-sm text-muted-foreground">
+        <span className='text-muted-foreground/40 shrink-0 text-paragraph-sm'>
+          &mdash;
+        </span>
+        <div className='min-w-0 flex-1'>
+          <span className='truncate text-paragraph-sm text-muted-foreground'>
             {notification.description}
           </span>
         </div>
-        <div className="relative ml-auto flex h-7 shrink-0 items-center justify-end pl-3">
+        <div className='relative ml-auto flex h-7 shrink-0 items-center justify-end pl-3'>
           {/* Layer 1: time label — invisible on hover (keeps width) */}
-          <div className="group-hover/notification:invisible">
-            <span className="shrink-0 text-paragraph-xs tabular-nums text-muted-foreground">
+          <div className='group-hover/notification:invisible'>
+            <span className='shrink-0 text-paragraph-xs tabular-nums text-muted-foreground'>
               {timeLabel}
             </span>
           </div>
           {/* Layer 2: action buttons — shown on hover */}
-          <div className="absolute inset-y-0 right-0 hidden items-center group-hover/notification:flex">
-            <div className="flex shrink-0 flex-row items-center gap-1.5">
+          <div className='absolute inset-y-0 right-0 hidden items-center group-hover/notification:flex'>
+            <div className='flex shrink-0 flex-row items-center gap-1.5'>
               <button
-                aria-label={isUnread ? 'Marcar como lida' : 'Marcar como não lida'}
-                className="inline-flex h-7 w-7 items-center justify-center rounded-md border border-border bg-background transition-all hover:bg-muted"
+                aria-label={
+                  isUnread ? 'Marcar como lida' : 'Marcar como não lida'
+                }
+                className='inline-flex h-7 w-7 items-center justify-center rounded-md border border-border bg-background transition-all hover:bg-muted'
                 onClick={handleToggleRead}
               >
                 {isUnread ? (
-                  <RiMailOpenLine className="h-3.5 w-3.5" />
+                  <RiMailOpenLine className='h-3.5 w-3.5' />
                 ) : (
-                  <RiMailLine className="h-3.5 w-3.5" />
+                  <RiMailLine className='h-3.5 w-3.5' />
                 )}
               </button>
               <button
-                className="inline-flex h-7 items-center gap-2 rounded-md bg-foreground px-2.5 text-label-xs text-background transition-all hover:bg-foreground/90"
+                className='hover:bg-foreground/90 inline-flex h-7 items-center gap-2 rounded-md bg-foreground px-2.5 text-label-xs text-background transition-all'
                 onClick={handleClear}
               >
-                <RiCheckLine className="h-3.5 w-3.5" />
+                <RiCheckLine className='h-3.5 w-3.5' />
                 Clear
-                <kbd className="ml-1 flex h-4 min-w-4 items-center justify-center rounded bg-background/20 px-1 text-[10px] font-medium">
+                <kbd className='bg-background/20 ml-1 flex h-4 min-w-4 items-center justify-center rounded px-1 text-[10px] font-medium'>
                   E
                 </kbd>
               </button>
@@ -153,5 +162,5 @@ export function NotificationItem({
         </div>
       </div>
     </div>
-  )
+  );
 }

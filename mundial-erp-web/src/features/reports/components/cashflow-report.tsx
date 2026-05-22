@@ -13,11 +13,7 @@ import {
   ResponsiveContainer,
   Legend,
 } from 'recharts';
-import {
-  RiArrowUpLine,
-  RiArrowDownLine,
-  RiWalletLine,
-} from '@remixicon/react';
+import { RiArrowUpLine, RiArrowDownLine, RiWalletLine } from '@remixicon/react';
 import { formatCents, formatDate } from '@/lib/formatters';
 import { PeriodSelector } from './period-selector';
 import { useCashFlowReport } from '../hooks/use-reports';
@@ -43,7 +39,10 @@ export function CashFlowReportView() {
         <div className='space-y-4'>
           <div className='grid grid-cols-1 gap-4 md:grid-cols-3'>
             {Array.from({ length: 3 }).map((_, i) => (
-              <div key={i} className='h-24 animate-pulse rounded-lg bg-bg-weak-50' />
+              <div
+                key={i}
+                className='h-24 animate-pulse rounded-lg bg-bg-weak-50'
+              />
             ))}
           </div>
           <div className='h-64 animate-pulse rounded-lg bg-bg-weak-50' />
@@ -226,10 +225,10 @@ export function CashFlowReportView() {
                     <td className='px-4 py-2.5 text-paragraph-sm text-text-strong-950'>
                       {formatDate(entry.date)}
                     </td>
-                    <td className='px-4 py-2.5 text-right text-paragraph-sm text-state-success-base'>
+                    <td className='text-state-success-base px-4 py-2.5 text-right text-paragraph-sm'>
                       +{formatCents(entry.inflowCents)}
                     </td>
-                    <td className='px-4 py-2.5 text-right text-paragraph-sm text-state-error-base'>
+                    <td className='text-state-error-base px-4 py-2.5 text-right text-paragraph-sm'>
                       -{formatCents(entry.outflowCents)}
                     </td>
                     <td
@@ -276,9 +275,7 @@ function SummaryCard({
         <Icon className='size-4 text-text-soft-400' />
         <span className='text-paragraph-xs text-text-soft-400'>{label}</span>
       </div>
-      <p className={`text-title-h6 ${colorClass}`}>
-        {formatCents(valueCents)}
-      </p>
+      <p className={`text-title-h6 ${colorClass}`}>{formatCents(valueCents)}</p>
     </div>
   );
 }

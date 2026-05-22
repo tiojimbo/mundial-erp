@@ -77,7 +77,7 @@ export function InboxFilterPopover({
   return (
     <Popover.Root>
       <Popover.Trigger asChild>
-        <button className='inline-flex items-center gap-1.5 rounded-lg border border-border bg-background px-2.5 py-1.5 text-label-xs text-muted-foreground shadow-sm transition-colors hover:bg-muted hover:text-foreground'>
+        <button className='shadow-sm inline-flex items-center gap-1.5 rounded-lg border border-border bg-background px-2.5 py-1.5 text-label-xs text-muted-foreground transition-colors hover:bg-muted hover:text-foreground'>
           <RiFilterLine className='h-4 w-4' />
           Filtrar
           {activeFilterCount > 0 && (

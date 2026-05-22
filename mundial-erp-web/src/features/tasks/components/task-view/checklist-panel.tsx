@@ -32,11 +32,17 @@ function flatten(items: TaskChecklistItem[] | undefined): TaskChecklistItem[] {
   }, []);
 }
 
-export function ChecklistPanel({ checklist, onToggleItem }: ChecklistPanelProps) {
+export function ChecklistPanel({
+  checklist,
+  onToggleItem,
+}: ChecklistPanelProps) {
   const items = flatten(checklist.items);
   const done = items.filter((i) => i.completed).length;
 
-  function handleKey(e: KeyboardEvent<HTMLInputElement>, item: TaskChecklistItem) {
+  function handleKey(
+    e: KeyboardEvent<HTMLInputElement>,
+    item: TaskChecklistItem,
+  ) {
     if (e.key === ' ') {
       e.preventDefault();
       onToggleItem?.(item.id, !item.completed);
@@ -54,24 +60,30 @@ export function ChecklistPanel({ checklist, onToggleItem }: ChecklistPanelProps)
   }
 
   return (
-    <div className="flex flex-col gap-2 rounded-lg border border-border/60 p-3">
-      <header className="flex items-center justify-between">
-        <h3 className="text-[13px] font-semibold">{checklist.title}</h3>
-        <span className="text-[11px] text-muted-foreground">
+    <div className='border-border/60 flex flex-col gap-2 rounded-lg border p-3'>
+      <header className='flex items-center justify-between'>
+        <h3 className='text-[13px] font-semibold'>{checklist.title}</h3>
+        <span className='text-[11px] text-muted-foreground'>
           {done}/{items.length}
         </span>
       </header>
-      {items.length > 0 && <ProgressBar value={done} max={items.length} label={`${checklist.title} progresso`} />}
-      <ul className="flex flex-col gap-1">
+      {items.length > 0 && (
+        <ProgressBar
+          value={done}
+          max={items.length}
+          label={`${checklist.title} progresso`}
+        />
+      )}
+      <ul className='flex flex-col gap-1'>
         {items.map((it) => (
-          <li key={it.id} className="flex items-center gap-2">
+          <li key={it.id} className='flex items-center gap-2'>
             <input
-              type="checkbox"
+              type='checkbox'
               checked={it.completed}
               onChange={(e) => onToggleItem?.(it.id, e.target.checked)}
               onKeyDown={(e) => handleKey(e, it)}
               aria-label={it.text}
-              className="h-4 w-4 rounded border-border"
+              className='h-4 w-4 rounded border-border'
             />
             <span
               className={`text-[13px] ${it.completed ? 'text-muted-foreground line-through' : 'text-foreground'}`}

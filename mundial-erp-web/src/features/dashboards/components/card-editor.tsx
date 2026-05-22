@@ -29,7 +29,9 @@ export function CardEditor({
   defaultValues,
 }: CardEditorProps) {
   const [title, setTitle] = useState(defaultValues?.title ?? '');
-  const [type, setType] = useState<CardType>(defaultValues?.type ?? 'KPI_NUMBER');
+  const [type, setType] = useState<CardType>(
+    defaultValues?.type ?? 'KPI_NUMBER',
+  );
   const [entity, setEntity] = useState(defaultValues?.dataSource?.entity ?? '');
   const [xField, setXField] = useState(defaultValues?.axisConfig?.xField ?? '');
   const [yField, setYField] = useState(defaultValues?.axisConfig?.yField ?? '');
@@ -84,7 +86,10 @@ export function CardEditor({
             <label className='text-label-sm text-text-strong-950'>
               Tipo de Gráfico
             </label>
-            <Select.Root value={type} onValueChange={(v) => setType(v as CardType)}>
+            <Select.Root
+              value={type}
+              onValueChange={(v) => setType(v as CardType)}
+            >
               <Select.Trigger>
                 <Select.Value />
               </Select.Trigger>

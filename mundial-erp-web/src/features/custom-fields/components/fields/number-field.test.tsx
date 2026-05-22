@@ -6,9 +6,15 @@ import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { render, screen, fireEvent, act } from '@testing-library/react';
 import { NumberField } from './number-field';
 import type { CustomFieldDefinition } from '../../types/custom-field.types';
-import { makeCustomFieldDefinition } from "../../types/custom-field.fixtures";
+import { makeCustomFieldDefinition } from '../../types/custom-field.fixtures';
 
-const definition: CustomFieldDefinition = makeCustomFieldDefinition({ id: 'def-number-1', workspaceId: 'ws-1', name: 'Quantidade', type: 'NUMBER', config: { min: 0, max: 1000 } });
+const definition: CustomFieldDefinition = makeCustomFieldDefinition({
+  id: 'def-number-1',
+  workspaceId: 'ws-1',
+  name: 'Quantidade',
+  type: 'NUMBER',
+  config: { min: 0, max: 1000 },
+});
 
 describe('NumberField (TTT-024)', () => {
   beforeEach(() => {
@@ -24,9 +30,7 @@ describe('NumberField (TTT-024)', () => {
     render(
       <NumberField definition={definition} value={null} onChange={onChange} />,
     );
-    const input = screen.getByPlaceholderText(
-      'Quantidade',
-    ) as HTMLInputElement;
+    const input = screen.getByPlaceholderText('Quantidade') as HTMLInputElement;
     expect(input.type).toBe('number');
     expect(input.min).toBe('0');
     expect(input.max).toBe('1000');
@@ -69,7 +73,7 @@ describe('NumberField (TTT-024)', () => {
         definition={definition}
         value={null}
         onChange={onChange}
-        error="Numero invalido"
+        error='Numero invalido'
       />,
     );
     const input = screen.getByPlaceholderText('Quantidade');

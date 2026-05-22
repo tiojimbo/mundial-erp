@@ -79,10 +79,7 @@ export class TaskChecklistsController {
   @HttpCode(HttpStatus.NO_CONTENT)
   @ApiOperation({ summary: 'Remover checklist (soft delete + itens)' })
   @ApiResponse({ status: 204 })
-  removeChecklist(
-    @WorkspaceId() workspaceId: string,
-    @Param('id') id: string,
-  ) {
+  removeChecklist(@WorkspaceId() workspaceId: string, @Param('id') id: string) {
     return this.service.removeChecklist(workspaceId, id);
   }
 

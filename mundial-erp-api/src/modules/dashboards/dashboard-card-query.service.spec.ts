@@ -35,7 +35,6 @@ import {
   DashboardCardQueryService,
   type DataSource,
   type AxisConfig,
-  type GlobalFilter,
 } from './dashboard-card-query.service';
 import { PrismaService } from '../../database/prisma.service';
 
@@ -197,13 +196,7 @@ describe('DashboardCardQueryService', () => {
       rowSeed: LeakRow,
     ) => {
       prisma[delegateKey].findMany.mockResolvedValueOnce([rowSeed]);
-      const result = await service.execute(
-        'TABLE',
-        { entity },
-        null,
-        null,
-        [],
-      );
+      const result = await service.execute('TABLE', { entity }, null, null, []);
       return result as { columns: string[]; rows: LeakRow[] };
     };
 
@@ -382,15 +375,9 @@ describe('DashboardCardQueryService', () => {
     };
 
     it('rejects a global filter with field="workspaceId" by silently dropping it', async () => {
-      await service.execute(
-        'TABLE',
-        { entity: 'orders' },
-        null,
-        null,
-        [
-          { field: 'workspaceId', operator: 'EQUALS', value: 'spoofed-ws-id' },
-        ],
-      );
+      await service.execute('TABLE', { entity: 'orders' }, null, null, [
+        { field: 'workspaceId', operator: 'EQUALS', value: 'spoofed-ws-id' },
+      ]);
 
       const where = captureWhere(prisma.order);
       expect(where).not.toHaveProperty('workspaceId');
@@ -479,13 +466,7 @@ describe('DashboardCardQueryService', () => {
 
   describe('SUPPORTED_ENTITIES whitelist enforcement', () => {
     const callWithEntity = (entity: string) =>
-      service.execute(
-        'KPI_NUMBER',
-        { entity } as DataSource,
-        null,
-        null,
-        [],
-      );
+      service.execute('KPI_NUMBER', { entity } as DataSource, null, null, []);
 
     it('rejects path-traversal-style entity', async () => {
       await expect(callWithEntity('../../orders')).rejects.toBeInstanceOf(
@@ -504,9 +485,9 @@ describe('DashboardCardQueryService', () => {
       // Sprint 2 adds Kommo adapters, this test should be updated (or
       // removed) and a positive counterpart added. Keeping it here
       // documents the contract boundary.
-      await expect(
-        callWithEntity('kommoConversations'),
-      ).rejects.toBeInstanceOf(BadRequestException);
+      await expect(callWithEntity('kommoConversations')).rejects.toBeInstanceOf(
+        BadRequestException,
+      );
     });
 
     it('rejects SQL-injection entity payload', async () => {
@@ -706,9 +687,7 @@ describe('DashboardCardQueryService', () => {
         const isSinglePrismaIn = inArr?.length === 1 && inArr[0] === 'p2';
         const isScalar = status === ('p2' as unknown);
         const isEquals =
-          status &&
-          typeof status === 'object' &&
-          (status as Record<string, unknown>).equals === 'p2';
+          status && typeof status === 'object' && status.equals === 'p2';
         expect(isSinglePrismaIn || isScalar || isEquals).toBe(true);
       });
 
@@ -737,7 +716,7 @@ describe('DashboardCardQueryService', () => {
         );
 
         const where = captureWhere(prisma.order);
-        const status = where.status as unknown;
+        const status = where.status;
         const inArr =
           status && typeof status === 'object'
             ? ((status as Record<string, unknown>).in as unknown[] | undefined)
@@ -776,7 +755,7 @@ describe('DashboardCardQueryService', () => {
         );
 
         const where = captureWhere(prisma.order);
-        const status = where.status as unknown;
+        const status = where.status;
         const inArr =
           status && typeof status === 'object'
             ? ((status as Record<string, unknown>).in as unknown[] | undefined)
@@ -1080,7 +1059,7 @@ describe('DashboardCardQueryService', () => {
         //       intersection, but accepted as a safer alternative).
         if (prisma.order.findMany.mock.calls.length > 0) {
           const where = captureWhere(prisma.order);
-          const status = where.status as unknown;
+          const status = where.status;
           const inArr =
             status && typeof status === 'object'
               ? ((status as Record<string, unknown>).in as

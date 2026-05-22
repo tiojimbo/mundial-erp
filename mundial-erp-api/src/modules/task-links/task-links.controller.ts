@@ -41,10 +41,7 @@ export class TaskLinksController {
   @ApiOperation({ summary: 'Listar links da tarefa (perspectiva da task)' })
   @ApiResponse({ status: 200, type: [WorkItemLinkItemDto] })
   @ApiResponse({ status: 404, description: 'Tarefa nao encontrada' })
-  findAll(
-    @WorkspaceId() workspaceId: string,
-    @Param('taskId') taskId: string,
-  ) {
+  findAll(@WorkspaceId() workspaceId: string, @Param('taskId') taskId: string) {
     return this.service.findAll(workspaceId, taskId);
   }
 

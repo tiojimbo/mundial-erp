@@ -3,15 +3,14 @@
 import { useEffect, useMemo, useState } from 'react';
 import * as Popover from '@radix-ui/react-popover';
 import { DayPicker } from 'react-day-picker';
-import {
-  addDays,
-  addWeeks,
-  format,
-  nextSunday,
-  parseISO,
-} from 'date-fns';
+import { addDays, addWeeks, format, nextSunday, parseISO } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
-import { Calendar as CalendarIcon, ChevronLeft, ChevronRight, X } from 'lucide-react';
+import {
+  Calendar as CalendarIcon,
+  ChevronLeft,
+  ChevronRight,
+  X,
+} from 'lucide-react';
 import 'react-day-picker/dist/style.css';
 
 import { cn } from '@/lib/cn';
@@ -94,11 +93,16 @@ export function DateField({
 
   if (!inline) {
     return (
-      <FieldShell definition={definition} error={error} hint={definition.config?.hint} showLabel>
+      <FieldShell
+        definition={definition}
+        error={error}
+        hint={definition.config?.hint}
+        showLabel
+      >
         {(controlProps) => (
           <input
             {...controlProps}
-            type="date"
+            type='date'
             className={inputClass}
             value={localValue}
             readOnly={isReadOnly}
@@ -120,122 +124,135 @@ export function DateField({
           <Popover.Trigger asChild>
             <button
               {...controlProps}
-              type="button"
+              type='button'
               disabled={isReadOnly}
-              className="flex w-full cursor-pointer items-center gap-1.5 py-0.5 text-[13px] focus:outline-none disabled:cursor-not-allowed disabled:opacity-60"
+              className='flex w-full cursor-pointer items-center gap-1.5 py-0.5 text-[13px] focus:outline-none disabled:cursor-not-allowed disabled:opacity-60'
             >
-              <span className={selectedDate ? 'text-foreground' : 'text-muted-foreground/60'}>
+              <span
+                className={
+                  selectedDate ? 'text-foreground' : 'text-muted-foreground/60'
+                }
+              >
                 {selectedDate ? fmtBadge(selectedDate) : 'Adicionar'}
               </span>
             </button>
           </Popover.Trigger>
           <Popover.Portal>
             <Popover.Content
-              align="start"
+              align='start'
               sideOffset={4}
-              className="isolate z-[200] w-[480px] gap-0 overflow-hidden rounded-md border border-border bg-popover p-0 text-popover-foreground shadow-lg outline-none"
+              className='shadow-lg isolate z-[200] w-[480px] gap-0 overflow-hidden rounded-md border border-border bg-popover p-0 text-popover-foreground outline-none'
             >
-              <div className="border-border bg-background flex flex-col rounded-md border shadow-sm">
-              <div className="border-border flex flex-wrap items-center gap-1.5 border-b p-2">
-                <div className="flex items-center gap-1">
-                  <CalendarIcon className="text-muted-foreground h-3.5 w-3.5" aria-hidden="true" />
-                  {selectedDate ? (
-                    <span className="bg-primary/10 text-primary inline-flex items-center gap-1 rounded-md px-2 py-0.5 text-xs font-medium">
-                      {fmtBadge(selectedDate)}
+              <div className='shadow-sm flex flex-col rounded-md border border-border bg-background'>
+                <div className='flex flex-wrap items-center gap-1.5 border-b border-border p-2'>
+                  <div className='flex items-center gap-1'>
+                    <CalendarIcon
+                      className='h-3.5 w-3.5 text-muted-foreground'
+                      aria-hidden='true'
+                    />
+                    {selectedDate ? (
+                      <span className='bg-primary/10 text-primary text-xs inline-flex items-center gap-1 rounded-md px-2 py-0.5 font-medium'>
+                        {fmtBadge(selectedDate)}
+                        <button
+                          type='button'
+                          onClick={() => commit(undefined)}
+                          className='hover:bg-primary/20 rounded-full p-0.5'
+                          aria-label='Limpar data'
+                        >
+                          <X className='h-3 w-3' />
+                        </button>
+                      </span>
+                    ) : (
+                      <span className='text-xs text-muted-foreground'>
+                        Sem data
+                      </span>
+                    )}
+                  </div>
+                </div>
+
+                <div className='flex'>
+                  <div className='bg-muted/30 flex w-40 flex-col gap-0.5 rounded-bl-md border-r border-border p-2'>
+                    {shortcuts.map((s) => (
                       <button
-                        type="button"
-                        onClick={() => commit(undefined)}
-                        className="hover:bg-primary/20 rounded-full p-0.5"
-                        aria-label="Limpar data"
+                        key={s.label}
+                        type='button'
+                        onClick={() => commit(s.date)}
+                        className='text-xs hover:bg-accent/50 flex w-full items-start justify-between gap-2 rounded-sm px-1.5 py-1 text-left text-muted-foreground transition-all'
                       >
-                        <X className="h-3 w-3" />
+                        <span>{s.label}</span>
+                        <span className='shrink-0 text-[10px] text-muted-foreground'>
+                          {s.hint}
+                        </span>
                       </button>
-                    </span>
-                  ) : (
-                    <span className="text-muted-foreground text-xs">Sem data</span>
-                  )}
-                </div>
-              </div>
-
-              <div className="flex">
-                <div className="border-border bg-muted/30 flex w-40 flex-col gap-0.5 rounded-bl-md border-r p-2">
-                  {shortcuts.map((s) => (
+                    ))}
+                    <div className='my-1 border-t border-border' />
                     <button
-                      key={s.label}
-                      type="button"
-                      onClick={() => commit(s.date)}
-                      className="flex w-full items-start justify-between gap-2 rounded-sm px-1.5 py-1 text-left text-xs text-muted-foreground transition-all hover:bg-accent/50"
+                      type='button'
+                      onClick={() => commit(undefined)}
+                      className='hover:bg-destructive/10 flex items-center gap-1 rounded-sm px-1.5 py-1 text-[10px] text-destructive'
                     >
-                      <span>{s.label}</span>
-                      <span className="text-muted-foreground shrink-0 text-[10px]">{s.hint}</span>
+                      <X className='h-3 w-3' />
+                      Limpar data
                     </button>
-                  ))}
-                  <div className="border-border my-1 border-t" />
-                  <button
-                    type="button"
-                    onClick={() => commit(undefined)}
-                    className="text-destructive hover:bg-destructive/10 flex items-center gap-1 rounded-sm px-1.5 py-1 text-[10px]"
-                  >
-                    <X className="h-3 w-3" />
-                    Limpar data
-                  </button>
-                </div>
+                  </div>
 
-                <div className="bg-background flex-1 rounded-br-md p-3">
-                  <DayPicker
-                    mode="single"
-                    selected={selectedDate}
-                    onSelect={commit}
-                    locale={ptBR}
-                    weekStartsOn={0}
-                    showOutsideDays
-                    fixedWeeks
-                    components={{
-                      IconLeft: () => <ChevronLeft className="h-4 w-4" />,
-                      IconRight: () => <ChevronRight className="h-4 w-4" />,
-                    }}
-                    classNames={{
-                      root: 'rdp-root',
-                      months: 'flex flex-col sm:flex-row',
-                      month: 'flex flex-col gap-3 w-full',
-                      caption: 'flex justify-center pt-1 relative items-center w-full',
-                      caption_label: 'text-sm font-medium',
-                      nav: 'flex items-center gap-1',
-                      nav_button: cn(
-                        'inline-flex items-center justify-center rounded-md',
-                        'transition-all disabled:pointer-events-none disabled:opacity-50',
-                        'outline-none focus-visible:ring-ring/50 focus-visible:ring-[3px]',
-                        'cursor-pointer border border-border bg-background shadow-sm hover:bg-accent hover:text-accent-foreground',
-                        'absolute h-7 w-7 p-0',
-                      ),
-                      nav_button_previous: 'left-0 top-0',
-                      nav_button_next: 'right-0 top-0',
-                      table: 'w-full border-collapse',
-                      head_row: 'flex w-full',
-                      head_cell:
-                        'text-muted-foreground rounded-md flex-1 font-normal text-xs py-1',
-                      row: 'flex w-full mt-1',
-                      cell: cn(
-                        'relative flex-1 p-0 text-center focus-within:relative focus-within:z-20',
-                      ),
-                      day: cn(
-                        'inline-flex items-center justify-center rounded-md text-sm transition-all w-full',
-                        'disabled:pointer-events-none disabled:opacity-50',
-                        'outline-none focus-visible:ring-ring/50 focus-visible:ring-[3px]',
-                        'cursor-pointer hover:bg-accent hover:text-accent-foreground',
-                        'h-8 p-0 font-normal',
-                      ),
-                      day_today: 'bg-foreground text-background hover:bg-foreground hover:text-background',
-                      day_selected:
-                        'bg-foreground text-background hover:bg-foreground hover:text-background focus:bg-foreground focus:text-background',
-                      day_outside:
-                        'day-outside text-muted-foreground/50 aria-selected:text-muted-foreground/50',
-                      day_disabled: 'text-muted-foreground opacity-50',
-                      day_hidden: 'invisible',
-                    }}
-                  />
+                  <div className='flex-1 rounded-br-md bg-background p-3'>
+                    <DayPicker
+                      mode='single'
+                      selected={selectedDate}
+                      onSelect={commit}
+                      locale={ptBR}
+                      weekStartsOn={0}
+                      showOutsideDays
+                      fixedWeeks
+                      components={{
+                        IconLeft: () => <ChevronLeft className='h-4 w-4' />,
+                        IconRight: () => <ChevronRight className='h-4 w-4' />,
+                      }}
+                      classNames={{
+                        root: 'rdp-root',
+                        months: 'flex flex-col sm:flex-row',
+                        month: 'flex flex-col gap-3 w-full',
+                        caption:
+                          'flex justify-center pt-1 relative items-center w-full',
+                        caption_label: 'text-sm font-medium',
+                        nav: 'flex items-center gap-1',
+                        nav_button: cn(
+                          'inline-flex items-center justify-center rounded-md',
+                          'transition-all disabled:pointer-events-none disabled:opacity-50',
+                          'focus-visible:ring-ring/50 outline-none focus-visible:ring-[3px]',
+                          'shadow-sm cursor-pointer border border-border bg-background hover:bg-accent hover:text-accent-foreground',
+                          'absolute h-7 w-7 p-0',
+                        ),
+                        nav_button_previous: 'left-0 top-0',
+                        nav_button_next: 'right-0 top-0',
+                        table: 'w-full border-collapse',
+                        head_row: 'flex w-full',
+                        head_cell:
+                          'text-muted-foreground rounded-md flex-1 font-normal text-xs py-1',
+                        row: 'flex w-full mt-1',
+                        cell: cn(
+                          'relative flex-1 p-0 text-center focus-within:relative focus-within:z-20',
+                        ),
+                        day: cn(
+                          'text-sm inline-flex w-full items-center justify-center rounded-md transition-all',
+                          'disabled:pointer-events-none disabled:opacity-50',
+                          'focus-visible:ring-ring/50 outline-none focus-visible:ring-[3px]',
+                          'cursor-pointer hover:bg-accent hover:text-accent-foreground',
+                          'h-8 p-0 font-normal',
+                        ),
+                        day_today:
+                          'bg-foreground text-background hover:bg-foreground hover:text-background',
+                        day_selected:
+                          'bg-foreground text-background hover:bg-foreground hover:text-background focus:bg-foreground focus:text-background',
+                        day_outside:
+                          'day-outside text-muted-foreground/50 aria-selected:text-muted-foreground/50',
+                        day_disabled: 'text-muted-foreground opacity-50',
+                        day_hidden: 'invisible',
+                      }}
+                    />
+                  </div>
                 </div>
-              </div>
               </div>
             </Popover.Content>
           </Popover.Portal>

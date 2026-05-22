@@ -19,7 +19,10 @@ const CNPJ_AUTOFILL_MAP: {
   { source: 'contato.email', targetDefinitionId: 'cfd-cnpj-af-email' },
   { source: 'contato.telefone', targetDefinitionId: 'cfd-cnpj-af-telefone' },
   { source: 'endereco.cep', targetDefinitionId: 'cfd-cnpj-af-cep' },
-  { source: 'endereco.logradouro', targetDefinitionId: 'cfd-cnpj-af-logradouro' },
+  {
+    source: 'endereco.logradouro',
+    targetDefinitionId: 'cfd-cnpj-af-logradouro',
+  },
   { source: 'endereco.numero', targetDefinitionId: 'cfd-cnpj-af-numero' },
   {
     source: 'endereco.complemento',
@@ -31,7 +34,10 @@ const CNPJ_AUTOFILL_MAP: {
   { source: 'dataAbertura', targetDefinitionId: 'cfd-cnpj-af-data-abertura' },
   { source: 'situacaoCadastral', targetDefinitionId: 'cfd-cnpj-af-situacao' },
   { source: 'naturezaJuridica', targetDefinitionId: 'cfd-cnpj-af-natureza' },
-  { source: 'cnaePrincipal.codigo', targetDefinitionId: 'cfd-cnpj-af-cnae-codigo' },
+  {
+    source: 'cnaePrincipal.codigo',
+    targetDefinitionId: 'cfd-cnpj-af-cnae-codigo',
+  },
   {
     source: 'cnaePrincipal.descricao',
     targetDefinitionId: 'cfd-cnpj-af-cnae-descricao',

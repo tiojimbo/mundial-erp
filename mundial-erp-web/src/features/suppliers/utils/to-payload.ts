@@ -1,7 +1,9 @@
 import type { SupplierFormData } from '../schemas/supplier.schema';
 import type { CreateSupplierPayload } from '../types/supplier.types';
 
-export function toSupplierPayload(data: SupplierFormData): CreateSupplierPayload {
+export function toSupplierPayload(
+  data: SupplierFormData,
+): CreateSupplierPayload {
   return {
     personType: data.personType,
     cpfCnpj: data.cpfCnpj.replace(/\D/g, ''),

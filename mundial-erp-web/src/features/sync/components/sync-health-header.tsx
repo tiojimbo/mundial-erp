@@ -12,34 +12,36 @@ export function SyncHealthHeader() {
 
   if (isLoading) {
     return (
-      <div className="flex items-center gap-3 rounded-xl border border-stroke-soft-200 bg-bg-white-0 p-4 shadow-xs">
-        <RiLoader4Line className="size-5 animate-spin text-text-soft-400" />
-        <p className="text-paragraph-sm text-text-soft-400">Verificando conexão...</p>
+      <div className='shadow-xs flex items-center gap-3 rounded-xl border border-stroke-soft-200 bg-bg-white-0 p-4'>
+        <RiLoader4Line className='size-5 animate-spin text-text-soft-400' />
+        <p className='text-paragraph-sm text-text-soft-400'>
+          Verificando conexão...
+        </p>
       </div>
     );
   }
 
   return (
-    <div className="flex flex-wrap items-center gap-6 rounded-xl border border-stroke-soft-200 bg-bg-white-0 p-4 shadow-xs">
-      <div className="flex items-center gap-2">
+    <div className='shadow-xs flex flex-wrap items-center gap-6 rounded-xl border border-stroke-soft-200 bg-bg-white-0 p-4'>
+      <div className='flex items-center gap-2'>
         {status?.connected ? (
-          <RiCheckboxCircleLine className="size-5 text-success-base" />
+          <RiCheckboxCircleLine className='size-5 text-success-base' />
         ) : (
-          <RiCloseCircleLine className="size-5 text-error-base" />
+          <RiCloseCircleLine className='size-5 text-error-base' />
         )}
         <div>
-          <p className="text-label-sm text-text-strong-950">Pro Finanças API</p>
-          <p className="text-paragraph-xs text-text-sub-600">
+          <p className='text-label-sm text-text-strong-950'>Pro Finanças API</p>
+          <p className='text-paragraph-xs text-text-sub-600'>
             {status?.connected ? 'Conectado' : 'Desconectado'}
           </p>
         </div>
       </div>
 
-      <div className="h-8 w-px bg-stroke-soft-200" />
+      <div className='h-8 w-px bg-stroke-soft-200' />
 
       <div>
-        <p className="text-paragraph-xs text-text-soft-400">Último sync</p>
-        <p className="text-label-sm text-text-strong-950">
+        <p className='text-paragraph-xs text-text-soft-400'>Último sync</p>
+        <p className='text-label-sm text-text-strong-950'>
           {status?.lastSync
             ? new Date(status.lastSync).toLocaleString('pt-BR', {
                 day: '2-digit',
@@ -51,20 +53,20 @@ export function SyncHealthHeader() {
         </p>
       </div>
 
-      <div className="h-8 w-px bg-stroke-soft-200" />
+      <div className='h-8 w-px bg-stroke-soft-200' />
 
       <div>
-        <p className="text-paragraph-xs text-text-soft-400">Fila</p>
-        <p className="text-label-sm text-text-strong-950">
+        <p className='text-paragraph-xs text-text-soft-400'>Fila</p>
+        <p className='text-label-sm text-text-strong-950'>
           {status?.queueSize ?? 0} jobs
         </p>
       </div>
 
-      <div className="h-8 w-px bg-stroke-soft-200" />
+      <div className='h-8 w-px bg-stroke-soft-200' />
 
       <div>
-        <p className="text-paragraph-xs text-text-soft-400">Ativos</p>
-        <p className="text-label-sm text-text-strong-950">
+        <p className='text-paragraph-xs text-text-soft-400'>Ativos</p>
+        <p className='text-label-sm text-text-strong-950'>
           {status?.activeJobs ?? 0} jobs
         </p>
       </div>

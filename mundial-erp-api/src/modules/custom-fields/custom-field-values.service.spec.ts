@@ -117,7 +117,11 @@ function buildHarness(opts?: {
   const publisher: MockPublisher = { emitCustomFieldChanged: jest.fn() };
 
   Logger.overrideLogger([
-    { log: () => undefined, warn: () => undefined, error: () => undefined } as never,
+    {
+      log: () => undefined,
+      warn: () => undefined,
+      error: () => undefined,
+    } as never,
   ]);
 
   const service = new CustomFieldValuesService(
@@ -128,7 +132,15 @@ function buildHarness(opts?: {
     publisher as never,
   );
 
-  return { service, prisma, definitionsRepo, valuesRepo, metrics, publisher, txMock };
+  return {
+    service,
+    prisma,
+    definitionsRepo,
+    valuesRepo,
+    metrics,
+    publisher,
+    txMock,
+  };
 }
 
 describe('CustomFieldValuesService — emissao de eventos para Automations', () => {
@@ -139,8 +151,10 @@ describe('CustomFieldValuesService — emissao de eventos para Automations', () 
       await h.service.setValue(WS, TASK, DEF, 'novo', ACTOR);
 
       expect(h.publisher.emitCustomFieldChanged).toHaveBeenCalledTimes(1);
-      const arg = h.publisher.emitCustomFieldChanged.mock
-        .calls[0][0] as Record<string, unknown>;
+      const arg = h.publisher.emitCustomFieldChanged.mock.calls[0][0] as Record<
+        string,
+        unknown
+      >;
       expect(arg).toMatchObject({
         workspaceId: WS,
         taskId: TASK,
@@ -160,8 +174,10 @@ describe('CustomFieldValuesService — emissao de eventos para Automations', () 
       await h.service.setValue(WS, TASK, DEF, 'novo', ACTOR);
 
       expect(h.publisher.emitCustomFieldChanged).toHaveBeenCalledTimes(1);
-      const arg = h.publisher.emitCustomFieldChanged.mock
-        .calls[0][0] as Record<string, unknown>;
+      const arg = h.publisher.emitCustomFieldChanged.mock.calls[0][0] as Record<
+        string,
+        unknown
+      >;
       expect(arg.before).toBeNull();
       expect(arg.after).toBe('novo');
     });
@@ -174,8 +190,10 @@ describe('CustomFieldValuesService — emissao de eventos para Automations', () 
       await h.service.clearValue(WS, TASK, DEF);
 
       expect(h.publisher.emitCustomFieldChanged).toHaveBeenCalledTimes(1);
-      const arg = h.publisher.emitCustomFieldChanged.mock
-        .calls[0][0] as Record<string, unknown>;
+      const arg = h.publisher.emitCustomFieldChanged.mock.calls[0][0] as Record<
+        string,
+        unknown
+      >;
       expect(arg).toMatchObject({
         workspaceId: WS,
         taskId: TASK,

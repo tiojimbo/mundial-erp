@@ -21,12 +21,15 @@ export function PhoneField({
   error,
   inline,
 }: BaseFieldProps<string | null>) {
-  const initial = value === null || value === undefined ? '' : maskPhone(String(value));
+  const initial =
+    value === null || value === undefined ? '' : maskPhone(String(value));
   const [localValue, setLocalValue] = useState<string>(initial);
   const debounced = useDebouncedOnChange<string | null>(onChange);
 
   useEffect(() => {
-    setLocalValue(value === null || value === undefined ? '' : maskPhone(String(value)));
+    setLocalValue(
+      value === null || value === undefined ? '' : maskPhone(String(value)),
+    );
   }, [value]);
 
   const isReadOnly = readOnly || definition.config?.readOnly === true;
@@ -41,9 +44,9 @@ export function PhoneField({
       {(controlProps) => (
         <input
           {...controlProps}
-          type="tel"
-          inputMode="tel"
-          autoComplete="tel-national"
+          type='tel'
+          inputMode='tel'
+          autoComplete='tel-national'
           className={inline ? inputClassInline : inputClass}
           value={localValue}
           readOnly={isReadOnly}

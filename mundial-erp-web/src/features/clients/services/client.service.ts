@@ -36,7 +36,10 @@ export const clientService = {
   },
 
   async update(id: string, payload: UpdateClientPayload): Promise<Client> {
-    const { data } = await api.patch<ApiResponse<Client>>(`/clients/${id}`, payload);
+    const { data } = await api.patch<ApiResponse<Client>>(
+      `/clients/${id}`,
+      payload,
+    );
     return data.data;
   },
 

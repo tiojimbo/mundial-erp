@@ -1,5 +1,9 @@
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
-import { KommoAccount, KommoAccountStatus, KommoAuthType } from '@prisma/client';
+import {
+  KommoAccount,
+  KommoAccountStatus,
+  KommoAuthType,
+} from '@prisma/client';
 
 /**
  * Shape publico de um `KommoAccount` — NUNCA expoe tokens ou hmacSecret

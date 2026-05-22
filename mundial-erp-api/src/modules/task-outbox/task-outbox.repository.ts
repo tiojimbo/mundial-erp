@@ -75,7 +75,10 @@ export class TaskOutboxRepository {
       actorId: string | null;
       payload: Prisma.InputJsonValue;
     },
-  ): Promise<WorkItemActivity & { actor: { id: string; name: string } | null }> {
+  ): Promise<
+    WorkItemActivity & { actor: { id: string; name: string } | null }
+  > {
+    // eslint-disable-next-line mundial/no-direct-activity-write -- writer legítimo da projeção (ADR-002), invocado pelo task-outbox.worker
     const activity = await tx.workItemActivity.create({
       data: {
         workItemId: input.workItemId,
@@ -188,7 +191,9 @@ export class TaskOutboxRepository {
   async deleteCompletedOlderThanDays(days: number): Promise<number> {
     const safeDays = Math.floor(Number(days));
     if (!Number.isFinite(safeDays) || safeDays <= 0) {
-      throw new Error('deleteCompletedOlderThanDays: days must be positive integer');
+      throw new Error(
+        'deleteCompletedOlderThanDays: days must be positive integer',
+      );
     }
     return this.prisma.$executeRawUnsafe(
       `DELETE FROM "task_outbox_events"

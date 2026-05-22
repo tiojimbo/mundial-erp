@@ -12,60 +12,63 @@ export function GlobalScannerListener() {
   const queryClient = useQueryClient();
   const isProcessing = useRef(false);
 
-  const handleScan = useCallback(async (code: string) => {
-    const trimmed = code.trim();
-    if (!REQ_CODE_PATTERN.test(trimmed)) return;
-    if (isProcessing.current) return;
+  const handleScan = useCallback(
+    async (code: string) => {
+      const trimmed = code.trim();
+      if (!REQ_CODE_PATTERN.test(trimmed)) return;
+      if (isProcessing.current) return;
 
-    isProcessing.current = true;
-    try {
-      const data = await stockRequisitionService.getByCode(trimmed);
+      isProcessing.current = true;
+      try {
+        const data = await stockRequisitionService.getByCode(trimmed);
 
-      if (data.status === 'PROCESSED') {
+        if (data.status === 'PROCESSED') {
+          notification({
+            title: 'Requisicao ja processada',
+            description: `Requisicao ${data.code} ja foi processada anteriormente.`,
+            status: 'error',
+          });
+          return;
+        }
+
+        if (data.status === 'CANCELLED') {
+          notification({
+            title: 'Requisicao cancelada',
+            description: `Requisicao ${data.code} foi cancelada.`,
+            status: 'error',
+          });
+          return;
+        }
+
+        if (data.status !== 'PENDING') {
+          notification({
+            title: 'Status invalido',
+            description: `Requisicao ${data.code} esta com status "${data.status}".`,
+            status: 'error',
+          });
+          return;
+        }
+
+        const processed = await stockRequisitionService.approve(data.id);
+        queryClient.invalidateQueries({ queryKey: REQUISITIONS_KEY });
+
         notification({
-          title: 'Requisicao ja processada',
-          description: `Requisicao ${data.code} ja foi processada anteriormente.`,
+          title: 'Requisicao aprovada e processada',
+          description: `${processed.code} — ${processed.items.length} itens processados, estoque atualizado.`,
+          status: 'success',
+        });
+      } catch {
+        notification({
+          title: 'Erro ao processar requisicao',
+          description: `Nao foi possivel processar a requisicao "${trimmed}".`,
           status: 'error',
         });
-        return;
+      } finally {
+        isProcessing.current = false;
       }
-
-      if (data.status === 'CANCELLED') {
-        notification({
-          title: 'Requisicao cancelada',
-          description: `Requisicao ${data.code} foi cancelada.`,
-          status: 'error',
-        });
-        return;
-      }
-
-      if (data.status !== 'PENDING') {
-        notification({
-          title: 'Status invalido',
-          description: `Requisicao ${data.code} esta com status "${data.status}".`,
-          status: 'error',
-        });
-        return;
-      }
-
-      const processed = await stockRequisitionService.approve(data.id);
-      queryClient.invalidateQueries({ queryKey: REQUISITIONS_KEY });
-
-      notification({
-        title: 'Requisicao aprovada e processada',
-        description: `${processed.code} — ${processed.items.length} itens processados, estoque atualizado.`,
-        status: 'success',
-      });
-    } catch {
-      notification({
-        title: 'Erro ao processar requisicao',
-        description: `Nao foi possivel processar a requisicao "${trimmed}".`,
-        status: 'error',
-      });
-    } finally {
-      isProcessing.current = false;
-    }
-  }, [queryClient]);
+    },
+    [queryClient],
+  );
 
   useEffect(() => {
     let cleanup: (() => void) | undefined;

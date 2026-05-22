@@ -6,6 +6,8 @@ type FornecedorDetalhePageProps = {
   params: { id: string };
 };
 
-export default function FornecedorDetalhePage({ params }: FornecedorDetalhePageProps) {
+export default function FornecedorDetalhePage({
+  params,
+}: FornecedorDetalhePageProps) {
   return <SupplierDetail supplierId={params.id} />;
 }

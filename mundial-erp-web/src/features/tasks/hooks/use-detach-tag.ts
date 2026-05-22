@@ -14,8 +14,7 @@ export function useDetachTag() {
 
   return useMutation<void, Error, Vars, Context>({
     mutationKey: [workspaceId, 'tasks', 'tags', 'detach'],
-    mutationFn: ({ taskId, tagId }) =>
-      taskTagsService.detach(taskId, tagId),
+    mutationFn: ({ taskId, tagId }) => taskTagsService.detach(taskId, tagId),
 
     onMutate: async ({ taskId, tagId }) => {
       const detailKey = taskQueryKeys.detail(workspaceId, taskId);

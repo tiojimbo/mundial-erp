@@ -45,8 +45,9 @@ export class KommoFeatureFlagGuard implements CanActivate, OnModuleInit {
     private readonly config: ConfigService,
   ) {
     this.globalEnabled =
-      (this.config.get<string>('KOMMO_SYNC_ENABLED') ?? 'false').toLowerCase() ===
-      'true';
+      (
+        this.config.get<string>('KOMMO_SYNC_ENABLED') ?? 'false'
+      ).toLowerCase() === 'true';
   }
 
   onModuleInit(): void {

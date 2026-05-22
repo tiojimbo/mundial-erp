@@ -120,6 +120,7 @@ export function ScopeSettingsModal({
   const addMember = useAddScopeMember(scope, id);
 
   const usersQuery = useUsers();
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   const allUsers = usersQuery.data?.data ?? [];
 
   const [search, setSearch] = useState('');
@@ -173,10 +174,8 @@ export function ScopeSettingsModal({
       <Modal.Content className='gap-0 !p-0 sm:max-w-md' showClose={false}>
         {/* HEADER */}
         <div className='flex flex-col gap-0 px-5 pb-0 pt-5'>
-          <h2 className='text-base font-semibold'>
-            Compartilhar este {label}
-          </h2>
-          <div className='mt-1.5 flex items-center gap-1.5 text-xs text-muted-foreground'>
+          <h2 className='text-base font-semibold'>Compartilhar este {label}</h2>
+          <div className='text-xs mt-1.5 flex items-center gap-1.5 text-muted-foreground'>
             <span>Compartilhando {label} com todas as views</span>
             <LayoutGrid className='size-3.5' aria-hidden />
             <span className='font-medium text-foreground'>{name}</span>
@@ -190,25 +189,22 @@ export function ScopeSettingsModal({
             value={search}
             onChange={(e) => setSearch(e.target.value)}
             placeholder='Buscar membro para adicionar...'
-            className='flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-sm shadow-xs outline-none transition focus-visible:border-ring focus-visible:ring-[3px] focus-visible:ring-ring/50'
+            className='text-sm shadow-xs focus-visible:ring-ring/50 flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 outline-none transition focus-visible:border-ring focus-visible:ring-[3px]'
           />
           {candidates.length > 0 && (
-            <ul className='absolute left-5 right-5 z-10 mt-1 max-h-48 overflow-y-auto rounded-md border border-border bg-popover shadow-md'>
+            <ul className='shadow-md absolute left-5 right-5 z-10 mt-1 max-h-48 overflow-y-auto rounded-md border border-border bg-popover'>
               {candidates.map((u) => (
                 <li key={u.id}>
                   <button
                     type='button'
                     onClick={() => handleAdd(u.id)}
                     disabled={addMember.isPending}
-                    className='flex w-full items-center gap-2 px-3 py-2 text-left text-sm hover:bg-accent disabled:opacity-50'
+                    className='text-sm flex w-full items-center gap-2 px-3 py-2 text-left hover:bg-accent disabled:opacity-50'
                   >
-                    <Initials
-                      seed={u.id}
-                      label={initialsOf(u.name, u.email)}
-                    />
+                    <Initials seed={u.id} label={initialsOf(u.name, u.email)} />
                     <div className='min-w-0 flex-1'>
                       <p className='truncate font-medium'>{u.name}</p>
-                      <p className='truncate text-xs text-muted-foreground'>
+                      <p className='text-xs truncate text-muted-foreground'>
                         {u.email}
                       </p>
                     </div>
@@ -224,7 +220,7 @@ export function ScopeSettingsModal({
         {/* LINK + PERMISSAO PADRAO */}
         <div className='px-5 py-3'>
           <div className='flex items-center justify-between'>
-            <div className='flex items-center gap-2 text-sm'>
+            <div className='text-sm flex items-center gap-2'>
               <Link2 className='size-4 text-muted-foreground' aria-hidden />
               <span className='font-medium'>Link privado</span>
               <InfoTooltip>Apenas membros convidados acessam.</InfoTooltip>
@@ -232,14 +228,14 @@ export function ScopeSettingsModal({
             <button
               type='button'
               onClick={handleCopyLink}
-              className='inline-flex h-7 items-center rounded-md border border-border bg-background px-3 text-xs font-medium hover:bg-accent'
+              className='text-xs inline-flex h-7 items-center rounded-md border border-border bg-background px-3 font-medium hover:bg-accent'
             >
               Copiar link
             </button>
           </div>
 
           <div className='mt-3 flex items-center justify-between'>
-            <div className='flex items-center gap-2 text-sm'>
+            <div className='text-sm flex items-center gap-2'>
               <Globe className='size-4 text-muted-foreground' aria-hidden />
               <span className='font-medium'>Permissão padrão</span>
               <InfoTooltip>
@@ -257,7 +253,7 @@ export function ScopeSettingsModal({
 
         {/* CONTADOR */}
         <div className='px-5 py-3'>
-          <p className='mb-2 text-xs font-medium text-muted-foreground'>
+          <p className='text-xs mb-2 font-medium text-muted-foreground'>
             Compartilhado com
           </p>
           <div className='flex items-center justify-between py-1.5'>
@@ -270,10 +266,10 @@ export function ScopeSettingsModal({
         {/* LISTA */}
         <div className='max-h-56 overflow-y-auto px-5 pb-2'>
           {members.isLoading && (
-            <p className='py-2 text-sm text-muted-foreground'>Carregando...</p>
+            <p className='text-sm py-2 text-muted-foreground'>Carregando...</p>
           )}
           {!members.isLoading && memberCount === 0 && (
-            <p className='py-2 text-sm text-muted-foreground'>
+            <p className='text-sm py-2 text-muted-foreground'>
               {isPrivate
                 ? 'Nenhum membro adicionado ainda.'
                 : 'Sem membros diretos. Todos do workspace têm acesso herdado.'}
@@ -300,7 +296,7 @@ export function ScopeSettingsModal({
             type='button'
             onClick={handleTogglePrivacy}
             disabled={setVisibility.isPending}
-            className='inline-flex h-9 w-full items-center justify-center gap-2 rounded-md text-sm font-medium hover:bg-accent hover:text-accent-foreground disabled:opacity-50'
+            className='text-sm inline-flex h-9 w-full items-center justify-center gap-2 rounded-md font-medium hover:bg-accent hover:text-accent-foreground disabled:opacity-50'
           >
             {isPrivate ? (
               <>
@@ -341,14 +337,14 @@ function MemberRow({
   isPending: boolean;
 }) {
   return (
-    <div className='group flex items-center gap-3 rounded-md px-1 py-2 hover:bg-muted/50'>
+    <div className='hover:bg-muted/50 group flex items-center gap-3 rounded-md px-1 py-2'>
       <Initials
         seed={member.userId}
         label={initialsOf(member.user.name, member.user.email)}
       />
       <div className='min-w-0 flex-1'>
         <div className='flex items-center gap-1.5'>
-          <span className='block truncate text-sm font-medium'>
+          <span className='text-sm block truncate font-medium'>
             {member.user.name ?? member.user.email}
           </span>
           {member.inherited && (
@@ -357,7 +353,7 @@ function MemberRow({
             </span>
           )}
         </div>
-        <p className='truncate text-xs text-muted-foreground'>
+        <p className='text-xs truncate text-muted-foreground'>
           {member.user.email}
         </p>
       </div>
@@ -374,7 +370,7 @@ function MemberRow({
                 type='button'
                 onClick={onRemove}
                 disabled={isPending}
-                className='hidden rounded p-1 text-muted-foreground transition-colors hover:bg-destructive/10 hover:text-destructive disabled:opacity-50 group-hover:block'
+                className='hover:bg-destructive/10 hidden rounded p-1 text-muted-foreground transition-colors hover:text-destructive disabled:opacity-50 group-hover:block'
                 aria-label='Remover membro'
               >
                 <UserMinus className='size-3.5' aria-hidden />
@@ -407,7 +403,7 @@ function PermissionSelect({
     >
       <Select.Trigger
         className={cn(
-          'h-7 w-auto gap-1 border-0 bg-transparent px-2 text-xs shadow-none ring-0',
+          'text-xs h-7 w-auto gap-1 border-0 bg-transparent px-2 shadow-none ring-0',
           'hover:bg-transparent hover:ring-0 focus:shadow-none focus:ring-0',
         )}
       >
@@ -470,7 +466,7 @@ function InfoTooltip({ children }: { children: React.ReactNode }) {
 function Initials({ seed, label }: { seed: string; label: string }) {
   return (
     <span
-      className='flex size-8 shrink-0 items-center justify-center rounded-full text-xs font-semibold text-white'
+      className='text-xs flex size-8 shrink-0 items-center justify-center rounded-full font-semibold text-white'
       style={{ backgroundColor: colorFor(seed) }}
     >
       {label}

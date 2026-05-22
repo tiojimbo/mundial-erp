@@ -66,7 +66,7 @@ export function CustomTaskTypesDialog({ open, onOpenChange, spaceId }: Props) {
         <Dialog.Overlay className='fixed inset-0 z-50 bg-black/50' />
         <Dialog.Content
           className={cn(
-            'fixed left-1/2 top-1/2 z-50 flex max-h-[85vh] w-full max-w-[calc(100%-2rem)] -translate-x-1/2 -translate-y-1/2 flex-col gap-4 overflow-hidden rounded-lg border bg-background p-0 shadow-lg sm:max-w-2xl',
+            'shadow-lg fixed left-1/2 top-1/2 z-50 flex max-h-[85vh] w-full max-w-[calc(100%-2rem)] -translate-x-1/2 -translate-y-1/2 flex-col gap-4 overflow-hidden rounded-lg border bg-background p-0 sm:max-w-2xl',
           )}
         >
           <div className='flex shrink-0 flex-col gap-2 p-6 pb-4 text-left'>
@@ -75,14 +75,14 @@ export function CustomTaskTypesDialog({ open, onOpenChange, spaceId }: Props) {
                 <Dialog.Title className='text-lg font-bold'>
                   Tipos de tarefa
                 </Dialog.Title>
-                <Dialog.Description className='mt-1 text-sm text-muted-foreground'>
+                <Dialog.Description className='text-sm mt-1 text-muted-foreground'>
                   Personalize nomes e ícones dos tipos de tarefa.
                 </Dialog.Description>
               </div>
               <button
                 type='button'
                 onClick={() => setCreateOpen(true)}
-                className='inline-flex h-8 shrink-0 cursor-pointer items-center justify-center gap-1.5 whitespace-nowrap rounded-md border bg-background px-2.5 text-sm font-medium shadow-xs transition-all hover:bg-accent hover:text-accent-foreground disabled:pointer-events-none disabled:opacity-50'
+                className='text-sm shadow-xs inline-flex h-8 shrink-0 cursor-pointer items-center justify-center gap-1.5 whitespace-nowrap rounded-md border bg-background px-2.5 font-medium transition-all hover:bg-accent hover:text-accent-foreground disabled:pointer-events-none disabled:opacity-50'
               >
                 <Plus className='size-3.5' />
                 Create Task Type
@@ -92,17 +92,17 @@ export function CustomTaskTypesDialog({ open, onOpenChange, spaceId }: Props) {
           <div className='h-px w-full shrink-0 bg-border' />
           <div className='min-h-0 flex-1 overflow-y-auto px-6 pb-6'>
             <div className='rounded-lg border border-border'>
-              <div className='grid grid-cols-[1fr_200px] border-b border-border bg-muted/50 px-4 py-2.5 text-xs font-medium text-muted-foreground'>
+              <div className='bg-muted/50 text-xs grid grid-cols-[1fr_200px] border-b border-border px-4 py-2.5 font-medium text-muted-foreground'>
                 <span>Name</span>
                 <span>Created by</span>
               </div>
               <div>
                 {isLoading ? (
-                  <div className='px-4 py-6 text-center text-sm text-muted-foreground'>
+                  <div className='text-sm px-4 py-6 text-center text-muted-foreground'>
                     Carregando tipos...
                   </div>
                 ) : items.length === 0 ? (
-                  <div className='px-4 py-6 text-center text-sm text-muted-foreground'>
+                  <div className='text-sm px-4 py-6 text-center text-muted-foreground'>
                     Nenhum tipo cadastrado.
                   </div>
                 ) : (
@@ -113,22 +113,26 @@ export function CustomTaskTypesDialog({ open, onOpenChange, spaceId }: Props) {
                     const creatorName =
                       type.creator?.name ??
                       (type.isBuiltin ? 'Sistema' : 'Workspace');
-                    const creatorInitial = (creatorName || '?').slice(0, 1).toUpperCase();
+                    const creatorInitial = (creatorName || '?')
+                      .slice(0, 1)
+                      .toUpperCase();
                     return (
                       <div
                         key={type.id}
-                        className='group grid grid-cols-[1fr_200px] items-center border-b border-border px-4 py-3 last:border-0 hover:bg-accent/30'
+                        className='hover:bg-accent/30 group grid grid-cols-[1fr_200px] items-center border-b border-border px-4 py-3 last:border-0'
                       >
                         <div className='flex items-center gap-3'>
                           <Icon
                             className='size-[18px] shrink-0 text-muted-foreground'
-                            style={type.color ? { color: type.color } : undefined}
+                            style={
+                              type.color ? { color: type.color } : undefined
+                            }
                             aria-hidden
                           />
                           <span className='text-sm font-medium'>
                             {type.value}
                             {isDefault && (
-                              <span className='ml-2 text-xs text-muted-foreground'>
+                              <span className='text-xs ml-2 text-muted-foreground'>
                                 (default)
                               </span>
                             )}
@@ -136,7 +140,7 @@ export function CustomTaskTypesDialog({ open, onOpenChange, spaceId }: Props) {
                         </div>
                         <div className='flex items-center justify-between'>
                           <div className='flex items-center gap-2'>
-                            <div className='flex size-5 items-center justify-center rounded-full bg-primary text-[10px] font-medium text-primary-foreground'>
+                            <div className='bg-primary text-primary-foreground flex size-5 items-center justify-center rounded-full text-[10px] font-medium'>
                               {creatorInitial}
                             </div>
                             <span className='text-sm text-muted-foreground'>
@@ -182,7 +186,7 @@ export function CustomTaskTypesDialog({ open, onOpenChange, spaceId }: Props) {
             <button
               type='button'
               aria-label='Fechar'
-              className='absolute right-4 top-4 rounded-xs opacity-70 transition-opacity hover:opacity-100 focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2'
+              className='rounded-xs absolute right-4 top-4 opacity-70 transition-opacity hover:opacity-100 focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2'
             >
               <X className='size-4' />
             </button>
@@ -212,7 +216,7 @@ export function CustomTaskTypesDialog({ open, onOpenChange, spaceId }: Props) {
           <Dialog.Content
             role='alertdialog'
             className={cn(
-              'fixed left-1/2 top-1/2 z-[70] grid w-full max-w-[calc(100%-2rem)] -translate-x-1/2 -translate-y-1/2 gap-4 rounded-lg border bg-background p-6 shadow-lg sm:max-w-md',
+              'shadow-lg fixed left-1/2 top-1/2 z-[70] grid w-full max-w-[calc(100%-2rem)] -translate-x-1/2 -translate-y-1/2 gap-4 rounded-lg border bg-background p-6 sm:max-w-md',
             )}
           >
             <Dialog.Title className='text-lg font-semibold'>
@@ -227,7 +231,7 @@ export function CustomTaskTypesDialog({ open, onOpenChange, spaceId }: Props) {
                 type='button'
                 onClick={() => setDeleteTarget(null)}
                 disabled={deleteType.isPending}
-                className='inline-flex h-9 items-center justify-center rounded-md border bg-background px-4 py-2 text-sm font-medium shadow-xs transition-all hover:bg-accent hover:text-accent-foreground disabled:pointer-events-none disabled:opacity-50'
+                className='text-sm shadow-xs inline-flex h-9 items-center justify-center rounded-md border bg-background px-4 py-2 font-medium transition-all hover:bg-accent hover:text-accent-foreground disabled:pointer-events-none disabled:opacity-50'
               >
                 Cancelar
               </button>
@@ -235,7 +239,7 @@ export function CustomTaskTypesDialog({ open, onOpenChange, spaceId }: Props) {
                 type='button'
                 onClick={confirmDelete}
                 disabled={deleteType.isPending}
-                className='inline-flex h-9 cursor-pointer items-center justify-center rounded-md bg-destructive px-4 py-2 text-sm font-medium text-destructive-foreground shadow-xs transition-all hover:bg-destructive/90 disabled:pointer-events-none disabled:opacity-50'
+                className='text-sm text-destructive-foreground shadow-xs hover:bg-destructive/90 inline-flex h-9 cursor-pointer items-center justify-center rounded-md bg-destructive px-4 py-2 font-medium transition-all disabled:pointer-events-none disabled:opacity-50'
               >
                 {deleteType.isPending ? 'Removendo...' : 'Remover'}
               </button>

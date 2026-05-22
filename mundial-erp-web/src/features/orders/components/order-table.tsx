@@ -116,9 +116,7 @@ export function OrderTable() {
           totalOrders={pagination?.total ?? 0}
           totalRevenue={
             orders.length > 0
-              ? formatCents(
-                  orders.reduce((sum, o) => sum + o.totalCents, 0),
-                )
+              ? formatCents(orders.reduce((sum, o) => sum + o.totalCents, 0))
               : 'R$ 0'
           }
           averageOrderValue={
@@ -148,7 +146,7 @@ export function OrderTable() {
               setSearch(e.target.value);
               setPage(1);
             }}
-            className='w-full bg-transparent text-sm text-text-strong-950 outline-none placeholder:text-text-soft-400'
+            className='text-sm w-full bg-transparent text-text-strong-950 outline-none placeholder:text-text-soft-400'
           />
         </div>
 
@@ -199,7 +197,7 @@ export function OrderTable() {
         {/* Filtro */}
         <button className='flex items-center gap-1 rounded-[10px] border border-stroke-soft-200 bg-bg-white-0 px-2 py-2 shadow-regular-xs'>
           <RiFilterLine className='size-5 text-text-sub-600' />
-          <span className='px-1 text-sm font-medium text-text-sub-600'>
+          <span className='text-sm px-1 font-medium text-text-sub-600'>
             Filtro
           </span>
         </button>
@@ -207,188 +205,184 @@ export function OrderTable() {
         {/* Exportar */}
         <button className='flex items-center gap-1 rounded-[10px] border border-stroke-soft-200 bg-bg-white-0 px-2 py-2 shadow-regular-xs'>
           <RiShareForwardBoxLine className='size-5 text-text-sub-600' />
-          <span className='px-1 text-sm font-medium text-text-sub-600'>
+          <span className='text-sm px-1 font-medium text-text-sub-600'>
             Exportar
           </span>
         </button>
       </div>
 
       {/* Body */}
-        <Table.Root>
-          <Table.Header>
-            <Table.Row>
-              <Table.Head className='w-[164px]'>
-                <span className='flex items-center gap-2.5'>
-                  <Checkbox.Root
-                    checked={
-                      allSelected
-                        ? true
-                        : someSelected
-                          ? 'indeterminate'
-                          : false
-                    }
-                    onCheckedChange={handleSelectAll}
-                  />
-                  <span className='flex items-center gap-0.5'>
-                    ID
-                    <RiExpandUpDownLine className='size-5 text-text-soft-400' />
-                  </span>
-                </span>
-              </Table.Head>
-              <Table.Head className='w-[138px]'>
+      <Table.Root>
+        <Table.Header>
+          <Table.Row>
+            <Table.Head className='w-[164px]'>
+              <span className='flex items-center gap-2.5'>
+                <Checkbox.Root
+                  checked={
+                    allSelected ? true : someSelected ? 'indeterminate' : false
+                  }
+                  onCheckedChange={handleSelectAll}
+                />
                 <span className='flex items-center gap-0.5'>
-                  Data
+                  ID
                   <RiExpandUpDownLine className='size-5 text-text-soft-400' />
                 </span>
-              </Table.Head>
-              <Table.Head className='w-[118px]'>
-                <span className='flex items-center gap-0.5'>
-                  Status
-                  <RiExpandUpDownLine className='size-5 text-text-soft-400' />
-                </span>
-              </Table.Head>
-              <Table.Head className='w-[188px]'>
-                <span className='flex items-center gap-0.5'>
-                  Responsavel
-                  <RiExpandUpDownLine className='size-5 text-text-soft-400' />
-                </span>
-              </Table.Head>
-              <Table.Head>
-                <span className='flex items-center gap-0.5'>
-                  Produto
-                  <RiExpandUpDownLine className='size-5 text-text-soft-400' />
-                </span>
-              </Table.Head>
-              <Table.Head className='w-[124px]'>
-                <span className='flex items-center gap-0.5'>
-                  Valor
-                  <RiExpandUpDownLine className='size-5 text-text-soft-400' />
-                </span>
-              </Table.Head>
-              <Table.Head className='w-16' />
-            </Table.Row>
-          </Table.Header>
-          <Table.Body>
-            {/* Loading skeleton */}
-            {isLoading &&
-              Array.from({ length: 5 }).map((_, i) => (
-                <Table.Row key={i}>
-                  <Table.Cell colSpan={7}>
-                    <div className='h-5 animate-pulse rounded bg-bg-weak-50' />
-                  </Table.Cell>
-                </Table.Row>
-              ))}
-
-            {/* Empty state */}
-            {!isLoading && orders.length === 0 && (
-              <Table.Row>
-                <Table.Cell
-                  colSpan={7}
-                  className='text-center text-text-soft-400'
-                >
-                  Nenhum pedido encontrado
+              </span>
+            </Table.Head>
+            <Table.Head className='w-[138px]'>
+              <span className='flex items-center gap-0.5'>
+                Data
+                <RiExpandUpDownLine className='size-5 text-text-soft-400' />
+              </span>
+            </Table.Head>
+            <Table.Head className='w-[118px]'>
+              <span className='flex items-center gap-0.5'>
+                Status
+                <RiExpandUpDownLine className='size-5 text-text-soft-400' />
+              </span>
+            </Table.Head>
+            <Table.Head className='w-[188px]'>
+              <span className='flex items-center gap-0.5'>
+                Responsavel
+                <RiExpandUpDownLine className='size-5 text-text-soft-400' />
+              </span>
+            </Table.Head>
+            <Table.Head>
+              <span className='flex items-center gap-0.5'>
+                Produto
+                <RiExpandUpDownLine className='size-5 text-text-soft-400' />
+              </span>
+            </Table.Head>
+            <Table.Head className='w-[124px]'>
+              <span className='flex items-center gap-0.5'>
+                Valor
+                <RiExpandUpDownLine className='size-5 text-text-soft-400' />
+              </span>
+            </Table.Head>
+            <Table.Head className='w-16' />
+          </Table.Row>
+        </Table.Header>
+        <Table.Body>
+          {/* Loading skeleton */}
+          {isLoading &&
+            Array.from({ length: 5 }).map((_, i) => (
+              <Table.Row key={i}>
+                <Table.Cell colSpan={7}>
+                  <div className='h-5 animate-pulse rounded bg-bg-weak-50' />
                 </Table.Cell>
               </Table.Row>
-            )}
+            ))}
 
-            {/* Data rows with dividers */}
-            {!isLoading &&
-              orders.map((order, idx) => (
-                <span key={order.id} className='contents'>
-                  <Table.Row>
-                    {/* Checkbox + ID */}
-                    <Table.Cell>
-                      <div className='flex items-center gap-3'>
-                        <Checkbox.Root
-                          checked={selectedIds.has(order.id)}
-                          onCheckedChange={() => handleSelectOne(order.id)}
-                        />
-                        <Link
-                          href={`/comercial/pedidos/${order.id}`}
-                          className='truncate text-sm text-text-strong-950 hover:underline'
+          {/* Empty state */}
+          {!isLoading && orders.length === 0 && (
+            <Table.Row>
+              <Table.Cell
+                colSpan={7}
+                className='text-center text-text-soft-400'
+              >
+                Nenhum pedido encontrado
+              </Table.Cell>
+            </Table.Row>
+          )}
+
+          {/* Data rows with dividers */}
+          {!isLoading &&
+            orders.map((order, idx) => (
+              <span key={order.id} className='contents'>
+                <Table.Row>
+                  {/* Checkbox + ID */}
+                  <Table.Cell>
+                    <div className='flex items-center gap-3'>
+                      <Checkbox.Root
+                        checked={selectedIds.has(order.id)}
+                        onCheckedChange={() => handleSelectOne(order.id)}
+                      />
+                      <Link
+                        href={`/comercial/pedidos/${order.id}`}
+                        className='text-sm truncate text-text-strong-950 hover:underline'
+                      >
+                        #{order.orderNumber}
+                      </Link>
+                    </div>
+                  </Table.Cell>
+
+                  {/* Data */}
+                  <Table.Cell>
+                    <span className='text-sm text-text-strong-950'>
+                      {formatDate(order.createdAt)}
+                    </span>
+                  </Table.Cell>
+
+                  {/* Status */}
+                  <Table.Cell>
+                    <OrderStatusBadge status={order.status} />
+                  </Table.Cell>
+
+                  {/* Responsavel */}
+                  <Table.Cell>
+                    <div className='flex items-center gap-3'>
+                      <div className='flex size-6 shrink-0 items-center justify-center rounded-full bg-yellow-200 text-[10px] font-medium text-text-sub-600'>
+                        {(order.createdByUser?.name ?? '?')
+                          .charAt(0)
+                          .toUpperCase()}
+                      </div>
+                      <span className='text-sm truncate text-text-strong-950'>
+                        {order.createdByUser?.name ?? '\u2014'}
+                      </span>
+                    </div>
+                  </Table.Cell>
+
+                  {/* Produto (titulo do pedido) */}
+                  <Table.Cell>
+                    <span className='text-sm truncate text-text-strong-950'>
+                      {order.title || '\u2014'}
+                    </span>
+                  </Table.Cell>
+
+                  {/* Valor */}
+                  <Table.Cell>
+                    <span className='text-sm text-text-strong-950'>
+                      {formatCents(order.totalCents)}
+                    </span>
+                  </Table.Cell>
+
+                  {/* Actions */}
+                  <Table.Cell className='text-center'>
+                    <Dropdown.Root>
+                      <Dropdown.Trigger asChild>
+                        <button className='inline-flex items-center justify-center rounded-md p-0.5 text-text-sub-600 hover:bg-bg-weak-50'>
+                          <RiMoreFill className='size-5' />
+                        </button>
+                      </Dropdown.Trigger>
+                      <Dropdown.Content align='end' sideOffset={4}>
+                        <Dropdown.Item asChild>
+                          <Link href={`/comercial/pedidos/${order.id}`}>
+                            <Dropdown.ItemIcon as={RiEyeLine} />
+                            Ver dossie
+                          </Link>
+                        </Dropdown.Item>
+                        <Dropdown.Item
+                          onSelect={() => {
+                            const url = orderService.getPdfUrl(order.id);
+                            window.open(url, '_blank');
+                          }}
                         >
-                          #{order.orderNumber}
-                        </Link>
-                      </div>
-                    </Table.Cell>
+                          <Dropdown.ItemIcon as={RiFileTextLine} />
+                          Imprimir Proposta
+                        </Dropdown.Item>
+                      </Dropdown.Content>
+                    </Dropdown.Root>
+                  </Table.Cell>
+                </Table.Row>
 
-                    {/* Data */}
-                    <Table.Cell>
-                      <span className='text-sm text-text-strong-950'>
-                        {formatDate(order.createdAt)}
-                      </span>
-                    </Table.Cell>
-
-                    {/* Status */}
-                    <Table.Cell>
-                      <OrderStatusBadge status={order.status} />
-                    </Table.Cell>
-
-                    {/* Responsavel */}
-                    <Table.Cell>
-                      <div className='flex items-center gap-3'>
-                        <div className='flex size-6 shrink-0 items-center justify-center rounded-full bg-yellow-200 text-[10px] font-medium text-text-sub-600'>
-                          {(order.createdByUser?.name ?? '?')
-                            .charAt(0)
-                            .toUpperCase()}
-                        </div>
-                        <span className='truncate text-sm text-text-strong-950'>
-                          {order.createdByUser?.name ?? '\u2014'}
-                        </span>
-                      </div>
-                    </Table.Cell>
-
-                    {/* Produto (titulo do pedido) */}
-                    <Table.Cell>
-                      <span className='truncate text-sm text-text-strong-950'>
-                        {order.title || '\u2014'}
-                      </span>
-                    </Table.Cell>
-
-                    {/* Valor */}
-                    <Table.Cell>
-                      <span className='text-sm text-text-strong-950'>
-                        {formatCents(order.totalCents)}
-                      </span>
-                    </Table.Cell>
-
-                    {/* Actions */}
-                    <Table.Cell className='text-center'>
-                      <Dropdown.Root>
-                        <Dropdown.Trigger asChild>
-                          <button className='inline-flex items-center justify-center rounded-md p-0.5 text-text-sub-600 hover:bg-bg-weak-50'>
-                            <RiMoreFill className='size-5' />
-                          </button>
-                        </Dropdown.Trigger>
-                        <Dropdown.Content align='end' sideOffset={4}>
-                          <Dropdown.Item asChild>
-                            <Link href={`/comercial/pedidos/${order.id}`}>
-                              <Dropdown.ItemIcon as={RiEyeLine} />
-                              Ver dossie
-                            </Link>
-                          </Dropdown.Item>
-                          <Dropdown.Item
-                            onSelect={() => {
-                              const url = orderService.getPdfUrl(order.id);
-                              window.open(url, '_blank');
-                            }}
-                          >
-                            <Dropdown.ItemIcon as={RiFileTextLine} />
-                            Imprimir Proposta
-                          </Dropdown.Item>
-                        </Dropdown.Content>
-                      </Dropdown.Root>
-                    </Table.Cell>
-                  </Table.Row>
-
-                  {/* Content Divider between rows */}
-                  {idx < orders.length - 1 && (
-                    <Table.RowDivider key={`div-${order.id}`} />
-                  )}
-                </span>
-              ))}
-          </Table.Body>
-        </Table.Root>
+                {/* Content Divider between rows */}
+                {idx < orders.length - 1 && (
+                  <Table.RowDivider key={`div-${order.id}`} />
+                )}
+              </span>
+            ))}
+        </Table.Body>
+      </Table.Root>
 
       {/* Footer / Pagination */}
       {totalPages > 1 && (
@@ -416,10 +410,7 @@ export function OrderTable() {
 
             {Array.from({ length: totalPages }, (_, i) => i + 1)
               .filter(
-                (p) =>
-                  p === 1 ||
-                  p === totalPages ||
-                  Math.abs(p - page) <= 1,
+                (p) => p === 1 || p === totalPages || Math.abs(p - page) <= 1,
               )
               .map((p, idx, arr) => {
                 const prev = arr[idx - 1];

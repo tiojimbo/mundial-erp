@@ -26,7 +26,8 @@ export class AutomationConditionDto {
   operator: ConditionOperator;
 
   @ApiPropertyOptional({
-    description: 'Valor a comparar. JSON livre (string, number, boolean, array).',
+    description:
+      'Valor a comparar. JSON livre (string, number, boolean, array).',
   })
   @IsOptional()
   value?: unknown;

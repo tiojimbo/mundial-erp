@@ -106,8 +106,7 @@ export class AutomationListener {
     const automations = await this.cache.getOrLoad(
       payload.workspaceId,
       trigger,
-      () =>
-        this.repository.findActiveByTrigger(payload.workspaceId, trigger),
+      () => this.repository.findActiveByTrigger(payload.workspaceId, trigger),
     );
     if (automations.length === 0) return;
 

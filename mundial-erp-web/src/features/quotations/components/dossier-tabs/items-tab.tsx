@@ -24,7 +24,10 @@ export function ItemsTab({ quotation }: Props) {
         <Table.Body>
           {quotation.items.length === 0 && (
             <Table.Row>
-              <Table.Cell colSpan={5} className='text-center text-text-soft-400'>
+              <Table.Cell
+                colSpan={5}
+                className='text-center text-text-soft-400'
+              >
                 Nenhum item nesta cotação.
               </Table.Cell>
             </Table.Row>
@@ -44,7 +47,9 @@ export function ItemsTab({ quotation }: Props) {
                 </Table.Cell>
                 <Table.Cell className='text-right'>{item.quantity}</Table.Cell>
                 <Table.Cell className='text-right'>
-                  {item.unitPriceCents > 0 ? formatCents(item.unitPriceCents) : '—'}
+                  {item.unitPriceCents > 0
+                    ? formatCents(item.unitPriceCents)
+                    : '—'}
                 </Table.Cell>
                 <Table.Cell className='text-right font-medium'>
                   {item.unitPriceCents > 0 ? formatCents(totalCents) : '—'}
@@ -62,7 +67,9 @@ export function ItemsTab({ quotation }: Props) {
             <div className='border-t border-stroke-soft-200 pt-1'>
               <div className='flex justify-between text-label-md'>
                 <span className='text-text-strong-950'>Total</span>
-                <span className='text-text-strong-950'>{formatCents(quotation.totalCents)}</span>
+                <span className='text-text-strong-950'>
+                  {formatCents(quotation.totalCents)}
+                </span>
               </div>
             </div>
           </div>

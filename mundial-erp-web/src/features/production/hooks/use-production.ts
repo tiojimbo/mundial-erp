@@ -1,8 +1,4 @@
-import {
-  useQuery,
-  useMutation,
-  useQueryClient,
-} from '@tanstack/react-query';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useNotification } from '@/hooks/use-notification';
 import { productionService } from '../services/production.service';
 import type {
@@ -20,7 +16,8 @@ export const SEPARATION_ORDERS_KEY = ['separation-orders'];
 
 function extractErrorMessage(error: unknown): string {
   if (error && typeof error === 'object' && 'response' in error) {
-    const res = (error as { response?: { data?: { message?: string } } }).response;
+    const res = (error as { response?: { data?: { message?: string } } })
+      .response;
     if (res?.data?.message) return res.data.message;
   }
   if (error instanceof Error) return error.message;
@@ -237,8 +234,7 @@ export function useCheckItem(soId: string) {
   const qc = useQueryClient();
   const { notification } = useNotification();
   return useMutation({
-    mutationFn: (itemId: string) =>
-      productionService.checkItem(soId, itemId),
+    mutationFn: (itemId: string) => productionService.checkItem(soId, itemId),
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: [...SEPARATION_ORDERS_KEY, soId] });
       notification({

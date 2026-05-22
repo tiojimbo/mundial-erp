@@ -141,10 +141,7 @@ export class S3AdapterService implements OnModuleDestroy {
    * Baixa objeto como stream Node (usado pelo ClamAV worker para persistir
    * em /tmp sem carregar tudo em memoria).
    */
-  async downloadAsStream(
-    key: string,
-    bucket?: string,
-  ): Promise<Readable> {
+  async downloadAsStream(key: string, bucket?: string): Promise<Readable> {
     const effectiveBucket = bucket ?? this.defaultBucket;
     const response = await this.client.send(
       new GetObjectCommand({ Bucket: effectiveBucket, Key: key }),

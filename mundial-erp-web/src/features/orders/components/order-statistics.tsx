@@ -31,9 +31,7 @@ function StatCard({
         {change && changeLabel && (
           <span className='text-[12px] font-medium leading-[16px]'>
             <span
-              className={cn(
-                positive ? 'text-success-base' : 'text-error-base',
-              )}
+              className={cn(positive ? 'text-success-base' : 'text-error-base')}
             >
               {change}
             </span>
@@ -52,7 +50,7 @@ function StatCard({
 
 function VerticalDashedDivider() {
   return (
-    <div className='flex self-stretch items-center'>
+    <div className='flex items-center self-stretch'>
       <div className='h-14 w-px border-l border-dashed border-stroke-soft-200' />
     </div>
   );

@@ -25,16 +25,20 @@ export const cardSchema = z.object({
     processId: z.string().optional(),
     departmentId: z.string().optional(),
     statusFilter: z.string().optional(),
-    dateRange: z.object({
-      from: z.string(),
-      to: z.string(),
-    }).optional(),
+    dateRange: z
+      .object({
+        from: z.string(),
+        to: z.string(),
+      })
+      .optional(),
   }),
-  axisConfig: z.object({
-    xField: z.string().min(1),
-    yField: z.string().min(1),
-    groupBy: z.string().optional(),
-  }).optional(),
+  axisConfig: z
+    .object({
+      xField: z.string().min(1),
+      yField: z.string().min(1),
+      groupBy: z.string().optional(),
+    })
+    .optional(),
 });
 
 export type CardFormData = z.infer<typeof cardSchema>;

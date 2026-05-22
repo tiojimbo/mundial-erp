@@ -35,31 +35,19 @@ describe('Kommo Dashboard — Whitelist Enforcement (T-T2, T-T3, T-T4, T-T5, T-E
   it.todo(
     'Field whitelist per entity — kommoAgents.isActive → 201; kommoAgents.hmacSecret → 400 — T-T3',
   );
-  it.todo(
-    'Operator EQUALS/IN/BETWEEN accepted → 201 — T-T4 positive',
-  );
-  it.todo(
-    'Operator REGEX/LIKE/$ne/RAW/CONTAINS rejected → 400 — T-T4',
-  );
+  it.todo('Operator EQUALS/IN/BETWEEN accepted → 201 — T-T4 positive');
+  it.todo('Operator REGEX/LIKE/$ne/RAW/CONTAINS rejected → 400 — T-T4');
   it.todo(
     'BETWEEN with array of 1 or 3 elements → 400 (must be exactly 2) — T-T4',
   );
-  it.todo(
-    'IN with empty array or > 50 elements → 400 — T-T4, T-D1',
-  );
-  it.todo(
-    'axisConfig.groupBy="workspaceId" or "deletedAt" → 400 — T-T3',
-  );
-  it.todo(
-    'axisConfig.yField="contentHash" or "rawMetadata" → 400 — T-T3',
-  );
+  it.todo('IN with empty array or > 50 elements → 400 — T-T4, T-D1');
+  it.todo('axisConfig.groupBy="workspaceId" or "deletedAt" → 400 — T-T3');
+  it.todo('axisConfig.yField="contentHash" or "rawMetadata" → 400 — T-T3');
   it.todo(
     'dataSource JSON with extra keys not in DTO → 400 (forbidNonWhitelisted) — T-T5',
   );
   it.todo(
     'Viewer role POST /dashboards/:id/cards → 403 (mutation blocked regardless of payload) — T-E1',
   );
-  it.todo(
-    'All 400 responses produce 0 DB writes (transactional rollback)',
-  );
+  it.todo('All 400 responses produce 0 DB writes (transactional rollback)');
 });

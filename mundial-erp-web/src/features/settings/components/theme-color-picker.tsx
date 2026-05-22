@@ -1,7 +1,10 @@
 'use client';
 
 import { RiCheckLine } from '@remixicon/react';
-import { useThemeColorStore, type ThemeColorKey } from '@/stores/theme-color.store';
+import {
+  useThemeColorStore,
+  type ThemeColorKey,
+} from '@/stores/theme-color.store';
 import { cn } from '@/lib/cn';
 
 const THEME_COLORS: { key: ThemeColorKey; label: string; hex: string }[] = [

@@ -16,11 +16,7 @@
  * detail endpoint e a fonte canonica para a assercao.
  */
 import { Test, TestingModule } from '@nestjs/testing';
-import {
-  INestApplication,
-  Logger,
-  ValidationPipe,
-} from '@nestjs/common';
+import { INestApplication, Logger, ValidationPipe } from '@nestjs/common';
 import request from 'supertest';
 import type { App } from 'supertest/types';
 import { AppModule } from '../../../src/app.module';

@@ -46,7 +46,9 @@ export function useBulkUpdateTasks() {
       return { snapshots };
     },
     onError: (_err, _vars, ctx) => {
-      const snapshots = (ctx as { snapshots?: Array<[readonly unknown[], unknown]> })?.snapshots;
+      const snapshots = (
+        ctx as { snapshots?: Array<[readonly unknown[], unknown]> }
+      )?.snapshots;
       snapshots?.forEach(([key, data]) => qc.setQueryData(key, data));
       toast.error('Erro ao atualizar tarefas em massa');
     },
@@ -80,7 +82,9 @@ export function useBulkDeleteTasks() {
       return { snapshots };
     },
     onError: (_err, _vars, ctx) => {
-      const snapshots = (ctx as { snapshots?: Array<[readonly unknown[], unknown]> })?.snapshots;
+      const snapshots = (
+        ctx as { snapshots?: Array<[readonly unknown[], unknown]> }
+      )?.snapshots;
       snapshots?.forEach(([key, data]) => qc.setQueryData(key, data));
       toast.error('Erro ao excluir tarefas');
     },

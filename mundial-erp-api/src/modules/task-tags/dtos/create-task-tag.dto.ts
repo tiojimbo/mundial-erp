@@ -15,7 +15,9 @@ import {
 const HEX_COLOR_REGEX = /^#(?:[0-9a-fA-F]{3}|[0-9a-fA-F]{6}|[0-9a-fA-F]{8})$/;
 
 export class CreateTaskTagDto {
-  @ApiProperty({ description: 'Space onde a tag pertence (obrigatorio Hoppe-style)' })
+  @ApiProperty({
+    description: 'Space onde a tag pertence (obrigatorio Hoppe-style)',
+  })
   @IsString()
   @Length(1, 64)
   spaceId!: string;

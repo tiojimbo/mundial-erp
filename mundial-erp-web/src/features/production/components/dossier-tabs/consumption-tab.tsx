@@ -15,16 +15,26 @@ export function ConsumptionTab({ order }: Props) {
     return (
       <div className='flex flex-col items-center justify-center gap-2 py-12 text-text-soft-400'>
         <i className='ri-flask-line text-3xl' />
-        <p className='text-paragraph-sm'>Nenhum consumo de materia-prima registrado</p>
+        <p className='text-paragraph-sm'>
+          Nenhum consumo de materia-prima registrado
+        </p>
         {order.status === 'IN_PROGRESS' && (
-          <p className='text-paragraph-xs'>Registre o consumo durante a producao</p>
+          <p className='text-paragraph-xs'>
+            Registre o consumo durante a producao
+          </p>
         )}
       </div>
     );
   }
 
-  const totalPlanned = consumptions.reduce((acc, c) => acc + c.plannedQuantity, 0);
-  const totalActual = consumptions.reduce((acc, c) => acc + (c.actualQuantity ?? 0), 0);
+  const totalPlanned = consumptions.reduce(
+    (acc, c) => acc + c.plannedQuantity,
+    0,
+  );
+  const totalActual = consumptions.reduce(
+    (acc, c) => acc + (c.actualQuantity ?? 0),
+    0,
+  );
   const totalCost = consumptions.reduce((acc, c) => acc + c.totalCostCents, 0);
 
   return (

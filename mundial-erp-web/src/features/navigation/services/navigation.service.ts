@@ -1,13 +1,16 @@
 import { api } from '@/lib/api';
 import type { ApiResponse } from '@/types/api.types';
 import type { SidebarDepartment } from '../types/navigation.types';
-import type { DepartmentDetail, AreaDetail, ProcessSummary } from '../types/process-summary.types';
+import type {
+  DepartmentDetail,
+  AreaDetail,
+  ProcessSummary,
+} from '../types/process-summary.types';
 
 export const navigationService = {
   async getSidebarTree(): Promise<SidebarDepartment[]> {
-    const { data } = await api.get<ApiResponse<SidebarDepartment[]>>(
-      '/spaces/sidebar',
-    );
+    const { data } =
+      await api.get<ApiResponse<SidebarDepartment[]>>('/spaces/sidebar');
     return data.data;
   },
 
