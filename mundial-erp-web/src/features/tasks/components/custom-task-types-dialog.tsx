@@ -66,10 +66,10 @@ export function CustomTaskTypesDialog({ open, onOpenChange, spaceId }: Props) {
         <Dialog.Overlay className='fixed inset-0 z-50 bg-black/50' />
         <Dialog.Content
           className={cn(
-            'fixed left-1/2 top-1/2 z-50 grid w-full max-w-[calc(100%-2rem)] -translate-x-1/2 -translate-y-1/2 gap-4 overflow-auto rounded-lg border bg-background p-0 shadow-lg sm:max-w-2xl',
+            'fixed left-1/2 top-1/2 z-50 flex max-h-[85vh] w-full max-w-[calc(100%-2rem)] -translate-x-1/2 -translate-y-1/2 flex-col gap-4 overflow-hidden rounded-lg border bg-background p-0 shadow-lg sm:max-w-2xl',
           )}
         >
-          <div className='flex flex-col gap-2 p-6 pb-4 text-left'>
+          <div className='flex shrink-0 flex-col gap-2 p-6 pb-4 text-left'>
             <div className='flex items-center justify-between'>
               <div>
                 <Dialog.Title className='text-lg font-bold'>
@@ -90,7 +90,7 @@ export function CustomTaskTypesDialog({ open, onOpenChange, spaceId }: Props) {
             </div>
           </div>
           <div className='h-px w-full shrink-0 bg-border' />
-          <div className='px-6 pb-6'>
+          <div className='min-h-0 flex-1 overflow-y-auto px-6 pb-6'>
             <div className='rounded-lg border border-border'>
               <div className='grid grid-cols-[1fr_200px] border-b border-border bg-muted/50 px-4 py-2.5 text-xs font-medium text-muted-foreground'>
                 <span>Name</span>
