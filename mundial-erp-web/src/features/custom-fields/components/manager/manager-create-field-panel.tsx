@@ -20,9 +20,14 @@ import { useSidebarTree } from '@/features/navigation/hooks/use-sidebar-tree';
 import { cn } from '@/lib/cn';
 import { useCreateCustomField } from '../../hooks/use-custom-field-definitions';
 import type { ManagerView } from '../../hooks/use-custom-fields-manager-state';
+import {
+  QUANTITY_UNIT_ABBR,
+  QUANTITY_UNIT_LABEL,
+} from '../../types/custom-field.types';
 import type {
   CustomFieldConfig,
   CustomFieldType,
+  QuantityUnit,
 } from '../../types/custom-field.types';
 
 interface ManagerCreateFieldPanelProps {
@@ -42,6 +47,7 @@ const TYPE_LABEL: Record<CustomFieldType, string> = {
   URL: 'URL',
   EMAIL: 'E-mail',
   PHONE: 'Telefone',
+  QUANTITY: 'Quantidade',
   SELECT: 'Seleção',
   CHECKBOX: 'Caixa de seleção',
   PERCENTAGE: 'Porcentagem',
@@ -71,6 +77,8 @@ function defaultConfig(type: CustomFieldType): CustomFieldConfig {
       return { min: 0, max: 100 };
     case 'PEOPLE':
       return { multiple: true };
+    case 'QUANTITY':
+      return { unit: 'METER2' };
     default:
       return {};
   }
@@ -313,6 +321,30 @@ export function ManagerCreateFieldPanel({
                     {c}
                   </option>
                 ))}
+              </select>
+            </div>
+          ) : null}
+
+          {type === 'QUANTITY' ? (
+            <div>
+              <FieldLabel>Unidade de medida</FieldLabel>
+              <select
+                value={config.unit ?? 'METER2'}
+                onChange={(e) =>
+                  setConfig((c) => ({
+                    ...c,
+                    unit: e.target.value as QuantityUnit,
+                  }))
+                }
+                className="border-input h-9 w-full cursor-pointer rounded-md border bg-transparent px-3 text-paragraph-sm outline-none focus-visible:ring-[3px] focus-visible:ring-ring/50"
+              >
+                {(Object.keys(QUANTITY_UNIT_LABEL) as QuantityUnit[]).map(
+                  (u) => (
+                    <option key={u} value={u}>
+                      {QUANTITY_UNIT_LABEL[u]} ({QUANTITY_UNIT_ABBR[u]})
+                    </option>
+                  ),
+                )}
               </select>
             </div>
           ) : null}

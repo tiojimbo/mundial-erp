@@ -18,6 +18,7 @@ import { NumberField } from './fields/number-field';
 import { PeopleField } from './fields/people-field';
 import { PercentageField } from './fields/percentage-field';
 import { PhoneField } from './fields/phone-field';
+import { QuantityField } from './fields/quantity-field';
 import { RatingField } from './fields/rating-field';
 import { RelationshipField } from './fields/relationship-field';
 import { RollupField } from './fields/rollup-field';
@@ -60,6 +61,8 @@ export function CustomFieldEditor(props: CustomFieldEditorProps) {
       return <EmailField {...castStringProps(props)} />;
     case 'PHONE':
       return <PhoneField {...castStringProps(props)} />;
+    case 'QUANTITY':
+      return <QuantityField {...castNumberProps(props)} />;
     case 'SELECT':
       return <SelectField {...castStringProps(props)} />;
     case 'LABEL':

@@ -17,6 +17,7 @@ import {
   Percent,
   Phone,
   Plus,
+  Scale,
   Settings2,
   Sigma,
   Star,
@@ -55,6 +56,7 @@ import { DropdownField } from '@/features/custom-fields/components/fields/dropdo
 import { EmailField } from '@/features/custom-fields/components/fields/email-field';
 import { NumberField } from '@/features/custom-fields/components/fields/number-field';
 import { PhoneField } from '@/features/custom-fields/components/fields/phone-field';
+import { QuantityField } from '@/features/custom-fields/components/fields/quantity-field';
 import { TextField } from '@/features/custom-fields/components/fields/text-field';
 import { UrlField } from '@/features/custom-fields/components/fields/url-field';
 import { CheckboxField } from '@/features/custom-fields/components/fields/checkbox-field';
@@ -122,6 +124,7 @@ export type CustomFieldsSectionProps = {
 const QUICK_TYPE_OPTIONS: ReadonlyArray<{ value: CustomFieldType; label: string }> = [
   { value: 'TEXT', label: 'Texto' },
   { value: 'NUMBER', label: 'Número' },
+  { value: 'QUANTITY', label: 'Quantidade' },
   { value: 'CURRENCY', label: 'Moeda' },
   { value: 'DATE', label: 'Data' },
   { value: 'DROPDOWN', label: 'Lista suspensa' },
@@ -155,6 +158,7 @@ const BUCKET_LABEL: Record<BucketKey, string> = {
 const TYPE_ICON: Partial<Record<CustomFieldType, LucideIcon>> = {
   TEXT: Type,
   NUMBER: Hash,
+  QUANTITY: Scale,
   CURRENCY: CircleDollarSign,
   DATE: Calendar,
   DROPDOWN: ChevronDown,
@@ -499,6 +503,16 @@ function FieldRow({ definition, entry, readOnly, onChange, inline }: FieldRowPro
     case 'CURRENCY':
       return (
         <CurrencyField
+          definition={definition}
+          value={value}
+          readOnly={readOnly}
+          onChange={onChange}
+          inline={inline}
+        />
+      );
+    case 'QUANTITY':
+      return (
+        <QuantityField
           definition={definition}
           value={value}
           readOnly={readOnly}

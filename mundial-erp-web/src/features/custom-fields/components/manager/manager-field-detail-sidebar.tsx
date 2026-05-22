@@ -3,6 +3,7 @@
 import { useEffect, useState } from 'react';
 import {
   ArrowRightLeft,
+  Building2,
   ChevronDown,
   ChevronRight,
   Folder,
@@ -26,12 +27,17 @@ import {
 } from '../../hooks/use-custom-field-definitions';
 import { useCustomFieldGroupsList } from '../../hooks/use-custom-field-groups';
 import { useSidebarTree } from '@/features/navigation/hooks/use-sidebar-tree';
+import {
+  QUANTITY_UNIT_ABBR,
+  QUANTITY_UNIT_LABEL,
+} from '../../types/custom-field.types';
 import type {
   CustomFieldConfig,
   CustomFieldDefinition,
   CustomFieldLocationType,
   CustomFieldType,
   ManagerCustomFieldItem,
+  QuantityUnit,
 } from '../../types/custom-field.types';
 
 interface ManagerFieldDetailSidebarProps {
@@ -56,6 +62,8 @@ function defaultConfig(type: CustomFieldType): CustomFieldConfig {
       return { min: 0, max: 100 };
     case 'PEOPLE':
       return { multiple: true };
+    case 'QUANTITY':
+      return { unit: 'METER2' };
     default:
       return {};
   }
@@ -72,6 +80,7 @@ const TYPE_DISPLAY: Record<CustomFieldType, string> = {
   URL: 'URL',
   EMAIL: 'E-mail',
   PHONE: 'Telefone',
+  QUANTITY: 'Quantidade',
   SELECT: 'Seleção',
   CHECKBOX: 'Caixa de seleção',
   PERCENTAGE: 'Porcentagem',
@@ -418,6 +427,31 @@ export function ManagerFieldDetailSidebar({
                     {c}
                   </option>
                 ))}
+              </select>
+            </div>
+          ) : null}
+
+          {def.type === 'QUANTITY' ? (
+            <div>
+              <FieldLabel>Unidade de medida</FieldLabel>
+              <select
+                value={config.unit ?? 'METER2'}
+                disabled={isBuiltin}
+                onChange={(e) =>
+                  setConfig((c) => ({
+                    ...c,
+                    unit: e.target.value as QuantityUnit,
+                  }))
+                }
+                className="border-input h-9 w-full cursor-pointer rounded-md border bg-transparent px-3 text-paragraph-sm outline-none focus-visible:ring-[3px] focus-visible:ring-ring/50 disabled:opacity-50"
+              >
+                {(Object.keys(QUANTITY_UNIT_LABEL) as QuantityUnit[]).map(
+                  (u) => (
+                    <option key={u} value={u}>
+                      {QUANTITY_UNIT_LABEL[u]} ({QUANTITY_UNIT_ABBR[u]})
+                    </option>
+                  ),
+                )}
               </select>
             </div>
           ) : null}

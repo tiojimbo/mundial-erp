@@ -134,6 +134,7 @@ function normalizeScalar(entry: CustomFieldValue): CustomFieldScalarValue {
 
   switch (customField.type) {
     case 'NUMBER':
+    case 'QUANTITY':
     case 'CURRENCY':
     case 'PERCENTAGE':
     case 'DURATION':

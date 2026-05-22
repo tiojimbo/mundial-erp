@@ -9,6 +9,7 @@ export type CustomFieldType =
   | 'URL'
   | 'EMAIL'
   | 'PHONE'
+  | 'QUANTITY'
   | 'SELECT'
   | 'CHECKBOX'
   | 'PERCENTAGE'
@@ -25,6 +26,22 @@ export interface CustomFieldDropdownOption {
   value: string;
   label: string;
 }
+
+export type QuantityUnit = 'METER2' | 'UNIT' | 'KG' | 'TON';
+
+export const QUANTITY_UNIT_ABBR: Record<QuantityUnit, string> = {
+  METER2: 'm²',
+  UNIT: 'un',
+  KG: 'kg',
+  TON: 't',
+};
+
+export const QUANTITY_UNIT_LABEL: Record<QuantityUnit, string> = {
+  METER2: 'Metro quadrado',
+  UNIT: 'Unidade',
+  KG: 'Quilograma',
+  TON: 'Tonelada',
+};
 
 export interface CustomFieldRequiredWhen {
   field: string;
@@ -66,6 +83,7 @@ export interface CustomFieldConfig {
   includeTime?: boolean;
   multiple?: boolean;
   cnpjAutofill?: boolean;
+  unit?: QuantityUnit;
 }
 
 export interface CnpjLookupResult {

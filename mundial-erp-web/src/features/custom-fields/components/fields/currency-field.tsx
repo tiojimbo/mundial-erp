@@ -6,20 +6,34 @@ import { inputClass, inputClassInline } from './field-base';
 import { FieldShell } from './field-shell';
 import { useDebouncedOnChange } from './use-debounced-onchange';
 
-/**
- * Sprint 2 (TTT-021) — Editor CURRENCY (BRL).
- *
- * Aceita digitos puros + virgula/ponto. No debounce, normaliza para `number`
- * em reais (ex.: `1.234,56` -> `1234.56`). O backend converte para centavos
- * Int conforme `validators/field-type-dispatch.ts` (PLANO §"Validators").
- *
- * Affixo "R$" e renderizado via prefix nao-interativo (nao consome foco).
- */
 function parseCurrency(input: string): number | null {
   if (input.trim().length === 0) return null;
-  const normalized = input.replace(/[^\d,.-]/g, '').replace(/\.(?=\d{3}(\D|$))/g, '');
+  const normalized = input
+    .replace(/[^\d,.-]/g, '')
+    .replace(/\.(?=\d{3}(\D|$))/g, ''); // descarta separador de milhar
   const parsed = Number(normalized.replace(',', '.'));
   return Number.isFinite(parsed) ? parsed : null;
+}
+
+const currencyFormatter = new Intl.NumberFormat('pt-BR', {
+  minimumFractionDigits: 2,
+  maximumFractionDigits: 2,
+});
+
+function toNumber(value: number | string | null): number | null {
+  if (value === null || value === undefined || value === '') return null;
+  if (typeof value === 'number') return Number.isFinite(value) ? value : null;
+  return parseCurrency(value);
+}
+
+function formatCurrency(value: number | string | null): string {
+  const num = toNumber(value);
+  return num === null ? '' : currencyFormatter.format(num);
+}
+
+function toEditable(value: number | string | null): string {
+  const num = toNumber(value);
+  return num === null ? '' : num.toFixed(2).replace('.', ',');
 }
 
 export function CurrencyField({
@@ -30,15 +44,31 @@ export function CurrencyField({
   error,
   inline,
 }: BaseFieldProps<number | string | null>) {
-  const initial = value === null || value === undefined ? '' : String(value);
-  const [localValue, setLocalValue] = useState<string>(initial);
+  const [focused, setFocused] = useState(false);
+  const [localValue, setLocalValue] = useState<string>(() => toEditable(value));
   const debounced = useDebouncedOnChange<number | null>(onChange);
 
   useEffect(() => {
-    setLocalValue(value === null || value === undefined ? '' : String(value));
-  }, [value]);
+    if (!focused) setLocalValue(toEditable(value));
+  }, [value, focused]);
 
   const isReadOnly = readOnly || definition.config?.readOnly === true;
+  const displayValue = focused ? localValue : formatCurrency(value);
+
+  function handleChange(next: string) {
+    setLocalValue(next);
+    debounced(parseCurrency(next));
+  }
+
+  function handleFocus() {
+    setLocalValue(toEditable(value));
+    setFocused(true);
+  }
+
+  function handleBlur() {
+    setFocused(false);
+    onChange(parseCurrency(localValue));
+  }
 
   return (
     <FieldShell
@@ -50,20 +80,26 @@ export function CurrencyField({
       {(controlProps) => {
         if (inline) {
           return (
-            <div className="flex w-full items-center gap-1.5">
+            <div className="flex w-full items-center gap-1">
+              {displayValue.length > 0 ? (
+                <span
+                  aria-hidden="true"
+                  className="shrink-0 text-[13px] text-foreground"
+                >
+                  R$
+                </span>
+              ) : null}
               <input
                 {...controlProps}
                 type="text"
-                inputMode="numeric"
+                inputMode="decimal"
                 className={inputClassInline}
-                value={localValue}
+                value={displayValue}
                 readOnly={isReadOnly}
                 placeholder="-"
-                onChange={(event) => {
-                  const next = event.target.value;
-                  setLocalValue(next);
-                  debounced(parseCurrency(next));
-                }}
+                onChange={(event) => handleChange(event.target.value)}
+                onFocus={handleFocus}
+                onBlur={handleBlur}
               />
             </div>
           );
@@ -72,7 +108,7 @@ export function CurrencyField({
           <div className="relative">
             <span
               aria-hidden="true"
-              className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-xs text-muted-foreground"
+              className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-sm text-foreground"
             >
               R$
             </span>
@@ -81,14 +117,12 @@ export function CurrencyField({
               type="text"
               inputMode="decimal"
               className={`${inputClass} pl-9`}
-              value={localValue}
+              value={displayValue}
               readOnly={isReadOnly}
               placeholder="0,00"
-              onChange={(event) => {
-                const next = event.target.value;
-                setLocalValue(next);
-                debounced(parseCurrency(next));
-              }}
+              onChange={(event) => handleChange(event.target.value)}
+              onFocus={handleFocus}
+              onBlur={handleBlur}
             />
           </div>
         );

@@ -56,6 +56,18 @@ interface DedupCacheEntry {
   expiresAt: number;
 }
 
+interface DerivationRule {
+  sourceDefinitionId: string;
+  operation: 'multiply' | 'divide';
+  factor: number;
+}
+
+interface DerivedFieldChange {
+  definitionId: string;
+  before: number | null;
+  after: number | null;
+}
+
 @Injectable()
 export class CustomFieldValuesService implements OnModuleDestroy {
   private readonly logger = new Logger(CustomFieldValuesService.name);
@@ -207,7 +219,7 @@ export class CustomFieldValuesService implements OnModuleDestroy {
       : null;
 
     // 7. Upsert + outbox em $transaction.
-    const persisted = await this.prisma.$transaction(async (tx) => {
+    const txResult = await this.prisma.$transaction(async (tx) => {
       // 7a. `requiredWhen` server-side (PLANO Regra de Negocio #4).
       //     Le os demais custom field values da mesma task (+1 query, budget
       //     total <=5; ainda dentro do orcamento global <=10) e monta um mapa
@@ -286,8 +298,21 @@ export class CustomFieldValuesService implements OnModuleDestroy {
         },
       });
 
-      return row;
+      // 7b. Recalculo em cascata dos campos derivados (config.derivedFrom).
+      const derivedChanges =
+        definition.type === CustomFieldType.CURRENCY
+          ? await this.recalculateDerived(
+              tx,
+              taskId,
+              definitionId,
+              columns.valueNumber,
+              workspaceId,
+            )
+          : [];
+
+      return { persisted: row, derivedChanges };
     });
+    const { persisted, derivedChanges } = txResult;
 
     // 8. Atualiza cache de dedup pos-commit.
     this.writeDedupCache(cacheKey, signature);
@@ -324,6 +349,19 @@ export class CustomFieldValuesService implements OnModuleDestroy {
           before: beforeValue,
           after: afterValue,
         });
+        for (const change of derivedChanges) {
+          this.automationEvents.emitCustomFieldChanged({
+            workspaceId,
+            taskId,
+            listId: ctx.listId,
+            folderId: ctx.folderId,
+            spaceId: ctx.spaceId,
+            actorUserId,
+            customFieldDefinitionId: change.definitionId,
+            before: change.before,
+            after: change.after,
+          });
+        }
       }
     }
 
@@ -670,6 +708,7 @@ export class CustomFieldValuesService implements OnModuleDestroy {
   ): string | number | boolean | Date | null {
     switch (type) {
       case CustomFieldType.NUMBER:
+      case CustomFieldType.QUANTITY:
       case CustomFieldType.CURRENCY:
       case CustomFieldType.PERCENTAGE:
       case CustomFieldType.DURATION:
@@ -692,5 +731,123 @@ export class CustomFieldValuesService implements OnModuleDestroy {
       default:
         return row.valueText;
     }
+  }
+
+  // Cascata de custom fields derivados (config.derivedFrom): a partir do
+  // campo alterado regrava cada dependente em largura. Fonte vazia nao
+  // recalcula; `visited` corta ciclo de config.
+  private async recalculateDerived(
+    tx: Prisma.TransactionClient,
+    taskId: string,
+    changedDefinitionId: string,
+    changedValue: number | null,
+    workspaceId: string,
+  ): Promise<DerivedFieldChange[]> {
+    const defs = await tx.customFieldDefinition.findMany({
+      where: {
+        deletedAt: null,
+        type: CustomFieldType.CURRENCY,
+        OR: [{ workspaceId }, { workspaceId: null }],
+      },
+      select: { id: true, config: true },
+    });
+
+    const dependentsBySource = new Map<
+      string,
+      { id: string; rule: DerivationRule }[]
+    >();
+    for (const def of defs) {
+      const rule = this.parseDerivationRule(def.config);
+      if (!rule) continue;
+      const list = dependentsBySource.get(rule.sourceDefinitionId) ?? [];
+      list.push({ id: def.id, rule });
+      dependentsBySource.set(rule.sourceDefinitionId, list);
+    }
+    if (dependentsBySource.size === 0) return [];
+
+    const rows = await tx.customFieldValue.findMany({
+      where: { workItemId: taskId },
+      select: { definitionId: true, valueNumber: true },
+    });
+    const values = new Map<string, number | null>();
+    for (const row of rows) {
+      values.set(
+        row.definitionId,
+        row.valueNumber === null ? null : Number(row.valueNumber),
+      );
+    }
+    values.set(changedDefinitionId, changedValue);
+
+    const changes: DerivedFieldChange[] = [];
+    const queue: string[] = [changedDefinitionId];
+    const visited = new Set<string>();
+    while (queue.length > 0) {
+      const sourceId = queue.shift() as string;
+      if (visited.has(sourceId)) continue;
+      visited.add(sourceId);
+
+      const sourceValue = values.get(sourceId) ?? null;
+      if (sourceValue === null) continue;
+
+      for (const dependent of dependentsBySource.get(sourceId) ?? []) {
+        const before = values.get(dependent.id) ?? null;
+        const after = this.applyDerivation(sourceValue, dependent.rule);
+        if (after === before) continue;
+
+        await tx.customFieldValue.upsert({
+          where: {
+            workItemId_definitionId: {
+              workItemId: taskId,
+              definitionId: dependent.id,
+            },
+          },
+          create: {
+            workItemId: taskId,
+            definitionId: dependent.id,
+            valueNumber: after,
+          },
+          update: { valueNumber: after },
+        });
+        values.set(dependent.id, after);
+        changes.push({ definitionId: dependent.id, before, after });
+        queue.push(dependent.id);
+      }
+    }
+    return changes;
+  }
+
+  private parseDerivationRule(
+    config: Prisma.JsonValue | null,
+  ): DerivationRule | null {
+    if (
+      typeof config !== 'object' ||
+      config === null ||
+      Array.isArray(config)
+    ) {
+      return null;
+    }
+    const raw = config as Record<string, unknown>;
+    const sourceDefinitionId = raw.derivedFrom;
+    const operation = raw.operation;
+    const factor = raw.factor;
+    if (
+      typeof sourceDefinitionId !== 'string' ||
+      sourceDefinitionId.length === 0 ||
+      (operation !== 'multiply' && operation !== 'divide') ||
+      typeof factor !== 'number' ||
+      !Number.isFinite(factor) ||
+      factor === 0
+    ) {
+      return null;
+    }
+    return { sourceDefinitionId, operation, factor };
+  }
+
+  private applyDerivation(source: number, rule: DerivationRule): number {
+    const raw =
+      rule.operation === 'divide'
+        ? source / rule.factor
+        : source * rule.factor;
+    return Math.round(raw * 100) / 100;
   }
 }

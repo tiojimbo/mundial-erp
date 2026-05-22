@@ -1,4 +1,4 @@
-import { Logger, NotFoundException } from '@nestjs/common';
+import { Logger } from '@nestjs/common';
 import { CustomFieldType } from '@prisma/client';
 import { CustomFieldValuesService } from './custom-field-values.service';
 
@@ -63,9 +63,17 @@ const persistedRow = {
 function buildHarness(opts?: {
   previousValue?: string | null;
   noPrevious?: boolean;
+  definition?: typeof defaultDefinition;
+  derivedDefs?: { id: string; config: unknown }[];
 }) {
   const txMock = {
-    customFieldValue: { findMany: jest.fn(async () => []) },
+    customFieldValue: {
+      findMany: jest.fn(async () => []),
+      upsert: jest.fn(async () => undefined),
+    },
+    customFieldDefinition: {
+      findMany: jest.fn(async () => opts?.derivedDefs ?? []),
+    },
     taskOutboxEvent: { create: jest.fn(async () => undefined) },
   };
 
@@ -84,7 +92,7 @@ function buildHarness(opts?: {
   };
 
   const definitionsRepo: MockDefinitionsRepo = {
-    findVisibleById: jest.fn(async () => defaultDefinition),
+    findVisibleById: jest.fn(async () => opts?.definition ?? defaultDefinition),
   };
 
   const valuesRepo: MockValuesRepo = {
@@ -181,14 +189,78 @@ describe('CustomFieldValuesService — emissao de eventos para Automations', () 
       });
     });
 
-    it('clearValue em campo sem valor existente lanca 404 e nao emite', async () => {
-      const h = buildHarness();
-      h.valuesRepo.deleteValue.mockResolvedValueOnce(null);
+    it('clearValue em campo sem valor existente e idempotente e nao emite', async () => {
+      const h = buildHarness({ noPrevious: true });
 
-      await expect(h.service.clearValue(WS, TASK, DEF)).rejects.toBeInstanceOf(
-        NotFoundException,
-      );
+      await expect(
+        h.service.clearValue(WS, TASK, DEF),
+      ).resolves.toBeUndefined();
+      expect(h.valuesRepo.deleteValue).not.toHaveBeenCalled();
       expect(h.publisher.emitCustomFieldChanged).not.toHaveBeenCalled();
+    });
+  });
+
+  describe('setValue — calculo derivado em cascata', () => {
+    const COST = 'cfd-price-cost';
+    const CASH = 'cfd-price-cash';
+    const TERM = 'cfd-price-term';
+
+    const costDefinition = {
+      ...defaultDefinition,
+      id: COST,
+      key: 'price_cost',
+      type: CustomFieldType.CURRENCY,
+      config: {},
+    };
+
+    const derivedDefs = [
+      { id: COST, config: null },
+      {
+        id: CASH,
+        config: { derivedFrom: COST, operation: 'multiply', factor: 1.5 },
+      },
+      {
+        id: TERM,
+        config: { derivedFrom: CASH, operation: 'divide', factor: 0.85 },
+      },
+    ];
+
+    function upsertedValues(h: ReturnType<typeof buildHarness>) {
+      return new Map(
+        h.txMock.customFieldValue.upsert.mock.calls.map((call) => {
+          const arg = call[0] as {
+            where: { workItemId_definitionId: { definitionId: string } };
+            create: { valueNumber: number };
+          };
+          return [
+            arg.where.workItemId_definitionId.definitionId,
+            arg.create.valueNumber,
+          ];
+        }),
+      );
+    }
+
+    it('preencher Preco de Custo recalcula a Vista (x1,5) e a Prazo (/0,85)', async () => {
+      const h = buildHarness({
+        definition: costDefinition,
+        noPrevious: true,
+        derivedDefs,
+      });
+
+      await h.service.setValue(WS, TASK, COST, 100, ACTOR);
+
+      const byDef = upsertedValues(h);
+      expect(byDef.get(CASH)).toBe(150);
+      expect(byDef.get(TERM)).toBe(176.47);
+      expect(h.publisher.emitCustomFieldChanged).toHaveBeenCalledTimes(3);
+    });
+
+    it('campo sem dependentes nao dispara recalculo', async () => {
+      const h = buildHarness({ derivedDefs });
+
+      await h.service.setValue(WS, TASK, DEF, 'novo', ACTOR);
+
+      expect(h.txMock.customFieldValue.upsert).not.toHaveBeenCalled();
     });
   });
 });

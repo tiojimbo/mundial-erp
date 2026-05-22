@@ -171,6 +171,20 @@ export function validateValue(
       return { valid: true, normalized: parsed, column: 'valueNumber' };
     }
 
+    case CustomFieldType.QUANTITY: {
+      const parsed = typeof rawValue === 'number' ? rawValue : Number(rawValue);
+      if (Number.isNaN(parsed) || !Number.isFinite(parsed)) {
+        return { valid: false, reason: 'QUANTITY invalido' };
+      }
+      if (parsed < 0) {
+        return { valid: false, reason: 'QUANTITY nao pode ser negativo' };
+      }
+      if (parsed >= 1e14) {
+        return { valid: false, reason: 'QUANTITY excede limite' };
+      }
+      return { valid: true, normalized: parsed, column: 'valueNumber' };
+    }
+
     case CustomFieldType.DATE: {
       const date =
         rawValue instanceof Date ? rawValue : new Date(String(rawValue));

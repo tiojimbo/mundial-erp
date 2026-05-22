@@ -20,6 +20,8 @@ export const numberSchema = (min?: number, max?: number) => {
 
 export const currencySchema = z.number().min(0).multipleOf(0.01);
 
+export const quantitySchema = z.number().min(0);
+
 export const dateSchema = z.string().datetime().or(z.date());
 
 export const dropdownSchema = (options: string[]) =>
@@ -124,6 +126,9 @@ export function schemaForField(d: CustomFieldDefinition): z.ZodTypeAny {
 
     case 'PHONE':
       return d.required ? phoneSchema : phoneSchema.optional();
+
+    case 'QUANTITY':
+      return d.required ? quantitySchema : quantitySchema.optional();
 
     case 'CHECKBOX':
       return d.required ? checkboxSchema : checkboxSchema.optional();
