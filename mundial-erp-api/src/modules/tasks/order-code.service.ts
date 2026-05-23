@@ -55,16 +55,17 @@ export class OrderCodeService {
       select: { lastNumber: true },
     });
 
+    const code = String(sequence.lastNumber).padStart(4, '0');
     await tx.customFieldValue.create({
       data: {
         workItemId: taskId,
         definitionId: definition.id,
-        valueNumber: new Prisma.Decimal(sequence.lastNumber),
+        valueText: code,
       },
     });
 
     this.logger.log(
-      `order-code.filled task=${taskId} ws=${workspaceId} code=${sequence.lastNumber}`,
+      `order-code.filled task=${taskId} ws=${workspaceId} code=${code}`,
     );
   }
 }

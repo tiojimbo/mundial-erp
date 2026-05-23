@@ -175,6 +175,62 @@ async function main() {
       color: '#f59e0b',
       sortOrder: 1,
     },
+    {
+      id: 'builtin-bobina',
+      name: 'Bobina',
+      namePlural: 'Bobinas',
+      icon: 'ScrollIcon',
+      color: '#6b7280',
+      sortOrder: 2,
+    },
+    {
+      id: 'builtin-manta',
+      name: 'Manta',
+      namePlural: 'Mantas',
+      icon: 'LayersIcon',
+      color: '#6b7280',
+      sortOrder: 3,
+    },
+    {
+      id: 'builtin-cola',
+      name: 'Cola',
+      namePlural: 'Colas',
+      icon: 'DropletIcon',
+      color: '#6b7280',
+      sortOrder: 4,
+    },
+    {
+      id: 'builtin-bloco-eps',
+      name: 'Bloco EPS',
+      namePlural: 'Blocos EPS',
+      icon: 'BoxIcon',
+      color: '#6b7280',
+      sortOrder: 5,
+    },
+    {
+      id: 'builtin-filete-eps',
+      name: 'Filete EPS',
+      namePlural: 'Filetes EPS',
+      icon: 'MinusIcon',
+      color: '#6b7280',
+      sortOrder: 6,
+    },
+    {
+      id: 'builtin-fita',
+      name: 'Fita',
+      namePlural: 'Fitas',
+      icon: 'TagIcon',
+      color: '#6b7280',
+      sortOrder: 7,
+    },
+    {
+      id: 'builtin-produto',
+      name: 'Produto',
+      namePlural: 'Produtos',
+      icon: 'PackageIcon',
+      color: '#6b7280',
+      sortOrder: 8,
+    },
   ];
 
   for (const ct of builtinCustomTaskTypes) {
@@ -234,7 +290,9 @@ async function main() {
       | 'CNPJ'
       | 'URL'
       | 'EMAIL'
-      | 'PHONE';
+      | 'PHONE'
+      | 'RELATIONSHIP'
+      | 'ROLLUP';
     required: boolean;
     config: Record<string, unknown> | null;
     sortOrder: number;
@@ -733,7 +791,6 @@ async function main() {
   // =========================================================================
   const orderCodeConfig: Prisma.InputJsonValue = {
     readOnly: true,
-    padStart: 4,
     hint: 'Gerado automaticamente ao criar o pedido',
   };
   await prisma.customFieldDefinition.upsert({
@@ -743,7 +800,7 @@ async function main() {
       customTaskTypeId: null,
       key: 'order_code',
       label: 'Codigo do Pedido',
-      type: 'NUMBER',
+      type: 'TEXT',
       required: false,
       config: orderCodeConfig,
       fillMethod: 'computed',
@@ -756,7 +813,7 @@ async function main() {
       key: 'order_code',
       name: 'Codigo do Pedido',
       label: 'Codigo do Pedido',
-      type: 'NUMBER',
+      type: 'TEXT',
       required: false,
       config: orderCodeConfig,
       fillMethod: 'computed',
@@ -830,6 +887,227 @@ async function main() {
     totalCnpjFields += 1;
   }
   console.log(`  ✔ ${totalCnpjFields} campos de autopreenchimento CNPJ`);
+
+  // =========================================================================
+  // 2d. INSUMOS E PRODUTO — definitions + templates
+  // =========================================================================
+  type InsumoProductoFieldSpec = {
+    id: string;
+    key: string;
+    label: string;
+    type: FieldSpec['type'];
+    required: boolean;
+    config: Record<string, unknown> | null;
+    sortOrder: number;
+  };
+
+  type BuiltinTaskTypeTemplate = {
+    customTaskTypeId: string;
+    templateId: string;
+    fields: InsumoProductoFieldSpec[];
+  };
+
+  const insumoPriceCostField: InsumoProductoFieldSpec = {
+    id: 'cfd-insumo-price-cost',
+    key: 'insumo_price_cost',
+    label: 'Preço de Custo',
+    type: 'CURRENCY',
+    required: false,
+    config: null,
+    sortOrder: 0,
+  };
+
+  const productInsumosField: InsumoProductoFieldSpec = {
+    id: 'cfd-product-insumos',
+    key: 'product_insumos',
+    label: 'Insumos',
+    type: 'RELATIONSHIP',
+    required: false,
+    config: {
+      taskTypeIds: [
+        'builtin-bobina',
+        'builtin-manta',
+        'builtin-cola',
+        'builtin-bloco-eps',
+        'builtin-filete-eps',
+        'builtin-fita',
+      ],
+      withQuantity: true,
+    },
+    sortOrder: 0,
+  };
+
+  const productPriceCostField: InsumoProductoFieldSpec = {
+    id: 'cfd-product-price-cost',
+    key: 'product_price_cost',
+    label: 'Preço de Custo',
+    type: 'ROLLUP',
+    required: false,
+    config: {
+      sourceRelationshipFieldId: 'cfd-product-insumos',
+      sourceCostFieldId: 'cfd-insumo-price-cost',
+      operation: 'sumProduct',
+    },
+    sortOrder: 1,
+  };
+
+  const productPriceCashField: InsumoProductoFieldSpec = {
+    id: 'cfd-product-price-cash',
+    key: 'product_price_cash',
+    label: 'Preço a Vista',
+    type: 'CURRENCY',
+    required: false,
+    config: {
+      derivedFrom: 'cfd-product-price-cost',
+      operation: 'multiply',
+      factor: 1.5,
+    },
+    sortOrder: 2,
+  };
+
+  const productPriceTermField: InsumoProductoFieldSpec = {
+    id: 'cfd-product-price-term',
+    key: 'product_price_term',
+    label: 'Preço a Prazo',
+    type: 'CURRENCY',
+    required: false,
+    config: {
+      derivedFrom: 'cfd-product-price-cash',
+      operation: 'divide',
+      factor: 0.85,
+    },
+    sortOrder: 3,
+  };
+
+  const insumoProductoTemplates: BuiltinTaskTypeTemplate[] = [
+    {
+      customTaskTypeId: 'builtin-bobina',
+      templateId: 'template-bobina',
+      fields: [insumoPriceCostField],
+    },
+    {
+      customTaskTypeId: 'builtin-manta',
+      templateId: 'template-manta',
+      fields: [insumoPriceCostField],
+    },
+    {
+      customTaskTypeId: 'builtin-cola',
+      templateId: 'template-cola',
+      fields: [insumoPriceCostField],
+    },
+    {
+      customTaskTypeId: 'builtin-bloco-eps',
+      templateId: 'template-bloco-eps',
+      fields: [insumoPriceCostField],
+    },
+    {
+      customTaskTypeId: 'builtin-filete-eps',
+      templateId: 'template-filete-eps',
+      fields: [insumoPriceCostField],
+    },
+    {
+      customTaskTypeId: 'builtin-fita',
+      templateId: 'template-fita',
+      fields: [insumoPriceCostField],
+    },
+    {
+      customTaskTypeId: 'builtin-produto',
+      templateId: 'template-produto',
+      fields: [
+        productInsumosField,
+        productPriceCostField,
+        productPriceCashField,
+        productPriceTermField,
+      ],
+    },
+  ];
+
+  const insumoProductoDefinitions: InsumoProductoFieldSpec[] = [
+    insumoPriceCostField,
+    productInsumosField,
+    productPriceCostField,
+    productPriceCashField,
+    productPriceTermField,
+  ];
+
+  let insumoProductoDefsCount = 0;
+  for (const f of insumoProductoDefinitions) {
+    const configValue: Prisma.InputJsonValue | typeof Prisma.JsonNull =
+      f.config === null
+        ? Prisma.JsonNull
+        : (f.config as Prisma.InputJsonValue);
+    await prisma.customFieldDefinition.upsert({
+      where: { id: f.id },
+      update: {
+        workspaceId: null,
+        key: f.key,
+        label: f.label,
+        type: f.type,
+        required: f.required,
+        config: configValue,
+        isBuiltin: true,
+        sortOrder: f.sortOrder,
+      },
+      create: {
+        id: f.id,
+        workspaceId: null,
+        key: f.key,
+        name: f.label,
+        label: f.label,
+        type: f.type,
+        required: f.required,
+        config: configValue,
+        isBuiltin: true,
+        sortOrder: f.sortOrder,
+      },
+    });
+    insumoProductoDefsCount += 1;
+  }
+
+  let insumoProductoTemplatesCount = 0;
+  let insumoProductoTemplateFieldsCount = 0;
+  for (const tpl of insumoProductoTemplates) {
+    await prisma.taskTypeTemplate.upsert({
+      where: { id: tpl.templateId },
+      update: {
+        customTaskTypeId: tpl.customTaskTypeId,
+        attachmentCategories: [] as object,
+        defaultDescriptionBlocks: [] as object,
+      },
+      create: {
+        id: tpl.templateId,
+        customTaskTypeId: tpl.customTaskTypeId,
+        attachmentCategories: [] as object,
+        defaultDescriptionBlocks: [] as object,
+      },
+    });
+    insumoProductoTemplatesCount += 1;
+
+    for (const f of tpl.fields) {
+      await prisma.taskTypeTemplateField.upsert({
+        where: {
+          templateId_definitionId: {
+            templateId: tpl.templateId,
+            definitionId: f.id,
+          },
+        },
+        update: {
+          sortOrder: f.sortOrder,
+          requiredOverride: null,
+        },
+        create: {
+          templateId: tpl.templateId,
+          definitionId: f.id,
+          sortOrder: f.sortOrder,
+          requiredOverride: null,
+        },
+      });
+      insumoProductoTemplateFieldsCount += 1;
+    }
+  }
+  console.log(
+    `  ✔ ${insumoProductoDefsCount} definitions + ${insumoProductoTemplatesCount} templates + ${insumoProductoTemplateFieldsCount} template fields (insumos/produto)`,
+  );
 
   // =========================================================================
   // 3. MAIN COMPANY (Mundial Telhas)
