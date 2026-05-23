@@ -37,6 +37,8 @@ RUN npm prune --omit=dev
 
 COPY --from=build /app/dist ./dist
 COPY --from=build /app/prisma ./prisma
+COPY --from=build /app/src ./src
+COPY --from=build /app/tsconfig.json ./
 COPY --from=build /app/docker-entrypoint.sh ./
 
 RUN chmod +x docker-entrypoint.sh

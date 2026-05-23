@@ -28,7 +28,6 @@ async function main() {
     where: { email },
     update: {
       name: 'Admin',
-      passwordHash,
       role: Role.ADMIN,
       isActive: true,
       deletedAt: null,

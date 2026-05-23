@@ -8,10 +8,10 @@ echo "Pushing Prisma schema to database..."
 npx prisma db push --url "$DATABASE_URL" --accept-data-loss
 
 echo "Seeding admin user..."
-node dist/prisma/seed-admin.js || echo "Admin seed skipped (may already exist)"
+npx tsx prisma/seed-admin.ts || echo "Admin seed skipped (may already exist)"
 
 echo "Backfilling CNPJ autofill fields per workspace..."
-node dist/prisma/seed-cnpj-autofill.js || echo "CNPJ autofill backfill skipped"
+npx tsx prisma/seed-cnpj-autofill.ts || echo "CNPJ autofill backfill skipped"
 
 echo "Starting application..."
 exec node dist/src/main.js
