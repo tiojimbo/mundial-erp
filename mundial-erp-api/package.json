@@ -21,6 +21,7 @@
     "seed:bpm": "ts-node prisma/seed-bpm.ts",
     "seed:reference-data": "ts-node prisma/seed-reference-data.ts",
     "seed:admin": "ts-node prisma/seed-admin.ts",
+    "seed:cnpj-autofill": "ts-node prisma/seed-cnpj-autofill.ts",
     "seed:demo": "ts-node prisma/seed.ts",
     "seed:workspace": "tsx prisma/seed-workspace.ts",
     "seed:bpm-decommission": "ts-node prisma/seed-bpm-decommission.ts",

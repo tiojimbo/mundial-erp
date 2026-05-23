@@ -70,13 +70,9 @@ export class ListsRepository {
     });
   }
 
-  async findBySlug(workspaceId: string, slug: string) {
+  async findBySlugInSpace(spaceId: string, slug: string) {
     return this.prisma.list.findFirst({
-      where: {
-        slug,
-        deletedAt: null,
-        ...this.workspaceFilter(workspaceId),
-      },
+      where: { spaceId, slug, deletedAt: null },
     });
   }
 

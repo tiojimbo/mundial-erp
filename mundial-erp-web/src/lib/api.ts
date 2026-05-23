@@ -53,6 +53,7 @@ export const api = axios.create({
   baseURL: resolveBaseURL(),
   timeout: 15000,
   headers: { 'Content-Type': 'application/json' },
+  paramsSerializer: { indexes: null },
 });
 
 let isRefreshing = false;

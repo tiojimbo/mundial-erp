@@ -30,12 +30,12 @@ export class ListsService {
   }
 
   private async resolveUniqueSlug(
-    workspaceId: string,
+    spaceId: string,
     baseSlug: string,
   ): Promise<string> {
     let slug = baseSlug;
     let suffix = 0;
-    while (await this.listsRepository.findBySlug(workspaceId, slug)) {
+    while (await this.listsRepository.findBySlugInSpace(spaceId, slug)) {
       suffix++;
       slug = `${baseSlug}-${suffix}`;
     }
@@ -56,7 +56,7 @@ export class ListsService {
     }
 
     const baseSlug = this.generateSlug(dto.name);
-    const slug = await this.resolveUniqueSlug(workspaceId, baseSlug);
+    const slug = await this.resolveUniqueSlug(folder.spaceId, baseSlug);
 
     const createData: Prisma.ListCreateInput = {
       name: dto.name,
@@ -126,14 +126,19 @@ export class ListsService {
     if (dto.name !== undefined) {
       updateData.name = dto.name;
       const baseSlug = this.generateSlug(dto.name);
-      const existingSlug = await this.listsRepository.findBySlug(
-        workspaceId,
-        baseSlug,
-      );
-      if (!existingSlug || existingSlug.id === id) {
+      const spaceId = entity.spaceId;
+      if (!spaceId) {
         updateData.slug = baseSlug;
       } else {
-        updateData.slug = await this.resolveUniqueSlug(workspaceId, baseSlug);
+        const existingSlug = await this.listsRepository.findBySlugInSpace(
+          spaceId,
+          baseSlug,
+        );
+        if (!existingSlug || existingSlug.id === id) {
+          updateData.slug = baseSlug;
+        } else {
+          updateData.slug = await this.resolveUniqueSlug(spaceId, baseSlug);
+        }
       }
     }
     if (dto.description !== undefined) updateData.description = dto.description;
