@@ -40,7 +40,7 @@ export const processViewsService = {
     id: string,
     payload: UpdateProcessViewPayload,
   ): Promise<ProcessView> {
-    const { data } = await api.patch<ApiResponse<RawProcessView>>(
+    const { data } = await api.put<ApiResponse<RawProcessView>>(
       `/views/${id}`,
       payload,
     );

@@ -58,6 +58,9 @@ export class CustomFieldDefinitionResponseDto {
   @ApiProperty()
   fillMethod!: string;
 
+  @ApiPropertyOptional({ nullable: true })
+  autofillSource!: string | null;
+
   @ApiProperty()
   fixed!: boolean;
 
@@ -129,6 +132,7 @@ export class CustomFieldDefinitionResponseDto {
     dto.pinned = entity.pinned;
     dto.visibleToGuests = entity.visibleToGuests;
     dto.fillMethod = entity.fillMethod;
+    dto.autofillSource = entity.autofillSource;
     dto.fixed = entity.isBuiltin;
     dto.position = entity.sortOrder;
     dto.spaceId = entity.spaceId;

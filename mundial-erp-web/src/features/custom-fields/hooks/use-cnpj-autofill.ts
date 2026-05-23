@@ -1,8 +1,9 @@
 'use client';
 
-import { useRef } from 'react';
+import { useMemo, useRef } from 'react';
 import { useCnpjLookup } from './use-cnpj-lookup';
 import { useBulkPatchCustomFieldValues } from './use-custom-field-values';
+import { useCustomFieldDefinitions } from './use-custom-field-definitions';
 import type {
   CnpjAutofillSource,
   CnpjLookupResult,
@@ -10,46 +11,48 @@ import type {
   CustomFieldRawValue,
 } from '../types/custom-field.types';
 
-const CNPJ_AUTOFILL_MAP: {
-  source: CnpjAutofillSource;
-  targetDefinitionId: string;
-}[] = [
-  { source: 'razaoSocial', targetDefinitionId: 'cfd-cnpj-af-razao-social' },
-  { source: 'nomeFantasia', targetDefinitionId: 'cfd-cnpj-af-nome-fantasia' },
-  { source: 'contato.email', targetDefinitionId: 'cfd-cnpj-af-email' },
-  { source: 'contato.telefone', targetDefinitionId: 'cfd-cnpj-af-telefone' },
-  { source: 'endereco.cep', targetDefinitionId: 'cfd-cnpj-af-cep' },
-  {
-    source: 'endereco.logradouro',
-    targetDefinitionId: 'cfd-cnpj-af-logradouro',
-  },
-  { source: 'endereco.numero', targetDefinitionId: 'cfd-cnpj-af-numero' },
-  {
-    source: 'endereco.complemento',
-    targetDefinitionId: 'cfd-cnpj-af-complemento',
-  },
-  { source: 'endereco.bairro', targetDefinitionId: 'cfd-cnpj-af-bairro' },
-  { source: 'endereco.municipio', targetDefinitionId: 'cfd-cnpj-af-municipio' },
-  { source: 'endereco.uf', targetDefinitionId: 'cfd-cnpj-af-uf' },
-  { source: 'dataAbertura', targetDefinitionId: 'cfd-cnpj-af-data-abertura' },
-  { source: 'situacaoCadastral', targetDefinitionId: 'cfd-cnpj-af-situacao' },
-  { source: 'naturezaJuridica', targetDefinitionId: 'cfd-cnpj-af-natureza' },
-  {
-    source: 'cnaePrincipal.codigo',
-    targetDefinitionId: 'cfd-cnpj-af-cnae-codigo',
-  },
-  {
-    source: 'cnaePrincipal.descricao',
-    targetDefinitionId: 'cfd-cnpj-af-cnae-descricao',
-  },
-  { source: 'porte', targetDefinitionId: 'cfd-cnpj-af-porte' },
-  { source: 'capitalSocial', targetDefinitionId: 'cfd-cnpj-af-capital-social' },
-];
+const CNPJ_AUTOFILL_SOURCES: readonly CnpjAutofillSource[] = [
+  'razaoSocial',
+  'nomeFantasia',
+  'contato.email',
+  'contato.telefone',
+  'endereco.cep',
+  'endereco.logradouro',
+  'endereco.numero',
+  'endereco.complemento',
+  'endereco.bairro',
+  'endereco.municipio',
+  'endereco.uf',
+  'dataAbertura',
+  'situacaoCadastral',
+  'naturezaJuridica',
+  'cnaePrincipal.codigo',
+  'cnaePrincipal.descricao',
+  'porte',
+  'capitalSocial',
+] as const;
 
 export function useCnpjAutofill(taskId: string) {
   const cnpjLookup = useCnpjLookup();
   const bulkPatch = useBulkPatchCustomFieldValues();
+  const { data: defs } = useCustomFieldDefinitions();
   const lastLookedUpRef = useRef<string | null>(null);
+
+  const sourceToDefinitionId = useMemo(() => {
+    const map = new Map<string, string>();
+    if (!defs) return map;
+    const all = [
+      ...defs.workspace,
+      ...defs.list,
+      ...defs.folder,
+      ...defs.space,
+      ...defs.taskType,
+    ];
+    for (const def of all) {
+      if (def.autofillSource) map.set(def.autofillSource, def.id);
+    }
+    return map;
+  }, [defs]);
 
   return function trigger(
     definition: CustomFieldDefinition,
@@ -64,11 +67,13 @@ export function useCnpjAutofill(taskId: string) {
     cnpjLookup.mutate(digits, {
       onSuccess: (result) => {
         const values: { definitionId: string; value: string | number }[] = [];
-        for (const { source, targetDefinitionId } of CNPJ_AUTOFILL_MAP) {
+        for (const source of CNPJ_AUTOFILL_SOURCES) {
+          const definitionId = sourceToDefinitionId.get(source);
+          if (!definitionId) continue;
           const value = readPath(result, source);
           if (value === null || value === undefined) continue;
           values.push({
-            definitionId: targetDefinitionId,
+            definitionId,
             value: typeof value === 'number' ? value : String(value),
           });
         }

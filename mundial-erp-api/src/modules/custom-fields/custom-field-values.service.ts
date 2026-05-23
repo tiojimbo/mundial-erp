@@ -66,6 +66,18 @@ interface DerivedFieldChange {
   definitionId: string;
   before: number | null;
   after: number | null;
+  taskId?: string;
+}
+
+interface RollupConfig {
+  sourceRelationshipFieldId: string;
+  sourceCostFieldId: string;
+  operation: 'sumProduct';
+}
+
+interface RelationshipItem {
+  taskId: string;
+  quantity: number;
 }
 
 @Injectable()
@@ -310,7 +322,33 @@ export class CustomFieldValuesService implements OnModuleDestroy {
             )
           : [];
 
-      return { persisted: row, derivedChanges };
+      // 7c. Recalculo de ROLLUPs (engine de composicao).
+      const rollupChanges: DerivedFieldChange[] = [];
+      if (definition.type === CustomFieldType.RELATIONSHIP) {
+        rollupChanges.push(
+          ...(await this.recalculateRollupsForRelationship(
+            tx,
+            taskId,
+            definitionId,
+            workspaceId,
+          )),
+        );
+      }
+      if (definition.type === CustomFieldType.CURRENCY) {
+        rollupChanges.push(
+          ...(await this.recalculateRollupsForCostSource(
+            tx,
+            taskId,
+            definitionId,
+            workspaceId,
+          )),
+        );
+      }
+
+      return {
+        persisted: row,
+        derivedChanges: [...derivedChanges, ...rollupChanges],
+      };
     });
     const { persisted, derivedChanges } = txResult;
 
@@ -352,7 +390,7 @@ export class CustomFieldValuesService implements OnModuleDestroy {
         for (const change of derivedChanges) {
           this.automationEvents.emitCustomFieldChanged({
             workspaceId,
-            taskId,
+            taskId: change.taskId ?? taskId,
             listId: ctx.listId,
             folderId: ctx.folderId,
             spaceId: ctx.spaceId,
@@ -602,7 +640,10 @@ export class CustomFieldValuesService implements OnModuleDestroy {
     }
 
     if (type === CustomFieldType.RELATIONSHIP) {
-      const ids = dispatch.normalized as string[];
+      const normalized = dispatch.normalized as
+        | string[]
+        | { items: { taskId: string; quantity: number }[]; taskIds: string[] };
+      const ids = Array.isArray(normalized) ? normalized : normalized.taskIds;
       if (ids.length === 0) return;
       const count = await this.prisma.workItem.count({
         where: {
@@ -850,5 +891,223 @@ export class CustomFieldValuesService implements OnModuleDestroy {
     const raw =
       rule.operation === 'divide' ? source / rule.factor : source * rule.factor;
     return Math.round(raw * 100) / 100;
+  }
+
+  private parseRollupConfig(
+    config: Prisma.JsonValue | null,
+  ): RollupConfig | null {
+    if (
+      typeof config !== 'object' ||
+      config === null ||
+      Array.isArray(config)
+    ) {
+      return null;
+    }
+    const raw = config as Record<string, unknown>;
+    const sourceRelationshipFieldId = raw.sourceRelationshipFieldId;
+    const sourceCostFieldId = raw.sourceCostFieldId;
+    const operation = raw.operation;
+    if (
+      typeof sourceRelationshipFieldId !== 'string' ||
+      sourceRelationshipFieldId.length === 0 ||
+      typeof sourceCostFieldId !== 'string' ||
+      sourceCostFieldId.length === 0 ||
+      operation !== 'sumProduct'
+    ) {
+      return null;
+    }
+    return { sourceRelationshipFieldId, sourceCostFieldId, operation };
+  }
+
+  private parseRelationshipItems(
+    valueJson: Prisma.JsonValue | null,
+  ): RelationshipItem[] {
+    if (
+      typeof valueJson !== 'object' ||
+      valueJson === null ||
+      Array.isArray(valueJson)
+    ) {
+      return [];
+    }
+    const raw = (valueJson as Record<string, unknown>).items;
+    if (!Array.isArray(raw)) return [];
+    const out: RelationshipItem[] = [];
+    for (const item of raw) {
+      if (typeof item !== 'object' || item === null || Array.isArray(item)) {
+        continue;
+      }
+      const obj = item as Record<string, unknown>;
+      const taskId = obj.taskId;
+      const quantity = obj.quantity;
+      if (typeof taskId !== 'string' || typeof quantity !== 'number') {
+        continue;
+      }
+      out.push({ taskId, quantity });
+    }
+    return out;
+  }
+
+  private async recalculateRollupValue(
+    tx: Prisma.TransactionClient,
+    taskId: string,
+    rollupDefinitionId: string,
+    workspaceId: string,
+  ): Promise<DerivedFieldChange[]> {
+    const rollupDef = await tx.customFieldDefinition.findFirst({
+      where: { id: rollupDefinitionId, deletedAt: null },
+      select: { id: true, type: true, config: true },
+    });
+    if (!rollupDef || rollupDef.type !== CustomFieldType.ROLLUP) return [];
+    const rollupConfig = this.parseRollupConfig(rollupDef.config);
+    if (!rollupConfig) return [];
+
+    const relationshipRow = await tx.customFieldValue.findUnique({
+      where: {
+        workItemId_definitionId: {
+          workItemId: taskId,
+          definitionId: rollupConfig.sourceRelationshipFieldId,
+        },
+      },
+      select: { valueJson: true },
+    });
+    const items = relationshipRow
+      ? this.parseRelationshipItems(relationshipRow.valueJson)
+      : [];
+
+    let total = 0;
+    if (items.length > 0) {
+      const insumoCosts = await tx.customFieldValue.findMany({
+        where: {
+          definitionId: rollupConfig.sourceCostFieldId,
+          workItemId: { in: items.map((i) => i.taskId) },
+        },
+        select: { workItemId: true, valueNumber: true },
+      });
+      const costByTask = new Map<string, number>();
+      for (const row of insumoCosts) {
+        if (row.valueNumber === null) continue;
+        costByTask.set(row.workItemId, Number(row.valueNumber));
+      }
+      for (const item of items) {
+        const cost = costByTask.get(item.taskId) ?? 0;
+        total += cost * item.quantity;
+      }
+    }
+    const rounded = Math.round(total * 100) / 100;
+
+    const previous = await tx.customFieldValue.findUnique({
+      where: {
+        workItemId_definitionId: {
+          workItemId: taskId,
+          definitionId: rollupDefinitionId,
+        },
+      },
+      select: { valueNumber: true },
+    });
+    const before =
+      previous?.valueNumber === null || previous?.valueNumber === undefined
+        ? null
+        : Number(previous.valueNumber);
+
+    if (before === rounded) return [];
+
+    await tx.customFieldValue.upsert({
+      where: {
+        workItemId_definitionId: {
+          workItemId: taskId,
+          definitionId: rollupDefinitionId,
+        },
+      },
+      create: {
+        workItemId: taskId,
+        definitionId: rollupDefinitionId,
+        valueNumber: rounded,
+      },
+      update: { valueNumber: rounded },
+    });
+
+    const changes: DerivedFieldChange[] = [
+      { definitionId: rollupDefinitionId, before, after: rounded, taskId },
+    ];
+    const derived = await this.recalculateDerived(
+      tx,
+      taskId,
+      rollupDefinitionId,
+      rounded,
+      workspaceId,
+    );
+    for (const d of derived) {
+      changes.push({ ...d, taskId });
+    }
+    return changes;
+  }
+
+  private async recalculateRollupsForRelationship(
+    tx: Prisma.TransactionClient,
+    taskId: string,
+    relationshipDefinitionId: string,
+    workspaceId: string,
+  ): Promise<DerivedFieldChange[]> {
+    const rollups = await tx.customFieldDefinition.findMany({
+      where: {
+        deletedAt: null,
+        type: CustomFieldType.ROLLUP,
+        OR: [{ workspaceId }, { workspaceId: null }],
+      },
+      select: { id: true, config: true },
+    });
+    const out: DerivedFieldChange[] = [];
+    for (const rollup of rollups) {
+      const cfg = this.parseRollupConfig(rollup.config);
+      if (!cfg || cfg.sourceRelationshipFieldId !== relationshipDefinitionId) {
+        continue;
+      }
+      const changes = await this.recalculateRollupValue(
+        tx,
+        taskId,
+        rollup.id,
+        workspaceId,
+      );
+      out.push(...changes);
+    }
+    return out;
+  }
+
+  private async recalculateRollupsForCostSource(
+    tx: Prisma.TransactionClient,
+    sourceTaskId: string,
+    costDefinitionId: string,
+    workspaceId: string,
+  ): Promise<DerivedFieldChange[]> {
+    const rollups = await tx.customFieldDefinition.findMany({
+      where: {
+        deletedAt: null,
+        type: CustomFieldType.ROLLUP,
+        OR: [{ workspaceId }, { workspaceId: null }],
+      },
+      select: { id: true, config: true },
+    });
+    const out: DerivedFieldChange[] = [];
+    for (const rollup of rollups) {
+      const cfg = this.parseRollupConfig(rollup.config);
+      if (!cfg || cfg.sourceCostFieldId !== costDefinitionId) continue;
+      const productRows = await tx.customFieldValue.findMany({
+        where: {
+          definitionId: cfg.sourceRelationshipFieldId,
+          valueJson: { path: ['taskIds'], array_contains: sourceTaskId },
+        },
+        select: { workItemId: true },
+      });
+      for (const row of productRows) {
+        const changes = await this.recalculateRollupValue(
+          tx,
+          row.workItemId,
+          rollup.id,
+          workspaceId,
+        );
+        out.push(...changes);
+      }
+    }
+    return out;
   }
 }

@@ -10,6 +10,7 @@
 
 import { Prisma, PrismaClient } from '@prisma/client';
 import { PrismaPg } from '@prisma/adapter-pg';
+import { CNPJ_AUTOFILL_FIELDS } from '../src/modules/custom-fields/cnpj-lookup/cnpj-autofill-fields';
 
 const adapter = new PrismaPg({
   connectionString: process.env.DATABASE_URL!,
@@ -824,69 +825,45 @@ async function main() {
   console.log('  ✔ Campo computado Codigo do Pedido');
 
   // =========================================================================
-  // 2c. CNPJ Autofill — campos destino do autopreenchimento por CNPJ.
-  //     workspaceId NULL (global, todos os workspaces); isBuiltin=false
-  //     (localizacao editavel pela UI). IDs `cfd-cnpj-af-*` sao dependencia
-  //     do frontend (use-cnpj-autofill) — nao renomear.
+  // 2c. CNPJ Autofill — destinos do autopreenchimento por CNPJ.
+  //     Um campo por workspace (workspace-scoped). Localizacao editavel pela UI.
+  //     Front identifica o destino por `autofillSource`, nao por ID.
+  //     Idempotente: nao recria se ja existe, nao pisa em label editado.
   // =========================================================================
-  const cnpjAutofillFields: {
-    key: string;
-    label: string;
-    type: 'TEXT' | 'EMAIL' | 'PHONE' | 'DATE' | 'CURRENCY';
-    sortOrder: number;
-  }[] = [
-    { key: 'cnpj_af_razao_social', label: 'Razão Social', type: 'TEXT', sortOrder: 1 },
-    { key: 'cnpj_af_nome_fantasia', label: 'Nome Fantasia', type: 'TEXT', sortOrder: 2 },
-    { key: 'cnpj_af_email', label: 'E-mail', type: 'EMAIL', sortOrder: 3 },
-    { key: 'cnpj_af_telefone', label: 'Telefone', type: 'PHONE', sortOrder: 4 },
-    { key: 'cnpj_af_cep', label: 'CEP', type: 'TEXT', sortOrder: 5 },
-    { key: 'cnpj_af_logradouro', label: 'Logradouro', type: 'TEXT', sortOrder: 6 },
-    { key: 'cnpj_af_numero', label: 'Número', type: 'TEXT', sortOrder: 7 },
-    { key: 'cnpj_af_complemento', label: 'Complemento', type: 'TEXT', sortOrder: 8 },
-    { key: 'cnpj_af_bairro', label: 'Bairro', type: 'TEXT', sortOrder: 9 },
-    { key: 'cnpj_af_municipio', label: 'Cidade', type: 'TEXT', sortOrder: 10 },
-    { key: 'cnpj_af_uf', label: 'UF', type: 'TEXT', sortOrder: 11 },
-    { key: 'cnpj_af_data_abertura', label: 'Data de Abertura', type: 'DATE', sortOrder: 12 },
-    { key: 'cnpj_af_situacao', label: 'Situação Cadastral', type: 'TEXT', sortOrder: 13 },
-    { key: 'cnpj_af_natureza', label: 'Natureza Jurídica', type: 'TEXT', sortOrder: 14 },
-    { key: 'cnpj_af_cnae_codigo', label: 'CNAE Código', type: 'TEXT', sortOrder: 15 },
-    { key: 'cnpj_af_cnae_descricao', label: 'CNAE Descrição', type: 'TEXT', sortOrder: 16 },
-    { key: 'cnpj_af_porte', label: 'Porte', type: 'TEXT', sortOrder: 17 },
-    { key: 'cnpj_af_capital_social', label: 'Capital Social', type: 'CURRENCY', sortOrder: 18 },
-  ];
+  const workspaces = await prisma.workspace.findMany({
+    where: { deletedAt: null },
+    select: { id: true, name: true },
+  });
 
   let totalCnpjFields = 0;
-  for (const f of cnpjAutofillFields) {
-    const id = `cfd-${f.key.replace(/_/g, '-')}`;
-    await prisma.customFieldDefinition.upsert({
-      where: { id },
-      update: {
-        workspaceId: null,
-        key: f.key,
-        name: f.label,
-        label: f.label,
-        type: f.type,
-        required: false,
-        config: Prisma.JsonNull,
-        isBuiltin: false,
-        sortOrder: f.sortOrder,
-      },
-      create: {
-        id,
-        workspaceId: null,
-        key: f.key,
-        name: f.label,
-        label: f.label,
-        type: f.type,
-        required: false,
-        config: Prisma.JsonNull,
-        isBuiltin: false,
-        sortOrder: f.sortOrder,
-      },
-    });
-    totalCnpjFields += 1;
+  for (const ws of workspaces) {
+    for (const spec of CNPJ_AUTOFILL_FIELDS) {
+      const exists = await prisma.customFieldDefinition.count({
+        where: {
+          workspaceId: ws.id,
+          autofillSource: spec.autofillSource,
+          deletedAt: null,
+        },
+      });
+      if (exists > 0) continue;
+      await prisma.customFieldDefinition.create({
+        data: {
+          workspaceId: ws.id,
+          key: spec.key,
+          name: spec.label,
+          label: spec.label,
+          type: spec.type,
+          required: false,
+          config: Prisma.JsonNull,
+          isBuiltin: false,
+          sortOrder: spec.sortOrder,
+          autofillSource: spec.autofillSource,
+        },
+      });
+      totalCnpjFields += 1;
+    }
   }
-  console.log(`  ✔ ${totalCnpjFields} campos de autopreenchimento CNPJ`);
+  console.log(`  ✔ ${totalCnpjFields} campos CNPJ criados (${workspaces.length} workspace(s))`);
 
   // =========================================================================
   // 2d. INSUMOS E PRODUTO — definitions + templates

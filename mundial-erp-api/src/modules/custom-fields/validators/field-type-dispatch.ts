@@ -386,6 +386,62 @@ export function validateValue(
     }
 
     case CustomFieldType.RELATIONSHIP: {
+      const cfg = isPlainObject(definition.config) ? definition.config : {};
+      const withQuantity = cfg.withQuantity === true;
+
+      if (withQuantity) {
+        if (!Array.isArray(rawValue)) {
+          return {
+            valid: false,
+            reason: 'RELATIONSHIP withQuantity espera array de {taskId, quantity}',
+          };
+        }
+        if (rawValue.length === 0 && definition.required) {
+          return { valid: false, reason: 'Campo obrigatorio' };
+        }
+        const items: { taskId: string; quantity: number }[] = [];
+        const taskIds: string[] = [];
+        const seen = new Set<string>();
+        for (const raw of rawValue) {
+          if (!isPlainObject(raw)) {
+            return {
+              valid: false,
+              reason: 'RELATIONSHIP item deve ser objeto {taskId, quantity}',
+            };
+          }
+          const taskId = raw.taskId;
+          const quantityRaw = raw.quantity;
+          if (!isValidId(taskId)) {
+            return {
+              valid: false,
+              reason: 'RELATIONSHIP contem taskId invalido',
+            };
+          }
+          if (seen.has(taskId)) {
+            return {
+              valid: false,
+              reason: 'RELATIONSHIP contem taskIds duplicados',
+            };
+          }
+          const quantity =
+            typeof quantityRaw === 'number' ? quantityRaw : Number(quantityRaw);
+          if (!Number.isFinite(quantity) || quantity < 0) {
+            return {
+              valid: false,
+              reason: 'RELATIONSHIP quantity invalida',
+            };
+          }
+          seen.add(taskId);
+          items.push({ taskId, quantity });
+          taskIds.push(taskId);
+        }
+        return {
+          valid: true,
+          normalized: { items, taskIds },
+          column: 'valueJson',
+        };
+      }
+
       if (!Array.isArray(rawValue)) {
         return { valid: false, reason: 'RELATIONSHIP espera array de taskIds' };
       }

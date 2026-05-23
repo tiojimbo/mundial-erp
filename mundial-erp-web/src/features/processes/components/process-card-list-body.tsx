@@ -35,6 +35,7 @@ const CF_COLUMN_WIDTH = 200;
 
 const COLUMN_HEADERS = [
   { col: 'NAME', label: 'Nome', width: 400, resizable: true },
+  { col: 'STATUS', label: 'Status', width: 160, resizable: true },
   { col: 'ASSIGNEE', label: 'Responsável', width: 200, resizable: true },
   { col: 'START_DATE', label: 'Início', width: 200, resizable: true },
   { col: 'DUE_DATE', label: 'Prazo', width: 200, resizable: true },
@@ -74,6 +75,18 @@ export function ProcessCardListBody({ process }: ProcessCardListBodyProps) {
       .filter((d): d is CustomFieldDefinition => Boolean(d));
   }, [viewsQuery.data, definitionsQuery.data]);
 
+  const hiddenStandardColumns = useMemo<Set<string>>(() => {
+    const listView = (viewsQuery.data ?? []).find((v) => v.viewType === 'LIST');
+    const cfg = listView?.config as
+      | { hiddenStandardColumns?: string[] }
+      | undefined;
+    return new Set(
+      Array.isArray(cfg?.hiddenStandardColumns)
+        ? cfg!.hiddenStandardColumns
+        : [],
+    );
+  }, [viewsQuery.data]);
+
   if (process.groups.length === 0) {
     return (
       <div className='px-5 pb-4'>
@@ -98,6 +111,7 @@ export function ProcessCardListBody({ process }: ProcessCardListBodyProps) {
           group={group}
           listId={process.id}
           customColumns={customColumns}
+          hiddenStandardColumns={hiddenStandardColumns}
           onAddColumn={() => setColumnsDrawerOpen(true)}
         />
       ))}
@@ -114,13 +128,18 @@ function StatusGroupSection({
   group,
   listId,
   customColumns,
+  hiddenStandardColumns,
   onAddColumn,
 }: {
   group: StatusGroupSummary;
   listId: string;
   customColumns: CustomFieldDefinition[];
+  hiddenStandardColumns: Set<string>;
   onAddColumn: () => void;
 }) {
+  const visibleHeaders = COLUMN_HEADERS.filter(
+    (c) => !hiddenStandardColumns.has(c.col),
+  );
   const [expanded, setExpanded] = useState(true);
 
   return (
@@ -186,7 +205,7 @@ function StatusGroupSection({
 
             {/* Inner row with columns — borda inferior alinhada com row-main-container das tasks */}
             <div className='ml-6 flex border-b border-border'>
-              {COLUMN_HEADERS.map((c, idx) => (
+              {visibleHeaders.map((c, idx) => (
                 <div
                   key={c.col}
                   role='button'
@@ -232,7 +251,7 @@ function StatusGroupSection({
                 <div
                   key={def.id}
                   role='columnheader'
-                  aria-colindex={COLUMN_HEADERS.length + idx + 1}
+                  aria-colindex={visibleHeaders.length + idx + 1}
                   data-col={`CF_${def.id}`}
                   className='relative flex shrink-0 items-center'
                   style={{ width: CF_COLUMN_WIDTH }}
@@ -273,6 +292,7 @@ function StatusGroupSection({
               group={group}
               listId={listId}
               customColumns={customColumns}
+              hiddenStandardColumns={hiddenStandardColumns}
             />
           ))}
 
@@ -294,11 +314,13 @@ function TaskRow({
   group,
   listId,
   customColumns,
+  hiddenStandardColumns,
 }: {
   item: TaskItemSummary;
   group: StatusGroupSummary;
   listId: string;
   customColumns: CustomFieldDefinition[];
+  hiddenStandardColumns: Set<string>;
 }) {
   const router = useRouter();
   const isSelected = useTasksSelectionStore((s) =>
@@ -442,7 +464,40 @@ function TaskRow({
           </div>
         </div>
 
+        {/* STATUS col */}
+        {!hiddenStandardColumns.has('STATUS') && (
+          <div
+            data-col='STATUS'
+            className='flex shrink-0 flex-col overflow-hidden'
+            style={{ width: 160 }}
+          >
+            <div className='flex h-full w-fit items-center overflow-hidden rounded-md border border-transparent px-2 py-1 transition-colors hover:border-border'>
+              <div
+                role='cell'
+                data-col='STATUS'
+                className='flex h-full w-full items-center overflow-hidden text-[0.8rem]'
+              >
+                <div
+                  className='flex items-center gap-1.5 rounded-md px-2 py-1 text-[11px] font-semibold uppercase leading-none tracking-wide'
+                  style={{
+                    backgroundColor: hexToRgba(group.statusColor, 0.125),
+                    color: group.statusColor,
+                  }}
+                >
+                  <StatusIcon
+                    type={group.statusType}
+                    color={group.statusColor}
+                    size={12}
+                  />
+                  <span className='truncate'>{group.statusName}</span>
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
+
         {/* ASSIGNEE col */}
+        {!hiddenStandardColumns.has('ASSIGNEE') && (
         <div
           data-col='ASSIGNEE'
           className='flex shrink-0 flex-col overflow-visible'
@@ -486,8 +541,10 @@ function TaskRow({
             </div>
           </div>
         </div>
+        )}
 
         {/* START_DATE col */}
+        {!hiddenStandardColumns.has('START_DATE') && (
         <div
           data-col='START_DATE'
           className='flex shrink-0 flex-col overflow-hidden'
@@ -524,8 +581,10 @@ function TaskRow({
             </div>
           </div>
         </div>
+        )}
 
         {/* DUE_DATE col */}
+        {!hiddenStandardColumns.has('DUE_DATE') && (
         <div
           data-col='DUE_DATE'
           className='flex shrink-0 flex-col overflow-hidden'
@@ -564,8 +623,10 @@ function TaskRow({
             </div>
           </div>
         </div>
+        )}
 
         {/* COMMENTS col */}
+        {!hiddenStandardColumns.has('COMMENTS') && (
         <div
           data-col='COMMENTS'
           className='flex shrink-0 flex-col overflow-hidden'
@@ -590,6 +651,7 @@ function TaskRow({
             </div>
           </div>
         </div>
+        )}
 
         {/* Colunas de custom fields */}
         {customColumns.map((def) => (

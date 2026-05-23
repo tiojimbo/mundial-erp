@@ -1,6 +1,7 @@
 import { Injectable } from '@nestjs/common';
 import { Prisma, WorkspaceMemberRole } from '@prisma/client';
 import { PrismaService } from '../../database/prisma.service';
+import { CNPJ_AUTOFILL_FIELDS } from '../custom-fields/cnpj-lookup/cnpj-autofill-fields';
 
 export interface FindWorkspacesByMemberParams {
   userId: string;
@@ -41,6 +42,20 @@ export class WorkspacesRepository {
           userId: params.ownerId,
           role: WorkspaceMemberRole.OWNER,
         },
+      });
+
+      await tx.customFieldDefinition.createMany({
+        data: CNPJ_AUTOFILL_FIELDS.map((spec) => ({
+          workspaceId: workspace.id,
+          key: spec.key,
+          name: spec.label,
+          label: spec.label,
+          type: spec.type,
+          required: false,
+          isBuiltin: false,
+          sortOrder: spec.sortOrder,
+          autofillSource: spec.autofillSource,
+        })),
       });
 
       return workspace;

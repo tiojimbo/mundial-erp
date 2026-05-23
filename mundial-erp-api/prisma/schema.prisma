@@ -3085,6 +3085,7 @@ model CustomFieldDefinition {
   fillMethod       String          @default("manual") @map("fill_method")
   isBuiltin        Boolean         @default(false) @map("is_builtin")
   sortOrder        Int             @default(0) @map("sort_order")
+  autofillSource   String?         @map("autofill_source")
   createdById      String?         @map("created_by_id")
   groupId          String?         @map("group_id")
   groupName        String?         @map("group_name")
@@ -3116,6 +3117,7 @@ model CustomFieldDefinition {
   @@index([listId], name: "idx_cfd_list")
   @@index([customTaskTypeId], name: "idx_cfd_task_type")
   @@index([createdById], name: "idx_cfd_created_by")
+  @@index([workspaceId, autofillSource], name: "idx_cfd_autofill_source")
   @@map("custom_field_definitions")
 }
 

@@ -713,16 +713,22 @@ function FieldRow({
           inline={inline}
         />
       );
-    case 'RELATIONSHIP':
+    case 'RELATIONSHIP': {
+      const relCfg = definition.config as Record<string, unknown> | null;
+      const relValue =
+        relCfg?.withQuantity === true
+          ? (rawValue as unknown as string[] | null)
+          : arrayValue;
       return (
         <RelationshipField
           definition={definition}
-          value={arrayValue}
+          value={relValue}
           readOnly={readOnly}
           onChange={onChange}
           inline={inline}
         />
       );
+    }
     case 'ROLLUP':
       return (
         <RollupField

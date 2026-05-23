@@ -160,6 +160,7 @@ export interface CustomFieldDefinition {
   pinned: boolean;
   visibleToGuests: boolean;
   fillMethod: string;
+  autofillSource: string | null;
   fixed: boolean;
   position: number;
   spaceId: string | null;

@@ -595,9 +595,22 @@ export class CustomFieldDefinitionsService {
     }
     if (type === CustomFieldType.RELATIONSHIP) {
       const taskTypeId = cfg?.taskTypeId;
-      if (typeof taskTypeId !== 'string' || taskTypeId.length === 0) {
+      const taskTypeIds = cfg?.taskTypeIds;
+      const hasSingular =
+        typeof taskTypeId === 'string' && taskTypeId.length > 0;
+      const hasPlural =
+        Array.isArray(taskTypeIds) &&
+        taskTypeIds.length > 0 &&
+        taskTypeIds.every((id) => typeof id === 'string' && id.length > 0);
+      if (!hasSingular && !hasPlural) {
         throw new BadRequestException(
-          'RELATIONSHIP exige config.taskTypeId (string)',
+          'RELATIONSHIP exige config.taskTypeId (string) ou config.taskTypeIds (string[])',
+        );
+      }
+      const withQuantity = cfg?.withQuantity;
+      if (withQuantity !== undefined && typeof withQuantity !== 'boolean') {
+        throw new BadRequestException(
+          'RELATIONSHIP config.withQuantity deve ser boolean',
         );
       }
     }

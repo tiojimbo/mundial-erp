@@ -57,7 +57,7 @@ export const taskFiltersSchema = z
     statuses: z.array(z.string().uuid()).optional(),
     assigneeIds: z.array(z.string().uuid()).optional(),
     tagIds: z.array(z.string().uuid()).optional(),
-    customTypeIds: z.array(z.string().uuid()).optional(),
+    customTypeIds: z.array(z.string().min(1)).optional(),
     priority: z.array(taskPrioritySchema).optional(),
     archived: z.boolean().optional(),
     search: z.string().trim().min(1).optional(),

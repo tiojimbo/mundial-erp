@@ -3,12 +3,15 @@
 import type { BaseFieldProps } from './field-base';
 import { FieldShell } from './field-shell';
 
-function formatValue(value: BaseFieldProps['value']): string {
-  if (value === null || value === undefined) return '—';
-  if (typeof value === 'number') {
-    return Number.isFinite(value) ? value.toLocaleString('pt-BR') : '—';
-  }
-  return String(value);
+function formatNumber(value: number): string {
+  return value.toLocaleString('pt-BR');
+}
+
+function formatCurrency(value: number): string {
+  return value.toLocaleString('pt-BR', {
+    style: 'currency',
+    currency: 'BRL',
+  });
 }
 
 export function RollupField({
@@ -17,6 +20,18 @@ export function RollupField({
   error,
   inline,
 }: BaseFieldProps<string | number | null>) {
+  const cfg = definition.config as Record<string, unknown> | null | undefined;
+  const isCurrency = cfg?.operation === 'sumProduct';
+
+  let formatted = '—';
+  if (value !== null && value !== undefined) {
+    if (typeof value === 'number' && Number.isFinite(value)) {
+      formatted = isCurrency ? formatCurrency(value) : formatNumber(value);
+    } else if (typeof value !== 'number') {
+      formatted = String(value);
+    }
+  }
+
   return (
     <FieldShell
       definition={definition}
@@ -33,7 +48,7 @@ export function RollupField({
               : 'bg-muted/40 text-sm block h-9 rounded-md border border-input px-3 leading-9 text-foreground'
           }
         >
-          {formatValue(value)}
+          {formatted}
         </output>
       )}
     </FieldShell>

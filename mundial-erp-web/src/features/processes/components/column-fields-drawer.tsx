@@ -25,6 +25,21 @@ type ColumnFieldsDrawerProps = {
 
 type BucketKey = 'taskType' | 'list' | 'folder' | 'space' | 'workspace';
 
+type StandardColumnKey =
+  | 'STATUS'
+  | 'ASSIGNEE'
+  | 'START_DATE'
+  | 'DUE_DATE'
+  | 'COMMENTS';
+
+const STANDARD_COLUMNS: { key: StandardColumnKey; label: string }[] = [
+  { key: 'STATUS', label: 'Status' },
+  { key: 'ASSIGNEE', label: 'Responsável' },
+  { key: 'START_DATE', label: 'Início' },
+  { key: 'DUE_DATE', label: 'Prazo' },
+  { key: 'COMMENTS', label: 'Comentários' },
+];
+
 const BUCKET_ORDER: BucketKey[] = [
   'taskType',
   'list',
@@ -68,6 +83,23 @@ export function ColumnFieldsDrawer({
       Array.isArray(cfg?.visibleCustomFields) ? cfg!.visibleCustomFields : [],
     );
   }, [listView]);
+
+  const hiddenStandardSet = useMemo(() => {
+    const cfg = listView?.config as
+      | { hiddenStandardColumns?: string[] }
+      | undefined;
+    return new Set(
+      Array.isArray(cfg?.hiddenStandardColumns)
+        ? cfg!.hiddenStandardColumns
+        : [],
+    );
+  }, [listView]);
+
+  const filteredStandard = useMemo(() => {
+    const term = search.trim().toLowerCase();
+    if (!term) return STANDARD_COLUMNS;
+    return STANDARD_COLUMNS.filter((c) => c.label.toLowerCase().includes(term));
+  }, [search]);
 
   const groups = useMemo(() => {
     const grouped = definitionsQuery.data;
@@ -127,6 +159,35 @@ export function ColumnFieldsDrawer({
     }
   };
 
+  const toggleStandard = async (key: StandardColumnKey, visible: boolean) => {
+    const current = new Set(hiddenStandardSet);
+    if (visible) current.delete(key);
+    else current.add(key);
+    const hiddenStandardColumns = Array.from(current);
+    setBusy(true);
+    try {
+      if (listView) {
+        const cfg = (listView.config ?? {}) as Record<string, unknown>;
+        await updateView.mutateAsync({
+          id: listView.id,
+          payload: { config: { ...cfg, hiddenStandardColumns } },
+        });
+      } else {
+        await processViewsService.create({
+          processId: listId,
+          name: 'Lista',
+          viewType: 'LIST',
+          config: { hiddenStandardColumns },
+        });
+        qc.invalidateQueries({ queryKey: processViewsKeys.list(listId) });
+      }
+    } catch {
+      toast.error('Erro ao atualizar colunas.');
+    } finally {
+      setBusy(false);
+    }
+  };
+
   return (
     <Dialog.Root open={open} onOpenChange={(o) => !o && onClose()}>
       <Dialog.Portal>
@@ -160,6 +221,41 @@ export function ColumnFieldsDrawer({
             />
 
             <div className='min-h-0 flex-1 overflow-y-auto'>
+              {filteredStandard.length > 0 && (
+                <div className='mb-6'>
+                  <div className='text-xs mb-2 font-semibold uppercase tracking-wide text-muted-foreground'>
+                    Campos padrão
+                  </div>
+                  {filteredStandard.map((col) => {
+                    const checked = !hiddenStandardSet.has(col.key);
+                    return (
+                      <div
+                        key={col.key}
+                        className='flex items-center justify-between gap-2 py-2 text-foreground'
+                      >
+                        <span className='text-sm flex-1 truncate'>
+                          {col.label}
+                        </span>
+                        <Switch.Root
+                          checked={checked}
+                          disabled={busy}
+                          onCheckedChange={(next) => {
+                            void toggleStandard(col.key, next);
+                          }}
+                          className={cn(
+                            'peer inline-flex h-6 w-11 shrink-0 cursor-pointer items-center rounded-full',
+                            'border-2 border-transparent outline-none transition-colors',
+                            'data-[state=checked]:bg-foreground data-[state=unchecked]:bg-input',
+                            'disabled:cursor-not-allowed disabled:opacity-50',
+                          )}
+                        >
+                          <Switch.Thumb className='shadow-lg pointer-events-none block h-5 w-5 rounded-full bg-background ring-0 transition-transform data-[state=checked]:translate-x-5 data-[state=unchecked]:translate-x-0' />
+                        </Switch.Root>
+                      </div>
+                    );
+                  })}
+                </div>
+              )}
               {definitionsQuery.isLoading && (
                 <p className='text-paragraph-sm text-muted-foreground'>
                   Carregando…

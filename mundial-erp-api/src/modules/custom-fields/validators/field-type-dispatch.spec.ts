@@ -373,6 +373,105 @@ describe('validateValue — tipos Hoppe (Sprint 2)', () => {
       );
       expect(result.valid).toBe(false);
     });
+
+    describe('withQuantity', () => {
+      const withQty = def(CustomFieldType.RELATIONSHIP, {
+        config: { withQuantity: true },
+      });
+
+      it('aceita array de {taskId, quantity}', () => {
+        const result = validateValue(
+          CustomFieldType.RELATIONSHIP,
+          [
+            { taskId: VALID_ID, quantity: 10 },
+            { taskId: VALID_ID_2, quantity: 0.5 },
+          ],
+          withQty,
+        );
+        expect(result.valid).toBe(true);
+        expect(result.column).toBe('valueJson');
+        expect(result.normalized).toEqual({
+          items: [
+            { taskId: VALID_ID, quantity: 10 },
+            { taskId: VALID_ID_2, quantity: 0.5 },
+          ],
+          taskIds: [VALID_ID, VALID_ID_2],
+        });
+      });
+
+      it('aceita lista vazia quando nao obrigatorio', () => {
+        const result = validateValue(
+          CustomFieldType.RELATIONSHIP,
+          [],
+          withQty,
+        );
+        expect(result.valid).toBe(true);
+        expect(result.normalized).toEqual({ items: [], taskIds: [] });
+      });
+
+      it('rejeita lista vazia quando obrigatorio', () => {
+        const required = def(CustomFieldType.RELATIONSHIP, {
+          required: true,
+          config: { withQuantity: true },
+        });
+        const result = validateValue(
+          CustomFieldType.RELATIONSHIP,
+          [],
+          required,
+        );
+        expect(result.valid).toBe(false);
+      });
+
+      it('rejeita quantidade negativa', () => {
+        const result = validateValue(
+          CustomFieldType.RELATIONSHIP,
+          [{ taskId: VALID_ID, quantity: -1 }],
+          withQty,
+        );
+        expect(result.valid).toBe(false);
+        expect(result.reason).toContain('quantity');
+      });
+
+      it('rejeita quantidade nao-numerica', () => {
+        const result = validateValue(
+          CustomFieldType.RELATIONSHIP,
+          [{ taskId: VALID_ID, quantity: 'abc' }],
+          withQty,
+        );
+        expect(result.valid).toBe(false);
+      });
+
+      it('rejeita taskIds duplicados', () => {
+        const result = validateValue(
+          CustomFieldType.RELATIONSHIP,
+          [
+            { taskId: VALID_ID, quantity: 1 },
+            { taskId: VALID_ID, quantity: 2 },
+          ],
+          withQty,
+        );
+        expect(result.valid).toBe(false);
+        expect(result.reason).toContain('duplicad');
+      });
+
+      it('rejeita item sem taskId', () => {
+        const result = validateValue(
+          CustomFieldType.RELATIONSHIP,
+          [{ quantity: 5 }],
+          withQty,
+        );
+        expect(result.valid).toBe(false);
+      });
+
+      it('rejeita item nao-objeto', () => {
+        const result = validateValue(
+          CustomFieldType.RELATIONSHIP,
+          [VALID_ID],
+          withQty,
+        );
+        expect(result.valid).toBe(false);
+      });
+    });
   });
 
   describe('ROLLUP', () => {

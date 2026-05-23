@@ -26,6 +26,7 @@ export function makeCustomFieldDefinition(
     pinned: overrides.pinned ?? false,
     visibleToGuests: overrides.visibleToGuests ?? true,
     fillMethod: overrides.fillMethod ?? 'manual',
+    autofillSource: overrides.autofillSource ?? null,
     fixed: overrides.fixed ?? false,
     position: overrides.position ?? 0,
     spaceId: overrides.spaceId ?? null,
