@@ -1,6 +1,7 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { Prisma } from '@prisma/client';
 
+const ORDER_TASK_TYPE_NAME = 'pedido';
 const ORDER_CODE_FIELD_KEY = 'order_code';
 
 @Injectable()
@@ -18,12 +19,18 @@ export class OrderCodeService {
     const { taskId, workspaceId, customTypeId } = input;
     if (!customTypeId) return;
 
+    const taskType = await tx.customTaskType.findUnique({
+      where: { id: customTypeId },
+      select: { name: true, deletedAt: true },
+    });
+    if (!taskType || taskType.deletedAt) return;
+    if (taskType.name.trim().toLowerCase() !== ORDER_TASK_TYPE_NAME) return;
+
     const definition = await tx.customFieldDefinition.findFirst({
       where: {
         key: ORDER_CODE_FIELD_KEY,
         fillMethod: 'computed',
         deletedAt: null,
-        customTaskTypeId: customTypeId,
         OR: [{ workspaceId }, { workspaceId: null }],
       },
       select: { id: true },

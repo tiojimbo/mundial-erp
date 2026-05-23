@@ -733,13 +733,14 @@ async function main() {
   // =========================================================================
   const orderCodeConfig: Prisma.InputJsonValue = {
     readOnly: true,
+    padStart: 4,
     hint: 'Gerado automaticamente ao criar o pedido',
   };
   await prisma.customFieldDefinition.upsert({
     where: { id: 'cfd-builtin-order_code' },
     update: {
       workspaceId: null,
-      customTaskTypeId: 'builtin-order',
+      customTaskTypeId: null,
       key: 'order_code',
       label: 'Codigo do Pedido',
       type: 'NUMBER',
@@ -752,7 +753,6 @@ async function main() {
     create: {
       id: 'cfd-builtin-order_code',
       workspaceId: null,
-      customTaskTypeId: 'builtin-order',
       key: 'order_code',
       name: 'Codigo do Pedido',
       label: 'Codigo do Pedido',
@@ -765,6 +765,71 @@ async function main() {
     },
   });
   console.log('  ✔ Campo computado Codigo do Pedido');
+
+  // =========================================================================
+  // 2c. CNPJ Autofill — campos destino do autopreenchimento por CNPJ.
+  //     workspaceId NULL (global, todos os workspaces); isBuiltin=false
+  //     (localizacao editavel pela UI). IDs `cfd-cnpj-af-*` sao dependencia
+  //     do frontend (use-cnpj-autofill) — nao renomear.
+  // =========================================================================
+  const cnpjAutofillFields: {
+    key: string;
+    label: string;
+    type: 'TEXT' | 'EMAIL' | 'PHONE' | 'DATE' | 'CURRENCY';
+    sortOrder: number;
+  }[] = [
+    { key: 'cnpj_af_razao_social', label: 'Razão Social', type: 'TEXT', sortOrder: 1 },
+    { key: 'cnpj_af_nome_fantasia', label: 'Nome Fantasia', type: 'TEXT', sortOrder: 2 },
+    { key: 'cnpj_af_email', label: 'E-mail', type: 'EMAIL', sortOrder: 3 },
+    { key: 'cnpj_af_telefone', label: 'Telefone', type: 'PHONE', sortOrder: 4 },
+    { key: 'cnpj_af_cep', label: 'CEP', type: 'TEXT', sortOrder: 5 },
+    { key: 'cnpj_af_logradouro', label: 'Logradouro', type: 'TEXT', sortOrder: 6 },
+    { key: 'cnpj_af_numero', label: 'Número', type: 'TEXT', sortOrder: 7 },
+    { key: 'cnpj_af_complemento', label: 'Complemento', type: 'TEXT', sortOrder: 8 },
+    { key: 'cnpj_af_bairro', label: 'Bairro', type: 'TEXT', sortOrder: 9 },
+    { key: 'cnpj_af_municipio', label: 'Cidade', type: 'TEXT', sortOrder: 10 },
+    { key: 'cnpj_af_uf', label: 'UF', type: 'TEXT', sortOrder: 11 },
+    { key: 'cnpj_af_data_abertura', label: 'Data de Abertura', type: 'DATE', sortOrder: 12 },
+    { key: 'cnpj_af_situacao', label: 'Situação Cadastral', type: 'TEXT', sortOrder: 13 },
+    { key: 'cnpj_af_natureza', label: 'Natureza Jurídica', type: 'TEXT', sortOrder: 14 },
+    { key: 'cnpj_af_cnae_codigo', label: 'CNAE Código', type: 'TEXT', sortOrder: 15 },
+    { key: 'cnpj_af_cnae_descricao', label: 'CNAE Descrição', type: 'TEXT', sortOrder: 16 },
+    { key: 'cnpj_af_porte', label: 'Porte', type: 'TEXT', sortOrder: 17 },
+    { key: 'cnpj_af_capital_social', label: 'Capital Social', type: 'CURRENCY', sortOrder: 18 },
+  ];
+
+  let totalCnpjFields = 0;
+  for (const f of cnpjAutofillFields) {
+    const id = `cfd-${f.key.replace(/_/g, '-')}`;
+    await prisma.customFieldDefinition.upsert({
+      where: { id },
+      update: {
+        workspaceId: null,
+        key: f.key,
+        name: f.label,
+        label: f.label,
+        type: f.type,
+        required: false,
+        config: Prisma.JsonNull,
+        isBuiltin: false,
+        sortOrder: f.sortOrder,
+      },
+      create: {
+        id,
+        workspaceId: null,
+        key: f.key,
+        name: f.label,
+        label: f.label,
+        type: f.type,
+        required: false,
+        config: Prisma.JsonNull,
+        isBuiltin: false,
+        sortOrder: f.sortOrder,
+      },
+    });
+    totalCnpjFields += 1;
+  }
+  console.log(`  ✔ ${totalCnpjFields} campos de autopreenchimento CNPJ`);
 
   // =========================================================================
   // 3. MAIN COMPANY (Mundial Telhas)
