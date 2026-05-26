@@ -123,7 +123,11 @@
       "Bash(SSH_PASS='ZzPJHtPFJ@edmN@g9BK' expect /tmp/debug-seed.exp)",
       "Bash(chmod 700 /tmp/inspect-dist.exp)",
       "Bash(SSH_PASS='ZzPJHtPFJ@edmN@g9BK' expect /tmp/inspect-dist.exp)",
-      "Bash(python3 -c \"import json; p=json.load\\(open\\('mundial-erp-api/package.json'\\)\\); print\\('deps:', list\\(p.get\\('dependencies',{}\\).keys\\(\\)\\)[:5]\\); print\\('devDeps tsx/ts-node/tsc:', {k:v for k,v in p.get\\('devDependencies',{}\\).items\\(\\) if k in ['tsx','ts-node','typescript']}\\)\")"
+      "Bash(python3 -c \"import json; p=json.load\\(open\\('mundial-erp-api/package.json'\\)\\); print\\('deps:', list\\(p.get\\('dependencies',{}\\).keys\\(\\)\\)[:5]\\); print\\('devDeps tsx/ts-node/tsc:', {k:v for k,v in p.get\\('devDependencies',{}\\).items\\(\\) if k in ['tsx','ts-node','typescript']}\\)\")",
+      "Bash(kill 41896)",
+      "Bash(curl -sS http://localhost:3001/api/v1/health)",
+      "Bash(curl -sS -X POST http://localhost:3001/api/v1/api-keys)",
+      "Bash(PGPASSWORD=postgres psql -h localhost -p 5432 -U postgres -d mundial_erp -c \"SELECT id, email, name, role FROM users WHERE deleted_at IS NULL LIMIT 5;\")"
     ],
     "additionalDirectories": [
       "c:\\Users\\USER\\Documents\\vibecoding\\mundial-erp\\mundial-erp-web\\src\\app\\(dashboard)\\paineis\\[id]"

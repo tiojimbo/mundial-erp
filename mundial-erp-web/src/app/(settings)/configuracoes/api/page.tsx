@@ -1,15 +1,5 @@
-import { RiKey2Line } from '@remixicon/react';
+import { ApiTokensPage } from '@/features/personal-access-tokens/components/api-tokens-page';
 
-export default function ApiPage() {
-  return (
-    <div className='flex flex-col items-center justify-center py-20'>
-      <div className='flex size-12 items-center justify-center rounded-full bg-bg-soft-200'>
-        <RiKey2Line className='size-6 text-text-soft-400' />
-      </div>
-      <h1 className='mt-4 text-label-lg text-text-strong-950'>API</h1>
-      <p className='mt-1 text-paragraph-sm text-text-sub-600'>
-        Em breve. Gerencie suas chaves de API aqui.
-      </p>
-    </div>
-  );
+export default function Page() {
+  return <ApiTokensPage />;
 }

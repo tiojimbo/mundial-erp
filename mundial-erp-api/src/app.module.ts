@@ -13,6 +13,7 @@ import { QueueModule } from './modules/queue/queue.module';
 import { SearchModule } from './modules/search/search.module';
 import { AuthModule } from './modules/auth/auth.module';
 import { UsersModule } from './modules/users/users.module';
+import { PersonalAccessTokensModule } from './modules/personal-access-tokens/personal-access-tokens.module';
 import { BpmModule } from './modules/bpm/bpm.module';
 import { StatusModule } from './modules/status/status.module';
 import { StatusTemplatesModule } from './modules/status-templates/status-templates.module';
@@ -49,6 +50,7 @@ import { FinancialSummaryModule } from './modules/financial-summary/financial-su
 import { DashboardsModule } from './modules/dashboards/dashboards.module';
 import { ReportsModule } from './modules/reports/reports.module';
 import { JwtAuthGuard, RolesGuard } from './modules/auth/guards';
+import { JwtOrPkAuthGuard } from './modules/personal-access-tokens/guards/jwt-or-pk-auth.guard';
 import { WorkspaceGuard } from './modules/workspaces/guards/workspace.guard';
 import { ResponseInterceptor } from './common/interceptors/response.interceptor';
 import { LoggingInterceptor } from './common/interceptors/logging.interceptor';
@@ -166,6 +168,7 @@ import { KommoBackfillModule } from './modules/kommo-backfill/kommo-backfill.mod
     // Auth & Users
     AuthModule,
     UsersModule,
+    PersonalAccessTokensModule,
 
     // BPM (Motor de Processos)
     BpmModule,
@@ -320,7 +323,7 @@ import { KommoBackfillModule } from './modules/kommo-backfill/kommo-backfill.mod
   providers: [
     // Global guards (order: Throttler → JWT Auth → Workspace → Roles)
     { provide: APP_GUARD, useClass: ThrottlerGuard },
-    { provide: APP_GUARD, useClass: JwtAuthGuard },
+    { provide: APP_GUARD, useClass: JwtOrPkAuthGuard },
     { provide: APP_GUARD, useClass: WorkspaceGuard },
     { provide: APP_GUARD, useClass: RolesGuard },
 
