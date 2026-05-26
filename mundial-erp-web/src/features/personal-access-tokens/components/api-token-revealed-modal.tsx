@@ -23,8 +23,22 @@ export function ApiTokenRevealedModal({ token, onClose }: Props) {
 
   async function handleCopy() {
     if (!token) return;
+    const text = token.token;
     try {
-      await navigator.clipboard.writeText(token.token);
+      if (navigator.clipboard && window.isSecureContext) {
+        await navigator.clipboard.writeText(text);
+      } else {
+        const textarea = document.createElement('textarea');
+        textarea.value = text;
+        textarea.style.position = 'fixed';
+        textarea.style.opacity = '0';
+        document.body.appendChild(textarea);
+        textarea.focus();
+        textarea.select();
+        const ok = document.execCommand('copy');
+        document.body.removeChild(textarea);
+        if (!ok) throw new Error('execCommand failed');
+      }
       setCopied(true);
       notification({
         title: 'Copiado',
@@ -67,8 +81,17 @@ export function ApiTokenRevealedModal({ token, onClose }: Props) {
               </p>
             </div>
 
-            <div className='flex items-center gap-2 rounded-md border border-[oklch(0.922_0_0)] bg-[oklch(0.97_0_0)] p-3'>
-              <code className='flex-1 overflow-x-auto text-[12px] text-text-strong-950'>
+            <div className='flex items-start gap-2 rounded-md border border-[oklch(0.922_0_0)] bg-[oklch(0.97_0_0)] p-3'>
+              <code
+                className='flex-1 cursor-text select-all break-all text-[12px] text-text-strong-950'
+                onClick={(e) => {
+                  const range = document.createRange();
+                  range.selectNodeContents(e.currentTarget);
+                  const sel = window.getSelection();
+                  sel?.removeAllRanges();
+                  sel?.addRange(range);
+                }}
+              >
                 {token?.token}
               </code>
               <Button.Root
