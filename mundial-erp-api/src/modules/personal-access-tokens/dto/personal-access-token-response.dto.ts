@@ -38,7 +38,9 @@ export class PersonalAccessTokenResponseDto {
   @ApiProperty({ type: PersonalAccessTokenUserDto })
   user: PersonalAccessTokenUserDto;
 
-  static fromEntity(entity: PersonalAccessTokenWithUser): PersonalAccessTokenResponseDto {
+  static fromEntity(
+    entity: PersonalAccessTokenWithUser,
+  ): PersonalAccessTokenResponseDto {
     const dto = new PersonalAccessTokenResponseDto();
     dto.id = entity.id;
     dto.name = entity.name;

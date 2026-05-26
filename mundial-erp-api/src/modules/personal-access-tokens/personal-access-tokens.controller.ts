@@ -35,10 +35,7 @@ export class PersonalAccessTokensController {
   @Get()
   @ApiOperation({ summary: 'Listar minhas API keys' })
   @ApiResponse({ status: 200, type: [PersonalAccessTokenResponseDto] })
-  findAll(
-    @CurrentUser() user: JwtPayload,
-    @Query() pagination: PaginationDto,
-  ) {
+  findAll(@CurrentUser() user: JwtPayload, @Query() pagination: PaginationDto) {
     return this.service.findManyByUser(user.sub, pagination);
   }
 

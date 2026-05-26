@@ -40,11 +40,9 @@ export class PersonalAccessTokensService {
     );
 
     const response = new PersonalAccessTokenCreatedDto();
-    Object.assign(
-      response,
-      PersonalAccessTokenResponseDto.fromEntity(entity),
-      { token },
-    );
+    Object.assign(response, PersonalAccessTokenResponseDto.fromEntity(entity), {
+      token,
+    });
     return response;
   }
 

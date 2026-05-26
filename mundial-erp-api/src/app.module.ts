@@ -49,7 +49,7 @@ import { InvoicesModule } from './modules/invoices/invoices.module';
 import { FinancialSummaryModule } from './modules/financial-summary/financial-summary.module';
 import { DashboardsModule } from './modules/dashboards/dashboards.module';
 import { ReportsModule } from './modules/reports/reports.module';
-import { JwtAuthGuard, RolesGuard } from './modules/auth/guards';
+import { RolesGuard } from './modules/auth/guards';
 import { JwtOrPkAuthGuard } from './modules/personal-access-tokens/guards/jwt-or-pk-auth.guard';
 import { WorkspaceGuard } from './modules/workspaces/guards/workspace.guard';
 import { ResponseInterceptor } from './common/interceptors/response.interceptor';
