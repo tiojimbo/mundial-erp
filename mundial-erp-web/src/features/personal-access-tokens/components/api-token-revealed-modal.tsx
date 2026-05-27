@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import * as Dialog from '@radix-ui/react-dialog';
 import {
   RiAlertLine,
@@ -20,23 +20,28 @@ type Props = {
 export function ApiTokenRevealedModal({ token, onClose }: Props) {
   const { notification } = useNotification();
   const [copied, setCopied] = useState(false);
+  const inputRef = useRef<HTMLInputElement>(null);
+
+  useEffect(() => {
+    if (token && inputRef.current) {
+      const id = requestAnimationFrame(() => {
+        inputRef.current?.focus();
+        inputRef.current?.select();
+      });
+      return () => cancelAnimationFrame(id);
+    }
+  }, [token]);
 
   async function handleCopy() {
     if (!token) return;
     const text = token.token;
+    inputRef.current?.focus();
+    inputRef.current?.select();
     try {
       if (navigator.clipboard && window.isSecureContext) {
         await navigator.clipboard.writeText(text);
       } else {
-        const textarea = document.createElement('textarea');
-        textarea.value = text;
-        textarea.style.position = 'fixed';
-        textarea.style.opacity = '0';
-        document.body.appendChild(textarea);
-        textarea.focus();
-        textarea.select();
         const ok = document.execCommand('copy');
-        document.body.removeChild(textarea);
         if (!ok) throw new Error('execCommand failed');
       }
       setCopied(true);
@@ -48,10 +53,13 @@ export function ApiTokenRevealedModal({ token, onClose }: Props) {
       setTimeout(() => setCopied(false), 2000);
     } catch {
       notification({
-        title: 'Erro',
-        description: 'Não foi possível copiar.',
-        status: 'error',
+        title: 'Selecione e copie',
+        description:
+          'A chave já está selecionada. Pressione Cmd+C (ou Ctrl+C) para copiar.',
+        status: 'warning',
       });
+      inputRef.current?.focus();
+      inputRef.current?.select();
     }
   }
 
@@ -77,40 +85,49 @@ export function ApiTokenRevealedModal({ token, onClose }: Props) {
             <div className='flex items-start gap-3 rounded-md border border-warning-base/30 bg-warning-light-50 p-3'>
               <RiAlertLine className='size-5 shrink-0 text-warning-base' />
               <p className='text-[12px] text-[oklch(0.556_0_0)]'>
-                Guarde esta key em local seguro. Ela não poderá ser visualizada novamente.
+                Guarde esta key em local seguro. Ela não poderá ser visualizada
+                novamente.
               </p>
             </div>
 
-            <div className='flex items-start gap-2 rounded-md border border-[oklch(0.922_0_0)] bg-[oklch(0.97_0_0)] p-3'>
-              <code
-                className='flex-1 cursor-text select-all break-all text-[12px] text-text-strong-950'
-                onClick={(e) => {
-                  const range = document.createRange();
-                  range.selectNodeContents(e.currentTarget);
-                  const sel = window.getSelection();
-                  sel?.removeAllRanges();
-                  sel?.addRange(range);
-                }}
-              >
-                {token?.token}
-              </code>
-              <Button.Root
-                variant='neutral'
-                mode='stroke'
-                size='xsmall'
-                onClick={handleCopy}
-              >
-                <Button.Icon as={copied ? RiCheckLine : RiFileCopyLine} />
-                {copied ? 'Copiado' : 'Copiar'}
-              </Button.Root>
+            <div className='space-y-2'>
+              <input
+                ref={inputRef}
+                type='text'
+                value={token?.token ?? ''}
+                readOnly
+                onFocus={(e) => e.currentTarget.select()}
+                onClick={(e) => e.currentTarget.select()}
+                spellCheck={false}
+                autoComplete='off'
+                className='w-full rounded-md border border-[oklch(0.922_0_0)] bg-[oklch(0.97_0_0)] p-3 font-mono text-[12px] text-text-strong-950 outline-none focus:border-[oklch(0.708_0.165_254.624)] focus:ring-2 focus:ring-[oklch(0.708_0.165_254.624)]/30'
+              />
+              <div className='flex items-center justify-between gap-2'>
+                <p className='text-[11px] text-[oklch(0.556_0_0)]'>
+                  Selecionada automaticamente. Pressione{' '}
+                  <kbd className='rounded bg-[oklch(0.922_0_0)] px-1 py-0.5 text-[10px] font-medium'>
+                    ⌘C
+                  </kbd>{' '}
+                  ou{' '}
+                  <kbd className='rounded bg-[oklch(0.922_0_0)] px-1 py-0.5 text-[10px] font-medium'>
+                    Ctrl+C
+                  </kbd>{' '}
+                  para copiar.
+                </p>
+                <Button.Root
+                  variant='neutral'
+                  mode='stroke'
+                  size='xsmall'
+                  onClick={handleCopy}
+                >
+                  <Button.Icon as={copied ? RiCheckLine : RiFileCopyLine} />
+                  {copied ? 'Copiado' : 'Copiar'}
+                </Button.Root>
+              </div>
             </div>
 
             <div className='flex items-center justify-end pt-2'>
-              <Button.Root
-                variant='primary'
-                mode='filled'
-                onClick={onClose}
-              >
+              <Button.Root variant='primary' mode='filled' onClick={onClose}>
                 Pronto
               </Button.Root>
             </div>
