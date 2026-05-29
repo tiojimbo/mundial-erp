@@ -16,12 +16,12 @@ import {
   ApiResponse,
   ApiTags,
 } from '@nestjs/swagger';
-import { Role } from '@prisma/client';
+import { WorkspaceMemberRole } from '@prisma/client';
 import { Throttle } from '@nestjs/throttler';
 import { KommoAccountsService } from './kommo-accounts.service';
 import { ConnectKommoTokenDto } from './dto/connect-kommo-token.dto';
 import { KommoAccountResponseDto } from './dto/kommo-account-response.dto';
-import { CurrentUser, Roles } from '../auth/decorators';
+import { CurrentUser, WorkspaceRoles } from '../auth/decorators';
 import type { JwtPayload } from '../auth/decorators';
 import { WorkspaceId } from '../workspaces/decorators/workspace-id.decorator';
 import { KommoFeatureFlagGuard } from '../../common/feature-flags/kommo-feature-flag.guard';
@@ -55,7 +55,7 @@ export class KommoAccountsController {
   // ──────────────────────────────────────────────────────────────────────
 
   @Post('accounts/token')
-  @Roles(Role.ADMIN)
+  @WorkspaceRoles(WorkspaceMemberRole.OWNER, WorkspaceMemberRole.ADMIN)
   @HttpCode(HttpStatus.CREATED)
   @Throttle({ default: { limit: 10, ttl: 60_000 } })
   @ApiOperation({
@@ -85,7 +85,7 @@ export class KommoAccountsController {
   // ──────────────────────────────────────────────────────────────────────
 
   @Get('accounts')
-  @Roles(Role.ADMIN, Role.MANAGER)
+  @WorkspaceRoles(WorkspaceMemberRole.OWNER, WorkspaceMemberRole.ADMIN)
   @Throttle({ default: { limit: 60, ttl: 60_000 } })
   @ApiOperation({
     summary:
@@ -101,7 +101,7 @@ export class KommoAccountsController {
   }
 
   @Delete('accounts/:id')
-  @Roles(Role.ADMIN)
+  @WorkspaceRoles(WorkspaceMemberRole.OWNER, WorkspaceMemberRole.ADMIN)
   @HttpCode(HttpStatus.NO_CONTENT)
   @Throttle({ default: { limit: 10, ttl: 60_000 } })
   @ApiOperation({
@@ -122,7 +122,7 @@ export class KommoAccountsController {
   // ──────────────────────────────────────────────────────────────────────
 
   @Get('connect')
-  @Roles(Role.ADMIN)
+  @WorkspaceRoles(WorkspaceMemberRole.OWNER, WorkspaceMemberRole.ADMIN)
   @ApiOperation({
     summary:
       'STUB OAuth connect — implementado quando KOMMO_CLIENT_ID/KOMMO_CLIENT_SECRET estiverem configurados e App Kommo registrado (ver ADR-004).',
@@ -141,7 +141,7 @@ export class KommoAccountsController {
   }
 
   @Get('callback')
-  @Roles(Role.ADMIN)
+  @WorkspaceRoles(WorkspaceMemberRole.OWNER, WorkspaceMemberRole.ADMIN)
   @ApiOperation({
     summary:
       'STUB OAuth callback — implementado na rodada seguinte (ver ADR-004).',

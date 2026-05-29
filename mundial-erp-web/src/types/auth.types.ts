@@ -4,7 +4,9 @@ export type User = {
   email: string;
   role: UserRole;
   department: Department;
-  avatarUrl?: string;
+  avatar?: string | null;
+  themeColor?: string;
+  appearance?: 'LIGHT' | 'DARK' | 'AUTO';
   createdAt: string;
 };
 

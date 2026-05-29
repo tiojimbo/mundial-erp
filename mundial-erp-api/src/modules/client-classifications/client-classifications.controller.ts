@@ -16,13 +16,13 @@ import {
   ApiResponse,
   ApiTags,
 } from '@nestjs/swagger';
-import { Role } from '@prisma/client';
+import { WorkspaceMemberRole } from '@prisma/client';
 import { ClientClassificationsService } from './client-classifications.service';
 import { CreateClientClassificationDto } from './dto/create-client-classification.dto';
 import { UpdateClientClassificationDto } from './dto/update-client-classification.dto';
 import { ClientClassificationResponseDto } from './dto/client-classification-response.dto';
 import { PaginationDto } from '../../common/dtos/pagination.dto';
-import { Roles } from '../auth/decorators';
+import { WorkspaceRoles } from '../auth/decorators';
 
 @ApiTags('Client Classifications')
 @ApiBearerAuth()
@@ -33,7 +33,7 @@ export class ClientClassificationsController {
   ) {}
 
   @Post()
-  @Roles(Role.ADMIN)
+  @WorkspaceRoles(WorkspaceMemberRole.OWNER, WorkspaceMemberRole.ADMIN)
   @ApiOperation({ summary: 'Criar classificação de cliente (somente ADMIN)' })
   @ApiResponse({ status: 201, type: ClientClassificationResponseDto })
   create(@Body() dto: CreateClientClassificationDto) {
@@ -41,14 +41,14 @@ export class ClientClassificationsController {
   }
 
   @Get()
-  @Roles(Role.ADMIN, Role.MANAGER)
+  @WorkspaceRoles(WorkspaceMemberRole.OWNER, WorkspaceMemberRole.ADMIN)
   @ApiOperation({ summary: 'Listar classificações de cliente' })
   findAll(@Query() pagination: PaginationDto) {
     return this.clientClassificationsService.findAll(pagination);
   }
 
   @Get(':id')
-  @Roles(Role.ADMIN, Role.MANAGER)
+  @WorkspaceRoles(WorkspaceMemberRole.OWNER, WorkspaceMemberRole.ADMIN)
   @ApiOperation({ summary: 'Buscar classificação de cliente por ID' })
   @ApiResponse({ status: 200, type: ClientClassificationResponseDto })
   @ApiResponse({
@@ -60,7 +60,7 @@ export class ClientClassificationsController {
   }
 
   @Patch(':id')
-  @Roles(Role.ADMIN)
+  @WorkspaceRoles(WorkspaceMemberRole.OWNER, WorkspaceMemberRole.ADMIN)
   @ApiOperation({
     summary: 'Atualizar classificação de cliente (somente ADMIN)',
   })
@@ -70,7 +70,7 @@ export class ClientClassificationsController {
   }
 
   @Delete(':id')
-  @Roles(Role.ADMIN)
+  @WorkspaceRoles(WorkspaceMemberRole.OWNER, WorkspaceMemberRole.ADMIN)
   @HttpCode(HttpStatus.NO_CONTENT)
   @ApiOperation({
     summary: 'Remover classificação de cliente (soft delete, somente ADMIN)',

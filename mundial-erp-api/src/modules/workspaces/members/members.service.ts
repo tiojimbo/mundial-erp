@@ -7,13 +7,21 @@ import {
   NotFoundException,
 } from '@nestjs/common';
 import { Prisma, WorkspaceMemberRole } from '@prisma/client';
+import * as bcrypt from 'bcrypt';
+import { randomBytes } from 'crypto';
 import { MembersRepository } from './members.repository';
 import { WorkspacesRepository } from '../workspaces.repository';
 import { WorkspacesService } from '../workspaces.service';
 import { AddMemberDto } from './dto/add-member.dto';
 import { UpdateMemberRoleDto } from './dto/update-member-role.dto';
 import { MemberResponseDto } from './dto/member-response.dto';
+import { BulkAddUsersDto } from './dto/bulk-add-users.dto';
+import { BulkAddResponseDto } from './dto/bulk-add-response.dto';
+import { WorkspaceUsersResponseDto } from '../dto/workspace-users-response.dto';
+import { resolveWorkspacePermissionFlags } from '../dto/my-permission-response.dto';
 import { PaginationDto } from '../../../common/dtos/pagination.dto';
+
+const BCRYPT_ROUNDS = 12;
 
 @Injectable()
 export class MembersService {
@@ -44,6 +52,103 @@ export class MembersService {
       items: items.map(MemberResponseDto.fromEntity),
       total,
     };
+  }
+
+  async listUsers(
+    workspaceId: string,
+    userId: string,
+    pagination: PaginationDto,
+    showPending = false,
+  ): Promise<WorkspaceUsersResponseDto> {
+    await this.workspacesService.assertMembership(workspaceId, userId);
+
+    const { items, total } = await this.membersRepository.findMany({
+      workspaceId,
+      skip: pagination.skip,
+      take: pagination.limit,
+      showPending,
+    });
+
+    return {
+      users: items.map((member) => ({
+        id: member.userId,
+        name: member.user?.name ?? null,
+        email: member.user?.email ?? null,
+        avatar: member.user?.avatar ?? null,
+        accepted: member.accepted,
+        permission: member.role,
+        ...resolveWorkspacePermissionFlags(member.role),
+        joinedAt: member.joinedAt,
+      })),
+      total,
+    };
+  }
+
+  async bulkAdd(
+    workspaceId: string,
+    actorId: string,
+    dto: BulkAddUsersDto,
+  ): Promise<BulkAddResponseDto> {
+    await this.workspacesService.assertOwnerOrAdmin(workspaceId, actorId);
+
+    const invited: BulkAddResponseDto['invited'] = [];
+    const skipped: string[] = [];
+
+    for (const entry of dto.users) {
+      if (entry.permission === WorkspaceMemberRole.OWNER) {
+        throw new BadRequestException(
+          'OWNER nao pode ser atribuido ao adicionar usuarios',
+        );
+      }
+
+      const email = entry.email.toLowerCase().trim();
+      let user = await this.membersRepository.findUserByEmail(email);
+      let isNewUser = false;
+
+      if (!user) {
+        const passwordHash = await bcrypt.hash(
+          randomBytes(32).toString('hex'),
+          BCRYPT_ROUNDS,
+        );
+        user = await this.membersRepository.createUser({
+          email,
+          name: email.split('@')[0],
+          passwordHash,
+        });
+        isNewUser = true;
+      }
+
+      const existing = await this.membersRepository.findById(
+        workspaceId,
+        user.id,
+      );
+      if (existing) {
+        skipped.push(email);
+        continue;
+      }
+
+      const member = await this.membersRepository.create({
+        workspaceId,
+        userId: user.id,
+        role: entry.permission,
+        accepted: false,
+      });
+
+      invited.push({
+        id: user.id,
+        email: user.email,
+        name: user.name,
+        permission: member.role,
+        accepted: member.accepted,
+        isNewUser,
+      });
+    }
+
+    this.logger.log(
+      `users.bulk_added workspace=${workspaceId} invited=${invited.length} skipped=${skipped.length} actor=${actorId}`,
+    );
+
+    return { invited, skipped };
   }
 
   async add(

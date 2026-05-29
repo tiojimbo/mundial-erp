@@ -16,13 +16,13 @@ import {
   ApiResponse,
   ApiTags,
 } from '@nestjs/swagger';
-import { Role } from '@prisma/client';
+import { WorkspaceMemberRole } from '@prisma/client';
 import { CarriersService } from './carriers.service';
 import { CreateCarrierDto } from './dto/create-carrier.dto';
 import { UpdateCarrierDto } from './dto/update-carrier.dto';
 import { CarrierResponseDto } from './dto/carrier-response.dto';
 import { PaginationDto } from '../../common/dtos/pagination.dto';
-import { Roles } from '../auth/decorators';
+import { WorkspaceRoles } from '../auth/decorators';
 
 @ApiTags('Carriers')
 @ApiBearerAuth()
@@ -31,7 +31,7 @@ export class CarriersController {
   constructor(private readonly carriersService: CarriersService) {}
 
   @Post()
-  @Roles(Role.ADMIN)
+  @WorkspaceRoles(WorkspaceMemberRole.OWNER, WorkspaceMemberRole.ADMIN)
   @ApiOperation({ summary: 'Criar transportadora (somente ADMIN)' })
   @ApiResponse({ status: 201, type: CarrierResponseDto })
   create(@Body() dto: CreateCarrierDto) {
@@ -39,14 +39,14 @@ export class CarriersController {
   }
 
   @Get()
-  @Roles(Role.ADMIN, Role.MANAGER)
+  @WorkspaceRoles(WorkspaceMemberRole.OWNER, WorkspaceMemberRole.ADMIN)
   @ApiOperation({ summary: 'Listar transportadoras' })
   findAll(@Query() pagination: PaginationDto) {
     return this.carriersService.findAll(pagination);
   }
 
   @Get(':id')
-  @Roles(Role.ADMIN, Role.MANAGER)
+  @WorkspaceRoles(WorkspaceMemberRole.OWNER, WorkspaceMemberRole.ADMIN)
   @ApiOperation({ summary: 'Buscar transportadora por ID' })
   @ApiResponse({ status: 200, type: CarrierResponseDto })
   @ApiResponse({ status: 404, description: 'Transportadora não encontrada' })
@@ -55,7 +55,7 @@ export class CarriersController {
   }
 
   @Patch(':id')
-  @Roles(Role.ADMIN)
+  @WorkspaceRoles(WorkspaceMemberRole.OWNER, WorkspaceMemberRole.ADMIN)
   @ApiOperation({ summary: 'Atualizar transportadora (somente ADMIN)' })
   @ApiResponse({ status: 200, type: CarrierResponseDto })
   update(@Param('id') id: string, @Body() dto: UpdateCarrierDto) {
@@ -63,7 +63,7 @@ export class CarriersController {
   }
 
   @Delete(':id')
-  @Roles(Role.ADMIN)
+  @WorkspaceRoles(WorkspaceMemberRole.OWNER, WorkspaceMemberRole.ADMIN)
   @HttpCode(HttpStatus.NO_CONTENT)
   @ApiOperation({
     summary: 'Remover transportadora (soft delete, somente ADMIN)',

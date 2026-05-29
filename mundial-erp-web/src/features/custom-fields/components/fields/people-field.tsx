@@ -7,18 +7,10 @@ import { Check, Search, UserPlus } from 'lucide-react';
 
 import { cn } from '@/lib/cn';
 import { useWorkspaceStore } from '@/stores/workspace.store';
-import { useWorkspaceMembers } from '@/features/workspaces/hooks/use-workspace-members';
+import { useWorkspaceUsers } from '@/features/workspaces/hooks/use-workspace-members';
 import type { BaseFieldProps } from './field-base';
 import { inputClass } from './field-base';
 import { FieldShell } from './field-shell';
-
-type FlatMember = {
-  id: string;
-  userId: string;
-  userName?: string;
-  userEmail?: string;
-  user?: { id: string; name: string; email: string; avatarUrl?: string | null };
-};
 
 type NormalizedMember = {
   id: string;
@@ -26,23 +18,6 @@ type NormalizedMember = {
   email: string;
   avatarUrl?: string | null;
 };
-
-function normalize(m: FlatMember): NormalizedMember {
-  if (m.user) {
-    return {
-      id: m.user.id,
-      name: m.user.name,
-      email: m.user.email,
-      avatarUrl: m.user.avatarUrl ?? null,
-    };
-  }
-  return {
-    id: m.userId,
-    name: m.userName ?? '',
-    email: m.userEmail ?? '',
-    avatarUrl: null,
-  };
-}
 
 function initialsOf(name: string): string {
   const parts = name.trim().split(/\s+/);
@@ -89,11 +64,16 @@ export function PeopleField({
 }: BaseFieldProps<string[] | null>) {
   const isReadOnly = readOnly || definition.config?.readOnly === true;
   const workspaceId = useWorkspaceStore((s) => s.currentWorkspace?.id ?? '');
-  const { data: members } = useWorkspaceMembers(workspaceId);
+  const { data: members } = useWorkspaceUsers(workspaceId);
   const [open, setOpen] = useState(false);
   const normalizedMembers = useMemo<NormalizedMember[]>(
     () =>
-      (members?.data ?? []).map((m) => normalize(m as unknown as FlatMember)),
+      (members?.users ?? []).map((m) => ({
+        id: m.id,
+        name: m.name ?? '',
+        email: m.email ?? '',
+        avatarUrl: m.avatar,
+      })),
     [members],
   );
   const selectedIds = useMemo(

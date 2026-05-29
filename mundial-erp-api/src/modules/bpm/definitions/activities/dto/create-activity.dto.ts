@@ -1,5 +1,5 @@
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
-import { OrderStatus, Role } from '@prisma/client';
+import { OrderStatus } from '@prisma/client';
 import {
   IsBoolean,
   IsEnum,
@@ -24,9 +24,9 @@ export class CreateActivityDto {
   @MinLength(1)
   listId: string;
 
-  @ApiProperty({ enum: Role, example: Role.OPERATOR })
-  @IsEnum(Role)
-  ownerRole: Role;
+  @ApiProperty({ example: 'OPERATOR' })
+  @IsString()
+  ownerRole: string;
 
   @ApiPropertyOptional({ example: 'Pedido aprovado pelo gerente' })
   @IsOptional()

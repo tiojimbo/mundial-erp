@@ -16,7 +16,7 @@ import {
   ApiResponse,
   ApiTags,
 } from '@nestjs/swagger';
-import { Role } from '@prisma/client';
+import { WorkspaceMemberRole } from '@prisma/client';
 import { ProductsService } from './products.service';
 import { ProductionFormulasService } from '../production-formulas/production-formulas.service';
 import { CreateProductDto } from './dto/create-product.dto';
@@ -24,7 +24,7 @@ import { UpdateProductDto } from './dto/update-product.dto';
 import { ProductResponseDto } from './dto/product-response.dto';
 import { ListProductsQueryDto } from './dto/list-products-query.dto';
 import { ProductionFormulaResponseDto } from '../production-formulas/dto/production-formula-response.dto';
-import { Roles } from '../auth/decorators';
+import { WorkspaceRoles } from '../auth/decorators';
 import { WorkspaceId } from '../workspaces/decorators/workspace-id.decorator';
 
 @ApiTags('Products')
@@ -37,7 +37,11 @@ export class ProductsController {
   ) {}
 
   @Post()
-  @Roles(Role.ADMIN, Role.MANAGER, Role.OPERATOR)
+  @WorkspaceRoles(
+    WorkspaceMemberRole.OWNER,
+    WorkspaceMemberRole.ADMIN,
+    WorkspaceMemberRole.EDITOR,
+  )
   @ApiOperation({
     summary: 'Criar produto (inicia Etapa 1)',
     description:
@@ -50,7 +54,11 @@ export class ProductsController {
   }
 
   @Get()
-  @Roles(Role.ADMIN, Role.MANAGER, Role.OPERATOR)
+  @WorkspaceRoles(
+    WorkspaceMemberRole.OWNER,
+    WorkspaceMemberRole.ADMIN,
+    WorkspaceMemberRole.EDITOR,
+  )
   @ApiOperation({ summary: 'Listar produtos com filtros' })
   findAll(
     @WorkspaceId() workspaceId: string,
@@ -67,7 +75,11 @@ export class ProductsController {
   }
 
   @Get('barcode/:ean')
-  @Roles(Role.ADMIN, Role.MANAGER, Role.OPERATOR)
+  @WorkspaceRoles(
+    WorkspaceMemberRole.OWNER,
+    WorkspaceMemberRole.ADMIN,
+    WorkspaceMemberRole.EDITOR,
+  )
   @ApiOperation({
     summary: 'Buscar produto por EAN-13',
     description: 'Endpoint para leitor de código de barras',
@@ -79,7 +91,11 @@ export class ProductsController {
   }
 
   @Get(':id/formula')
-  @Roles(Role.ADMIN, Role.MANAGER, Role.OPERATOR)
+  @WorkspaceRoles(
+    WorkspaceMemberRole.OWNER,
+    WorkspaceMemberRole.ADMIN,
+    WorkspaceMemberRole.EDITOR,
+  )
   @ApiOperation({
     summary: 'Buscar fórmula de produção do produto (aba inline)',
   })
@@ -90,7 +106,11 @@ export class ProductsController {
   }
 
   @Get(':id')
-  @Roles(Role.ADMIN, Role.MANAGER, Role.OPERATOR)
+  @WorkspaceRoles(
+    WorkspaceMemberRole.OWNER,
+    WorkspaceMemberRole.ADMIN,
+    WorkspaceMemberRole.EDITOR,
+  )
   @ApiOperation({
     summary: 'Buscar produto por ID (dossiê com todas as 4 etapas)',
   })
@@ -101,7 +121,11 @@ export class ProductsController {
   }
 
   @Patch(':id')
-  @Roles(Role.ADMIN, Role.MANAGER, Role.OPERATOR)
+  @WorkspaceRoles(
+    WorkspaceMemberRole.OWNER,
+    WorkspaceMemberRole.ADMIN,
+    WorkspaceMemberRole.EDITOR,
+  )
   @ApiOperation({
     summary: 'Atualizar produto (avançar etapas do wizard)',
     description:
@@ -118,7 +142,7 @@ export class ProductsController {
   }
 
   @Patch(':id/activate')
-  @Roles(Role.ADMIN, Role.MANAGER)
+  @WorkspaceRoles(WorkspaceMemberRole.OWNER, WorkspaceMemberRole.ADMIN)
   @ApiOperation({
     summary: 'Ativar produto manualmente',
     description: 'Requer todas as 4 etapas completas.',
@@ -129,7 +153,7 @@ export class ProductsController {
   }
 
   @Patch(':id/deactivate')
-  @Roles(Role.ADMIN, Role.MANAGER)
+  @WorkspaceRoles(WorkspaceMemberRole.OWNER, WorkspaceMemberRole.ADMIN)
   @ApiOperation({ summary: 'Desativar produto' })
   @ApiResponse({ status: 200, type: ProductResponseDto })
   deactivate(@WorkspaceId() workspaceId: string, @Param('id') id: string) {
@@ -137,7 +161,7 @@ export class ProductsController {
   }
 
   @Delete(':id')
-  @Roles(Role.ADMIN)
+  @WorkspaceRoles(WorkspaceMemberRole.OWNER, WorkspaceMemberRole.ADMIN)
   @HttpCode(HttpStatus.NO_CONTENT)
   @ApiOperation({ summary: 'Remover produto (soft delete)' })
   @ApiResponse({ status: 204 })

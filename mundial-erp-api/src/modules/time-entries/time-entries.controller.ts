@@ -14,13 +14,13 @@ import {
   ApiResponse,
   ApiTags,
 } from '@nestjs/swagger';
-import { Role } from '@prisma/client';
+import { WorkspaceMemberRole } from '@prisma/client';
 import { Throttle } from '@nestjs/throttler';
 import { TimeEntriesService } from './time-entries.service';
 import { CreateTimeEntryDto } from './dtos/create-time-entry.dto';
 import { StartTimeEntryDto } from './dtos/start-time-entry.dto';
 import { TimeEntryResponseDto } from './dtos/time-entry-response.dto';
-import { CurrentUser, Roles } from '../auth/decorators';
+import { CurrentUser, WorkspaceRoles } from '../auth/decorators';
 import type { JwtPayload } from '../auth/decorators';
 import { WorkspaceId } from '../workspaces/decorators/workspace-id.decorator';
 
@@ -31,7 +31,6 @@ export class TimeEntriesController {
   constructor(private readonly service: TimeEntriesService) {}
 
   @Get('tasks/:taskId/time-entries')
-  @Roles(Role.ADMIN, Role.MANAGER, Role.OPERATOR, Role.VIEWER)
   @ApiOperation({ summary: 'Listar registros de tempo de uma task' })
   @ApiResponse({ status: 200, type: [TimeEntryResponseDto] })
   findAll(@WorkspaceId() workspaceId: string, @Param('taskId') taskId: string) {
@@ -39,7 +38,11 @@ export class TimeEntriesController {
   }
 
   @Post('tasks/:taskId/time-entries/start')
-  @Roles(Role.ADMIN, Role.MANAGER, Role.OPERATOR)
+  @WorkspaceRoles(
+    WorkspaceMemberRole.OWNER,
+    WorkspaceMemberRole.ADMIN,
+    WorkspaceMemberRole.EDITOR,
+  )
   @HttpCode(HttpStatus.CREATED)
   @Throttle({ default: { limit: 30, ttl: 60_000 } })
   @ApiOperation({ summary: 'Iniciar timer (uma entry ativa por task+usuario)' })
@@ -55,7 +58,11 @@ export class TimeEntriesController {
   }
 
   @Put('tasks/:taskId/time-entries/:entryId/stop')
-  @Roles(Role.ADMIN, Role.MANAGER, Role.OPERATOR)
+  @WorkspaceRoles(
+    WorkspaceMemberRole.OWNER,
+    WorkspaceMemberRole.ADMIN,
+    WorkspaceMemberRole.EDITOR,
+  )
   @ApiOperation({ summary: 'Parar timer ativo (apenas o dono)' })
   @ApiResponse({ status: 200, type: TimeEntryResponseDto })
   stop(
@@ -68,7 +75,11 @@ export class TimeEntriesController {
   }
 
   @Post('tasks/:taskId/time-entries')
-  @Roles(Role.ADMIN, Role.MANAGER, Role.OPERATOR)
+  @WorkspaceRoles(
+    WorkspaceMemberRole.OWNER,
+    WorkspaceMemberRole.ADMIN,
+    WorkspaceMemberRole.EDITOR,
+  )
   @Throttle({ default: { limit: 30, ttl: 60_000 } })
   @ApiOperation({ summary: 'Registrar tempo manualmente (start+end+duration)' })
   @ApiResponse({ status: 201, type: TimeEntryResponseDto })

@@ -16,13 +16,13 @@ import {
   ApiResponse,
   ApiTags,
 } from '@nestjs/swagger';
-import { Role } from '@prisma/client';
+import { WorkspaceMemberRole } from '@prisma/client';
 import { ProductTypesService } from './product-types.service';
 import { CreateProductTypeDto } from './dto/create-product-type.dto';
 import { UpdateProductTypeDto } from './dto/update-product-type.dto';
 import { ProductTypeResponseDto } from './dto/product-type-response.dto';
 import { PaginationDto } from '../../common/dtos/pagination.dto';
-import { Roles } from '../auth/decorators';
+import { WorkspaceRoles } from '../auth/decorators';
 
 @ApiTags('Product Types')
 @ApiBearerAuth()
@@ -31,7 +31,7 @@ export class ProductTypesController {
   constructor(private readonly productTypesService: ProductTypesService) {}
 
   @Post()
-  @Roles(Role.ADMIN, Role.MANAGER)
+  @WorkspaceRoles(WorkspaceMemberRole.OWNER, WorkspaceMemberRole.ADMIN)
   @ApiOperation({ summary: 'Criar tipo de produto' })
   @ApiResponse({ status: 201, type: ProductTypeResponseDto })
   @ApiResponse({ status: 409, description: 'Prefixo já cadastrado' })
@@ -40,14 +40,22 @@ export class ProductTypesController {
   }
 
   @Get()
-  @Roles(Role.ADMIN, Role.MANAGER, Role.OPERATOR)
+  @WorkspaceRoles(
+    WorkspaceMemberRole.OWNER,
+    WorkspaceMemberRole.ADMIN,
+    WorkspaceMemberRole.EDITOR,
+  )
   @ApiOperation({ summary: 'Listar tipos de produto' })
   findAll(@Query() pagination: PaginationDto) {
     return this.productTypesService.findAll(pagination);
   }
 
   @Get(':id/next-code')
-  @Roles(Role.ADMIN, Role.MANAGER, Role.OPERATOR)
+  @WorkspaceRoles(
+    WorkspaceMemberRole.OWNER,
+    WorkspaceMemberRole.ADMIN,
+    WorkspaceMemberRole.EDITOR,
+  )
   @ApiOperation({
     summary: 'Preview do próximo código disponível para o tipo',
     description:
@@ -60,7 +68,11 @@ export class ProductTypesController {
   }
 
   @Get(':id')
-  @Roles(Role.ADMIN, Role.MANAGER, Role.OPERATOR)
+  @WorkspaceRoles(
+    WorkspaceMemberRole.OWNER,
+    WorkspaceMemberRole.ADMIN,
+    WorkspaceMemberRole.EDITOR,
+  )
   @ApiOperation({ summary: 'Buscar tipo de produto por ID' })
   @ApiResponse({ status: 200, type: ProductTypeResponseDto })
   @ApiResponse({ status: 404, description: 'Tipo de produto não encontrado' })
@@ -69,7 +81,7 @@ export class ProductTypesController {
   }
 
   @Patch(':id')
-  @Roles(Role.ADMIN, Role.MANAGER)
+  @WorkspaceRoles(WorkspaceMemberRole.OWNER, WorkspaceMemberRole.ADMIN)
   @ApiOperation({ summary: 'Atualizar tipo de produto' })
   @ApiResponse({ status: 200, type: ProductTypeResponseDto })
   update(@Param('id') id: string, @Body() dto: UpdateProductTypeDto) {
@@ -77,7 +89,7 @@ export class ProductTypesController {
   }
 
   @Delete(':id')
-  @Roles(Role.ADMIN)
+  @WorkspaceRoles(WorkspaceMemberRole.OWNER, WorkspaceMemberRole.ADMIN)
   @HttpCode(HttpStatus.NO_CONTENT)
   @ApiOperation({ summary: 'Remover tipo de produto (soft delete)' })
   @ApiResponse({ status: 204 })

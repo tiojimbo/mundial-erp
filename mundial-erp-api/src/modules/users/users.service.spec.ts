@@ -14,8 +14,10 @@ const mockUser = {
   name: 'Test User',
   passwordHash: 'hashed-password',
   refreshToken: null,
-  role: 'OPERATOR' as const,
   isActive: true,
+  avatar: null,
+  themeColor: null,
+  appearance: 'AUTO' as const,
   spaceId: null,
   lastAccessedWorkspaceId: null,
   createdAt: new Date(),
@@ -91,27 +93,6 @@ describe('UsersService', () => {
           'actor-1',
         ),
       ).rejects.toThrow(ConflictException);
-    });
-
-    it('should assign role when provided', async () => {
-      repository.findByEmail.mockResolvedValue(null);
-      repository.create.mockResolvedValue({
-        ...mockUser,
-        role: 'ADMIN' as const,
-      });
-      (bcrypt.hash as jest.Mock).mockResolvedValue('hashed');
-
-      const result = await service.create(
-        {
-          email: 'admin@mundial.com',
-          name: 'Admin',
-          password: 'pass123',
-          role: 'ADMIN' as const,
-        },
-        'actor-1',
-      );
-
-      expect(result.role).toBe('ADMIN');
     });
   });
 

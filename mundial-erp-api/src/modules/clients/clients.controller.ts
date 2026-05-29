@@ -16,7 +16,7 @@ import {
   ApiResponse,
   ApiTags,
 } from '@nestjs/swagger';
-import { Role } from '@prisma/client';
+import { WorkspaceMemberRole } from '@prisma/client';
 import { ClientsService } from './clients.service';
 import { CreateClientDto } from './dto/create-client.dto';
 import { UpdateClientDto } from './dto/update-client.dto';
@@ -25,7 +25,7 @@ import { ClientOrderResponseDto } from './dto/client-order-response.dto';
 import { ClientFinancialResponseDto } from './dto/client-financial-response.dto';
 import { ListClientsQueryDto } from './dto/list-clients-query.dto';
 import { PaginationDto } from '../../common/dtos/pagination.dto';
-import { Roles } from '../auth/decorators';
+import { WorkspaceRoles } from '../auth/decorators';
 import { WorkspaceId } from '../workspaces/decorators/workspace-id.decorator';
 
 @ApiTags('Clients')
@@ -35,7 +35,7 @@ export class ClientsController {
   constructor(private readonly clientsService: ClientsService) {}
 
   @Post()
-  @Roles(Role.ADMIN, Role.MANAGER)
+  @WorkspaceRoles(WorkspaceMemberRole.OWNER, WorkspaceMemberRole.ADMIN)
   @ApiOperation({ summary: 'Criar cliente' })
   @ApiResponse({ status: 201, type: ClientResponseDto })
   @ApiResponse({ status: 400, description: 'CPF/CNPJ inválido' })
@@ -48,7 +48,11 @@ export class ClientsController {
   }
 
   @Get()
-  @Roles(Role.ADMIN, Role.MANAGER, Role.OPERATOR)
+  @WorkspaceRoles(
+    WorkspaceMemberRole.OWNER,
+    WorkspaceMemberRole.ADMIN,
+    WorkspaceMemberRole.EDITOR,
+  )
   @ApiOperation({ summary: 'Listar clientes' })
   findAll(
     @WorkspaceId() workspaceId: string,
@@ -58,7 +62,11 @@ export class ClientsController {
   }
 
   @Get(':id')
-  @Roles(Role.ADMIN, Role.MANAGER, Role.OPERATOR)
+  @WorkspaceRoles(
+    WorkspaceMemberRole.OWNER,
+    WorkspaceMemberRole.ADMIN,
+    WorkspaceMemberRole.EDITOR,
+  )
   @ApiOperation({ summary: 'Buscar cliente por ID' })
   @ApiResponse({ status: 200, type: ClientResponseDto })
   @ApiResponse({ status: 404, description: 'Cliente não encontrado' })
@@ -67,7 +75,7 @@ export class ClientsController {
   }
 
   @Patch(':id')
-  @Roles(Role.ADMIN, Role.MANAGER)
+  @WorkspaceRoles(WorkspaceMemberRole.OWNER, WorkspaceMemberRole.ADMIN)
   @ApiOperation({ summary: 'Atualizar cliente' })
   @ApiResponse({ status: 200, type: ClientResponseDto })
   @ApiResponse({ status: 400, description: 'CPF/CNPJ inválido' })
@@ -84,7 +92,7 @@ export class ClientsController {
   }
 
   @Delete(':id')
-  @Roles(Role.ADMIN)
+  @WorkspaceRoles(WorkspaceMemberRole.OWNER, WorkspaceMemberRole.ADMIN)
   @HttpCode(HttpStatus.NO_CONTENT)
   @ApiOperation({ summary: 'Remover cliente (soft delete, somente ADMIN)' })
   @ApiResponse({ status: 204 })
@@ -93,7 +101,11 @@ export class ClientsController {
   }
 
   @Get(':id/orders')
-  @Roles(Role.ADMIN, Role.MANAGER, Role.OPERATOR)
+  @WorkspaceRoles(
+    WorkspaceMemberRole.OWNER,
+    WorkspaceMemberRole.ADMIN,
+    WorkspaceMemberRole.EDITOR,
+  )
   @ApiOperation({ summary: 'Listar pedidos do cliente' })
   @ApiResponse({ status: 200, type: ClientOrderResponseDto, isArray: true })
   @ApiResponse({ status: 404, description: 'Cliente não encontrado' })
@@ -106,7 +118,7 @@ export class ClientsController {
   }
 
   @Get(':id/financials')
-  @Roles(Role.ADMIN, Role.MANAGER)
+  @WorkspaceRoles(WorkspaceMemberRole.OWNER, WorkspaceMemberRole.ADMIN)
   @ApiOperation({
     summary: 'Resumo financeiro do cliente (AR total, pago, pendente, vencido)',
   })

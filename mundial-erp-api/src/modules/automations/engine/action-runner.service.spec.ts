@@ -86,7 +86,7 @@ describe('ActionRunnerService', () => {
     });
   });
 
-  it('move_to_list atualiza listId', async () => {
+  it('move_to_list (fallback legado, sem MoveTaskService) atualiza listId', async () => {
     const result = await runner.run(
       { type: 'move_to_list', params: { listId: 'list-2' } },
       buildContext(),
@@ -96,6 +96,47 @@ describe('ActionRunnerService', () => {
       where: { id: 'task-1' },
       data: { listId: 'list-2' },
     });
+  });
+
+  it('move_to_list usa MoveTaskService (remapeia status) quando injetado', async () => {
+    const moveTaskService = {
+      moveToListAuto: jest.fn().mockResolvedValue({ moved: 1 }),
+    };
+    const runnerWithMove = new ActionRunnerService(
+      prisma as never,
+      moveTaskService as never,
+    );
+
+    const result = await runnerWithMove.run(
+      { type: 'move_to_list', params: { listId: 'list-2' } },
+      buildContext(),
+    );
+
+    expect(result.status).toBe('ok');
+    expect(moveTaskService.moveToListAuto).toHaveBeenCalledWith(
+      'ws-1',
+      'task-1',
+      'list-2',
+      'user-1',
+    );
+    expect(prisma.workItem.update).not.toHaveBeenCalled();
+  });
+
+  it('move_to_list pula quando nada foi movido', async () => {
+    const moveTaskService = {
+      moveToListAuto: jest.fn().mockResolvedValue({ moved: 0 }),
+    };
+    const runnerWithMove = new ActionRunnerService(
+      prisma as never,
+      moveTaskService as never,
+    );
+
+    const result = await runnerWithMove.run(
+      { type: 'move_to_list', params: { listId: 'list-2' } },
+      buildContext(),
+    );
+
+    expect(result.status).toBe('skipped');
   });
 
   it('change_priority atualiza priority', async () => {

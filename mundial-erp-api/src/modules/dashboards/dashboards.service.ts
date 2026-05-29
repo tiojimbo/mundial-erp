@@ -4,7 +4,7 @@ import {
   Logger,
   NotFoundException,
 } from '@nestjs/common';
-import { Role } from '@prisma/client';
+import { WorkspaceMemberRole } from '@prisma/client';
 import { DashboardsRepository } from './dashboards.repository';
 import { DashboardCardQueryService } from './dashboard-card-query.service';
 import type {
@@ -25,7 +25,7 @@ import {
 } from './dto/dashboard-response.dto';
 import { PaginationDto } from '../../common/dtos/pagination.dto';
 
-type UserContext = { userId: string; role: Role };
+type UserContext = { userId: string; role: WorkspaceMemberRole };
 
 @Injectable()
 export class DashboardsService {
@@ -331,7 +331,11 @@ export class DashboardsService {
     entity: { ownerId: string; isPublic: boolean },
     user: UserContext,
   ): void {
-    if (user.role === Role.ADMIN) return;
+    if (
+      user.role === WorkspaceMemberRole.OWNER ||
+      user.role === WorkspaceMemberRole.ADMIN
+    )
+      return;
     if (entity.ownerId === user.userId) return;
     if (entity.isPublic) return;
     throw new ForbiddenException('Acesso negado a este dashboard');
@@ -341,7 +345,11 @@ export class DashboardsService {
     entity: { ownerId: string },
     user: UserContext,
   ): void {
-    if (user.role === Role.ADMIN) return;
+    if (
+      user.role === WorkspaceMemberRole.OWNER ||
+      user.role === WorkspaceMemberRole.ADMIN
+    )
+      return;
     if (entity.ownerId === user.userId) return;
     throw new ForbiddenException(
       'Somente o owner pode modificar este dashboard',

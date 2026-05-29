@@ -1,6 +1,14 @@
-import { Injectable, Logger, NotImplementedException } from '@nestjs/common';
+import {
+  forwardRef,
+  Inject,
+  Injectable,
+  Logger,
+  NotImplementedException,
+  Optional,
+} from '@nestjs/common';
 import { Prisma, TaskPriority } from '@prisma/client';
 import { PrismaService } from '../../../database/prisma.service';
+import { MoveTaskService } from '../../tasks/move-task.service';
 import { ActionId, ACTION_IDS } from '../catalog/actions.catalog';
 import type { TaskEventContext } from '../events/task-events.types';
 
@@ -21,7 +29,16 @@ const ACTION_ID_SET = new Set<string>(ACTION_IDS);
 export class ActionRunnerService {
   private readonly logger = new Logger(ActionRunnerService.name);
 
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(
+    private readonly prisma: PrismaService,
+    // @Optional() preserva os specs que instanciam `new ActionRunnerService(prisma)`
+    // posicionalmente. Sem o service injetado, `move_to_list` cai no fluxo legado
+    // (troca so o listId). Em runtime o AutomationsModule provê o MoveTaskService
+    // e o move passa a remapear status (paridade Hoppe).
+    @Optional()
+    @Inject(forwardRef(() => MoveTaskService))
+    private readonly moveTaskService?: MoveTaskService,
+  ) {}
 
   async run(
     action: ActionInvocation,
@@ -36,7 +53,7 @@ export class ActionRunnerService {
         case 'change_status':
           return await this.changeStatus(context.taskId, params);
         case 'move_to_list':
-          return await this.moveToList(context.taskId, params);
+          return await this.moveToList(context, params);
         case 'change_priority':
           return await this.changePriority(context.taskId, params);
         case 'change_assignees':
@@ -115,11 +132,27 @@ export class ActionRunnerService {
     return this.ok('change_status');
   }
 
-  private async moveToList(taskId: string, params: Record<string, unknown>) {
+  private async moveToList(
+    context: TaskEventContext,
+    params: Record<string, unknown>,
+  ) {
     const listId = String(params.listId ?? '');
     if (!listId) return this.skip('move_to_list', 'listId vazio');
+
+    if (this.moveTaskService) {
+      const result = await this.moveTaskService.moveToListAuto(
+        context.workspaceId,
+        context.taskId,
+        listId,
+        context.actorUserId,
+      );
+      return result.moved > 0
+        ? this.ok('move_to_list')
+        : this.skip('move_to_list', 'nada movido (mesma list ou sem status)');
+    }
+
     await this.prisma.workItem.update({
-      where: { id: taskId },
+      where: { id: context.taskId },
       data: { listId },
     });
     return this.ok('move_to_list');

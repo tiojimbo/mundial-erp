@@ -85,7 +85,6 @@ export class JwtOrPkAuthGuard extends AuthGuard('jwt') {
     request.user = {
       sub: user.id,
       email: user.email,
-      role: user.role,
       workspaceId: pk.workspaceId,
       workspaceRole: undefined,
     };

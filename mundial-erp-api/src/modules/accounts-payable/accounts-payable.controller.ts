@@ -20,14 +20,14 @@ import {
   ApiResponse,
   ApiTags,
 } from '@nestjs/swagger';
-import { PaymentStatus, Role } from '@prisma/client';
+import { PaymentStatus, WorkspaceMemberRole } from '@prisma/client';
 import { AccountsPayableService } from './accounts-payable.service';
 import { CreateAccountPayableDto } from './dto/create-account-payable.dto';
 import { UpdateAccountPayableDto } from './dto/update-account-payable.dto';
 import { RegisterPaymentDto } from './dto/register-payment.dto';
 import { AccountPayableResponseDto } from './dto/account-payable-response.dto';
 import { PaginationDto } from '../../common/dtos/pagination.dto';
-import { Roles } from '../auth/decorators';
+import { WorkspaceRoles } from '../auth/decorators';
 import {
   RequireIdempotencyKey,
   IdempotencyGuard,
@@ -43,7 +43,11 @@ export class AccountsPayableController {
   ) {}
 
   @Post()
-  @Roles(Role.ADMIN, Role.MANAGER, Role.OPERATOR)
+  @WorkspaceRoles(
+    WorkspaceMemberRole.OWNER,
+    WorkspaceMemberRole.ADMIN,
+    WorkspaceMemberRole.EDITOR,
+  )
   @RequireIdempotencyKey()
   @UseGuards(IdempotencyGuard)
   @UseInterceptors(IdempotencyInterceptor)
@@ -56,7 +60,11 @@ export class AccountsPayableController {
   }
 
   @Get()
-  @Roles(Role.ADMIN, Role.MANAGER, Role.OPERATOR)
+  @WorkspaceRoles(
+    WorkspaceMemberRole.OWNER,
+    WorkspaceMemberRole.ADMIN,
+    WorkspaceMemberRole.EDITOR,
+  )
   @ApiOperation({ summary: 'Listar contas a pagar' })
   @ApiQuery({
     name: 'supplierId',
@@ -97,7 +105,11 @@ export class AccountsPayableController {
   }
 
   @Get(':id')
-  @Roles(Role.ADMIN, Role.MANAGER, Role.OPERATOR)
+  @WorkspaceRoles(
+    WorkspaceMemberRole.OWNER,
+    WorkspaceMemberRole.ADMIN,
+    WorkspaceMemberRole.EDITOR,
+  )
   @ApiOperation({ summary: 'Detalhe da conta a pagar' })
   @ApiResponse({ status: 200, type: AccountPayableResponseDto })
   @ApiResponse({ status: 404, description: 'Conta a pagar nao encontrada' })
@@ -106,7 +118,7 @@ export class AccountsPayableController {
   }
 
   @Patch(':id')
-  @Roles(Role.ADMIN, Role.MANAGER)
+  @WorkspaceRoles(WorkspaceMemberRole.OWNER, WorkspaceMemberRole.ADMIN)
   @ApiOperation({ summary: 'Atualizar conta a pagar' })
   @ApiResponse({ status: 200, type: AccountPayableResponseDto })
   @ApiResponse({ status: 404, description: 'Conta a pagar nao encontrada' })
@@ -115,7 +127,11 @@ export class AccountsPayableController {
   }
 
   @Post(':id/payments')
-  @Roles(Role.ADMIN, Role.MANAGER, Role.OPERATOR)
+  @WorkspaceRoles(
+    WorkspaceMemberRole.OWNER,
+    WorkspaceMemberRole.ADMIN,
+    WorkspaceMemberRole.EDITOR,
+  )
   @RequireIdempotencyKey()
   @UseGuards(IdempotencyGuard)
   @UseInterceptors(IdempotencyInterceptor)
@@ -128,7 +144,7 @@ export class AccountsPayableController {
   }
 
   @Delete(':id')
-  @Roles(Role.ADMIN)
+  @WorkspaceRoles(WorkspaceMemberRole.OWNER, WorkspaceMemberRole.ADMIN)
   @HttpCode(HttpStatus.NO_CONTENT)
   @ApiOperation({ summary: 'Remover conta a pagar (soft delete)' })
   @ApiResponse({ status: 204 })

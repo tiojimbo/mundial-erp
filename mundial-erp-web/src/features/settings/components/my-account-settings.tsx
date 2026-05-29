@@ -1,8 +1,9 @@
 'use client';
 
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
+import { useTheme } from 'next-themes';
 import {
   RiUserLine,
   RiMailLine,
@@ -16,6 +17,11 @@ import * as Button from '@/components/ui/button';
 import { Root as Switch } from '@/components/ui/switch';
 import { useAuth } from '@/providers/auth-provider';
 import { useNotification } from '@/hooks/use-notification';
+import {
+  useThemeColorStore,
+  applyThemeColor,
+  type ThemeColorKey,
+} from '@/stores/theme-color.store';
 import { useUpdateProfile } from '../hooks/use-account';
 import { accountSchema, type AccountFormData } from '../schemas/account.schema';
 import { SettingsSection } from './settings-section';
@@ -23,10 +29,37 @@ import { AvatarUpload } from './avatar-upload';
 import { ThemeColorPicker } from './theme-color-picker';
 import { AppearancePicker } from './appearance-picker';
 
+type Appearance = 'LIGHT' | 'DARK' | 'AUTO';
+
+function appearanceFromTheme(theme: string | undefined): Appearance {
+  if (theme === 'light') return 'LIGHT';
+  if (theme === 'dark') return 'DARK';
+  return 'AUTO';
+}
+
+function themeFromAppearance(appearance: Appearance): string {
+  if (appearance === 'LIGHT') return 'light';
+  if (appearance === 'DARK') return 'dark';
+  return 'system';
+}
+
 export function MyAccountSettings() {
   const { user } = useAuth();
   const { notification } = useNotification();
   const updateProfile = useUpdateProfile();
+  const { colorKey, setColorKey } = useThemeColorStore();
+  const { theme, setTheme } = useTheme();
+
+  useEffect(() => {
+    if (!user) return;
+    if (user.themeColor) {
+      setColorKey(user.themeColor as ThemeColorKey);
+      applyThemeColor(user.themeColor as ThemeColorKey);
+    }
+    if (user.appearance) setTheme(themeFromAppearance(user.appearance));
+    // hidrata uma vez por usuario
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [user?.id]);
 
   const [showCurrentPassword, setShowCurrentPassword] = useState(false);
   const [showNewPassword, setShowNewPassword] = useState(false);
@@ -51,9 +84,10 @@ export function MyAccountSettings() {
     updateProfile.mutate(
       {
         fullName: data.fullName,
-        email: data.email,
         currentPassword: data.currentPassword || undefined,
         password: data.password || undefined,
+        themeColor: colorKey,
+        appearance: appearanceFromTheme(theme),
       },
       {
         onSuccess: () => {

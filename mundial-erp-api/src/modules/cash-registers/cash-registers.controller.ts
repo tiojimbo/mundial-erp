@@ -16,13 +16,13 @@ import {
   ApiResponse,
   ApiTags,
 } from '@nestjs/swagger';
-import { Role } from '@prisma/client';
+import { WorkspaceMemberRole } from '@prisma/client';
 import { CashRegistersService } from './cash-registers.service';
 import { OpenCashRegisterDto } from './dto/open-cash-register.dto';
 import { CloseCashRegisterDto } from './dto/close-cash-register.dto';
 import { CashRegisterResponseDto } from './dto/cash-register-response.dto';
 import { PaginationDto } from '../../common/dtos/pagination.dto';
-import { CurrentUser, Roles } from '../auth/decorators';
+import { CurrentUser, WorkspaceRoles } from '../auth/decorators';
 import { WorkspaceId } from '../workspaces/decorators/workspace-id.decorator';
 
 @ApiTags('Cash Registers')
@@ -32,7 +32,11 @@ export class CashRegistersController {
   constructor(private readonly cashRegistersService: CashRegistersService) {}
 
   @Post('open')
-  @Roles(Role.ADMIN, Role.MANAGER, Role.OPERATOR)
+  @WorkspaceRoles(
+    WorkspaceMemberRole.OWNER,
+    WorkspaceMemberRole.ADMIN,
+    WorkspaceMemberRole.EDITOR,
+  )
   @ApiOperation({ summary: 'Abrir caixa' })
   @ApiResponse({ status: 201, type: CashRegisterResponseDto })
   @ApiResponse({
@@ -48,7 +52,11 @@ export class CashRegistersController {
   }
 
   @Get()
-  @Roles(Role.ADMIN, Role.MANAGER, Role.OPERATOR)
+  @WorkspaceRoles(
+    WorkspaceMemberRole.OWNER,
+    WorkspaceMemberRole.ADMIN,
+    WorkspaceMemberRole.EDITOR,
+  )
   @ApiOperation({ summary: 'Listar caixas' })
   @ApiQuery({ name: 'companyId', required: false })
   @ApiQuery({ name: 'isOpen', required: false, type: Boolean })
@@ -66,7 +74,11 @@ export class CashRegistersController {
   }
 
   @Get(':id')
-  @Roles(Role.ADMIN, Role.MANAGER, Role.OPERATOR)
+  @WorkspaceRoles(
+    WorkspaceMemberRole.OWNER,
+    WorkspaceMemberRole.ADMIN,
+    WorkspaceMemberRole.EDITOR,
+  )
   @ApiOperation({ summary: 'Buscar caixa por ID' })
   @ApiResponse({ status: 200, type: CashRegisterResponseDto })
   @ApiResponse({ status: 404, description: 'Caixa não encontrado' })
@@ -75,7 +87,7 @@ export class CashRegistersController {
   }
 
   @Post(':id/close')
-  @Roles(Role.ADMIN, Role.MANAGER)
+  @WorkspaceRoles(WorkspaceMemberRole.OWNER, WorkspaceMemberRole.ADMIN)
   @ApiOperation({ summary: 'Fechar caixa' })
   @ApiResponse({ status: 201, type: CashRegisterResponseDto })
   @ApiResponse({ status: 404, description: 'Caixa não encontrado' })
@@ -90,7 +102,7 @@ export class CashRegistersController {
   }
 
   @Delete(':id')
-  @Roles(Role.ADMIN)
+  @WorkspaceRoles(WorkspaceMemberRole.OWNER, WorkspaceMemberRole.ADMIN)
   @HttpCode(HttpStatus.NO_CONTENT)
   @ApiOperation({ summary: 'Remover caixa (soft delete, somente ADMIN)' })
   @ApiResponse({ status: 204 })

@@ -1,7 +1,7 @@
 'use client';
 
-import { UsersTable } from '@/features/settings/components/users-table';
+import { WorkspacePeople } from '@/features/workspaces/components/workspace-people';
 
 export default function PessoasPage() {
-  return <UsersTable />;
+  return <WorkspacePeople />;
 }

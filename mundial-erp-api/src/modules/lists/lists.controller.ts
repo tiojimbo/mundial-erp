@@ -14,7 +14,7 @@ import {
   ApiResponse,
   ApiTags,
 } from '@nestjs/swagger';
-import { Role } from '@prisma/client';
+import { WorkspaceMemberRole } from '@prisma/client';
 import { ListsService } from './lists.service';
 import { CreateListDto } from './dto/create-list.dto';
 import { UpdateListDto } from './dto/update-list.dto';
@@ -23,7 +23,7 @@ import { AddListMemberDto } from './dto/add-list-member.dto';
 import { UpdateListMemberDto } from './dto/update-list-member.dto';
 import { ListResponseDto } from './dto/list-response.dto';
 import { ListStatusInheritBulkDto } from './dto/status-inherit-bulk.dto';
-import { CurrentUser, Roles } from '../auth/decorators';
+import { CurrentUser, WorkspaceRoles } from '../auth/decorators';
 import type { JwtPayload } from '../auth/decorators';
 import { WorkspaceId } from '../workspaces/decorators/workspace-id.decorator';
 import { SkipResponseTransform } from '../../common/decorators/skip-response-transform.decorator';
@@ -36,7 +36,7 @@ export class ListsController {
 
   @Post()
   @SkipResponseTransform()
-  @Roles(Role.ADMIN)
+  @WorkspaceRoles(WorkspaceMemberRole.OWNER, WorkspaceMemberRole.ADMIN)
   @ApiOperation({ summary: 'Criar list (somente ADMIN)' })
   @ApiResponse({ status: 201, type: ListResponseDto })
   @ApiResponse({ status: 409, description: 'List com este nome já existe' })
@@ -50,7 +50,6 @@ export class ListsController {
 
   @Get()
   @SkipResponseTransform()
-  @Roles(Role.ADMIN, Role.MANAGER, Role.OPERATOR, Role.VIEWER)
   @ApiOperation({ summary: 'Listar lists por folder ou space' })
   findAll(
     @WorkspaceId() workspaceId: string,
@@ -62,7 +61,6 @@ export class ListsController {
 
   @Get(':id/resources')
   @SkipResponseTransform()
-  @Roles(Role.ADMIN, Role.MANAGER, Role.OPERATOR, Role.VIEWER)
   @ApiOperation({ summary: 'Metadata de filters/sortOptions da list' })
   getResources(@WorkspaceId() workspaceId: string, @Param('id') id: string) {
     return this.listsService.getResources(workspaceId, id);
@@ -70,7 +68,6 @@ export class ListsController {
 
   @Get(':id/visibility')
   @SkipResponseTransform()
-  @Roles(Role.ADMIN, Role.MANAGER, Role.OPERATOR, Role.VIEWER)
   @ApiOperation({ summary: 'Visibility atual da list' })
   getVisibility(@WorkspaceId() workspaceId: string, @Param('id') id: string) {
     return this.listsService.getVisibility(workspaceId, id);
@@ -78,7 +75,7 @@ export class ListsController {
 
   @Put(':id/visibility')
   @SkipResponseTransform()
-  @Roles(Role.ADMIN)
+  @WorkspaceRoles(WorkspaceMemberRole.OWNER, WorkspaceMemberRole.ADMIN)
   @ApiOperation({ summary: 'Atualizar visibility da list' })
   updateVisibility(
     @WorkspaceId() workspaceId: string,
@@ -90,7 +87,6 @@ export class ListsController {
 
   @Get(':id/members')
   @SkipResponseTransform()
-  @Roles(Role.ADMIN, Role.MANAGER, Role.OPERATOR, Role.VIEWER)
   @ApiOperation({ summary: 'Listar membros da list' })
   listMembers(@WorkspaceId() workspaceId: string, @Param('id') id: string) {
     return this.listsService.listMembers(workspaceId, id);
@@ -98,11 +94,11 @@ export class ListsController {
 
   @Post(':id/members')
   @SkipResponseTransform()
-  @Roles(Role.ADMIN)
   @ApiOperation({ summary: 'Adicionar membro à list' })
   addMember(
     @WorkspaceId() workspaceId: string,
     @Param('id') id: string,
+    @CurrentUser() user: JwtPayload,
     @Body() dto: AddListMemberDto,
   ) {
     return this.listsService.addMember(
@@ -110,17 +106,18 @@ export class ListsController {
       id,
       dto.userId,
       dto.permission,
+      user.sub,
     );
   }
 
   @Put(':id/members/:userId')
   @SkipResponseTransform()
-  @Roles(Role.ADMIN)
   @ApiOperation({ summary: 'Atualizar permission de membro da list' })
   updateMember(
     @WorkspaceId() workspaceId: string,
     @Param('id') id: string,
     @Param('userId') userId: string,
+    @CurrentUser() user: JwtPayload,
     @Body() dto: UpdateListMemberDto,
   ) {
     return this.listsService.updateMember(
@@ -128,24 +125,24 @@ export class ListsController {
       id,
       userId,
       dto.permission,
+      user.sub,
     );
   }
 
   @Delete(':id/members/:userId')
   @SkipResponseTransform()
-  @Roles(Role.ADMIN)
   @ApiOperation({ summary: 'Remover membro da list' })
   removeMember(
     @WorkspaceId() workspaceId: string,
     @Param('id') id: string,
     @Param('userId') userId: string,
+    @CurrentUser() user: JwtPayload,
   ) {
-    return this.listsService.removeMember(workspaceId, id, userId);
+    return this.listsService.removeMember(workspaceId, id, userId, user.sub);
   }
 
   @Get(':id/statuses')
   @SkipResponseTransform()
-  @Roles(Role.ADMIN, Role.MANAGER, Role.OPERATOR, Role.VIEWER)
   @ApiOperation({
     summary: 'Listar statuses da list (vazio se inheritance != CUSTOM)',
   })
@@ -155,7 +152,7 @@ export class ListsController {
 
   @Put(':id/status')
   @SkipResponseTransform()
-  @Roles(Role.ADMIN, Role.MANAGER)
+  @WorkspaceRoles(WorkspaceMemberRole.OWNER, WorkspaceMemberRole.ADMIN)
   @ApiOperation({
     summary:
       'Atualizar statusInheritance + statuses da list (estilo Hoppe). Inheritance != CUSTOM soft-deleta statuses.',
@@ -175,7 +172,6 @@ export class ListsController {
 
   @Get(':id')
   @SkipResponseTransform()
-  @Roles(Role.ADMIN, Role.MANAGER, Role.OPERATOR, Role.VIEWER)
   @ApiOperation({ summary: 'Buscar list por ID' })
   @ApiResponse({ status: 200, type: ListResponseDto })
   @ApiResponse({ status: 404, description: 'List não encontrada' })
@@ -185,7 +181,7 @@ export class ListsController {
 
   @Put(':id')
   @SkipResponseTransform()
-  @Roles(Role.ADMIN)
+  @WorkspaceRoles(WorkspaceMemberRole.OWNER, WorkspaceMemberRole.ADMIN)
   @ApiOperation({ summary: 'Atualizar list (somente ADMIN)' })
   @ApiResponse({ status: 200, type: ListResponseDto })
   update(
@@ -198,7 +194,7 @@ export class ListsController {
 
   @Delete(':id')
   @SkipResponseTransform()
-  @Roles(Role.ADMIN)
+  @WorkspaceRoles(WorkspaceMemberRole.OWNER, WorkspaceMemberRole.ADMIN)
   @ApiOperation({ summary: 'Remover list (soft delete, somente ADMIN)' })
   @ApiResponse({ status: 200 })
   remove(@WorkspaceId() workspaceId: string, @Param('id') id: string) {

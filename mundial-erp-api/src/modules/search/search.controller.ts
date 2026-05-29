@@ -12,8 +12,8 @@ import { Queue } from 'bullmq';
 import { SearchService } from './search.service';
 import { SearchQueryDto } from './dto/search-query.dto';
 import { QUEUE_SEARCH_REINDEX } from '../queue/queue.constants';
-import { Roles } from '../auth/decorators';
-import { Role } from '@prisma/client';
+import { WorkspaceRoles } from '../auth/decorators';
+import { WorkspaceMemberRole } from '@prisma/client';
 import { WorkspaceId } from '../workspaces/decorators/workspace-id.decorator';
 
 @ApiTags('Search')
@@ -35,7 +35,7 @@ export class SearchController {
 
   @Post('reindex')
   @HttpCode(HttpStatus.ACCEPTED)
-  @Roles(Role.ADMIN)
+  @WorkspaceRoles(WorkspaceMemberRole.OWNER, WorkspaceMemberRole.ADMIN)
   @ApiOperation({
     summary: 'Reindexar todas as entidades no Elasticsearch (async via fila)',
   })

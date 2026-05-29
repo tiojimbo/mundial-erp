@@ -16,12 +16,12 @@ import {
   ApiResponse,
   ApiTags,
 } from '@nestjs/swagger';
-import { Role } from '@prisma/client';
+import { WorkspaceMemberRole } from '@prisma/client';
 import { PurchaseOrdersService } from './purchase-orders.service';
 import { CreatePurchaseOrderDto } from './dto/create-purchase-order.dto';
 import { PurchaseOrderResponseDto } from './dto/purchase-order-response.dto';
 import { PaginationDto } from '../../common/dtos/pagination.dto';
-import { Roles } from '../auth/decorators';
+import { WorkspaceRoles } from '../auth/decorators';
 
 @ApiTags('Purchase Orders')
 @ApiBearerAuth()
@@ -30,7 +30,7 @@ export class PurchaseOrdersController {
   constructor(private readonly ordersService: PurchaseOrdersService) {}
 
   @Post()
-  @Roles(Role.ADMIN, Role.MANAGER)
+  @WorkspaceRoles(WorkspaceMemberRole.OWNER, WorkspaceMemberRole.ADMIN)
   @HttpCode(HttpStatus.CREATED)
   @ApiOperation({ summary: 'Efetivar compra (cria AP automaticamente)' })
   @ApiResponse({ status: 201, type: PurchaseOrderResponseDto })
@@ -44,7 +44,11 @@ export class PurchaseOrdersController {
   }
 
   @Get()
-  @Roles(Role.ADMIN, Role.MANAGER, Role.OPERATOR)
+  @WorkspaceRoles(
+    WorkspaceMemberRole.OWNER,
+    WorkspaceMemberRole.ADMIN,
+    WorkspaceMemberRole.EDITOR,
+  )
   @ApiOperation({ summary: 'Listar pedidos de compra' })
   @ApiQuery({
     name: 'status',
@@ -75,7 +79,11 @@ export class PurchaseOrdersController {
   }
 
   @Get(':id')
-  @Roles(Role.ADMIN, Role.MANAGER, Role.OPERATOR)
+  @WorkspaceRoles(
+    WorkspaceMemberRole.OWNER,
+    WorkspaceMemberRole.ADMIN,
+    WorkspaceMemberRole.EDITOR,
+  )
   @ApiOperation({ summary: 'Detalhe do pedido de compra' })
   @ApiResponse({ status: 200, type: PurchaseOrderResponseDto })
   @ApiResponse({ status: 404, description: 'Pedido de compra não encontrado' })
@@ -84,7 +92,7 @@ export class PurchaseOrdersController {
   }
 
   @Patch(':id/confirm')
-  @Roles(Role.ADMIN, Role.MANAGER)
+  @WorkspaceRoles(WorkspaceMemberRole.OWNER, WorkspaceMemberRole.ADMIN)
   @ApiOperation({
     summary: 'Confirmar pedido de compra (fornecedor confirmou)',
   })
@@ -95,7 +103,11 @@ export class PurchaseOrdersController {
   }
 
   @Patch(':id/receive')
-  @Roles(Role.ADMIN, Role.MANAGER, Role.OPERATOR)
+  @WorkspaceRoles(
+    WorkspaceMemberRole.OWNER,
+    WorkspaceMemberRole.ADMIN,
+    WorkspaceMemberRole.EDITOR,
+  )
   @ApiOperation({ summary: 'Registrar recebimento do material' })
   @ApiResponse({ status: 200, type: PurchaseOrderResponseDto })
   @ApiResponse({ status: 400, description: 'Transição de status inválida' })
@@ -104,7 +116,7 @@ export class PurchaseOrdersController {
   }
 
   @Patch(':id/cancel')
-  @Roles(Role.ADMIN, Role.MANAGER)
+  @WorkspaceRoles(WorkspaceMemberRole.OWNER, WorkspaceMemberRole.ADMIN)
   @ApiOperation({ summary: 'Cancelar pedido de compra' })
   @ApiResponse({ status: 200, type: PurchaseOrderResponseDto })
   @ApiResponse({ status: 400, description: 'Transição de status inválida' })

@@ -301,7 +301,6 @@ export class KommoFixtureBuilder {
           email: `kommo-fixture-owner-${runSuffix}@test.local`,
           name: `Kommo Fixture Owner ${runSuffix}`,
           passwordHash: DEFAULT_PASSWORD_HASH,
-          role: 'ADMIN',
         },
         select: { id: true },
       });

@@ -10,6 +10,7 @@ import {
   ProcessType,
   StatusType,
   Visibility,
+  WorkspaceMemberRole,
 } from '@prisma/client';
 import { SpacesRepository } from './spaces.repository';
 import { CreateSpaceDto } from './dto/create-space.dto';
@@ -321,7 +322,7 @@ export class SpacesService {
         spaceId,
         userId: wm.userId,
         permission: MemberPermission.EDIT,
-        source: 'workspace' as const,
+        source: 'inherited' as const,
         inherited: true,
         user: { ...wm.user, avatar: null },
       }));
@@ -329,12 +330,44 @@ export class SpacesService {
     return [...directRows, ...inheritedRows];
   }
 
+  private async assertCanManageMembers(
+    workspaceId: string,
+    spaceId: string,
+    actorId: string,
+  ): Promise<void> {
+    const wsMember = await this.prisma.workspaceMember.findUnique({
+      where: { workspaceId_userId: { workspaceId, userId: actorId } },
+    });
+    if (
+      wsMember &&
+      (wsMember.role === WorkspaceMemberRole.OWNER ||
+        wsMember.role === WorkspaceMemberRole.ADMIN)
+    ) {
+      return;
+    }
+    const sm = await this.prisma.spaceMember.findUnique({
+      where: { spaceId_userId: { spaceId, userId: actorId } },
+    });
+    if (
+      sm &&
+      (sm.permission === MemberPermission.FULL_EDIT ||
+        sm.permission === MemberPermission.EDIT)
+    ) {
+      return;
+    }
+    throw new ForbiddenException(
+      'Sem permissão para gerenciar membros deste space',
+    );
+  }
+
   async addMember(
     workspaceId: string,
     spaceId: string,
     userId: string,
     permission: MemberPermission,
+    actorId: string,
   ) {
+    await this.assertCanManageMembers(workspaceId, spaceId, actorId);
     const space = await this.spacesRepository.findById(workspaceId, spaceId);
     if (!space) {
       throw new NotFoundException('Space não encontrado');
@@ -366,7 +399,9 @@ export class SpacesService {
     spaceId: string,
     userId: string,
     permission: MemberPermission,
+    actorId: string,
   ) {
+    await this.assertCanManageMembers(workspaceId, spaceId, actorId);
     const space = await this.spacesRepository.findById(workspaceId, spaceId);
     if (!space) {
       throw new NotFoundException('Space não encontrado');
@@ -384,7 +419,13 @@ export class SpacesService {
     return { spaceId, userId, permission, source: 'direct', inherited: false };
   }
 
-  async removeMember(workspaceId: string, spaceId: string, userId: string) {
+  async removeMember(
+    workspaceId: string,
+    spaceId: string,
+    userId: string,
+    actorId: string,
+  ) {
+    await this.assertCanManageMembers(workspaceId, spaceId, actorId);
     const space = await this.spacesRepository.findById(workspaceId, spaceId);
     if (!space) {
       throw new NotFoundException('Space não encontrado');

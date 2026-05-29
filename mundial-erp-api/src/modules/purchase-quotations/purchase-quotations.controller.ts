@@ -17,13 +17,13 @@ import {
   ApiResponse,
   ApiTags,
 } from '@nestjs/swagger';
-import { Role } from '@prisma/client';
+import { WorkspaceMemberRole } from '@prisma/client';
 import { PurchaseQuotationsService } from './purchase-quotations.service';
 import { CreatePurchaseQuotationDto } from './dto/create-purchase-quotation.dto';
 import { UpdatePurchaseQuotationDto } from './dto/update-purchase-quotation.dto';
 import { PurchaseQuotationResponseDto } from './dto/purchase-quotation-response.dto';
 import { PaginationDto } from '../../common/dtos/pagination.dto';
-import { Roles } from '../auth/decorators';
+import { WorkspaceRoles } from '../auth/decorators';
 
 @ApiTags('Purchase Quotations')
 @ApiBearerAuth()
@@ -32,7 +32,11 @@ export class PurchaseQuotationsController {
   constructor(private readonly quotationsService: PurchaseQuotationsService) {}
 
   @Post()
-  @Roles(Role.ADMIN, Role.MANAGER, Role.OPERATOR)
+  @WorkspaceRoles(
+    WorkspaceMemberRole.OWNER,
+    WorkspaceMemberRole.ADMIN,
+    WorkspaceMemberRole.EDITOR,
+  )
   @HttpCode(HttpStatus.CREATED)
   @ApiOperation({ summary: 'Criar solicitação de cotação' })
   @ApiResponse({ status: 201, type: PurchaseQuotationResponseDto })
@@ -41,7 +45,11 @@ export class PurchaseQuotationsController {
   }
 
   @Get()
-  @Roles(Role.ADMIN, Role.MANAGER, Role.OPERATOR)
+  @WorkspaceRoles(
+    WorkspaceMemberRole.OWNER,
+    WorkspaceMemberRole.ADMIN,
+    WorkspaceMemberRole.EDITOR,
+  )
   @ApiOperation({ summary: 'Listar cotações (filtro por status/fornecedor)' })
   @ApiQuery({
     name: 'status',
@@ -72,7 +80,11 @@ export class PurchaseQuotationsController {
   }
 
   @Get(':id')
-  @Roles(Role.ADMIN, Role.MANAGER, Role.OPERATOR)
+  @WorkspaceRoles(
+    WorkspaceMemberRole.OWNER,
+    WorkspaceMemberRole.ADMIN,
+    WorkspaceMemberRole.EDITOR,
+  )
   @ApiOperation({ summary: 'Detalhe da cotação com itens e propostas' })
   @ApiResponse({ status: 200, type: PurchaseQuotationResponseDto })
   @ApiResponse({ status: 404, description: 'Cotação não encontrada' })
@@ -81,7 +93,11 @@ export class PurchaseQuotationsController {
   }
 
   @Patch(':id')
-  @Roles(Role.ADMIN, Role.MANAGER, Role.OPERATOR)
+  @WorkspaceRoles(
+    WorkspaceMemberRole.OWNER,
+    WorkspaceMemberRole.ADMIN,
+    WorkspaceMemberRole.EDITOR,
+  )
   @ApiOperation({ summary: 'Atualizar cotação (registrar proposta recebida)' })
   @ApiResponse({ status: 200, type: PurchaseQuotationResponseDto })
   @ApiResponse({ status: 400, description: 'Transição de status inválida' })
@@ -91,7 +107,7 @@ export class PurchaseQuotationsController {
   }
 
   @Patch(':id/select')
-  @Roles(Role.ADMIN, Role.MANAGER)
+  @WorkspaceRoles(WorkspaceMemberRole.OWNER, WorkspaceMemberRole.ADMIN)
   @ApiOperation({ summary: 'Selecionar cotação vencedora' })
   @ApiResponse({ status: 200, type: PurchaseQuotationResponseDto })
   @ApiResponse({
@@ -104,7 +120,7 @@ export class PurchaseQuotationsController {
   }
 
   @Patch(':id/reject')
-  @Roles(Role.ADMIN, Role.MANAGER)
+  @WorkspaceRoles(WorkspaceMemberRole.OWNER, WorkspaceMemberRole.ADMIN)
   @ApiOperation({ summary: 'Rejeitar cotação' })
   @ApiResponse({ status: 200, type: PurchaseQuotationResponseDto })
   @ApiResponse({
@@ -117,7 +133,7 @@ export class PurchaseQuotationsController {
   }
 
   @Delete(':id')
-  @Roles(Role.ADMIN)
+  @WorkspaceRoles(WorkspaceMemberRole.OWNER, WorkspaceMemberRole.ADMIN)
   @HttpCode(HttpStatus.NO_CONTENT)
   @ApiOperation({ summary: 'Remover cotação (somente DRAFT, somente ADMIN)' })
   @ApiResponse({ status: 204 })

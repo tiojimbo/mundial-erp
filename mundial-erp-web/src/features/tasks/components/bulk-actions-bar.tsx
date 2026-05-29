@@ -25,6 +25,7 @@ import {
 } from '../hooks/use-bulk-tasks';
 import { useUsers } from '@/features/settings/hooks/use-users';
 import { useTags } from '../hooks/use-tags';
+import { MoveTaskDialog } from './move-task/move-task-dialog';
 import type { TaskPriority } from '../types/task.types';
 
 const iconBtn =
@@ -53,6 +54,7 @@ export function BulkActionsBar() {
   const selectedIds = useTasksSelectionStore((s) => s.selectedIds);
   const clear = useTasksSelectionStore((s) => s.clear);
   const [confirmDelete, setConfirmDelete] = useState(false);
+  const [moveOpen, setMoveOpen] = useState(false);
   const count = selectedIds.length;
 
   const bulkUpdate = useBulkUpdateTasks();
@@ -281,8 +283,7 @@ export function BulkActionsBar() {
           type='button'
           className={iconBtn}
           aria-label='Mover tarefas'
-          disabled
-          title='Em breve'
+          onClick={() => setMoveOpen(true)}
         >
           <RiDragMoveLine className='size-3.5' />
           Mover
@@ -339,6 +340,13 @@ export function BulkActionsBar() {
           </Popover.Content>
         </Popover.Root>
       </div>
+
+      <MoveTaskDialog
+        open={moveOpen}
+        onOpenChange={setMoveOpen}
+        taskIds={selectedIds}
+        onMoved={clear}
+      />
 
       {/* Modal de confirmacao — UI alinhada com o modal "Criar espaco":
           overlay simples bg-black/50 (sem blur/animacao), rounded-lg,

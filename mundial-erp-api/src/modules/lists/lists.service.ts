@@ -1,9 +1,16 @@
 import {
   BadRequestException,
+  ConflictException,
+  ForbiddenException,
   Injectable,
   NotFoundException,
 } from '@nestjs/common';
-import { MemberPermission, Prisma, Visibility } from '@prisma/client';
+import {
+  MemberPermission,
+  Prisma,
+  Visibility,
+  WorkspaceMemberRole,
+} from '@prisma/client';
 import { ListsRepository } from './lists.repository';
 import { CreateListDto } from './dto/create-list.dto';
 import { UpdateListDto } from './dto/update-list.dto';
@@ -247,7 +254,7 @@ export class ListsService {
           listId,
           userId: fm.userId,
           permission: fm.permission,
-          source: 'folder' as const,
+          source: 'inherited' as const,
           inherited: true,
           user: { ...fm.user, avatar: null },
         }));
@@ -265,7 +272,7 @@ export class ListsService {
           listId,
           userId: sm.userId,
           permission: sm.permission,
-          source: 'space' as const,
+          source: 'inherited' as const,
           inherited: true,
           user: { ...sm.user, avatar: null },
         }));
@@ -275,12 +282,84 @@ export class ListsService {
     return directRows;
   }
 
+  private async assertCanManageMembers(
+    workspaceId: string,
+    listId: string,
+    actorId: string,
+  ): Promise<void> {
+    const wsMember = await this.prisma.workspaceMember.findUnique({
+      where: { workspaceId_userId: { workspaceId, userId: actorId } },
+    });
+    if (
+      wsMember &&
+      (wsMember.role === WorkspaceMemberRole.OWNER ||
+        wsMember.role === WorkspaceMemberRole.ADMIN)
+    ) {
+      return;
+    }
+    const lm = await this.prisma.listMember.findUnique({
+      where: { listId_userId: { listId, userId: actorId } },
+    });
+    if (
+      lm &&
+      (lm.permission === MemberPermission.FULL_EDIT ||
+        lm.permission === MemberPermission.EDIT)
+    ) {
+      return;
+    }
+    const list = await this.prisma.list.findFirst({
+      where: {
+        id: listId,
+        deletedAt: null,
+        OR: [
+          { space: { workspaceId } },
+          { folder: { space: { workspaceId } } },
+        ],
+      },
+      select: { visibility: true, folderId: true, spaceId: true },
+    });
+    if (list && list.visibility === Visibility.PUBLIC) {
+      if (list.folderId) {
+        const fm = await this.prisma.folderMember.findUnique({
+          where: {
+            folderId_userId: { folderId: list.folderId, userId: actorId },
+          },
+        });
+        if (
+          fm &&
+          (fm.permission === MemberPermission.FULL_EDIT ||
+            fm.permission === MemberPermission.EDIT)
+        ) {
+          return;
+        }
+      } else if (list.spaceId) {
+        const sm = await this.prisma.spaceMember.findUnique({
+          where: {
+            spaceId_userId: { spaceId: list.spaceId, userId: actorId },
+          },
+        });
+        if (
+          sm &&
+          (sm.permission === MemberPermission.FULL_EDIT ||
+            sm.permission === MemberPermission.EDIT)
+        ) {
+          return;
+        }
+      }
+    }
+    throw new ForbiddenException(
+      'Sem permissão para gerenciar membros desta list',
+    );
+  }
+
   async addMember(
     workspaceId: string,
     listId: string,
     userId: string,
     permission: MemberPermission,
+    actorId: string,
   ) {
+    await this.assertCanManageMembers(workspaceId, listId, actorId);
     const list = await this.listsRepository.findById(workspaceId, listId);
     if (!list) {
       throw new NotFoundException('List não encontrada');
@@ -300,7 +379,7 @@ export class ListsService {
         error instanceof Prisma.PrismaClientKnownRequestError &&
         error.code === 'P2002'
       ) {
-        throw new BadRequestException('User já é membro da list');
+        throw new ConflictException('User já é membro da list');
       }
       throw error;
     }
@@ -312,7 +391,9 @@ export class ListsService {
     listId: string,
     userId: string,
     permission: MemberPermission,
+    actorId: string,
   ) {
+    await this.assertCanManageMembers(workspaceId, listId, actorId);
     const list = await this.listsRepository.findById(workspaceId, listId);
     if (!list) {
       throw new NotFoundException('List não encontrada');
@@ -330,7 +411,13 @@ export class ListsService {
     return { listId, userId, permission, source: 'direct', inherited: false };
   }
 
-  async removeMember(workspaceId: string, listId: string, userId: string) {
+  async removeMember(
+    workspaceId: string,
+    listId: string,
+    userId: string,
+    actorId: string,
+  ) {
+    await this.assertCanManageMembers(workspaceId, listId, actorId);
     const list = await this.listsRepository.findById(workspaceId, listId);
     if (!list) {
       throw new NotFoundException('List não encontrada');

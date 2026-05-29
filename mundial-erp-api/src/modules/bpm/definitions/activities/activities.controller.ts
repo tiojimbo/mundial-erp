@@ -16,13 +16,13 @@ import {
   ApiResponse,
   ApiTags,
 } from '@nestjs/swagger';
-import { Role } from '@prisma/client';
+import { WorkspaceMemberRole } from '@prisma/client';
 import { ActivitiesService } from './activities.service';
 import { CreateActivityDto } from './dto/create-activity.dto';
 import { UpdateActivityDto } from './dto/update-activity.dto';
 import { ActivityResponseDto } from './dto/activity-response.dto';
 import { PaginationDto } from '../../../../common/dtos/pagination.dto';
-import { Roles } from '../../../auth/decorators';
+import { WorkspaceRoles } from '../../../auth/decorators';
 
 @ApiTags('BPM - Activities')
 @ApiBearerAuth()
@@ -31,7 +31,7 @@ export class ActivitiesController {
   constructor(private readonly activitiesService: ActivitiesService) {}
 
   @Post()
-  @Roles(Role.ADMIN)
+  @WorkspaceRoles(WorkspaceMemberRole.OWNER, WorkspaceMemberRole.ADMIN)
   @ApiOperation({ summary: 'Criar atividade (somente ADMIN)' })
   @ApiResponse({ status: 201, type: ActivityResponseDto })
   @ApiResponse({
@@ -43,14 +43,14 @@ export class ActivitiesController {
   }
 
   @Get()
-  @Roles(Role.ADMIN, Role.MANAGER)
+  @WorkspaceRoles(WorkspaceMemberRole.OWNER, WorkspaceMemberRole.ADMIN)
   @ApiOperation({ summary: 'Listar atividades' })
   findAll(@Query() pagination: PaginationDto) {
     return this.activitiesService.findAll(pagination);
   }
 
   @Get(':id')
-  @Roles(Role.ADMIN, Role.MANAGER)
+  @WorkspaceRoles(WorkspaceMemberRole.OWNER, WorkspaceMemberRole.ADMIN)
   @ApiOperation({ summary: 'Buscar atividade por ID (inclui tasks)' })
   @ApiResponse({ status: 200, type: ActivityResponseDto })
   @ApiResponse({ status: 404, description: 'Atividade não encontrada' })
@@ -59,7 +59,7 @@ export class ActivitiesController {
   }
 
   @Patch(':id')
-  @Roles(Role.ADMIN)
+  @WorkspaceRoles(WorkspaceMemberRole.OWNER, WorkspaceMemberRole.ADMIN)
   @ApiOperation({ summary: 'Atualizar atividade (somente ADMIN)' })
   @ApiResponse({ status: 200, type: ActivityResponseDto })
   update(@Param('id') id: string, @Body() dto: UpdateActivityDto) {
@@ -67,7 +67,7 @@ export class ActivitiesController {
   }
 
   @Delete(':id')
-  @Roles(Role.ADMIN)
+  @WorkspaceRoles(WorkspaceMemberRole.OWNER, WorkspaceMemberRole.ADMIN)
   @HttpCode(HttpStatus.NO_CONTENT)
   @ApiOperation({ summary: 'Remover atividade (soft delete, somente ADMIN)' })
   @ApiResponse({ status: 204 })

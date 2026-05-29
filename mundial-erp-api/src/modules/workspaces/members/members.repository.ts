@@ -9,6 +9,7 @@ export interface FindMembersParams {
   skip?: number;
   take?: number;
   role?: WorkspaceMemberRole;
+  showPending?: boolean;
 }
 
 @Injectable()
@@ -16,11 +17,12 @@ export class MembersRepository {
   constructor(private readonly prisma: PrismaService) {}
 
   async findMany(params: FindMembersParams) {
-    const { workspaceId, skip = 0, take = 20, role } = params;
+    const { workspaceId, skip = 0, take = 20, role, showPending } = params;
 
     const where: Prisma.WorkspaceMemberWhereInput = {
       workspaceId,
       ...(role ? { role } : {}),
+      ...(showPending ? {} : { accepted: true }),
     };
 
     const [items, total] = await Promise.all([
@@ -30,7 +32,9 @@ export class MembersRepository {
         take,
         orderBy: { joinedAt: 'asc' },
         include: {
-          user: { select: { id: true, name: true, email: true } },
+          user: {
+            select: { id: true, name: true, email: true, avatar: true },
+          },
         },
       }),
       this.prisma.workspaceMember.count({ where }),
@@ -60,12 +64,31 @@ export class MembersRepository {
     workspaceId: string;
     userId: string;
     role: WorkspaceMemberRole;
+    accepted?: boolean;
   }) {
     return this.prisma.workspaceMember.create({
       data,
       include: {
         user: { select: { id: true, name: true, email: true } },
       },
+    });
+  }
+
+  async findUserByEmail(email: string) {
+    return this.prisma.user.findUnique({
+      where: { email },
+      select: { id: true, name: true, email: true },
+    });
+  }
+
+  async createUser(data: {
+    email: string;
+    name: string;
+    passwordHash: string;
+  }) {
+    return this.prisma.user.create({
+      data,
+      select: { id: true, name: true, email: true },
     });
   }
 

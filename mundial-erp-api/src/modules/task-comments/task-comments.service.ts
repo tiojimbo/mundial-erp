@@ -8,7 +8,7 @@ import {
   Optional,
   forwardRef,
 } from '@nestjs/common';
-import { Prisma, Role } from '@prisma/client';
+import { Prisma, WorkspaceMemberRole } from '@prisma/client';
 import { PrismaService } from '../../database/prisma.service';
 import { TaskCommentsRepository } from './task-comments.repository';
 import { CreateCommentDto } from './dtos/create-comment.dto';
@@ -26,10 +26,11 @@ import { TaskEventsPublisher } from '../automations/events/task-events.publisher
 const OUTBOX_COMMENT_ADDED = 'COMMENT_ADDED' as const;
 const LOG_CONTENT_MAX_CHARS = 200;
 const MENTION_REGEX = /@([\w.-]+)/g;
-const ROLES_MAY_MODERATE: ReadonlySet<Role> = new Set<Role>([
-  Role.ADMIN,
-  Role.MANAGER,
-]);
+const ROLES_MAY_MODERATE: ReadonlySet<WorkspaceMemberRole> =
+  new Set<WorkspaceMemberRole>([
+    WorkspaceMemberRole.OWNER,
+    WorkspaceMemberRole.ADMIN,
+  ]);
 
 function truncate(value: string, max: number): string {
   if (value.length <= max) return value;
@@ -218,7 +219,7 @@ export class TaskCommentsService {
     workspaceId: string,
     id: string,
     dto: UpdateCommentDto,
-    actor: { userId: string; role: Role },
+    actor: { userId: string; role: WorkspaceMemberRole },
   ): Promise<CommentResponseDto> {
     const existing = await this.repository.findById(workspaceId, id);
     if (!existing) {
@@ -262,7 +263,7 @@ export class TaskCommentsService {
   async remove(
     workspaceId: string,
     id: string,
-    actor: { userId: string; role: Role },
+    actor: { userId: string; role: WorkspaceMemberRole },
   ): Promise<void> {
     const existing = await this.repository.findById(workspaceId, id);
     if (!existing) {

@@ -15,7 +15,7 @@ import {
   ApiResponse,
   ApiTags,
 } from '@nestjs/swagger';
-import { Role } from '@prisma/client';
+import { WorkspaceMemberRole } from '@prisma/client';
 import { Throttle } from '@nestjs/throttler';
 import { TaskAttachmentsService } from './task-attachments.service';
 import { SignedUrlRequestDto } from './dtos/signed-url-request.dto';
@@ -28,7 +28,7 @@ import {
   DownloadUrlResponseDto,
   SignedUrlResponseDto,
 } from './dtos/attachment-response.dto';
-import { CurrentUser, Roles } from '../auth/decorators';
+import { CurrentUser, WorkspaceRoles } from '../auth/decorators';
 import type { JwtPayload } from '../auth/decorators';
 import { WorkspaceId } from '../workspaces/decorators/workspace-id.decorator';
 
@@ -39,7 +39,11 @@ export class TaskAttachmentsController {
   constructor(private readonly service: TaskAttachmentsService) {}
 
   @Post('attachments/presigned-url')
-  @Roles(Role.ADMIN, Role.MANAGER, Role.OPERATOR)
+  @WorkspaceRoles(
+    WorkspaceMemberRole.OWNER,
+    WorkspaceMemberRole.ADMIN,
+    WorkspaceMemberRole.EDITOR,
+  )
   @Throttle({ default: { limit: 30, ttl: 60_000 } })
   @ApiOperation({
     summary: 'Obter presigned URL PUT para upload (TTL 300s).',
@@ -55,7 +59,11 @@ export class TaskAttachmentsController {
   @Post('attachments/signed-url')
   @Header('Deprecation', 'true')
   @Header('Link', '</attachments/presigned-url>; rel="successor-version"')
-  @Roles(Role.ADMIN, Role.MANAGER, Role.OPERATOR)
+  @WorkspaceRoles(
+    WorkspaceMemberRole.OWNER,
+    WorkspaceMemberRole.ADMIN,
+    WorkspaceMemberRole.EDITOR,
+  )
   @Throttle({ default: { limit: 30, ttl: 60_000 } })
   @ApiOperation({
     summary: 'DEPRECATED. Alias de POST /attachments/presigned-url.',
@@ -70,7 +78,11 @@ export class TaskAttachmentsController {
   }
 
   @Post('attachments/tasks/:taskId')
-  @Roles(Role.ADMIN, Role.MANAGER, Role.OPERATOR)
+  @WorkspaceRoles(
+    WorkspaceMemberRole.OWNER,
+    WorkspaceMemberRole.ADMIN,
+    WorkspaceMemberRole.EDITOR,
+  )
   @Throttle({ default: { limit: 30, ttl: 60_000 } })
   @ApiOperation({
     summary:
@@ -89,7 +101,11 @@ export class TaskAttachmentsController {
   @Post('attachments')
   @Header('Deprecation', 'true')
   @Header('Link', '</attachments/tasks/{taskId}>; rel="successor-version"')
-  @Roles(Role.ADMIN, Role.MANAGER, Role.OPERATOR)
+  @WorkspaceRoles(
+    WorkspaceMemberRole.OWNER,
+    WorkspaceMemberRole.ADMIN,
+    WorkspaceMemberRole.EDITOR,
+  )
   @Throttle({ default: { limit: 30, ttl: 60_000 } })
   @ApiOperation({
     summary:
@@ -106,7 +122,6 @@ export class TaskAttachmentsController {
   }
 
   @Get('tasks/:taskId/documents')
-  @Roles(Role.ADMIN, Role.MANAGER, Role.OPERATOR, Role.VIEWER)
   @ApiOperation({ summary: 'Listar anexos da tarefa (paridade Hoppe)' })
   findByTask(
     @WorkspaceId() workspaceId: string,
@@ -118,7 +133,6 @@ export class TaskAttachmentsController {
   @Get('attachments/tasks/:taskId')
   @Header('Deprecation', 'true')
   @Header('Link', '</tasks/{taskId}/documents>; rel="successor-version"')
-  @Roles(Role.ADMIN, Role.MANAGER, Role.OPERATOR, Role.VIEWER)
   @ApiOperation({
     summary: 'DEPRECATED. Use GET /tasks/:taskId/documents (paridade Hoppe).',
     deprecated: true,
@@ -133,7 +147,6 @@ export class TaskAttachmentsController {
   @Get('attachments/task/:taskId')
   @Header('Deprecation', 'true')
   @Header('Link', '</tasks/{taskId}/documents>; rel="successor-version"')
-  @Roles(Role.ADMIN, Role.MANAGER, Role.OPERATOR, Role.VIEWER)
   @ApiOperation({
     summary: 'DEPRECATED. Use GET /tasks/:taskId/documents (paridade Hoppe).',
     deprecated: true,
@@ -146,7 +159,6 @@ export class TaskAttachmentsController {
   }
 
   @Get('attachments/:id/download-url')
-  @Roles(Role.ADMIN, Role.MANAGER, Role.OPERATOR, Role.VIEWER)
   @Throttle({ default: { limit: 60, ttl: 60_000 } })
   @ApiOperation({
     summary: 'Signed GET URL (TTL 300s) — exige scanStatus=CLEAN',
@@ -161,7 +173,7 @@ export class TaskAttachmentsController {
   }
 
   @Delete('attachments/:id')
-  @Roles(Role.ADMIN, Role.MANAGER)
+  @WorkspaceRoles(WorkspaceMemberRole.OWNER, WorkspaceMemberRole.ADMIN)
   @HttpCode(HttpStatus.NO_CONTENT)
   @ApiOperation({ summary: 'Remover anexo (Manager+) — soft delete + S3' })
   @ApiResponse({ status: 204 })
@@ -172,7 +184,7 @@ export class TaskAttachmentsController {
   ): Promise<void> {
     return this.service.remove(workspaceId, id, {
       userId: user.sub,
-      role: user.role as Role,
+      role: user.workspaceRole as WorkspaceMemberRole,
     });
   }
 }

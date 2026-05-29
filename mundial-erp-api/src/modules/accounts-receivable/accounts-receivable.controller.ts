@@ -20,14 +20,14 @@ import {
   ApiResponse,
   ApiTags,
 } from '@nestjs/swagger';
-import { PaymentStatus, Role } from '@prisma/client';
+import { PaymentStatus, WorkspaceMemberRole } from '@prisma/client';
 import { AccountsReceivableService } from './accounts-receivable.service';
 import { CreateAccountReceivableDto } from './dto/create-account-receivable.dto';
 import { UpdateAccountReceivableDto } from './dto/update-account-receivable.dto';
 import { RegisterPaymentDto } from './dto/register-payment.dto';
 import { AccountReceivableResponseDto } from './dto/account-receivable-response.dto';
 import { PaginationDto } from '../../common/dtos/pagination.dto';
-import { Roles } from '../auth/decorators';
+import { WorkspaceRoles } from '../auth/decorators';
 import {
   RequireIdempotencyKey,
   IdempotencyGuard,
@@ -41,7 +41,11 @@ export class AccountsReceivableController {
   constructor(private readonly service: AccountsReceivableService) {}
 
   @Post()
-  @Roles(Role.ADMIN, Role.MANAGER, Role.OPERATOR)
+  @WorkspaceRoles(
+    WorkspaceMemberRole.OWNER,
+    WorkspaceMemberRole.ADMIN,
+    WorkspaceMemberRole.EDITOR,
+  )
   @RequireIdempotencyKey()
   @UseGuards(IdempotencyGuard)
   @UseInterceptors(IdempotencyInterceptor)
@@ -57,7 +61,11 @@ export class AccountsReceivableController {
   }
 
   @Get()
-  @Roles(Role.ADMIN, Role.MANAGER, Role.OPERATOR)
+  @WorkspaceRoles(
+    WorkspaceMemberRole.OWNER,
+    WorkspaceMemberRole.ADMIN,
+    WorkspaceMemberRole.EDITOR,
+  )
   @ApiOperation({
     summary: 'Listar contas a receber (filtro por cliente, status, vencidas)',
   })
@@ -97,7 +105,11 @@ export class AccountsReceivableController {
   }
 
   @Get(':id')
-  @Roles(Role.ADMIN, Role.MANAGER, Role.OPERATOR)
+  @WorkspaceRoles(
+    WorkspaceMemberRole.OWNER,
+    WorkspaceMemberRole.ADMIN,
+    WorkspaceMemberRole.EDITOR,
+  )
   @ApiOperation({ summary: 'Buscar conta a receber por ID' })
   @ApiResponse({ status: 200, type: AccountReceivableResponseDto })
   @ApiResponse({ status: 404, description: 'Conta a receber não encontrada' })
@@ -106,7 +118,7 @@ export class AccountsReceivableController {
   }
 
   @Patch(':id')
-  @Roles(Role.ADMIN, Role.MANAGER)
+  @WorkspaceRoles(WorkspaceMemberRole.OWNER, WorkspaceMemberRole.ADMIN)
   @ApiOperation({ summary: 'Atualizar conta a receber' })
   @ApiResponse({ status: 200, type: AccountReceivableResponseDto })
   @ApiResponse({ status: 404, description: 'Conta a receber não encontrada' })
@@ -115,7 +127,11 @@ export class AccountsReceivableController {
   }
 
   @Post(':id/payments')
-  @Roles(Role.ADMIN, Role.MANAGER, Role.OPERATOR)
+  @WorkspaceRoles(
+    WorkspaceMemberRole.OWNER,
+    WorkspaceMemberRole.ADMIN,
+    WorkspaceMemberRole.EDITOR,
+  )
   @RequireIdempotencyKey()
   @UseGuards(IdempotencyGuard)
   @UseInterceptors(IdempotencyInterceptor)
@@ -133,7 +149,7 @@ export class AccountsReceivableController {
   }
 
   @Delete(':id')
-  @Roles(Role.ADMIN)
+  @WorkspaceRoles(WorkspaceMemberRole.OWNER, WorkspaceMemberRole.ADMIN)
   @HttpCode(HttpStatus.NO_CONTENT)
   @ApiOperation({
     summary: 'Remover conta a receber (soft delete, somente ADMIN)',

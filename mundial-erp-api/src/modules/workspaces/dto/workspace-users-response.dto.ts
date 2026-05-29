@@ -11,6 +11,12 @@ export class WorkspaceUserDto {
   @ApiPropertyOptional()
   email!: string | null;
 
+  @ApiPropertyOptional()
+  avatar!: string | null;
+
+  @ApiProperty()
+  accepted!: boolean;
+
   @ApiProperty({ enum: WorkspaceMemberRole })
   permission!: WorkspaceMemberRole;
 

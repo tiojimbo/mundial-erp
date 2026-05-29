@@ -39,45 +39,20 @@ export type UpdateCompanyPayload = {
   description?: string;
 };
 
-export type UserRole = 'ADMIN' | 'MANAGER' | 'OPERATOR' | 'VIEWER';
-/** @deprecated Departments are now dynamic. Kept for backward compat in user/auth types. */
-export type Department = string;
-
 export type User = {
   id: string;
   name: string;
   email: string;
-  role: UserRole;
-  department: Department;
   avatarUrl: string | null;
   isActive: boolean;
   createdAt: string;
   updatedAt: string;
 };
 
-export type CreateUserPayload = {
-  name: string;
-  email: string;
-  password: string;
-  role: UserRole;
-  department: Department;
-};
-
-export type UpdateUserPayload = {
-  name?: string;
-  email?: string;
-  password?: string;
-  role?: UserRole;
-  department?: Department;
-  isActive?: boolean;
-};
-
 export type UserFilters = {
   page?: number;
   limit?: number;
   search?: string;
-  role?: UserRole;
-  department?: Department;
   isActive?: boolean;
   sortBy?: string;
   sortOrder?: 'asc' | 'desc';
@@ -255,9 +230,11 @@ export type UpdateActivityPayload = {
 
 export type UpdateAccountPayload = {
   fullName?: string;
-  email?: string;
   currentPassword?: string;
   password?: string;
+  avatar?: string;
+  themeColor?: string;
+  appearance?: 'LIGHT' | 'DARK' | 'AUTO';
 };
 
 export type UserPreferences = {
@@ -265,20 +242,4 @@ export type UserPreferences = {
   themeMode: 'light' | 'dark' | 'system';
   twoFactorSms: boolean;
   twoFactorTotp: boolean;
-};
-
-export const USER_ROLE_LABELS: Record<UserRole, string> = {
-  ADMIN: 'Administrador',
-  MANAGER: 'Gerente',
-  OPERATOR: 'Operador',
-  VIEWER: 'Visualizador',
-};
-
-/** @deprecated Departments are now dynamic. Kept for backward compat. */
-export const DEPARTMENT_LABELS: Record<string, string> = {
-  COMERCIAL: 'Comercial',
-  COMPRAS: 'Compras',
-  FINANCEIRO: 'Financeiro',
-  PRODUCAO: 'Produção',
-  ADMINISTRACAO: 'Administração',
 };

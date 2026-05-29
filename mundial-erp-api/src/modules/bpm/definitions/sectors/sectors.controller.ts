@@ -16,13 +16,13 @@ import {
   ApiResponse,
   ApiTags,
 } from '@nestjs/swagger';
-import { Role } from '@prisma/client';
+import { WorkspaceMemberRole } from '@prisma/client';
 import { SectorsService } from './sectors.service';
 import { CreateSectorDto } from './dto/create-sector.dto';
 import { UpdateSectorDto } from './dto/update-sector.dto';
 import { SectorResponseDto } from './dto/sector-response.dto';
 import { PaginationDto } from '../../../../common/dtos/pagination.dto';
-import { Roles } from '../../../auth/decorators';
+import { WorkspaceRoles } from '../../../auth/decorators';
 import { WorkspaceId } from '../../../workspaces/decorators/workspace-id.decorator';
 
 @ApiTags('BPM - Sectors')
@@ -32,7 +32,7 @@ export class SectorsController {
   constructor(private readonly sectorsService: SectorsService) {}
 
   @Post()
-  @Roles(Role.ADMIN)
+  @WorkspaceRoles(WorkspaceMemberRole.OWNER, WorkspaceMemberRole.ADMIN)
   @ApiOperation({ summary: 'Criar setor (somente ADMIN)' })
   @ApiResponse({ status: 201, type: SectorResponseDto })
   @ApiResponse({ status: 409, description: 'Setor com este nome já existe' })
@@ -41,7 +41,7 @@ export class SectorsController {
   }
 
   @Get()
-  @Roles(Role.ADMIN, Role.MANAGER)
+  @WorkspaceRoles(WorkspaceMemberRole.OWNER, WorkspaceMemberRole.ADMIN)
   @ApiOperation({ summary: 'Listar setores' })
   findAll(
     @WorkspaceId() workspaceId: string,
@@ -51,7 +51,7 @@ export class SectorsController {
   }
 
   @Get(':id')
-  @Roles(Role.ADMIN, Role.MANAGER)
+  @WorkspaceRoles(WorkspaceMemberRole.OWNER, WorkspaceMemberRole.ADMIN)
   @ApiOperation({ summary: 'Buscar setor por ID' })
   @ApiResponse({ status: 200, type: SectorResponseDto })
   @ApiResponse({ status: 404, description: 'Setor não encontrado' })
@@ -60,7 +60,7 @@ export class SectorsController {
   }
 
   @Patch(':id')
-  @Roles(Role.ADMIN)
+  @WorkspaceRoles(WorkspaceMemberRole.OWNER, WorkspaceMemberRole.ADMIN)
   @ApiOperation({ summary: 'Atualizar setor (somente ADMIN)' })
   @ApiResponse({ status: 200, type: SectorResponseDto })
   update(
@@ -72,7 +72,7 @@ export class SectorsController {
   }
 
   @Delete(':id')
-  @Roles(Role.ADMIN)
+  @WorkspaceRoles(WorkspaceMemberRole.OWNER, WorkspaceMemberRole.ADMIN)
   @HttpCode(HttpStatus.NO_CONTENT)
   @ApiOperation({ summary: 'Remover setor (soft delete, somente ADMIN)' })
   @ApiResponse({ status: 204 })

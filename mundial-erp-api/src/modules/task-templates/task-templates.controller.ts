@@ -17,7 +17,7 @@ import {
   ApiResponse,
   ApiTags,
 } from '@nestjs/swagger';
-import { Role } from '@prisma/client';
+import { WorkspaceMemberRole } from '@prisma/client';
 import { Throttle } from '@nestjs/throttler';
 import { TaskTemplatesService } from './task-templates.service';
 import { CreateTemplateDto } from './dtos/create-template.dto';
@@ -29,7 +29,7 @@ import {
 } from './dtos/instantiate-template.dto';
 import { SnapshotTemplateQueryDto } from './dtos/snapshot-template.dto';
 import { TemplatePayloadValidatorPipe } from './pipes/template-payload.validator';
-import { CurrentUser, Roles } from '../auth/decorators';
+import { CurrentUser, WorkspaceRoles } from '../auth/decorators';
 import type { JwtPayload } from '../auth/decorators';
 import { WorkspaceId } from '../workspaces/decorators/workspace-id.decorator';
 import { TemplateFiltersDto } from './dtos/template-filters.dto';
@@ -48,7 +48,6 @@ export class TaskTemplatesController {
   constructor(private readonly service: TaskTemplatesService) {}
 
   @Get('task-templates')
-  @Roles(Role.ADMIN, Role.MANAGER, Role.OPERATOR, Role.VIEWER)
   @Throttle({ default: { limit: 60, ttl: 60_000 } })
   @ApiOperation({ summary: 'Listar templates do workspace' })
   @ApiResponse({ status: 200 })
@@ -60,7 +59,11 @@ export class TaskTemplatesController {
   }
 
   @Post('task-templates')
-  @Roles(Role.ADMIN, Role.MANAGER, Role.OPERATOR)
+  @WorkspaceRoles(
+    WorkspaceMemberRole.OWNER,
+    WorkspaceMemberRole.ADMIN,
+    WorkspaceMemberRole.EDITOR,
+  )
   @Throttle({ default: { limit: 30, ttl: 60_000 } })
   @UsePipes(TemplatePayloadValidatorPipe)
   @ApiOperation({ summary: 'Criar template' })
@@ -74,7 +77,6 @@ export class TaskTemplatesController {
   }
 
   @Get('task-templates/:id')
-  @Roles(Role.ADMIN, Role.MANAGER, Role.OPERATOR, Role.VIEWER)
   @Throttle({ default: { limit: 60, ttl: 60_000 } })
   @ApiOperation({ summary: 'Obter template por id' })
   @ApiResponse({ status: 200, type: TemplateResponseDto })
@@ -83,7 +85,11 @@ export class TaskTemplatesController {
   }
 
   @Patch('task-templates/:id')
-  @Roles(Role.ADMIN, Role.MANAGER, Role.OPERATOR)
+  @WorkspaceRoles(
+    WorkspaceMemberRole.OWNER,
+    WorkspaceMemberRole.ADMIN,
+    WorkspaceMemberRole.EDITOR,
+  )
   @Throttle({ default: { limit: 30, ttl: 60_000 } })
   @UsePipes(TemplatePayloadValidatorPipe)
   @ApiOperation({ summary: 'Atualizar template' })
@@ -98,7 +104,7 @@ export class TaskTemplatesController {
   }
 
   @Delete('task-templates/:id')
-  @Roles(Role.ADMIN, Role.MANAGER)
+  @WorkspaceRoles(WorkspaceMemberRole.OWNER, WorkspaceMemberRole.ADMIN)
   @HttpCode(HttpStatus.NO_CONTENT)
   @Throttle({ default: { limit: 10, ttl: 60_000 } })
   @ApiOperation({ summary: 'Remover template (soft delete)' })
@@ -112,7 +118,11 @@ export class TaskTemplatesController {
   }
 
   @Post('task-templates/:id/snapshot')
-  @Roles(Role.ADMIN, Role.MANAGER, Role.OPERATOR)
+  @WorkspaceRoles(
+    WorkspaceMemberRole.OWNER,
+    WorkspaceMemberRole.ADMIN,
+    WorkspaceMemberRole.EDITOR,
+  )
   @Throttle({ default: { limit: 10, ttl: 60_000 } })
   @ApiOperation({
     summary: 'Capturar subtree de uma task como novo payload do template',
@@ -128,7 +138,11 @@ export class TaskTemplatesController {
   }
 
   @Post('processes/:processId/task-templates/:templateId/instances')
-  @Roles(Role.ADMIN, Role.MANAGER, Role.OPERATOR)
+  @WorkspaceRoles(
+    WorkspaceMemberRole.OWNER,
+    WorkspaceMemberRole.ADMIN,
+    WorkspaceMemberRole.EDITOR,
+  )
   @Throttle({ default: { limit: 10, ttl: 60_000 } })
   @ApiOperation({ summary: 'Instanciar template como WorkItem + subtree' })
   @ApiResponse({ status: 201, type: InstantiateTemplateResponseDto })

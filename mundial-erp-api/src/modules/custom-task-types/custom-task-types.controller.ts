@@ -16,13 +16,13 @@ import {
   ApiResponse,
   ApiTags,
 } from '@nestjs/swagger';
-import { Role } from '@prisma/client';
+import { WorkspaceMemberRole } from '@prisma/client';
 import { CustomTaskTypesService } from './custom-task-types.service';
 import { CustomTaskTypeFiltersDto } from './dtos/custom-task-type-filters.dto';
 import { CustomTaskTypeResponseDto } from './dtos/custom-task-type-response.dto';
 import { CreateCustomTaskTypeDto } from './dtos/create-custom-task-type.dto';
 import { UpdateCustomTaskTypeDto } from './dtos/update-custom-task-type.dto';
-import { CurrentUser, Roles } from '../auth/decorators';
+import { CurrentUser, WorkspaceRoles } from '../auth/decorators';
 import type { JwtPayload } from '../auth/decorators';
 import { WorkspaceId } from '../workspaces/decorators/workspace-id.decorator';
 
@@ -42,7 +42,6 @@ export class CustomTaskTypesController {
   constructor(private readonly service: CustomTaskTypesService) {}
 
   @Get()
-  @Roles(Role.ADMIN, Role.MANAGER, Role.OPERATOR, Role.VIEWER)
   @ApiOperation({
     summary: 'Listar custom task types (builtins + privados do workspace)',
   })
@@ -55,7 +54,6 @@ export class CustomTaskTypesController {
   }
 
   @Get(':id')
-  @Roles(Role.ADMIN, Role.MANAGER, Role.OPERATOR, Role.VIEWER)
   @ApiOperation({ summary: 'Detalhe de custom task type' })
   @ApiResponse({ status: 200, type: CustomTaskTypeResponseDto })
   @ApiResponse({ status: 404, description: 'Custom task type nao encontrado' })
@@ -66,7 +64,7 @@ export class CustomTaskTypesController {
 
   @Post()
   @HttpCode(HttpStatus.CREATED)
-  @Roles(Role.ADMIN, Role.MANAGER)
+  @WorkspaceRoles(WorkspaceMemberRole.OWNER, WorkspaceMemberRole.ADMIN)
   @ApiOperation({ summary: 'Criar custom task type (workspace privado)' })
   @ApiResponse({ status: 201, type: CustomTaskTypeResponseDto })
   @ApiResponse({ status: 409, description: 'Nome ja existe no workspace' })
@@ -79,7 +77,7 @@ export class CustomTaskTypesController {
   }
 
   @Put(':id')
-  @Roles(Role.ADMIN, Role.MANAGER)
+  @WorkspaceRoles(WorkspaceMemberRole.OWNER, WorkspaceMemberRole.ADMIN)
   @ApiOperation({ summary: 'Atualizar custom task type (workspace privado)' })
   @ApiResponse({ status: 200, type: CustomTaskTypeResponseDto })
   @ApiResponse({
@@ -98,7 +96,7 @@ export class CustomTaskTypesController {
 
   @Delete(':id')
   @HttpCode(HttpStatus.NO_CONTENT)
-  @Roles(Role.ADMIN, Role.MANAGER)
+  @WorkspaceRoles(WorkspaceMemberRole.OWNER, WorkspaceMemberRole.ADMIN)
   @ApiOperation({ summary: 'Remover custom task type (soft delete)' })
   @ApiResponse({ status: 204 })
   @ApiResponse({

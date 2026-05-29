@@ -16,7 +16,7 @@ import {
   ApiResponse,
   ApiTags,
 } from '@nestjs/swagger';
-import { Role } from '@prisma/client';
+import { WorkspaceMemberRole } from '@prisma/client';
 import { PriceTablesService } from './price-tables.service';
 import { CreatePriceTableDto } from './dto/create-price-table.dto';
 import { UpdatePriceTableDto } from './dto/update-price-table.dto';
@@ -26,7 +26,7 @@ import {
   PriceTableItemResponseDto,
 } from './dto/price-table-response.dto';
 import { PaginationDto } from '../../common/dtos/pagination.dto';
-import { Roles } from '../auth/decorators';
+import { WorkspaceRoles } from '../auth/decorators';
 import { WorkspaceId } from '../workspaces/decorators/workspace-id.decorator';
 
 @ApiTags('Price Tables')
@@ -36,7 +36,7 @@ export class PriceTablesController {
   constructor(private readonly priceTablesService: PriceTablesService) {}
 
   @Post()
-  @Roles(Role.ADMIN, Role.MANAGER)
+  @WorkspaceRoles(WorkspaceMemberRole.OWNER, WorkspaceMemberRole.ADMIN)
   @ApiOperation({ summary: 'Criar tabela de preço' })
   @ApiResponse({ status: 201, type: PriceTableResponseDto })
   create(@WorkspaceId() workspaceId: string, @Body() dto: CreatePriceTableDto) {
@@ -44,7 +44,11 @@ export class PriceTablesController {
   }
 
   @Get()
-  @Roles(Role.ADMIN, Role.MANAGER, Role.OPERATOR)
+  @WorkspaceRoles(
+    WorkspaceMemberRole.OWNER,
+    WorkspaceMemberRole.ADMIN,
+    WorkspaceMemberRole.EDITOR,
+  )
   @ApiOperation({ summary: 'Listar tabelas de preço' })
   findAll(
     @WorkspaceId() workspaceId: string,
@@ -55,7 +59,11 @@ export class PriceTablesController {
   }
 
   @Get(':id')
-  @Roles(Role.ADMIN, Role.MANAGER, Role.OPERATOR)
+  @WorkspaceRoles(
+    WorkspaceMemberRole.OWNER,
+    WorkspaceMemberRole.ADMIN,
+    WorkspaceMemberRole.EDITOR,
+  )
   @ApiOperation({ summary: 'Buscar tabela de preço por ID (com itens)' })
   @ApiResponse({ status: 200, type: PriceTableResponseDto })
   @ApiResponse({ status: 404, description: 'Não encontrada' })
@@ -64,7 +72,7 @@ export class PriceTablesController {
   }
 
   @Patch(':id')
-  @Roles(Role.ADMIN, Role.MANAGER)
+  @WorkspaceRoles(WorkspaceMemberRole.OWNER, WorkspaceMemberRole.ADMIN)
   @ApiOperation({ summary: 'Atualizar tabela de preço' })
   @ApiResponse({ status: 200, type: PriceTableResponseDto })
   update(
@@ -76,7 +84,7 @@ export class PriceTablesController {
   }
 
   @Delete(':id')
-  @Roles(Role.ADMIN)
+  @WorkspaceRoles(WorkspaceMemberRole.OWNER, WorkspaceMemberRole.ADMIN)
   @HttpCode(HttpStatus.NO_CONTENT)
   @ApiOperation({ summary: 'Remover tabela de preço (soft delete)' })
   @ApiResponse({ status: 204 })
@@ -86,7 +94,7 @@ export class PriceTablesController {
 
   // --- Items ---
   @Post(':id/items')
-  @Roles(Role.ADMIN, Role.MANAGER)
+  @WorkspaceRoles(WorkspaceMemberRole.OWNER, WorkspaceMemberRole.ADMIN)
   @ApiOperation({
     summary: 'Adicionar/atualizar item na tabela de preço (upsert)',
   })
@@ -100,7 +108,11 @@ export class PriceTablesController {
   }
 
   @Get(':id/items')
-  @Roles(Role.ADMIN, Role.MANAGER, Role.OPERATOR)
+  @WorkspaceRoles(
+    WorkspaceMemberRole.OWNER,
+    WorkspaceMemberRole.ADMIN,
+    WorkspaceMemberRole.EDITOR,
+  )
   @ApiOperation({ summary: 'Listar itens da tabela de preço' })
   findItems(
     @WorkspaceId() workspaceId: string,
@@ -111,7 +123,7 @@ export class PriceTablesController {
   }
 
   @Delete(':id/items/:itemId')
-  @Roles(Role.ADMIN, Role.MANAGER)
+  @WorkspaceRoles(WorkspaceMemberRole.OWNER, WorkspaceMemberRole.ADMIN)
   @HttpCode(HttpStatus.NO_CONTENT)
   @ApiOperation({ summary: 'Remover item da tabela de preço' })
   @ApiResponse({ status: 204 })

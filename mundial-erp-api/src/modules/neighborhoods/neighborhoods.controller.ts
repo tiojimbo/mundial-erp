@@ -16,13 +16,13 @@ import {
   ApiResponse,
   ApiTags,
 } from '@nestjs/swagger';
-import { Role } from '@prisma/client';
+import { WorkspaceMemberRole } from '@prisma/client';
 import { NeighborhoodsService } from './neighborhoods.service';
 import { CreateNeighborhoodDto } from './dto/create-neighborhood.dto';
 import { UpdateNeighborhoodDto } from './dto/update-neighborhood.dto';
 import { NeighborhoodResponseDto } from './dto/neighborhood-response.dto';
 import { PaginationDto } from '../../common/dtos/pagination.dto';
-import { Roles } from '../auth/decorators';
+import { WorkspaceRoles } from '../auth/decorators';
 
 @ApiTags('Neighborhoods')
 @ApiBearerAuth()
@@ -31,7 +31,7 @@ export class NeighborhoodsController {
   constructor(private readonly neighborhoodsService: NeighborhoodsService) {}
 
   @Post()
-  @Roles(Role.ADMIN)
+  @WorkspaceRoles(WorkspaceMemberRole.OWNER, WorkspaceMemberRole.ADMIN)
   @ApiOperation({ summary: 'Criar bairro (somente ADMIN)' })
   @ApiResponse({ status: 201, type: NeighborhoodResponseDto })
   create(@Body() dto: CreateNeighborhoodDto) {
@@ -39,14 +39,14 @@ export class NeighborhoodsController {
   }
 
   @Get()
-  @Roles(Role.ADMIN, Role.MANAGER)
+  @WorkspaceRoles(WorkspaceMemberRole.OWNER, WorkspaceMemberRole.ADMIN)
   @ApiOperation({ summary: 'Listar bairros' })
   findAll(@Query() pagination: PaginationDto) {
     return this.neighborhoodsService.findAll(pagination);
   }
 
   @Get(':id')
-  @Roles(Role.ADMIN, Role.MANAGER)
+  @WorkspaceRoles(WorkspaceMemberRole.OWNER, WorkspaceMemberRole.ADMIN)
   @ApiOperation({ summary: 'Buscar bairro por ID' })
   @ApiResponse({ status: 200, type: NeighborhoodResponseDto })
   @ApiResponse({ status: 404, description: 'Bairro não encontrado' })
@@ -55,7 +55,7 @@ export class NeighborhoodsController {
   }
 
   @Patch(':id')
-  @Roles(Role.ADMIN)
+  @WorkspaceRoles(WorkspaceMemberRole.OWNER, WorkspaceMemberRole.ADMIN)
   @ApiOperation({ summary: 'Atualizar bairro (somente ADMIN)' })
   @ApiResponse({ status: 200, type: NeighborhoodResponseDto })
   update(@Param('id') id: string, @Body() dto: UpdateNeighborhoodDto) {
@@ -63,7 +63,7 @@ export class NeighborhoodsController {
   }
 
   @Delete(':id')
-  @Roles(Role.ADMIN)
+  @WorkspaceRoles(WorkspaceMemberRole.OWNER, WorkspaceMemberRole.ADMIN)
   @HttpCode(HttpStatus.NO_CONTENT)
   @ApiOperation({ summary: 'Remover bairro (somente ADMIN)' })
   @ApiResponse({ status: 204 })

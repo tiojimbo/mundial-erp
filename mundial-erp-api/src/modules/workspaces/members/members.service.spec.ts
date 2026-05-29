@@ -12,7 +12,7 @@ import { WorkspacesRepository } from '../workspaces.repository';
 import { WorkspacesService } from '../workspaces.service';
 
 const memberFixture = (
-  role: WorkspaceMemberRole = WorkspaceMemberRole.MEMBER,
+  role: WorkspaceMemberRole = WorkspaceMemberRole.EDITOR,
 ) => ({
   id: 'm-1',
   workspaceId: 'ws-1',
@@ -70,7 +70,7 @@ describe('MembersService', () => {
   });
 
   describe('add', () => {
-    it('should add a MEMBER when actor is owner/admin', async () => {
+    it('should add an EDITOR when actor is owner/admin', async () => {
       workspacesService.assertOwnerOrAdmin.mockResolvedValue();
       membersRepository.userExists.mockResolvedValue(true);
       membersRepository.findById.mockResolvedValue(null);
@@ -78,14 +78,14 @@ describe('MembersService', () => {
 
       const result = await service.add('ws-1', 'actor', {
         userId: 'user-2',
-        role: WorkspaceMemberRole.MEMBER,
+        role: WorkspaceMemberRole.EDITOR,
       });
 
       expect(result.userId).toBe('user-2');
       expect(membersRepository.create).toHaveBeenCalledWith({
         workspaceId: 'ws-1',
         userId: 'user-2',
-        role: WorkspaceMemberRole.MEMBER,
+        role: WorkspaceMemberRole.EDITOR,
       });
     });
 
@@ -107,7 +107,7 @@ describe('MembersService', () => {
       await expect(
         service.add('ws-1', 'actor', {
           userId: 'ghost',
-          role: WorkspaceMemberRole.MEMBER,
+          role: WorkspaceMemberRole.EDITOR,
         }),
       ).rejects.toThrow(NotFoundException);
     });
@@ -120,14 +120,14 @@ describe('MembersService', () => {
       await expect(
         service.add('ws-1', 'actor', {
           userId: 'user-2',
-          role: WorkspaceMemberRole.MEMBER,
+          role: WorkspaceMemberRole.EDITOR,
         }),
       ).rejects.toThrow(ConflictException);
     });
   });
 
   describe('updateRole', () => {
-    it('should update role of MEMBER to ADMIN', async () => {
+    it('should update role of EDITOR to ADMIN', async () => {
       workspacesService.assertOwnerOrAdmin.mockResolvedValue();
       membersRepository.findById.mockResolvedValue(memberFixture() as never);
       membersRepository.updateRole.mockResolvedValue(
@@ -165,7 +165,7 @@ describe('MembersService', () => {
 
       await expect(
         service.updateRole('ws-1', 'user-2', 'actor', {
-          role: WorkspaceMemberRole.MEMBER,
+          role: WorkspaceMemberRole.EDITOR,
         }),
       ).rejects.toThrow(BadRequestException);
     });
@@ -178,14 +178,14 @@ describe('MembersService', () => {
       );
       membersRepository.countByRole.mockResolvedValue(2);
       membersRepository.updateRole.mockResolvedValue(
-        memberFixture(WorkspaceMemberRole.MEMBER) as never,
+        memberFixture(WorkspaceMemberRole.EDITOR) as never,
       );
 
       const result = await service.updateRole('ws-1', 'user-2', 'actor', {
-        role: WorkspaceMemberRole.MEMBER,
+        role: WorkspaceMemberRole.EDITOR,
       });
 
-      expect(result.role).toBe(WorkspaceMemberRole.MEMBER);
+      expect(result.role).toBe(WorkspaceMemberRole.EDITOR);
     });
 
     it('should throw NotFoundException when target member does not exist', async () => {
@@ -194,14 +194,14 @@ describe('MembersService', () => {
 
       await expect(
         service.updateRole('ws-1', 'ghost', 'actor', {
-          role: WorkspaceMemberRole.MEMBER,
+          role: WorkspaceMemberRole.EDITOR,
         }),
       ).rejects.toThrow(NotFoundException);
     });
   });
 
   describe('remove', () => {
-    it('should remove a MEMBER', async () => {
+    it('should remove an EDITOR', async () => {
       workspacesService.assertOwnerOrAdmin.mockResolvedValue();
       membersRepository.findById.mockResolvedValue(memberFixture() as never);
 

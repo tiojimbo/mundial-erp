@@ -17,13 +17,13 @@ import {
   ApiResponse,
   ApiTags,
 } from '@nestjs/swagger';
-import { Role, SeparationOrderStatus } from '@prisma/client';
+import { SeparationOrderStatus, WorkspaceMemberRole } from '@prisma/client';
 import { SeparationOrdersService } from './separation-orders.service';
 import { CreateSeparationOrderDto } from './dto/create-separation-order.dto';
 import { UpdateSeparationOrderDto } from './dto/update-separation-order.dto';
 import { SeparationOrderResponseDto } from './dto/separation-order-response.dto';
 import { PaginationDto } from '../../common/dtos/pagination.dto';
-import { Roles } from '../auth/decorators';
+import { WorkspaceRoles } from '../auth/decorators';
 
 @ApiTags('Separation Orders')
 @ApiBearerAuth()
@@ -33,7 +33,11 @@ export class SeparationOrdersController {
 
   // POST /separation-orders
   @Post()
-  @Roles(Role.ADMIN, Role.MANAGER, Role.OPERATOR)
+  @WorkspaceRoles(
+    WorkspaceMemberRole.OWNER,
+    WorkspaceMemberRole.ADMIN,
+    WorkspaceMemberRole.EDITOR,
+  )
   @ApiOperation({ summary: 'Criar ordem de separacao' })
   @ApiResponse({ status: 201, type: SeparationOrderResponseDto })
   create(@Body() dto: CreateSeparationOrderDto) {
@@ -42,7 +46,11 @@ export class SeparationOrdersController {
 
   // GET /separation-orders
   @Get()
-  @Roles(Role.ADMIN, Role.MANAGER, Role.OPERATOR)
+  @WorkspaceRoles(
+    WorkspaceMemberRole.OWNER,
+    WorkspaceMemberRole.ADMIN,
+    WorkspaceMemberRole.EDITOR,
+  )
   @ApiOperation({
     summary: 'Listar ordens de separacao (filtro por orderId, status, search)',
   })
@@ -69,7 +77,11 @@ export class SeparationOrdersController {
 
   // GET /separation-orders/:id
   @Get(':id')
-  @Roles(Role.ADMIN, Role.MANAGER, Role.OPERATOR)
+  @WorkspaceRoles(
+    WorkspaceMemberRole.OWNER,
+    WorkspaceMemberRole.ADMIN,
+    WorkspaceMemberRole.EDITOR,
+  )
   @ApiOperation({ summary: 'Detalhe da ordem de separacao' })
   @ApiResponse({ status: 200, type: SeparationOrderResponseDto })
   @ApiResponse({
@@ -82,7 +94,11 @@ export class SeparationOrdersController {
 
   // PATCH /separation-orders/:id
   @Patch(':id')
-  @Roles(Role.ADMIN, Role.MANAGER, Role.OPERATOR)
+  @WorkspaceRoles(
+    WorkspaceMemberRole.OWNER,
+    WorkspaceMemberRole.ADMIN,
+    WorkspaceMemberRole.EDITOR,
+  )
   @ApiOperation({ summary: 'Atualizar ordem de separacao' })
   @ApiResponse({ status: 200, type: SeparationOrderResponseDto })
   @ApiResponse({
@@ -95,7 +111,7 @@ export class SeparationOrdersController {
 
   // DELETE /separation-orders/:id
   @Delete(':id')
-  @Roles(Role.ADMIN, Role.MANAGER)
+  @WorkspaceRoles(WorkspaceMemberRole.OWNER, WorkspaceMemberRole.ADMIN)
   @HttpCode(HttpStatus.NO_CONTENT)
   @ApiOperation({ summary: 'Remover ordem de separacao (soft delete)' })
   @ApiResponse({ status: 204 })
@@ -109,7 +125,11 @@ export class SeparationOrdersController {
 
   // PATCH /separation-orders/:id/start
   @Patch(':id/start')
-  @Roles(Role.ADMIN, Role.MANAGER, Role.OPERATOR)
+  @WorkspaceRoles(
+    WorkspaceMemberRole.OWNER,
+    WorkspaceMemberRole.ADMIN,
+    WorkspaceMemberRole.EDITOR,
+  )
   @ApiOperation({ summary: 'Iniciar separacao (PENDING -> IN_PROGRESS)' })
   @ApiResponse({ status: 200, type: SeparationOrderResponseDto })
   @ApiResponse({ status: 400, description: 'Status invalido para inicio' })
@@ -119,7 +139,11 @@ export class SeparationOrdersController {
 
   // PATCH /separation-orders/:id/items/:itemId/separate
   @Patch(':id/items/:itemId/separate')
-  @Roles(Role.ADMIN, Role.MANAGER, Role.OPERATOR)
+  @WorkspaceRoles(
+    WorkspaceMemberRole.OWNER,
+    WorkspaceMemberRole.ADMIN,
+    WorkspaceMemberRole.EDITOR,
+  )
   @ApiOperation({ summary: 'Marcar item como separado' })
   @ApiResponse({ status: 200, type: SeparationOrderResponseDto })
   @ApiResponse({
@@ -132,7 +156,11 @@ export class SeparationOrdersController {
 
   // PATCH /separation-orders/:id/items/:itemId/check
   @Patch(':id/items/:itemId/check')
-  @Roles(Role.ADMIN, Role.MANAGER, Role.OPERATOR)
+  @WorkspaceRoles(
+    WorkspaceMemberRole.OWNER,
+    WorkspaceMemberRole.ADMIN,
+    WorkspaceMemberRole.EDITOR,
+  )
   @ApiOperation({ summary: 'Marcar item como conferido' })
   @ApiResponse({ status: 200, type: SeparationOrderResponseDto })
   @ApiResponse({

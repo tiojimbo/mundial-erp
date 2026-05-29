@@ -156,10 +156,10 @@ describe('WorkspacesService', () => {
       expect(result.name).toBe('New Name');
     });
 
-    it('should throw ForbiddenException for MEMBER trying to update', async () => {
+    it('should throw ForbiddenException for EDITOR trying to update', async () => {
       workspacesRepository.findById.mockResolvedValue(baseWorkspace);
       membersRepository.findById.mockResolvedValue({
-        role: WorkspaceMemberRole.MEMBER,
+        role: WorkspaceMemberRole.EDITOR,
       } as never);
 
       await expect(

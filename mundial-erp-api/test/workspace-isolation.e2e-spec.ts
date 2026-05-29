@@ -191,13 +191,6 @@ describe('Workspace Isolation (e2e)', () => {
   it('userA cria Department no workspace A', async () => {
     if (skipIfNoDb()) return;
 
-    // userA precisa ter role ADMIN no User (nao no workspace) para criar dept.
-    // O fluxo de register cria com role 'OPERATOR' default — promovemos via DB.
-    await prisma.user.update({
-      where: { email: userAEmail },
-      data: { role: 'ADMIN' },
-    });
-    // Token novo apos mudanca de role
     const refresh = await request(app.getHttpServer())
       .post('/api/v1/auth/refresh')
       .send({ refreshToken: userATokens!.refresh })
@@ -220,11 +213,6 @@ describe('Workspace Isolation (e2e)', () => {
   it('CROSS-TENANT: userB GET /departments NAO retorna department de A', async () => {
     if (skipIfNoDb()) return;
 
-    // Promover userB tambem para ter role ADMIN/MANAGER necessaria pelo controller
-    await prisma.user.update({
-      where: { email: userBEmail },
-      data: { role: 'ADMIN' },
-    });
     const refresh = await request(app.getHttpServer())
       .post('/api/v1/auth/refresh')
       .send({ refreshToken: userBTokens!.refresh })

@@ -18,7 +18,7 @@
  */
 
 import 'dotenv/config';
-import { PrismaClient, Role, WorkspaceMemberRole } from '@prisma/client';
+import { PrismaClient, WorkspaceMemberRole } from '@prisma/client';
 import { PrismaPg } from '@prisma/adapter-pg';
 import { seedKommoAnalyticsComercial } from './seeds/kommo-analytics-comercial.seed';
 
@@ -73,25 +73,6 @@ const WORKSPACE_SCOPED_TABLES = [
   'chat_channels',
 ] as const;
 
-/**
- * Map legacy `Role` -> `WorkspaceMemberRole`.
- * O primeiro ADMIN vira OWNER; demais ADMINs viram ADMIN.
- */
-function mapRole(role: Role, isFirstAdmin: boolean): WorkspaceMemberRole {
-  switch (role) {
-    case Role.ADMIN:
-      return isFirstAdmin ? WorkspaceMemberRole.OWNER : WorkspaceMemberRole.ADMIN;
-    case Role.MANAGER:
-      return WorkspaceMemberRole.ADMIN;
-    case Role.OPERATOR:
-      return WorkspaceMemberRole.MEMBER;
-    case Role.VIEWER:
-      return WorkspaceMemberRole.GUEST;
-    default:
-      return WorkspaceMemberRole.MEMBER;
-  }
-}
-
 async function main() {
   console.log('Workspace Foundation seed starting ...');
 
@@ -107,7 +88,9 @@ async function main() {
     // Kommo Analytics Comercial dashboard re-seed (idempotente via upsert).
     // Guard por env-var para nao rodar em ambientes que nao queiram o dashboard.
     if (process.env.SEED_KOMMO_DASHBOARD === 'true') {
-      console.log('Seeding Kommo Analytics Comercial dashboard (existing workspace)...');
+      console.log(
+        'Seeding Kommo Analytics Comercial dashboard (existing workspace)...',
+      );
       await seedKommoAnalyticsComercial(prisma, existing.id, existing.ownerId);
       console.log('Kommo Analytics Comercial dashboard seeded.');
     }
@@ -115,30 +98,27 @@ async function main() {
   }
 
   // ---------- Resolver owner -------------------------------------------------
-  const adminUsers = await prisma.user.findMany({
-    where: { role: Role.ADMIN, isActive: true, deletedAt: null },
+  const owner = await prisma.user.findFirst({
+    where: { isActive: true, deletedAt: null },
     orderBy: { createdAt: 'asc' },
   });
-  const owner = adminUsers[0]
-    ?? (await prisma.user.findFirst({
-      where: { isActive: true, deletedAt: null },
-      orderBy: { createdAt: 'asc' },
-    }));
 
   if (!owner) {
     throw new Error(
       'Nenhum User encontrado para ser ownerId do workspace default. Execute `npm run seed:admin` antes deste script.',
     );
   }
-  console.log(`  Owner resolvido: ${owner.email} (id=${owner.id}, role=${owner.role})`);
+  console.log(`  Owner resolvido: ${owner.email} (id=${owner.id})`);
 
   // ---------- Carregar todos os users (uma vez) ------------------------------
   const allUsers = await prisma.user.findMany({
     where: { deletedAt: null },
     orderBy: { createdAt: 'asc' },
-    select: { id: true, email: true, role: true },
+    select: { id: true, email: true },
   });
-  console.log(`  ${allUsers.length} users encontrados para mapear como membros.`);
+  console.log(
+    `  ${allUsers.length} users encontrados para mapear como membros.`,
+  );
 
   // ---------- Transacao atomica ---------------------------------------------
   let createdWorkspaceId: string | null = null;
@@ -167,16 +147,14 @@ async function main() {
     console.log(`  Total de rows atualizadas: ${totalUpdated}`);
 
     // 3) Inserir WorkspaceMember para cada user
-    let firstAdminAssigned = false;
-    const memberRows = allUsers.map((u) => {
-      const isFirstAdmin = u.role === Role.ADMIN && !firstAdminAssigned;
-      if (isFirstAdmin) firstAdminAssigned = true;
-      return {
-        workspaceId: workspace.id,
-        userId: u.id,
-        role: mapRole(u.role, isFirstAdmin),
-      };
-    });
+    const memberRows = allUsers.map((u) => ({
+      workspaceId: workspace.id,
+      userId: u.id,
+      role:
+        u.id === owner.id
+          ? WorkspaceMemberRole.OWNER
+          : WorkspaceMemberRole.EDITOR,
+    }));
 
     if (memberRows.length > 0) {
       await tx.workspaceMember.createMany({
@@ -193,7 +171,9 @@ async function main() {
         where: { id: { in: userIds } },
         data: { lastAccessedWorkspaceId: workspace.id },
       });
-      console.log(`  ${updatedUsers.count} users com lastAccessedWorkspaceId atualizado.`);
+      console.log(
+        `  ${updatedUsers.count} users com lastAccessedWorkspaceId atualizado.`,
+      );
     }
   });
 

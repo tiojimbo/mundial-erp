@@ -18,7 +18,7 @@ import {
   ApiResponse,
   ApiTags,
 } from '@nestjs/swagger';
-import { OrderStatus, Role } from '@prisma/client';
+import { OrderStatus, WorkspaceMemberRole } from '@prisma/client';
 import * as express from 'express';
 import { OrdersService } from './orders.service';
 import { CreateOrderDto } from './dto/create-order.dto';
@@ -31,7 +31,7 @@ import { OrderResponseDto } from './dto/order-response.dto';
 import { OrderTimelineEntryDto } from './dto/order-timeline-response.dto';
 import { OrderItemSupplyResponseDto } from './dto/order-item-supply-response.dto';
 import { PaginationDto } from '../../common/dtos/pagination.dto';
-import { CurrentUser, Roles } from '../auth/decorators';
+import { CurrentUser, WorkspaceRoles } from '../auth/decorators';
 import { WorkspaceId } from '../workspaces/decorators/workspace-id.decorator';
 import { ProposalPdfService } from './pdf/proposal-pdf.service';
 import { LabelPdfService } from './pdf/label-pdf.service';
@@ -49,7 +49,11 @@ export class OrdersController {
   ) {}
 
   @Post()
-  @Roles(Role.ADMIN, Role.MANAGER, Role.OPERATOR)
+  @WorkspaceRoles(
+    WorkspaceMemberRole.OWNER,
+    WorkspaceMemberRole.ADMIN,
+    WorkspaceMemberRole.EDITOR,
+  )
   @ApiOperation({ summary: 'Criar pedido (inicia como EM_ORCAMENTO)' })
   @ApiResponse({ status: 201, type: OrderResponseDto })
   create(
@@ -61,7 +65,11 @@ export class OrdersController {
   }
 
   @Get()
-  @Roles(Role.ADMIN, Role.MANAGER, Role.OPERATOR)
+  @WorkspaceRoles(
+    WorkspaceMemberRole.OWNER,
+    WorkspaceMemberRole.ADMIN,
+    WorkspaceMemberRole.EDITOR,
+  )
   @ApiOperation({ summary: 'Listar pedidos (filtro status/cliente/usuario)' })
   @ApiQuery({
     name: 'search',
@@ -89,7 +97,11 @@ export class OrdersController {
   }
 
   @Get(':id')
-  @Roles(Role.ADMIN, Role.MANAGER, Role.OPERATOR)
+  @WorkspaceRoles(
+    WorkspaceMemberRole.OWNER,
+    WorkspaceMemberRole.ADMIN,
+    WorkspaceMemberRole.EDITOR,
+  )
   @ApiOperation({
     summary: 'Dossie completo do pedido (items, supplies, historico)',
   })
@@ -100,7 +112,11 @@ export class OrdersController {
   }
 
   @Patch(':id')
-  @Roles(Role.ADMIN, Role.MANAGER, Role.OPERATOR)
+  @WorkspaceRoles(
+    WorkspaceMemberRole.OWNER,
+    WorkspaceMemberRole.ADMIN,
+    WorkspaceMemberRole.EDITOR,
+  )
   @ApiOperation({
     summary: 'Atualizar dados do pedido (items, pagamento, etc)',
   })
@@ -115,7 +131,7 @@ export class OrdersController {
   }
 
   @Delete(':id')
-  @Roles(Role.ADMIN)
+  @WorkspaceRoles(WorkspaceMemberRole.OWNER, WorkspaceMemberRole.ADMIN)
   @HttpCode(HttpStatus.NO_CONTENT)
   @ApiOperation({
     summary: 'Remover pedido (soft delete, somente EM_ORCAMENTO)',
@@ -126,7 +142,11 @@ export class OrdersController {
   }
 
   @Patch(':id/status')
-  @Roles(Role.ADMIN, Role.MANAGER, Role.OPERATOR)
+  @WorkspaceRoles(
+    WorkspaceMemberRole.OWNER,
+    WorkspaceMemberRole.ADMIN,
+    WorkspaceMemberRole.EDITOR,
+  )
   @ApiOperation({
     summary: 'Avancar status do pedido (dispara BPM engine + guards)',
   })
@@ -145,7 +165,11 @@ export class OrdersController {
   }
 
   @Get(':id/timeline')
-  @Roles(Role.ADMIN, Role.MANAGER, Role.OPERATOR)
+  @WorkspaceRoles(
+    WorkspaceMemberRole.OWNER,
+    WorkspaceMemberRole.ADMIN,
+    WorkspaceMemberRole.EDITOR,
+  )
   @ApiOperation({ summary: 'Timeline completa do processo' })
   @ApiResponse({ status: 200, type: OrderTimelineEntryDto, isArray: true })
   getTimeline(@WorkspaceId() workspaceId: string, @Param('id') id: string) {
@@ -153,7 +177,11 @@ export class OrdersController {
   }
 
   @Patch(':id/payment')
-  @Roles(Role.ADMIN, Role.MANAGER, Role.OPERATOR)
+  @WorkspaceRoles(
+    WorkspaceMemberRole.OWNER,
+    WorkspaceMemberRole.ADMIN,
+    WorkspaceMemberRole.EDITOR,
+  )
   @ApiOperation({
     summary: 'Registrar pagamento (paidAmountCents + paymentProofUrl)',
   })
@@ -167,7 +195,11 @@ export class OrdersController {
   }
 
   @Post(':id/items/:itemId/supplies')
-  @Roles(Role.ADMIN, Role.MANAGER, Role.OPERATOR)
+  @WorkspaceRoles(
+    WorkspaceMemberRole.OWNER,
+    WorkspaceMemberRole.ADMIN,
+    WorkspaceMemberRole.EDITOR,
+  )
   @ApiOperation({ summary: 'Adicionar supply (insumo/acabamento) a um item' })
   @ApiResponse({ status: 201, type: OrderItemSupplyResponseDto })
   addSupply(
@@ -180,7 +212,11 @@ export class OrdersController {
   }
 
   @Patch(':id/items/:itemId/supplies/:supplyId')
-  @Roles(Role.ADMIN, Role.MANAGER, Role.OPERATOR)
+  @WorkspaceRoles(
+    WorkspaceMemberRole.OWNER,
+    WorkspaceMemberRole.ADMIN,
+    WorkspaceMemberRole.EDITOR,
+  )
   @ApiOperation({
     summary: 'Marcar supply como READY/PENDING (toggle checklist)',
   })
@@ -208,7 +244,11 @@ export class OrdersController {
   // ---------------------------------------------------------------------------
 
   @Get(':id/pdf/proposal')
-  @Roles(Role.ADMIN, Role.MANAGER, Role.OPERATOR)
+  @WorkspaceRoles(
+    WorkspaceMemberRole.OWNER,
+    WorkspaceMemberRole.ADMIN,
+    WorkspaceMemberRole.EDITOR,
+  )
   @ApiOperation({ summary: 'Gerar PDF "Proposta de Venda"' })
   @ApiResponse({ status: 200, description: 'PDF binario' })
   async getPdfProposal(@Param('id') id: string, @Res() res: express.Response) {
@@ -222,7 +262,11 @@ export class OrdersController {
   }
 
   @Get(':id/pdf/production-label')
-  @Roles(Role.ADMIN, Role.MANAGER, Role.OPERATOR)
+  @WorkspaceRoles(
+    WorkspaceMemberRole.OWNER,
+    WorkspaceMemberRole.ADMIN,
+    WorkspaceMemberRole.EDITOR,
+  )
   @ApiOperation({
     summary: 'Gerar Etiqueta de Producao (itens FABRICACAO_PROPRIA)',
   })
@@ -241,7 +285,11 @@ export class OrdersController {
   }
 
   @Get(':id/pdf/separation-label')
-  @Roles(Role.ADMIN, Role.MANAGER, Role.OPERATOR)
+  @WorkspaceRoles(
+    WorkspaceMemberRole.OWNER,
+    WorkspaceMemberRole.ADMIN,
+    WorkspaceMemberRole.EDITOR,
+  )
   @ApiOperation({
     summary: 'Gerar Etiqueta de Separacao (itens REVENDA/INSUMO)',
   })

@@ -1,19 +1,17 @@
 import { api } from '@/lib/api';
 import type { ApiResponse, PaginatedResponse } from '@/types/api.types';
 import type {
-  AddMemberPayload,
-  CreateInvitePayload,
+  BulkAddResponse,
+  BulkAddUsersPayload,
   CreateWorkspacePayload,
   SelectWorkspaceResponse,
   UpdateWorkspacePayload,
   Workspace,
   WorkspaceFilters,
-  WorkspaceInvite,
-  WorkspaceInviteFilters,
-  WorkspaceMember,
-  WorkspaceMemberFilters,
   WorkspaceRole,
   WorkspaceSeats,
+  WorkspaceUsersFilters,
+  WorkspaceUsersResponse,
 } from '../types/workspace.types';
 
 export const workspaceService = {
@@ -75,82 +73,43 @@ export const workspaceService = {
     return data.data;
   },
 
-  async getMembers(
+  async getUsers(
     id: string,
-    filters?: WorkspaceMemberFilters,
-  ): Promise<PaginatedResponse<WorkspaceMember>> {
+    filters?: WorkspaceUsersFilters,
+  ): Promise<WorkspaceUsersResponse> {
     const params: Record<string, unknown> = {};
     if (filters?.page) params.page = filters.page;
     if (filters?.limit) params.limit = filters.limit;
-    if (filters?.role) params.role = filters.role;
-    const { data } = await api.get<PaginatedResponse<WorkspaceMember>>(
-      `/workspaces/${id}/members`,
+    if (filters?.showPending) params.showPending = true;
+    const { data } = await api.get<ApiResponse<WorkspaceUsersResponse>>(
+      `/workspaces/${id}/users`,
       { params },
     );
-    return data;
+    return data.data;
   },
 
-  async addMember(
+  async bulkAddUsers(
     id: string,
-    payload: AddMemberPayload,
-  ): Promise<WorkspaceMember> {
-    const { data } = await api.post<ApiResponse<WorkspaceMember>>(
-      `/workspaces/${id}/members`,
+    payload: BulkAddUsersPayload,
+  ): Promise<BulkAddResponse> {
+    const { data } = await api.post<ApiResponse<BulkAddResponse>>(
+      `/workspaces/${id}/users/bulk`,
       payload,
     );
     return data.data;
   },
 
-  async updateMemberRole(
+  async setUserPermission(
     id: string,
     userId: string,
-    role: WorkspaceRole,
-  ): Promise<WorkspaceMember> {
-    const { data } = await api.patch<ApiResponse<WorkspaceMember>>(
-      `/workspaces/${id}/members/${userId}`,
-      { role },
-    );
-    return data.data;
+    permission: WorkspaceRole,
+  ): Promise<void> {
+    await api.post(`/workspaces/${id}/users/${userId}/permission`, {
+      permission,
+    });
   },
 
-  async removeMember(id: string, userId: string): Promise<void> {
-    await api.delete(`/workspaces/${id}/members/${userId}`);
-  },
-
-  async getInvites(
-    id: string,
-    filters?: WorkspaceInviteFilters,
-  ): Promise<PaginatedResponse<WorkspaceInvite>> {
-    const params: Record<string, unknown> = {};
-    if (filters?.page) params.page = filters.page;
-    if (filters?.limit) params.limit = filters.limit;
-    if (filters?.status) params.status = filters.status;
-    const { data } = await api.get<PaginatedResponse<WorkspaceInvite>>(
-      `/workspaces/${id}/invites`,
-      { params },
-    );
-    return data;
-  },
-
-  async createInvite(
-    id: string,
-    payload: CreateInvitePayload,
-  ): Promise<WorkspaceInvite> {
-    const { data } = await api.post<ApiResponse<WorkspaceInvite>>(
-      `/workspaces/${id}/invites`,
-      payload,
-    );
-    return data.data;
-  },
-
-  async acceptInvite(token: string): Promise<WorkspaceMember> {
-    const { data } = await api.post<ApiResponse<WorkspaceMember>>(
-      `/workspaces/join/${token}`,
-    );
-    return data.data;
-  },
-
-  async revokeInvite(id: string, inviteId: string): Promise<void> {
-    await api.delete(`/workspaces/${id}/invites/${inviteId}`);
+  async removeUser(id: string, userId: string): Promise<void> {
+    await api.delete(`/workspaces/${id}/users/${userId}/remove`);
   },
 };

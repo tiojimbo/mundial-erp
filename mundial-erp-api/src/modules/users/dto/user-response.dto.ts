@@ -1,5 +1,5 @@
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
-import { Role, User } from '@prisma/client';
+import { AppearanceMode, User } from '@prisma/client';
 
 export class UserResponseDto {
   @ApiProperty()
@@ -11,11 +11,17 @@ export class UserResponseDto {
   @ApiProperty()
   name: string;
 
-  @ApiProperty({ enum: Role })
-  role: Role;
-
   @ApiProperty()
   isActive: boolean;
+
+  @ApiPropertyOptional()
+  avatar: string | null;
+
+  @ApiPropertyOptional()
+  themeColor: string | null;
+
+  @ApiProperty({ enum: AppearanceMode })
+  appearance: AppearanceMode;
 
   @ApiPropertyOptional()
   spaceId: string | null;
@@ -31,8 +37,10 @@ export class UserResponseDto {
     dto.id = user.id;
     dto.email = user.email;
     dto.name = user.name;
-    dto.role = user.role;
     dto.isActive = user.isActive;
+    dto.avatar = user.avatar;
+    dto.themeColor = user.themeColor;
+    dto.appearance = user.appearance;
     dto.spaceId = user.spaceId;
     dto.createdAt = user.createdAt;
     dto.updatedAt = user.updatedAt;

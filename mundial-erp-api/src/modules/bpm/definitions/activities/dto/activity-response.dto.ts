@@ -1,5 +1,5 @@
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
-import { Activity, OrderStatus, Role, Task } from '@prisma/client';
+import { Activity, OrderStatus, Task } from '@prisma/client';
 
 export class ActivityResponseDto {
   @ApiProperty()
@@ -17,8 +17,8 @@ export class ActivityResponseDto {
   @ApiPropertyOptional()
   processName?: string;
 
-  @ApiProperty({ enum: Role })
-  ownerRole: Role;
+  @ApiProperty()
+  ownerRole: string;
 
   @ApiPropertyOptional()
   inputDescription: string | null;

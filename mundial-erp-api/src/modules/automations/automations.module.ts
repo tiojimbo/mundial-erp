@@ -1,6 +1,7 @@
 import { BullModule } from '@nestjs/bullmq';
-import { Global, Module } from '@nestjs/common';
+import { forwardRef, Global, Module } from '@nestjs/common';
 import { ScheduleModule } from '@nestjs/schedule';
+import { TasksModule } from '../tasks/tasks.module';
 import { QUEUE_AUTOMATION_EXECUTION } from '../queue/queue.constants';
 import { AutomationsController } from './automations.controller';
 import { AutomationsService } from './automations.service';
@@ -18,6 +19,7 @@ import { AutomationProcessor } from './engine/automation.processor';
   imports: [
     BullModule.registerQueue({ name: QUEUE_AUTOMATION_EXECUTION }),
     ScheduleModule.forRoot(),
+    forwardRef(() => TasksModule),
   ],
   controllers: [AutomationsController],
   providers: [

@@ -1,13 +1,13 @@
 import { Controller, Get, Param, Query } from '@nestjs/common';
 import { ApiTags, ApiOperation, ApiBearerAuth } from '@nestjs/swagger';
-import { Roles } from '../auth/decorators';
-import { Role } from '@prisma/client';
+import { WorkspaceRoles } from '../auth/decorators';
+import { WorkspaceMemberRole } from '@prisma/client';
 import { AuditLogService } from './audit-log.service';
 import { QueryAuditLogDto } from './dto/query-audit-log.dto';
 
 @ApiTags('Audit Logs')
 @ApiBearerAuth()
-@Roles(Role.ADMIN)
+@WorkspaceRoles(WorkspaceMemberRole.OWNER, WorkspaceMemberRole.ADMIN)
 @Controller('audit-logs')
 export class AuditLogController {
   constructor(private readonly auditLogService: AuditLogService) {}

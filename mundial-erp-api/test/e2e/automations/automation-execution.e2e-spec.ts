@@ -78,7 +78,7 @@ describe('Automation execution (e2e) — Tarefa 5 sprint imediato', () => {
       });
       statusBId = statusB.id;
 
-      secondUser = await createTestUser(app, ws.workspaceId, 'OPERATOR');
+      secondUser = await createTestUser(app, ws.workspaceId, 'EDITOR');
     } catch (err) {
       dbAvailable = false;
       log.warn(

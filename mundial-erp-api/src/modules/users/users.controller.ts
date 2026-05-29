@@ -6,7 +6,6 @@ import {
   HttpCode,
   HttpStatus,
   Param,
-  Patch,
   Post,
   Put,
   Query,
@@ -17,14 +16,15 @@ import {
   ApiResponse,
   ApiTags,
 } from '@nestjs/swagger';
-import { Role } from '@prisma/client';
+import { WorkspaceMemberRole } from '@prisma/client';
 import { UsersService } from './users.service';
 import { CreateUserDto } from './dto/create-user.dto';
 import { UpdateUserDto } from './dto/update-user.dto';
 import { UpdateMeDto } from './dto/update-me.dto';
+import { UploadAvatarDto } from './dto/upload-avatar.dto';
 import { UserResponseDto } from './dto/user-response.dto';
 import { PaginationDto } from '../../common/dtos/pagination.dto';
-import { CurrentUser, Roles } from '../auth/decorators';
+import { CurrentUser, WorkspaceRoles } from '../auth/decorators';
 
 @ApiTags('Users')
 @ApiBearerAuth()
@@ -33,7 +33,7 @@ export class UsersController {
   constructor(private readonly usersService: UsersService) {}
 
   @Post()
-  @Roles(Role.ADMIN)
+  @WorkspaceRoles(WorkspaceMemberRole.OWNER, WorkspaceMemberRole.ADMIN)
   @ApiOperation({ summary: 'Criar usuário (somente ADMIN)' })
   @ApiResponse({ status: 201, type: UserResponseDto })
   @ApiResponse({ status: 409, description: 'Email já cadastrado' })
@@ -42,20 +42,36 @@ export class UsersController {
   }
 
   @Get()
-  @Roles(Role.ADMIN, Role.MANAGER)
+  @WorkspaceRoles(WorkspaceMemberRole.OWNER, WorkspaceMemberRole.ADMIN)
   @ApiOperation({ summary: 'Listar usuários' })
   findAll(@Query() pagination: PaginationDto) {
     return this.usersService.findAll(pagination);
   }
 
   @Put('me')
-  @Patch('me')
   @ApiOperation({ summary: 'Atualizar dados do próprio usuário autenticado' })
   @ApiResponse({ status: 200, type: UserResponseDto })
   @ApiResponse({ status: 401, description: 'Senha atual incorreta' })
   @ApiResponse({ status: 409, description: 'Email já cadastrado' })
   updateMe(@CurrentUser() user: { sub: string }, @Body() dto: UpdateMeDto) {
     return this.usersService.updateMe(user.sub, dto);
+  }
+
+  @Post('me/avatar')
+  @ApiOperation({ summary: 'Atualizar avatar do próprio usuário' })
+  @ApiResponse({ status: 201, type: UserResponseDto })
+  uploadAvatar(
+    @CurrentUser('sub') userId: string,
+    @Body() dto: UploadAvatarDto,
+  ) {
+    return this.usersService.uploadAvatar(userId, dto.image);
+  }
+
+  @Delete('me/avatar')
+  @ApiOperation({ summary: 'Remover avatar do próprio usuário' })
+  @ApiResponse({ status: 200, type: UserResponseDto })
+  deleteAvatar(@CurrentUser('sub') userId: string) {
+    return this.usersService.deleteAvatar(userId);
   }
 
   @Get(':id')
@@ -67,8 +83,7 @@ export class UsersController {
   }
 
   @Put(':id')
-  @Patch(':id')
-  @Roles(Role.ADMIN)
+  @WorkspaceRoles(WorkspaceMemberRole.OWNER, WorkspaceMemberRole.ADMIN)
   @ApiOperation({ summary: 'Atualizar usuário (somente ADMIN)' })
   @ApiResponse({ status: 200, type: UserResponseDto })
   update(@Param('id') id: string, @Body() dto: UpdateUserDto) {
@@ -76,7 +91,7 @@ export class UsersController {
   }
 
   @Delete(':id')
-  @Roles(Role.ADMIN)
+  @WorkspaceRoles(WorkspaceMemberRole.OWNER, WorkspaceMemberRole.ADMIN)
   @HttpCode(HttpStatus.NO_CONTENT)
   @ApiOperation({ summary: 'Remover usuário (soft delete, somente ADMIN)' })
   @ApiResponse({ status: 204 })

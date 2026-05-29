@@ -5,10 +5,10 @@ import {
   ApiResponse,
   ApiTags,
 } from '@nestjs/swagger';
-import { Role } from '@prisma/client';
+
 import { CustomTaskTypesService } from './custom-task-types.service';
 import { CustomTaskTypeResponseDto } from './dtos/custom-task-type-response.dto';
-import { Roles } from '../auth/decorators';
+
 import { SkipWorkspaceGuard } from '../workspaces/decorators/skip-workspace-guard.decorator';
 
 @ApiTags('Custom Task Types')
@@ -19,7 +19,6 @@ export class WorkspaceTaskTypesController {
 
   @Get()
   @SkipWorkspaceGuard()
-  @Roles(Role.ADMIN, Role.MANAGER, Role.OPERATOR, Role.VIEWER)
   @ApiOperation({
     summary:
       'Lista flat de todos os custom task types do workspace (Hoppe-style)',

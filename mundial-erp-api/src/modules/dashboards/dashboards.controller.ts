@@ -16,7 +16,7 @@ import {
   ApiResponse,
   ApiTags,
 } from '@nestjs/swagger';
-import { Role } from '@prisma/client';
+import { WorkspaceMemberRole } from '@prisma/client';
 import { DashboardsService } from './dashboards.service';
 import { CreateDashboardDto } from './dto/create-dashboard.dto';
 import { UpdateDashboardDto } from './dto/update-dashboard.dto';
@@ -30,7 +30,7 @@ import {
   DashboardFilterResponseDto,
 } from './dto/dashboard-response.dto';
 import { PaginationDto } from '../../common/dtos/pagination.dto';
-import { CurrentUser, Roles } from '../auth/decorators';
+import { CurrentUser, WorkspaceRoles } from '../auth/decorators';
 import type { JwtPayload } from '../auth/decorators/current-user.decorator';
 import { WorkspaceId } from '../workspaces/decorators/workspace-id.decorator';
 
@@ -45,7 +45,11 @@ export class DashboardsController {
   // ---------------------------------------------------------------------------
 
   @Post()
-  @Roles(Role.ADMIN, Role.MANAGER, Role.OPERATOR)
+  @WorkspaceRoles(
+    WorkspaceMemberRole.OWNER,
+    WorkspaceMemberRole.ADMIN,
+    WorkspaceMemberRole.EDITOR,
+  )
   @ApiOperation({ summary: 'Criar dashboard' })
   @ApiResponse({ status: 201, type: DashboardResponseDto })
   create(
@@ -57,7 +61,11 @@ export class DashboardsController {
   }
 
   @Get()
-  @Roles(Role.ADMIN, Role.MANAGER, Role.OPERATOR)
+  @WorkspaceRoles(
+    WorkspaceMemberRole.OWNER,
+    WorkspaceMemberRole.ADMIN,
+    WorkspaceMemberRole.EDITOR,
+  )
   @ApiOperation({ summary: 'Listar dashboards do usuario + publicos' })
   @ApiResponse({ status: 200, type: DashboardResponseDto, isArray: true })
   findAll(
@@ -69,7 +77,11 @@ export class DashboardsController {
   }
 
   @Get(':id')
-  @Roles(Role.ADMIN, Role.MANAGER, Role.OPERATOR)
+  @WorkspaceRoles(
+    WorkspaceMemberRole.OWNER,
+    WorkspaceMemberRole.ADMIN,
+    WorkspaceMemberRole.EDITOR,
+  )
   @ApiOperation({ summary: 'Dashboard com cards e filtros' })
   @ApiResponse({ status: 200, type: DashboardResponseDto })
   @ApiResponse({ status: 404, description: 'Dashboard nao encontrado' })
@@ -80,12 +92,12 @@ export class DashboardsController {
   ) {
     return this.dashboardsService.findById(workspaceId, id, {
       userId: user.sub,
-      role: user.role as Role,
+      role: user.workspaceRole as WorkspaceMemberRole,
     });
   }
 
   @Patch(':id')
-  @Roles(Role.ADMIN, Role.MANAGER)
+  @WorkspaceRoles(WorkspaceMemberRole.OWNER, WorkspaceMemberRole.ADMIN)
   @ApiOperation({ summary: 'Atualizar dashboard (nome, visibilidade)' })
   @ApiResponse({ status: 200, type: DashboardResponseDto })
   @ApiResponse({ status: 404, description: 'Dashboard nao encontrado' })
@@ -97,12 +109,12 @@ export class DashboardsController {
   ) {
     return this.dashboardsService.update(workspaceId, id, dto, {
       userId: user.sub,
-      role: user.role as Role,
+      role: user.workspaceRole as WorkspaceMemberRole,
     });
   }
 
   @Delete(':id')
-  @Roles(Role.ADMIN, Role.MANAGER)
+  @WorkspaceRoles(WorkspaceMemberRole.OWNER, WorkspaceMemberRole.ADMIN)
   @HttpCode(HttpStatus.NO_CONTENT)
   @ApiOperation({ summary: 'Soft delete dashboard' })
   @ApiResponse({ status: 204 })
@@ -114,7 +126,7 @@ export class DashboardsController {
   ) {
     return this.dashboardsService.remove(workspaceId, id, {
       userId: user.sub,
-      role: user.role as Role,
+      role: user.workspaceRole as WorkspaceMemberRole,
     });
   }
 
@@ -123,7 +135,11 @@ export class DashboardsController {
   // ---------------------------------------------------------------------------
 
   @Post(':id/cards')
-  @Roles(Role.ADMIN, Role.MANAGER, Role.OPERATOR)
+  @WorkspaceRoles(
+    WorkspaceMemberRole.OWNER,
+    WorkspaceMemberRole.ADMIN,
+    WorkspaceMemberRole.EDITOR,
+  )
   @ApiOperation({ summary: 'Adicionar card ao dashboard' })
   @ApiResponse({ status: 201, type: DashboardCardResponseDto })
   addCard(
@@ -134,12 +150,16 @@ export class DashboardsController {
   ) {
     return this.dashboardsService.addCard(workspaceId, dashboardId, dto, {
       userId: user.sub,
-      role: user.role as Role,
+      role: user.workspaceRole as WorkspaceMemberRole,
     });
   }
 
   @Patch(':id/cards/:cardId')
-  @Roles(Role.ADMIN, Role.MANAGER, Role.OPERATOR)
+  @WorkspaceRoles(
+    WorkspaceMemberRole.OWNER,
+    WorkspaceMemberRole.ADMIN,
+    WorkspaceMemberRole.EDITOR,
+  )
   @ApiOperation({ summary: 'Atualizar card (tipo, data source, layout)' })
   @ApiResponse({ status: 200, type: DashboardCardResponseDto })
   @ApiResponse({ status: 404, description: 'Card nao encontrado' })
@@ -155,12 +175,12 @@ export class DashboardsController {
       dashboardId,
       cardId,
       dto,
-      { userId: user.sub, role: user.role as Role },
+      { userId: user.sub, role: user.workspaceRole as WorkspaceMemberRole },
     );
   }
 
   @Delete(':id/cards/:cardId')
-  @Roles(Role.ADMIN, Role.MANAGER)
+  @WorkspaceRoles(WorkspaceMemberRole.OWNER, WorkspaceMemberRole.ADMIN)
   @HttpCode(HttpStatus.NO_CONTENT)
   @ApiOperation({ summary: 'Remover card' })
   @ApiResponse({ status: 204 })
@@ -172,12 +192,16 @@ export class DashboardsController {
   ) {
     return this.dashboardsService.removeCard(workspaceId, dashboardId, cardId, {
       userId: user.sub,
-      role: user.role as Role,
+      role: user.workspaceRole as WorkspaceMemberRole,
     });
   }
 
   @Patch(':id/layout')
-  @Roles(Role.ADMIN, Role.MANAGER, Role.OPERATOR)
+  @WorkspaceRoles(
+    WorkspaceMemberRole.OWNER,
+    WorkspaceMemberRole.ADMIN,
+    WorkspaceMemberRole.EDITOR,
+  )
   @ApiOperation({
     summary: 'Atualizar layout de todos os cards (batch posicoes x,y,w,h)',
   })
@@ -190,7 +214,7 @@ export class DashboardsController {
   ) {
     return this.dashboardsService.updateLayout(workspaceId, dashboardId, dto, {
       userId: user.sub,
-      role: user.role as Role,
+      role: user.workspaceRole as WorkspaceMemberRole,
     });
   }
 
@@ -199,7 +223,11 @@ export class DashboardsController {
   // ---------------------------------------------------------------------------
 
   @Get(':id/cards/:cardId/data')
-  @Roles(Role.ADMIN, Role.MANAGER, Role.OPERATOR)
+  @WorkspaceRoles(
+    WorkspaceMemberRole.OWNER,
+    WorkspaceMemberRole.ADMIN,
+    WorkspaceMemberRole.EDITOR,
+  )
   @ApiOperation({
     summary: 'Executar query do card — retorna dados renderizaveis',
   })
@@ -218,7 +246,7 @@ export class DashboardsController {
       workspaceId,
       dashboardId,
       cardId,
-      { userId: user.sub, role: user.role as Role },
+      { userId: user.sub, role: user.workspaceRole as WorkspaceMemberRole },
     );
   }
 
@@ -227,7 +255,11 @@ export class DashboardsController {
   // ---------------------------------------------------------------------------
 
   @Post(':id/filters')
-  @Roles(Role.ADMIN, Role.MANAGER, Role.OPERATOR)
+  @WorkspaceRoles(
+    WorkspaceMemberRole.OWNER,
+    WorkspaceMemberRole.ADMIN,
+    WorkspaceMemberRole.EDITOR,
+  )
   @ApiOperation({ summary: 'Adicionar filtro global ao dashboard' })
   @ApiResponse({ status: 201, type: DashboardFilterResponseDto })
   addFilter(
@@ -238,12 +270,12 @@ export class DashboardsController {
   ) {
     return this.dashboardsService.addFilter(workspaceId, dashboardId, dto, {
       userId: user.sub,
-      role: user.role as Role,
+      role: user.workspaceRole as WorkspaceMemberRole,
     });
   }
 
   @Delete(':id/filters/:filterId')
-  @Roles(Role.ADMIN, Role.MANAGER)
+  @WorkspaceRoles(WorkspaceMemberRole.OWNER, WorkspaceMemberRole.ADMIN)
   @HttpCode(HttpStatus.NO_CONTENT)
   @ApiOperation({ summary: 'Remover filtro global' })
   @ApiResponse({ status: 204 })
@@ -257,7 +289,7 @@ export class DashboardsController {
       workspaceId,
       dashboardId,
       filterId,
-      { userId: user.sub, role: user.role as Role },
+      { userId: user.sub, role: user.workspaceRole as WorkspaceMemberRole },
     );
   }
 }

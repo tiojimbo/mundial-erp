@@ -22,7 +22,7 @@ import {
 import { InjectQueue } from '@nestjs/bullmq';
 import { Queue } from 'bullmq';
 import { randomUUID } from 'node:crypto';
-import { Role } from '@prisma/client';
+import { WorkspaceMemberRole } from '@prisma/client';
 import { PrismaService } from '../../database/prisma.service';
 import { TaskAttachmentsRepository } from './task-attachments.repository';
 import { S3AdapterService } from '../../common/adapters/s3-adapter.service';
@@ -50,10 +50,11 @@ import {
 
 const SIGNED_URL_TTL_SECONDS = 300;
 const OUTBOX_ATTACHMENT_ADDED = 'ATTACHMENT_ADDED' as const;
-const ROLES_MAY_DELETE: ReadonlySet<Role> = new Set<Role>([
-  Role.ADMIN,
-  Role.MANAGER,
-]);
+const ROLES_MAY_DELETE: ReadonlySet<WorkspaceMemberRole> =
+  new Set<WorkspaceMemberRole>([
+    WorkspaceMemberRole.OWNER,
+    WorkspaceMemberRole.ADMIN,
+  ]);
 
 function sanitizeFilename(input: string): string {
   // remove caminhos/barras, limita a [a-zA-Z0-9._-], corta a 128 chars.
@@ -256,7 +257,7 @@ export class TaskAttachmentsService {
   async remove(
     workspaceId: string,
     id: string,
-    actor: { userId: string; role: Role },
+    actor: { userId: string; role: WorkspaceMemberRole },
   ): Promise<void> {
     if (!ROLES_MAY_DELETE.has(actor.role)) {
       throw new ForbiddenException('Apenas Manager ou Admin podem remover');

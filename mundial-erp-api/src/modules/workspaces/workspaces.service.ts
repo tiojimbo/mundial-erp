@@ -10,7 +10,6 @@ import {
   MyPermissionResponseDto,
   resolveWorkspacePermissionFlags,
 } from './dto/my-permission-response.dto';
-import { WorkspaceUsersResponseDto } from './dto/workspace-users-response.dto';
 import { CreateWorkspaceDto } from './dto/create-workspace.dto';
 import { UpdateWorkspaceDto } from './dto/update-workspace.dto';
 import {
@@ -178,38 +177,6 @@ export class WorkspacesService {
       membersTotal: SEATS_TOTAL_MEMBERS,
       guestsUsed,
       guestsTotal: SEATS_TOTAL_GUESTS,
-    };
-  }
-
-  /**
-   * Garante que o usuario e membro ativo do workspace. Lanca 403 se nao for.
-   * Util quando o WorkspaceGuard global esta desligado para a rota
-   * (ex: endpoints com @SkipWorkspaceGuard) mas precisamos de checagem
-   * pontual de membership.
-   */
-  async listUsers(
-    workspaceId: string,
-    userId: string,
-    pagination: PaginationDto,
-    role?: WorkspaceMemberRole,
-  ): Promise<WorkspaceUsersResponseDto> {
-    await this.assertMembership(workspaceId, userId);
-    const { items, total } = await this.membersRepository.findMany({
-      workspaceId,
-      skip: pagination.skip,
-      take: pagination.limit,
-      role,
-    });
-    return {
-      users: items.map((member) => ({
-        id: member.userId,
-        name: member.user?.name ?? null,
-        email: member.user?.email ?? null,
-        permission: member.role,
-        ...resolveWorkspacePermissionFlags(member.role),
-        joinedAt: member.joinedAt,
-      })),
-      total,
     };
   }
 

@@ -168,7 +168,6 @@ export class AuthService {
     const tokens = await this.generateTokens({
       sub: user.id,
       email: user.email,
-      role: user.role,
       workspaceId,
       workspaceRole: member.role,
     });
@@ -210,7 +209,6 @@ export class AuthService {
       const tokens = await this.generateTokens({
         sub: user.id,
         email: user.email,
-        role: user.role,
       });
       await this.updateRefreshTokenHash(user.id, tokens.refreshToken);
 
@@ -259,7 +257,6 @@ export class AuthService {
     const tokens = await this.generateTokens({
       sub: user.id,
       email: user.email,
-      role: user.role,
       workspaceId: resolved?.workspace.id,
       workspaceRole: resolved?.role,
     });
@@ -288,7 +285,6 @@ export class AuthService {
     const tokenPayload: JwtPayload = {
       sub: payload.sub,
       email: payload.email,
-      role: payload.role,
       ...(payload.workspaceId ? { workspaceId: payload.workspaceId } : {}),
       ...(payload.workspaceRole
         ? { workspaceRole: payload.workspaceRole }

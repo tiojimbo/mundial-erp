@@ -1,10 +1,8 @@
 import type { User } from '@/types/auth.types';
 
-export type WorkspaceRole = 'OWNER' | 'ADMIN' | 'MEMBER' | 'GUEST';
+export type WorkspaceRole = 'OWNER' | 'ADMIN' | 'EDITOR' | 'GUEST';
 
 export type WorkspacePlan = 'FREE' | 'PRO' | 'ENTERPRISE';
-
-export type InviteStatus = 'PENDING' | 'ACCEPTED' | 'EXPIRED' | 'REVOKED';
 
 export type Workspace = {
   id: string;
@@ -28,18 +26,24 @@ export type WorkspaceMember = {
   userId: string;
   role: WorkspaceRole;
   joinedAt: string;
-  user: Pick<User, 'id' | 'name' | 'email' | 'avatarUrl'>;
+  user: Pick<User, 'id' | 'name' | 'email' | 'avatar'>;
 };
 
-export type WorkspaceInvite = {
+export type WorkspaceUser = {
   id: string;
-  workspaceId: string;
-  email: string;
-  role: WorkspaceRole;
-  status: InviteStatus;
-  expiresAt: string;
-  token?: string;
-  createdAt: string;
+  name: string | null;
+  email: string | null;
+  avatar: string | null;
+  accepted: boolean;
+  permission: WorkspaceRole;
+  canCreateViews: boolean;
+  canManageTags: boolean;
+  joinedAt: string;
+};
+
+export type WorkspaceUsersResponse = {
+  users: WorkspaceUser[];
+  total: number;
 };
 
 export type WorkspaceSeats = {
@@ -58,14 +62,22 @@ export type CreateWorkspacePayload = {
 
 export type UpdateWorkspacePayload = Partial<CreateWorkspacePayload>;
 
-export type AddMemberPayload = {
-  userId: string;
-  role: WorkspaceRole;
+export type BulkAddUsersPayload = {
+  users: { email: string; permission: WorkspaceRole }[];
 };
 
-export type CreateInvitePayload = {
+export type BulkInvitedUser = {
+  id: string;
   email: string;
-  role: WorkspaceRole;
+  name: string | null;
+  permission: WorkspaceRole;
+  accepted: boolean;
+  isNewUser: boolean;
+};
+
+export type BulkAddResponse = {
+  invited: BulkInvitedUser[];
+  skipped: string[];
 };
 
 export type WorkspaceFilters = {
@@ -74,16 +86,10 @@ export type WorkspaceFilters = {
   search?: string;
 };
 
-export type WorkspaceMemberFilters = {
+export type WorkspaceUsersFilters = {
   page?: number;
   limit?: number;
-  role?: WorkspaceRole;
-};
-
-export type WorkspaceInviteFilters = {
-  page?: number;
-  limit?: number;
-  status?: InviteStatus;
+  showPending?: boolean;
 };
 
 export type SelectWorkspaceResponse = {

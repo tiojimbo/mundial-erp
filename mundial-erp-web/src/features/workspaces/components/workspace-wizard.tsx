@@ -116,28 +116,23 @@ export function WorkspaceWizard() {
         slug: toSlug(data.name),
       });
 
-      // Falhas individuais NÃO abortam — user entra no workspace mesmo assim.
-      let inviteFailures = 0;
+      // Falha no convite NÃO aborta — user entra no workspace mesmo assim.
       if (validInvites.length > 0) {
-        const results = await Promise.allSettled(
-          validInvites.map((email) =>
-            workspaceService.createInvite(workspace.id, {
+        try {
+          const res = await workspaceService.bulkAddUsers(workspace.id, {
+            users: validInvites.map((email) => ({
               email,
-              role: 'MEMBER' as WorkspaceRole,
-            }),
-          ),
-        );
-        inviteFailures = results.filter((r) => r.status === 'rejected').length;
-        const sent = results.length - inviteFailures;
-        if (sent > 0) {
-          toast.success(
-            sent === 1 ? '1 convite enviado!' : `${sent} convites enviados!`,
-          );
-        }
-        if (inviteFailures > 0) {
-          toast.error(
-            `${inviteFailures} convite(s) falharam — revise em Configurações.`,
-          );
+              permission: 'EDITOR' as WorkspaceRole,
+            })),
+          });
+          const sent = res.invited.length;
+          if (sent > 0) {
+            toast.success(
+              sent === 1 ? '1 convite enviado!' : `${sent} convites enviados!`,
+            );
+          }
+        } catch {
+          toast.error('Falha ao convidar — revise em Configurações.');
         }
       }
 

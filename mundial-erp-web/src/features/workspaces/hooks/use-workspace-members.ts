@@ -1,22 +1,22 @@
 import { useQuery } from '@tanstack/react-query';
 import { workspaceService } from '../services/workspace.service';
 import { WORKSPACES_KEY } from './use-workspaces';
-import type { WorkspaceMemberFilters } from '../types/workspace.types';
+import type { WorkspaceUsersFilters } from '../types/workspace.types';
 
-export function workspaceMembersKey(
+export function workspaceUsersKey(
   workspaceId: string,
-  filters?: WorkspaceMemberFilters,
+  filters?: WorkspaceUsersFilters,
 ) {
-  return [...WORKSPACES_KEY, workspaceId, 'members', filters] as const;
+  return [...WORKSPACES_KEY, workspaceId, 'users', filters] as const;
 }
 
-export function useWorkspaceMembers(
+export function useWorkspaceUsers(
   workspaceId: string,
-  filters?: WorkspaceMemberFilters,
+  filters?: WorkspaceUsersFilters,
 ) {
   return useQuery({
-    queryKey: workspaceMembersKey(workspaceId, filters),
-    queryFn: () => workspaceService.getMembers(workspaceId, filters),
+    queryKey: workspaceUsersKey(workspaceId, filters),
+    queryFn: () => workspaceService.getUsers(workspaceId, filters),
     enabled: !!workspaceId,
     placeholderData: (prev) => prev,
   });

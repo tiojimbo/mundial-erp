@@ -16,13 +16,13 @@ import {
   ApiResponse,
   ApiTags,
 } from '@nestjs/swagger';
-import { Role } from '@prisma/client';
+import { WorkspaceMemberRole } from '@prisma/client';
 import { StatesService } from './states.service';
 import { CreateStateDto } from './dto/create-state.dto';
 import { UpdateStateDto } from './dto/update-state.dto';
 import { StateResponseDto } from './dto/state-response.dto';
 import { PaginationDto } from '../../common/dtos/pagination.dto';
-import { Roles } from '../auth/decorators';
+import { WorkspaceRoles } from '../auth/decorators';
 
 @ApiTags('States')
 @ApiBearerAuth()
@@ -31,7 +31,7 @@ export class StatesController {
   constructor(private readonly statesService: StatesService) {}
 
   @Post()
-  @Roles(Role.ADMIN)
+  @WorkspaceRoles(WorkspaceMemberRole.OWNER, WorkspaceMemberRole.ADMIN)
   @ApiOperation({ summary: 'Criar estado (somente ADMIN)' })
   @ApiResponse({ status: 201, type: StateResponseDto })
   @ApiResponse({ status: 409, description: 'Estado com esta UF já existe' })
@@ -40,14 +40,14 @@ export class StatesController {
   }
 
   @Get()
-  @Roles(Role.ADMIN, Role.MANAGER)
+  @WorkspaceRoles(WorkspaceMemberRole.OWNER, WorkspaceMemberRole.ADMIN)
   @ApiOperation({ summary: 'Listar estados' })
   findAll(@Query() pagination: PaginationDto) {
     return this.statesService.findAll(pagination);
   }
 
   @Get(':id')
-  @Roles(Role.ADMIN, Role.MANAGER)
+  @WorkspaceRoles(WorkspaceMemberRole.OWNER, WorkspaceMemberRole.ADMIN)
   @ApiOperation({ summary: 'Buscar estado por ID' })
   @ApiResponse({ status: 200, type: StateResponseDto })
   @ApiResponse({ status: 404, description: 'Estado não encontrado' })
@@ -56,7 +56,6 @@ export class StatesController {
   }
 
   @Get(':id/cities')
-  @Roles(Role.ADMIN, Role.MANAGER, Role.OPERATOR, Role.VIEWER)
   @ApiOperation({ summary: 'Listar cidades do estado' })
   findCitiesByState(
     @Param('id') id: string,
@@ -66,7 +65,7 @@ export class StatesController {
   }
 
   @Patch(':id')
-  @Roles(Role.ADMIN)
+  @WorkspaceRoles(WorkspaceMemberRole.OWNER, WorkspaceMemberRole.ADMIN)
   @ApiOperation({ summary: 'Atualizar estado (somente ADMIN)' })
   @ApiResponse({ status: 200, type: StateResponseDto })
   update(@Param('id') id: string, @Body() dto: UpdateStateDto) {
@@ -74,7 +73,7 @@ export class StatesController {
   }
 
   @Delete(':id')
-  @Roles(Role.ADMIN)
+  @WorkspaceRoles(WorkspaceMemberRole.OWNER, WorkspaceMemberRole.ADMIN)
   @HttpCode(HttpStatus.NO_CONTENT)
   @ApiOperation({ summary: 'Remover estado (somente ADMIN)' })
   @ApiResponse({ status: 204 })

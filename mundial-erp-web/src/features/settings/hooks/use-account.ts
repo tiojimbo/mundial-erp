@@ -17,12 +17,19 @@ export function useUpdateProfile() {
 
 export function useUploadAvatar() {
   return useMutation({
-    mutationFn: (file: File) => accountService.uploadAvatar(file),
+    mutationFn: (imageDataUrl: string) =>
+      accountService.uploadAvatar(imageDataUrl),
     onSuccess: (data) => {
-      const user = useAuthStore.getState().user;
-      if (user) {
-        useAuthStore.getState().setUser({ ...user, avatarUrl: data.avatarUrl });
-      }
+      useAuthStore.getState().setUser(data);
+    },
+  });
+}
+
+export function useDeleteAvatar() {
+  return useMutation({
+    mutationFn: () => accountService.deleteAvatar(),
+    onSuccess: (data) => {
+      useAuthStore.getState().setUser(data);
     },
   });
 }

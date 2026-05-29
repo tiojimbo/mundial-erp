@@ -19,9 +19,9 @@ import {
   ApiTags,
 } from '@nestjs/swagger';
 import {
-  Role,
   StockRequisitionStatus,
   StockRequisitionType,
+  WorkspaceMemberRole,
 } from '@prisma/client';
 import * as express from 'express';
 import { StockRequisitionsService } from './stock-requisitions.service';
@@ -29,7 +29,7 @@ import { CreateStockRequisitionDto } from './dto/create-stock-requisition.dto';
 import { ProcessItemDto } from './dto/process-item.dto';
 import { StockRequisitionResponseDto } from './dto/stock-requisition-response.dto';
 import { PaginationDto } from '../../common/dtos/pagination.dto';
-import { CurrentUser, Roles } from '../auth/decorators';
+import { CurrentUser, WorkspaceRoles } from '../auth/decorators';
 import { RequisitionPdfService } from './pdf/requisition-pdf.service';
 
 @ApiTags('Stock Requisitions')
@@ -43,7 +43,11 @@ export class StockRequisitionsController {
 
   // POST /stock-requisitions
   @Post()
-  @Roles(Role.ADMIN, Role.MANAGER, Role.OPERATOR)
+  @WorkspaceRoles(
+    WorkspaceMemberRole.OWNER,
+    WorkspaceMemberRole.ADMIN,
+    WorkspaceMemberRole.EDITOR,
+  )
   @ApiOperation({ summary: 'Criar requisicao de estoque (VENDA ou INTERNO)' })
   @ApiResponse({ status: 201, type: StockRequisitionResponseDto })
   create(
@@ -55,7 +59,11 @@ export class StockRequisitionsController {
 
   // GET /stock-requisitions
   @Get()
-  @Roles(Role.ADMIN, Role.MANAGER, Role.OPERATOR)
+  @WorkspaceRoles(
+    WorkspaceMemberRole.OWNER,
+    WorkspaceMemberRole.ADMIN,
+    WorkspaceMemberRole.EDITOR,
+  )
   @ApiOperation({
     summary: 'Listar requisicoes (filtro por type, status, data)',
   })
@@ -93,7 +101,11 @@ export class StockRequisitionsController {
 
   // GET /stock-requisitions/code/:code (buscar por codigo — usado pelo scanner)
   @Get('code/:code')
-  @Roles(Role.ADMIN, Role.MANAGER, Role.OPERATOR)
+  @WorkspaceRoles(
+    WorkspaceMemberRole.OWNER,
+    WorkspaceMemberRole.ADMIN,
+    WorkspaceMemberRole.EDITOR,
+  )
   @ApiOperation({ summary: 'Buscar requisicao por codigo (scan Code-128)' })
   @ApiResponse({ status: 200, type: StockRequisitionResponseDto })
   @ApiResponse({ status: 404, description: 'Requisicao nao encontrada' })
@@ -103,7 +115,11 @@ export class StockRequisitionsController {
 
   // GET /stock-requisitions/:id
   @Get(':id')
-  @Roles(Role.ADMIN, Role.MANAGER, Role.OPERATOR)
+  @WorkspaceRoles(
+    WorkspaceMemberRole.OWNER,
+    WorkspaceMemberRole.ADMIN,
+    WorkspaceMemberRole.EDITOR,
+  )
   @ApiOperation({
     summary: 'Detalhe da requisicao com itens e status de processamento',
   })
@@ -115,7 +131,7 @@ export class StockRequisitionsController {
 
   // PATCH /stock-requisitions/:id/approve
   @Patch(':id/approve')
-  @Roles(Role.ADMIN, Role.MANAGER)
+  @WorkspaceRoles(WorkspaceMemberRole.OWNER, WorkspaceMemberRole.ADMIN)
   @ApiOperation({ summary: 'Aprovar requisicao' })
   @ApiResponse({ status: 200, type: StockRequisitionResponseDto })
   @ApiResponse({ status: 400, description: 'Status invalido para aprovacao' })
@@ -125,7 +141,11 @@ export class StockRequisitionsController {
 
   // PATCH /stock-requisitions/:id/items/:itemId/process
   @Patch(':id/items/:itemId/process')
-  @Roles(Role.ADMIN, Role.MANAGER, Role.OPERATOR)
+  @WorkspaceRoles(
+    WorkspaceMemberRole.OWNER,
+    WorkspaceMemberRole.ADMIN,
+    WorkspaceMemberRole.EDITOR,
+  )
   @ApiOperation({
     summary: 'Processar item individual (apos scan EAN): baixa estoque',
   })
@@ -144,7 +164,11 @@ export class StockRequisitionsController {
 
   // PATCH /stock-requisitions/:id/complete
   @Patch(':id/complete')
-  @Roles(Role.ADMIN, Role.MANAGER, Role.OPERATOR)
+  @WorkspaceRoles(
+    WorkspaceMemberRole.OWNER,
+    WorkspaceMemberRole.ADMIN,
+    WorkspaceMemberRole.EDITOR,
+  )
   @ApiOperation({ summary: 'Marcar como PROCESSED (todos itens processados)' })
   @ApiResponse({ status: 200, type: StockRequisitionResponseDto })
   @ApiResponse({
@@ -157,7 +181,11 @@ export class StockRequisitionsController {
 
   // GET /stock-requisitions/:id/pdf
   @Get(':id/pdf')
-  @Roles(Role.ADMIN, Role.MANAGER, Role.OPERATOR)
+  @WorkspaceRoles(
+    WorkspaceMemberRole.OWNER,
+    WorkspaceMemberRole.ADMIN,
+    WorkspaceMemberRole.EDITOR,
+  )
   @ApiOperation({ summary: 'Gerar PDF da requisicao com barcode Code-128' })
   @ApiResponse({ status: 200, description: 'PDF binario' })
   async getPdf(@Param('id') id: string, @Res() res: express.Response) {
@@ -172,7 +200,7 @@ export class StockRequisitionsController {
 
   // DELETE /stock-requisitions/:id
   @Delete(':id')
-  @Roles(Role.ADMIN, Role.MANAGER)
+  @WorkspaceRoles(WorkspaceMemberRole.OWNER, WorkspaceMemberRole.ADMIN)
   @HttpCode(HttpStatus.NO_CONTENT)
   @ApiOperation({ summary: 'Excluir requisicao permanentemente' })
   @ApiResponse({ status: 204 })

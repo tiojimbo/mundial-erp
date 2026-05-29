@@ -13,7 +13,7 @@ import {
   ApiResponse,
   ApiTags,
 } from '@nestjs/swagger';
-import { Role } from '@prisma/client';
+import { WorkspaceMemberRole } from '@prisma/client';
 import { StatusService } from './status.service';
 import { CreateStatusDto } from './dto/create-status.dto';
 import { UpdateStatusDto } from './dto/update-status.dto';
@@ -23,7 +23,7 @@ import {
 } from './dto/status-response.dto';
 import { StatusRequiredFieldResponseDto } from './dto/status-required-field-response.dto';
 import { UpdateRequiredFieldsDto } from './dto/update-required-fields.dto';
-import { Roles } from '../auth/decorators';
+import { WorkspaceRoles } from '../auth/decorators';
 import { WorkspaceId } from '../workspaces/decorators/workspace-id.decorator';
 
 @ApiTags('Status')
@@ -33,7 +33,7 @@ export class StatusController {
   constructor(private readonly statusService: StatusService) {}
 
   @Post()
-  @Roles(Role.ADMIN, Role.MANAGER)
+  @WorkspaceRoles(WorkspaceMemberRole.OWNER, WorkspaceMemberRole.ADMIN)
   @ApiOperation({ summary: 'Criar status (Hoppe-style)' })
   @ApiResponse({ status: 201, type: StatusResponseDto })
   create(@WorkspaceId() workspaceId: string, @Body() dto: CreateStatusDto) {
@@ -41,7 +41,6 @@ export class StatusController {
   }
 
   @Get('list/:listId')
-  @Roles(Role.ADMIN, Role.MANAGER, Role.OPERATOR, Role.VIEWER)
   @ApiOperation({ summary: 'Listar status de uma list' })
   @ApiResponse({ status: 200, type: [StatusResponseDto] })
   findByList(
@@ -52,7 +51,6 @@ export class StatusController {
   }
 
   @Get(':id')
-  @Roles(Role.ADMIN, Role.MANAGER, Role.OPERATOR, Role.VIEWER)
   @ApiOperation({ summary: 'Detalhe de status com tasks aninhadas' })
   @ApiResponse({ status: 200, type: StatusDetailResponseDto })
   findById(@WorkspaceId() workspaceId: string, @Param('id') id: string) {
@@ -60,7 +58,7 @@ export class StatusController {
   }
 
   @Put(':id')
-  @Roles(Role.ADMIN, Role.MANAGER)
+  @WorkspaceRoles(WorkspaceMemberRole.OWNER, WorkspaceMemberRole.ADMIN)
   @ApiOperation({ summary: 'Atualizar status (id no body e na URL)' })
   @ApiResponse({ status: 200, type: StatusResponseDto })
   update(
@@ -72,7 +70,7 @@ export class StatusController {
   }
 
   @Delete(':id')
-  @Roles(Role.ADMIN, Role.MANAGER)
+  @WorkspaceRoles(WorkspaceMemberRole.OWNER, WorkspaceMemberRole.ADMIN)
   @ApiOperation({ summary: 'Deletar status (sem migração obrigatória)' })
   @ApiResponse({ status: 200, type: StatusResponseDto })
   remove(@WorkspaceId() workspaceId: string, @Param('id') id: string) {
@@ -80,7 +78,6 @@ export class StatusController {
   }
 
   @Get(':id/required-fields')
-  @Roles(Role.ADMIN, Role.MANAGER, Role.OPERATOR, Role.VIEWER)
   @ApiOperation({
     summary: 'Listar custom fields obrigatórios pra entrar no status',
   })
@@ -93,7 +90,7 @@ export class StatusController {
   }
 
   @Put(':id/required-fields')
-  @Roles(Role.ADMIN, Role.MANAGER)
+  @WorkspaceRoles(WorkspaceMemberRole.OWNER, WorkspaceMemberRole.ADMIN)
   @ApiOperation({ summary: 'Substituir custom fields obrigatórios do status' })
   @ApiResponse({ status: 200, type: [StatusRequiredFieldResponseDto] })
   setRequiredFields(

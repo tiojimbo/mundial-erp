@@ -6,7 +6,7 @@ import {
   NotFoundException,
   forwardRef,
 } from '@nestjs/common';
-import { Prisma, Role } from '@prisma/client';
+import { Prisma, WorkspaceMemberRole } from '@prisma/client';
 import { PrismaService } from '../../database/prisma.service';
 import { TaskWatchersRepository } from './task-watchers.repository';
 import { WatcherResponseDto } from './dtos/watcher-response.dto';
@@ -18,9 +18,9 @@ const OUTBOX_EVENT_WATCHER_REMOVED = 'WATCHER_REMOVED' as const;
 /**
  * Roles que podem adicionar/remover watchers de terceiros (nao o proprio user).
  */
-const ROLES_MAY_MANAGE_OTHERS: ReadonlySet<Role> = new Set([
-  Role.ADMIN,
-  Role.MANAGER,
+const ROLES_MAY_MANAGE_OTHERS: ReadonlySet<WorkspaceMemberRole> = new Set([
+  WorkspaceMemberRole.OWNER,
+  WorkspaceMemberRole.ADMIN,
 ]);
 
 @Injectable()
@@ -50,7 +50,7 @@ export class TaskWatchersService {
     workspaceId: string,
     taskId: string,
     targetUserId: string,
-    actor: { userId: string; role: Role },
+    actor: { userId: string; role: WorkspaceMemberRole },
   ): Promise<void> {
     const task = await this.repository.findTaskInWorkspace(workspaceId, taskId);
     if (!task) {
@@ -115,7 +115,7 @@ export class TaskWatchersService {
     workspaceId: string,
     taskId: string,
     targetUserId: string,
-    actor: { userId: string; role: Role },
+    actor: { userId: string; role: WorkspaceMemberRole },
   ): Promise<void> {
     const task = await this.repository.findTaskInWorkspace(workspaceId, taskId);
     if (!task) {

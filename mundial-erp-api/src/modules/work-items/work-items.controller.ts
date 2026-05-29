@@ -18,7 +18,7 @@ import {
   ApiResponse,
   ApiTags,
 } from '@nestjs/swagger';
-import { Role } from '@prisma/client';
+import { WorkspaceMemberRole } from '@prisma/client';
 import { WorkItemsService } from './work-items.service';
 import { CreateWorkItemDto } from './dto/create-work-item.dto';
 import { UpdateWorkItemDto } from './dto/update-work-item.dto';
@@ -27,7 +27,7 @@ import { ReorderWorkItemsDto } from './dto/reorder-work-items.dto';
 import { WorkItemResponseDto } from './dto/work-item-response.dto';
 import { WorkItemFiltersDto } from './dto/work-item-filters.dto';
 import { MyTasksResponseDto } from './dto/my-tasks-response.dto';
-import { CurrentUser, Roles } from '../auth/decorators';
+import { CurrentUser, WorkspaceRoles } from '../auth/decorators';
 import type { JwtPayload } from '../auth/decorators';
 import { WorkspaceId } from '../workspaces/decorators/workspace-id.decorator';
 
@@ -38,7 +38,11 @@ export class WorkItemsController {
   constructor(private readonly workItemsService: WorkItemsService) {}
 
   @Post()
-  @Roles(Role.ADMIN, Role.MANAGER, Role.OPERATOR)
+  @WorkspaceRoles(
+    WorkspaceMemberRole.OWNER,
+    WorkspaceMemberRole.ADMIN,
+    WorkspaceMemberRole.EDITOR,
+  )
   @ApiOperation({ summary: 'Criar work item' })
   @ApiResponse({ status: 201, type: WorkItemResponseDto })
   create(
@@ -50,7 +54,6 @@ export class WorkItemsController {
   }
 
   @Get()
-  @Roles(Role.ADMIN, Role.MANAGER, Role.OPERATOR, Role.VIEWER)
   @ApiOperation({ summary: 'Listar work items com filtros' })
   findAll(
     @WorkspaceId() workspaceId: string,
@@ -60,7 +63,6 @@ export class WorkItemsController {
   }
 
   @Get('my-tasks')
-  @Roles(Role.ADMIN, Role.MANAGER, Role.OPERATOR, Role.VIEWER)
   @ApiOperation({ summary: 'Tarefas do usuário agrupadas por data' })
   @ApiResponse({ status: 200, type: MyTasksResponseDto })
   getMyTasks(
@@ -71,7 +73,6 @@ export class WorkItemsController {
   }
 
   @Get('grouped')
-  @Roles(Role.ADMIN, Role.MANAGER, Role.OPERATOR, Role.VIEWER)
   @ApiOperation({ summary: 'Listar work items agrupados por status' })
   @ApiQuery({ name: 'listId', required: true })
   @ApiQuery({ name: 'showClosed', required: false, type: Boolean })
@@ -84,7 +85,6 @@ export class WorkItemsController {
   }
 
   @Get(':id')
-  @Roles(Role.ADMIN, Role.MANAGER, Role.OPERATOR, Role.VIEWER)
   @ApiOperation({ summary: 'Buscar work item por ID' })
   @ApiResponse({ status: 200, type: WorkItemResponseDto })
   @ApiResponse({ status: 404, description: 'Work item não encontrado' })
@@ -94,7 +94,11 @@ export class WorkItemsController {
 
   @Put(':id')
   @Patch(':id')
-  @Roles(Role.ADMIN, Role.MANAGER, Role.OPERATOR)
+  @WorkspaceRoles(
+    WorkspaceMemberRole.OWNER,
+    WorkspaceMemberRole.ADMIN,
+    WorkspaceMemberRole.EDITOR,
+  )
   @ApiOperation({ summary: 'Atualizar work item' })
   @ApiResponse({ status: 200, type: WorkItemResponseDto })
   update(
@@ -107,7 +111,11 @@ export class WorkItemsController {
 
   @Put(':id/status')
   @Patch(':id/status')
-  @Roles(Role.ADMIN, Role.MANAGER, Role.OPERATOR)
+  @WorkspaceRoles(
+    WorkspaceMemberRole.OWNER,
+    WorkspaceMemberRole.ADMIN,
+    WorkspaceMemberRole.EDITOR,
+  )
   @ApiOperation({ summary: 'Alterar status do work item' })
   @ApiResponse({ status: 200, type: WorkItemResponseDto })
   changeStatus(
@@ -119,7 +127,11 @@ export class WorkItemsController {
   }
 
   @Delete(':id')
-  @Roles(Role.ADMIN, Role.MANAGER, Role.OPERATOR)
+  @WorkspaceRoles(
+    WorkspaceMemberRole.OWNER,
+    WorkspaceMemberRole.ADMIN,
+    WorkspaceMemberRole.EDITOR,
+  )
   @HttpCode(HttpStatus.NO_CONTENT)
   @ApiOperation({ summary: 'Remover work item (soft delete)' })
   @ApiResponse({ status: 204 })
@@ -128,7 +140,11 @@ export class WorkItemsController {
   }
 
   @Post('reorder')
-  @Roles(Role.ADMIN, Role.MANAGER, Role.OPERATOR)
+  @WorkspaceRoles(
+    WorkspaceMemberRole.OWNER,
+    WorkspaceMemberRole.ADMIN,
+    WorkspaceMemberRole.EDITOR,
+  )
   @HttpCode(HttpStatus.NO_CONTENT)
   @ApiOperation({ summary: 'Reordenar work items em lote' })
   @ApiResponse({ status: 204 })

@@ -1,6 +1,7 @@
 import { ApiPropertyOptional } from '@nestjs/swagger';
+import { AppearanceMode } from '@prisma/client';
 import {
-  IsEmail,
+  IsEnum,
   IsOptional,
   IsString,
   MinLength,
@@ -13,11 +14,6 @@ export class UpdateMeDto {
   @IsString()
   @MinLength(2)
   fullName?: string;
-
-  @ApiPropertyOptional({ example: 'usuario@mundial.com' })
-  @IsOptional()
-  @IsEmail()
-  email?: string;
 
   @ApiPropertyOptional({
     description: 'Senha atual (obrigatória ao trocar senha)',
@@ -32,4 +28,19 @@ export class UpdateMeDto {
   @IsString()
   @MinLength(8)
   password?: string;
+
+  @ApiPropertyOptional({ description: 'URL do avatar' })
+  @IsOptional()
+  @IsString()
+  avatar?: string;
+
+  @ApiPropertyOptional({ example: '#3b82f6', description: 'Cor do tema (hex)' })
+  @IsOptional()
+  @IsString()
+  themeColor?: string;
+
+  @ApiPropertyOptional({ enum: AppearanceMode })
+  @IsOptional()
+  @IsEnum(AppearanceMode)
+  appearance?: AppearanceMode;
 }

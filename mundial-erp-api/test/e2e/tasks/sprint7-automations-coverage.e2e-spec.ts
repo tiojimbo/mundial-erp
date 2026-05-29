@@ -60,7 +60,6 @@ describe('Sprint 7 — Automations coverage (18 triggers x 21 actions)', () => {
           email: ownerEmail,
           name: 'Sprint7 Owner',
           passwordHash: await bcrypt.hash('senha12345', 10),
-          role: 'ADMIN',
         },
       });
       ownerUserId = owner.id;
@@ -71,7 +70,6 @@ describe('Sprint 7 — Automations coverage (18 triggers x 21 actions)', () => {
           email: secondEmail,
           name: 'Sprint7 Second',
           passwordHash: await bcrypt.hash('senha12345', 10),
-          role: 'OPERATOR',
         },
       });
       secondUserId = second.id;
@@ -89,7 +87,7 @@ describe('Sprint 7 — Automations coverage (18 triggers x 21 actions)', () => {
         data: { workspaceId, userId: ownerUserId, role: 'ADMIN' },
       });
       await prisma.workspaceMember.create({
-        data: { workspaceId, userId: secondUserId, role: 'MEMBER' },
+        data: { workspaceId, userId: secondUserId, role: 'EDITOR' },
       });
 
       const space = await prisma.space.create({

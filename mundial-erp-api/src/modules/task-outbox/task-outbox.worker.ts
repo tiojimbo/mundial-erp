@@ -84,6 +84,7 @@ const ACTIVITY_ONLY_EVENT_TYPES: ReadonlySet<TaskOutboxEventType> = new Set([
   'POINTS_CHANGED',
   'ARCHIVED',
   'UNARCHIVED',
+  'MOVED_TO_LIST',
   'CUSTOM_TYPE_CHANGED',
   'LINK_ADDED',
   'LINK_REMOVED',

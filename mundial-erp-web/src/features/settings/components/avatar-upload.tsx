@@ -1,12 +1,13 @@
 'use client';
 
 import { useRef, useState } from 'react';
-import { RiCameraLine, RiUploadLine } from '@remixicon/react';
+import { RiCameraLine, RiUploadLine, RiDeleteBinLine } from '@remixicon/react';
 import * as Avatar from '@/components/ui/avatar';
 import * as Button from '@/components/ui/button';
 import { useAuth } from '@/providers/auth-provider';
-import { useUploadAvatar } from '../hooks/use-account';
+import { useUploadAvatar, useDeleteAvatar } from '../hooks/use-account';
 import { useNotification } from '@/hooks/use-notification';
+import { getAvatarUrl } from '@/lib/api';
 
 const MAX_FILE_SIZE = 2 * 1024 * 1024; // 2MB
 const ACCEPTED_TYPES = ['image/png', 'image/jpeg'];
@@ -24,10 +25,11 @@ export function AvatarUpload() {
   const { user } = useAuth();
   const { notification } = useNotification();
   const uploadAvatar = useUploadAvatar();
+  const deleteAvatar = useDeleteAvatar();
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [preview, setPreview] = useState<string | null>(null);
 
-  const avatarSrc = preview ?? user?.avatarUrl ?? null;
+  const avatarSrc = preview ?? getAvatarUrl(user?.avatar);
   const initials = user?.name ? getInitials(user.name) : 'U';
 
   function handleFileSelect(e: React.ChangeEvent<HTMLInputElement>) {
@@ -53,26 +55,50 @@ export function AvatarUpload() {
     }
 
     setPreview(URL.createObjectURL(file));
-    uploadAvatar.mutate(file, {
+    const reader = new FileReader();
+    reader.onload = () => {
+      uploadAvatar.mutate(reader.result as string, {
+        onSuccess: () => {
+          notification({
+            title: 'Avatar atualizado',
+            description: 'Sua foto de perfil foi atualizada.',
+            status: 'success',
+          });
+        },
+        onError: () => {
+          setPreview(null);
+          notification({
+            title: 'Erro',
+            description: 'Falha ao enviar a imagem.',
+            status: 'error',
+          });
+        },
+      });
+    };
+    reader.readAsDataURL(file);
+
+    // Reset input so same file can be re-selected
+    e.target.value = '';
+  }
+
+  function handleRemove() {
+    deleteAvatar.mutate(undefined, {
       onSuccess: () => {
+        setPreview(null);
         notification({
-          title: 'Avatar atualizado',
-          description: 'Sua foto de perfil foi atualizada.',
+          title: 'Avatar removido',
+          description: 'Sua foto de perfil foi removida.',
           status: 'success',
         });
       },
       onError: () => {
-        setPreview(null);
         notification({
           title: 'Erro',
-          description: 'Falha ao enviar a imagem.',
+          description: 'Falha ao remover a imagem.',
           status: 'error',
         });
       },
     });
-
-    // Reset input so same file can be re-selected
-    e.target.value = '';
   }
 
   function triggerFileInput() {
@@ -105,17 +131,32 @@ export function AvatarUpload() {
 
       {/* Upload button + helper text */}
       <div>
-        <Button.Root
-          type='button'
-          variant='neutral'
-          mode='stroke'
-          size='small'
-          onClick={triggerFileInput}
-          disabled={uploadAvatar.isPending}
-        >
-          <Button.Icon as={RiUploadLine} />
-          {uploadAvatar.isPending ? 'Enviando...' : 'Carregar imagem'}
-        </Button.Root>
+        <div className='flex items-center gap-2'>
+          <Button.Root
+            type='button'
+            variant='neutral'
+            mode='stroke'
+            size='small'
+            onClick={triggerFileInput}
+            disabled={uploadAvatar.isPending}
+          >
+            <Button.Icon as={RiUploadLine} />
+            {uploadAvatar.isPending ? 'Enviando...' : 'Carregar imagem'}
+          </Button.Root>
+          {user?.avatar ? (
+            <Button.Root
+              type='button'
+              variant='neutral'
+              mode='ghost'
+              size='small'
+              onClick={handleRemove}
+              disabled={deleteAvatar.isPending}
+            >
+              <Button.Icon as={RiDeleteBinLine} />
+              {deleteAvatar.isPending ? 'Removendo...' : 'Remover'}
+            </Button.Root>
+          ) : null}
+        </div>
         <p className='mt-1 text-paragraph-xs text-text-soft-400'>
           Formato recomendado: PNG, JPG. Tamanho máximo: 2MB
         </p>

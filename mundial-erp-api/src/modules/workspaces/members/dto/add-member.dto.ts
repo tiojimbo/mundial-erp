@@ -10,7 +10,7 @@ export class AddMemberDto {
 
   @ApiProperty({
     enum: WorkspaceMemberRole,
-    default: WorkspaceMemberRole.MEMBER,
+    default: WorkspaceMemberRole.EDITOR,
   })
   @IsEnum(WorkspaceMemberRole)
   role!: WorkspaceMemberRole;

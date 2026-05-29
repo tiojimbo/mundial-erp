@@ -56,6 +56,11 @@ export const api = axios.create({
   paramsSerializer: { indexes: null },
 });
 
+export function getAvatarUrl(key?: string | null): string | null {
+  if (!key) return null;
+  return `${api.defaults.baseURL}/${key.replace(/^\//, '')}`;
+}
+
 let isRefreshing = false;
 let failedQueue: Array<{
   resolve: (token: string) => void;

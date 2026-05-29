@@ -79,7 +79,6 @@ export class SseJwtGuard implements CanActivate {
       request.user = {
         sub: payload.sub,
         email: payload.email,
-        role: payload.role,
         workspaceId: payload.workspaceId,
         workspaceRole: payload.workspaceRole,
       };

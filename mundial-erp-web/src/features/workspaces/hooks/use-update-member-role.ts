@@ -4,19 +4,24 @@ import { workspaceService } from '../services/workspace.service';
 import { WORKSPACES_KEY } from './use-workspaces';
 import type { WorkspaceRole } from '../types/workspace.types';
 
-export function useUpdateMemberRole(workspaceId: string) {
+export function useSetUserPermission(workspaceId: string) {
   const qc = useQueryClient();
   return useMutation({
-    mutationFn: ({ userId, role }: { userId: string; role: WorkspaceRole }) =>
-      workspaceService.updateMemberRole(workspaceId, userId, role),
+    mutationFn: ({
+      userId,
+      permission,
+    }: {
+      userId: string;
+      permission: WorkspaceRole;
+    }) => workspaceService.setUserPermission(workspaceId, userId, permission),
     onSuccess: () => {
-      toast.success('Permissão atualizada!');
+      toast.success('Funcao atualizada!');
       qc.invalidateQueries({
-        queryKey: [...WORKSPACES_KEY, workspaceId, 'members'],
+        queryKey: [...WORKSPACES_KEY, workspaceId, 'users'],
       });
     },
     onError: (err: Error) => {
-      toast.error(err.message || 'Erro ao atualizar permissão');
+      toast.error(err.message || 'Erro ao atualizar funcao');
     },
   });
 }

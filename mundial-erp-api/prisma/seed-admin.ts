@@ -8,7 +8,7 @@
  */
 
 import 'dotenv/config';
-import { PrismaClient, Role } from '@prisma/client';
+import { PrismaClient } from '@prisma/client';
 import { PrismaPg } from '@prisma/adapter-pg';
 import * as bcrypt from 'bcrypt';
 
@@ -28,7 +28,6 @@ async function main() {
     where: { email },
     update: {
       name: 'Admin',
-      role: Role.ADMIN,
       isActive: true,
       deletedAt: null,
     },
@@ -36,12 +35,11 @@ async function main() {
       email,
       name: 'Admin',
       passwordHash,
-      role: Role.ADMIN,
       isActive: true,
     },
   });
 
-  console.log(`  ✔ Admin user: ${admin.email} (id: ${admin.id}, role: ${admin.role})`);
+  console.log(`  ✔ Admin user: ${admin.email} (id: ${admin.id})`);
   console.log('✅ Admin seed complete.');
 }
 

@@ -16,13 +16,13 @@ import {
   ApiResponse,
   ApiTags,
 } from '@nestjs/swagger';
-import { Role } from '@prisma/client';
+import { WorkspaceMemberRole } from '@prisma/client';
 import { HandoffsService } from './handoffs.service';
 import { CreateHandoffDto } from './dto/create-handoff.dto';
 import { UpdateHandoffDto } from './dto/update-handoff.dto';
 import { HandoffResponseDto } from './dto/handoff-response.dto';
 import { PaginationDto } from '../../../../common/dtos/pagination.dto';
-import { Roles } from '../../../auth/decorators';
+import { WorkspaceRoles } from '../../../auth/decorators';
 
 @ApiTags('BPM - Handoffs')
 @ApiBearerAuth()
@@ -31,7 +31,7 @@ export class HandoffsController {
   constructor(private readonly handoffsService: HandoffsService) {}
 
   @Post()
-  @Roles(Role.ADMIN)
+  @WorkspaceRoles(WorkspaceMemberRole.OWNER, WorkspaceMemberRole.ADMIN)
   @ApiOperation({ summary: 'Criar handoff (somente ADMIN)' })
   @ApiResponse({ status: 201, type: HandoffResponseDto })
   create(@Body() dto: CreateHandoffDto) {
@@ -39,14 +39,14 @@ export class HandoffsController {
   }
 
   @Get()
-  @Roles(Role.ADMIN, Role.MANAGER)
+  @WorkspaceRoles(WorkspaceMemberRole.OWNER, WorkspaceMemberRole.ADMIN)
   @ApiOperation({ summary: 'Listar handoffs' })
   findAll(@Query() pagination: PaginationDto) {
     return this.handoffsService.findAll(pagination);
   }
 
   @Get(':id')
-  @Roles(Role.ADMIN, Role.MANAGER)
+  @WorkspaceRoles(WorkspaceMemberRole.OWNER, WorkspaceMemberRole.ADMIN)
   @ApiOperation({ summary: 'Buscar handoff por ID' })
   @ApiResponse({ status: 200, type: HandoffResponseDto })
   @ApiResponse({ status: 404, description: 'Handoff não encontrado' })
@@ -55,7 +55,7 @@ export class HandoffsController {
   }
 
   @Patch(':id')
-  @Roles(Role.ADMIN)
+  @WorkspaceRoles(WorkspaceMemberRole.OWNER, WorkspaceMemberRole.ADMIN)
   @ApiOperation({ summary: 'Atualizar handoff (somente ADMIN)' })
   @ApiResponse({ status: 200, type: HandoffResponseDto })
   update(@Param('id') id: string, @Body() dto: UpdateHandoffDto) {
@@ -63,7 +63,7 @@ export class HandoffsController {
   }
 
   @Delete(':id')
-  @Roles(Role.ADMIN)
+  @WorkspaceRoles(WorkspaceMemberRole.OWNER, WorkspaceMemberRole.ADMIN)
   @HttpCode(HttpStatus.NO_CONTENT)
   @ApiOperation({ summary: 'Remover handoff (soft delete, somente ADMIN)' })
   @ApiResponse({ status: 204 })

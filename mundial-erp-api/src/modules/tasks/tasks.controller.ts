@@ -18,7 +18,7 @@ import {
   ApiResponse,
   ApiTags,
 } from '@nestjs/swagger';
-import { Role } from '@prisma/client';
+import { WorkspaceMemberRole } from '@prisma/client';
 import { TasksService } from './tasks.service';
 import { TaskFiltersDto } from './dtos/task-filters.dto';
 import { CreateTaskDto } from './dtos/create-task.dto';
@@ -30,8 +30,12 @@ import {
   BulkUpdateTasksDto,
 } from './dtos/bulk-update-tasks.dto';
 import { TaskDetailResponseDto } from './dtos/task-detail-response.dto';
+import { MovePreviewQueryDto } from './dtos/move-preview-query.dto';
+import { MoveToListDto } from './dtos/move-to-list.dto';
+import { MovePreviewResponseDto } from './dtos/move-preview-response.dto';
+import { MoveTaskService } from './move-task.service';
 import { ParseTaskIncludePipe } from './pipes/parse-task-include.pipe';
-import { CurrentUser, Roles } from '../auth/decorators';
+import { CurrentUser, WorkspaceRoles } from '../auth/decorators';
 import type { JwtPayload } from '../auth/decorators';
 import { WorkspaceId } from '../workspaces/decorators/workspace-id.decorator';
 import { TasksFeatureFlagGuard } from '../../common/feature-flags/tasks-feature-flag.guard';
@@ -40,9 +44,8 @@ import { SkipResponseTransform } from '../../common/decorators/skip-response-tra
 /**
  * Controller de Tasks (PLANO-TASKS.md §7.1–7.2).
  *
- * Envelope `{data, meta}` canonico. Guards Jwt+Workspace+Roles sao globais
- * (ver `app.module.ts`), portanto este controller usa apenas `@Roles()`.
- * Viewer: GET. Operator+: mutacoes. Manager+: destrutivas (merge/delete).
+ * Envelope `{data, meta}` canonico. Guards Jwt+Workspace+WorkspaceRole sao
+ * globais (ver `app.module.ts`); autorizacao por @WorkspaceRoles.
  *
  * `TasksFeatureFlagGuard` aplicado a nivel de classe: todas as rotas /tasks/*
  * respeitam o kill switch global `TASKS_V2_ENABLED` e o opt-out por workspace
@@ -55,17 +58,18 @@ import { SkipResponseTransform } from '../../common/decorators/skip-response-tra
 @SkipResponseTransform()
 @Controller()
 export class TasksController {
-  constructor(private readonly tasksService: TasksService) {}
+  constructor(
+    private readonly tasksService: TasksService,
+    private readonly moveTaskService: MoveTaskService,
+  ) {}
 
   @Get('tasks')
-  @Roles(Role.ADMIN, Role.MANAGER, Role.OPERATOR, Role.VIEWER)
   @ApiOperation({ summary: 'Listar tasks (workspace-wide, filtros completos)' })
   list(@WorkspaceId() workspaceId: string, @Query() filters: TaskFiltersDto) {
     return this.tasksService.list(workspaceId, filters);
   }
 
   @Get('tasks/space/:spaceId')
-  @Roles(Role.ADMIN, Role.MANAGER, Role.OPERATOR, Role.VIEWER)
   @ApiOperation({
     summary:
       'Tasks de um space agrupadas por list (divergencia Mundial). Hoppe agrupa apenas por status via GET /tasks/list?level=space&spaceId. Esse endpoint existe pra UI Mundial que precisa do shape [{list:{id,name,folder?}, tasks[]}]; list.folder pode ser null quando a list e direta no space.',
@@ -80,7 +84,11 @@ export class TasksController {
   }
 
   @Delete('tasks/:taskId/assignees/:userId')
-  @Roles(Role.ADMIN, Role.MANAGER, Role.OPERATOR)
+  @WorkspaceRoles(
+    WorkspaceMemberRole.OWNER,
+    WorkspaceMemberRole.ADMIN,
+    WorkspaceMemberRole.EDITOR,
+  )
   @ApiOperation({ summary: 'Remove 1 assignee individual (Hoppe)' })
   @ApiResponse({ status: 200, description: 'Assignee removido' })
   @ApiResponse({ status: 404, description: 'Task nao encontrada' })
@@ -99,7 +107,11 @@ export class TasksController {
   }
 
   @Put('tasks/:taskId/assign')
-  @Roles(Role.ADMIN, Role.MANAGER, Role.OPERATOR)
+  @WorkspaceRoles(
+    WorkspaceMemberRole.OWNER,
+    WorkspaceMemberRole.ADMIN,
+    WorkspaceMemberRole.EDITOR,
+  )
   @ApiOperation({
     summary:
       'Substitui a lista completa de assignees (Hoppe). Vazio recoloca creator',
@@ -116,7 +128,6 @@ export class TasksController {
   }
 
   @Get('tasks/:taskId/assignees')
-  @Roles(Role.ADMIN, Role.MANAGER, Role.OPERATOR, Role.VIEWER)
   @ApiOperation({
     summary:
       'Assignees de uma task (Hoppe). NOTE: campo `permission` retorna null ate o mapeamento Member* (Sprint 4-5)',
@@ -131,7 +142,6 @@ export class TasksController {
   }
 
   @Get('tasks/:taskId/subtasks')
-  @Roles(Role.ADMIN, Role.MANAGER, Role.OPERATOR, Role.VIEWER)
   @ApiOperation({ summary: 'Subtasks de uma task (Hoppe)' })
   @ApiResponse({ status: 200, type: [TaskResponseDto] })
   @ApiResponse({ status: 404, description: 'Task nao encontrada' })
@@ -143,7 +153,6 @@ export class TasksController {
   }
 
   @Get('tasks/my-tasks')
-  @Roles(Role.ADMIN, Role.MANAGER, Role.OPERATOR, Role.VIEWER)
   @ApiOperation({
     summary: 'Tasks atribuidas ao caller agrupadas por bucket temporal (Hoppe)',
   })
@@ -162,7 +171,6 @@ export class TasksController {
   }
 
   @Get('tasks/list')
-  @Roles(Role.ADMIN, Role.MANAGER, Role.OPERATOR, Role.VIEWER)
   @ApiOperation({
     summary: 'Tasks agrupadas por status (Hoppe). Aceita viewId ou level+id',
   })
@@ -196,7 +204,11 @@ export class TasksController {
   }
 
   @Post('tasks')
-  @Roles(Role.ADMIN, Role.MANAGER, Role.OPERATOR)
+  @WorkspaceRoles(
+    WorkspaceMemberRole.OWNER,
+    WorkspaceMemberRole.ADMIN,
+    WorkspaceMemberRole.EDITOR,
+  )
   @HttpCode(HttpStatus.CREATED)
   @ApiOperation({ summary: 'Criar task (estilo Hoppe, listId no body)' })
   @ApiResponse({ status: 201, type: TaskResponseDto })
@@ -218,7 +230,11 @@ export class TasksController {
   // se `:taskId` vier primeiro, `DELETE/PUT /tasks/bulk` cai no handler
   // single com taskId="bulk" e o bulk nunca executa.
   @Put('tasks/bulk')
-  @Roles(Role.ADMIN, Role.MANAGER, Role.OPERATOR)
+  @WorkspaceRoles(
+    WorkspaceMemberRole.OWNER,
+    WorkspaceMemberRole.ADMIN,
+    WorkspaceMemberRole.EDITOR,
+  )
   @ApiOperation({ summary: 'Bulk update de tasks (Hoppe-style)' })
   @ApiResponse({ status: 200, type: [TaskResponseDto] })
   bulkUpdate(
@@ -230,7 +246,11 @@ export class TasksController {
   }
 
   @Delete('tasks/bulk')
-  @Roles(Role.ADMIN, Role.MANAGER, Role.OPERATOR)
+  @WorkspaceRoles(
+    WorkspaceMemberRole.OWNER,
+    WorkspaceMemberRole.ADMIN,
+    WorkspaceMemberRole.EDITOR,
+  )
   @ApiOperation({ summary: 'Bulk delete de tasks (Hoppe-style)' })
   @ApiResponse({ status: 200 })
   bulkDelete(
@@ -241,8 +261,49 @@ export class TasksController {
     return this.tasksService.bulkDelete(workspaceId, dto.taskIds, user.sub);
   }
 
+  @Get('tasks/move-preview')
+  @ApiOperation({
+    summary:
+      'Preview de mover task(s) para outra list: diff de status (auto-map por type+posicao) e de custom fields',
+  })
+  @ApiResponse({ status: 200, type: MovePreviewResponseDto })
+  @ApiResponse({ status: 404, description: 'List de destino nao encontrada' })
+  movePreview(
+    @WorkspaceId() workspaceId: string,
+    @Query() query: MovePreviewQueryDto,
+  ) {
+    return this.moveTaskService.preview(
+      workspaceId,
+      query.taskIds,
+      query.targetListId,
+    );
+  }
+
+  @Put('tasks/move-to-list')
+  @WorkspaceRoles(
+    WorkspaceMemberRole.OWNER,
+    WorkspaceMemberRole.ADMIN,
+    WorkspaceMemberRole.EDITOR,
+  )
+  @ApiOperation({
+    summary:
+      'Move task(s) para outra list remapeando status (e subtasks junto). Hoppe-style',
+  })
+  @ApiResponse({ status: 200 })
+  @ApiResponse({
+    status: 400,
+    description: 'statusMapping incompleto para status sem equivalente',
+  })
+  @ApiResponse({ status: 404, description: 'List de destino nao encontrada' })
+  moveToList(
+    @WorkspaceId() workspaceId: string,
+    @Body() body: MoveToListDto,
+    @CurrentUser() user: JwtPayload,
+  ) {
+    return this.moveTaskService.moveToList(workspaceId, body, user.sub);
+  }
+
   @Get('tasks/:taskId')
-  @Roles(Role.ADMIN, Role.MANAGER, Role.OPERATOR, Role.VIEWER)
   @ApiOperation({ summary: 'Detalhe de uma task (include whitelist)' })
   @ApiQuery({
     name: 'include',
@@ -261,7 +322,11 @@ export class TasksController {
   }
 
   @Put('tasks/:taskId')
-  @Roles(Role.ADMIN, Role.MANAGER, Role.OPERATOR)
+  @WorkspaceRoles(
+    WorkspaceMemberRole.OWNER,
+    WorkspaceMemberRole.ADMIN,
+    WorkspaceMemberRole.EDITOR,
+  )
   @ApiOperation({
     summary: 'Atualizacao de task (PUT estilo Hoppe, partial body)',
   })
@@ -277,7 +342,11 @@ export class TasksController {
   }
 
   @Delete('tasks/:taskId')
-  @Roles(Role.ADMIN, Role.MANAGER, Role.OPERATOR)
+  @WorkspaceRoles(
+    WorkspaceMemberRole.OWNER,
+    WorkspaceMemberRole.ADMIN,
+    WorkspaceMemberRole.EDITOR,
+  )
   @ApiOperation({ summary: 'Soft delete (idempotente, 200 estilo Hoppe)' })
   @ApiResponse({ status: 200, description: 'Task removida' })
   remove(@WorkspaceId() workspaceId: string, @Param('taskId') taskId: string) {

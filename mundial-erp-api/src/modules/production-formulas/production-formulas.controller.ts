@@ -16,7 +16,7 @@ import {
   ApiResponse,
   ApiTags,
 } from '@nestjs/swagger';
-import { Role } from '@prisma/client';
+import { WorkspaceMemberRole } from '@prisma/client';
 import { ProductionFormulasService } from './production-formulas.service';
 import {
   CreateProductionFormulaDto,
@@ -28,7 +28,7 @@ import {
   FormulaIngredientResponseDto,
 } from './dto/production-formula-response.dto';
 import { PaginationDto } from '../../common/dtos/pagination.dto';
-import { Roles } from '../auth/decorators';
+import { WorkspaceRoles } from '../auth/decorators';
 
 @ApiTags('Production Formulas')
 @ApiBearerAuth()
@@ -39,7 +39,11 @@ export class ProductionFormulasController {
   ) {}
 
   @Post()
-  @Roles(Role.ADMIN, Role.MANAGER, Role.OPERATOR)
+  @WorkspaceRoles(
+    WorkspaceMemberRole.OWNER,
+    WorkspaceMemberRole.ADMIN,
+    WorkspaceMemberRole.EDITOR,
+  )
   @ApiOperation({ summary: 'Criar fórmula de produção' })
   @ApiResponse({ status: 201, type: ProductionFormulaResponseDto })
   create(@Body() dto: CreateProductionFormulaDto) {
@@ -47,7 +51,11 @@ export class ProductionFormulasController {
   }
 
   @Get()
-  @Roles(Role.ADMIN, Role.MANAGER, Role.OPERATOR)
+  @WorkspaceRoles(
+    WorkspaceMemberRole.OWNER,
+    WorkspaceMemberRole.ADMIN,
+    WorkspaceMemberRole.EDITOR,
+  )
   @ApiOperation({ summary: 'Listar fórmulas de produção' })
   findAll(
     @Query() pagination: PaginationDto,
@@ -57,7 +65,11 @@ export class ProductionFormulasController {
   }
 
   @Get(':id')
-  @Roles(Role.ADMIN, Role.MANAGER, Role.OPERATOR)
+  @WorkspaceRoles(
+    WorkspaceMemberRole.OWNER,
+    WorkspaceMemberRole.ADMIN,
+    WorkspaceMemberRole.EDITOR,
+  )
   @ApiOperation({ summary: 'Buscar fórmula por ID (com ingredientes)' })
   @ApiResponse({ status: 200, type: ProductionFormulaResponseDto })
   @ApiResponse({ status: 404, description: 'Fórmula não encontrada' })
@@ -66,7 +78,11 @@ export class ProductionFormulasController {
   }
 
   @Patch(':id')
-  @Roles(Role.ADMIN, Role.MANAGER, Role.OPERATOR)
+  @WorkspaceRoles(
+    WorkspaceMemberRole.OWNER,
+    WorkspaceMemberRole.ADMIN,
+    WorkspaceMemberRole.EDITOR,
+  )
   @ApiOperation({ summary: 'Atualizar fórmula de produção' })
   @ApiResponse({ status: 200, type: ProductionFormulaResponseDto })
   update(@Param('id') id: string, @Body() dto: UpdateProductionFormulaDto) {
@@ -74,7 +90,7 @@ export class ProductionFormulasController {
   }
 
   @Delete(':id')
-  @Roles(Role.ADMIN)
+  @WorkspaceRoles(WorkspaceMemberRole.OWNER, WorkspaceMemberRole.ADMIN)
   @HttpCode(HttpStatus.NO_CONTENT)
   @ApiOperation({ summary: 'Remover fórmula de produção (soft delete)' })
   @ApiResponse({ status: 204 })
@@ -84,7 +100,11 @@ export class ProductionFormulasController {
 
   // --- Ingredients ---
   @Post(':id/ingredients')
-  @Roles(Role.ADMIN, Role.MANAGER, Role.OPERATOR)
+  @WorkspaceRoles(
+    WorkspaceMemberRole.OWNER,
+    WorkspaceMemberRole.ADMIN,
+    WorkspaceMemberRole.EDITOR,
+  )
   @ApiOperation({ summary: 'Adicionar ingrediente à fórmula' })
   @ApiResponse({ status: 201, type: FormulaIngredientResponseDto })
   addIngredient(
@@ -95,7 +115,11 @@ export class ProductionFormulasController {
   }
 
   @Patch(':id/ingredients/:ingredientId')
-  @Roles(Role.ADMIN, Role.MANAGER, Role.OPERATOR)
+  @WorkspaceRoles(
+    WorkspaceMemberRole.OWNER,
+    WorkspaceMemberRole.ADMIN,
+    WorkspaceMemberRole.EDITOR,
+  )
   @ApiOperation({ summary: 'Atualizar ingrediente da fórmula' })
   @ApiResponse({ status: 200, type: FormulaIngredientResponseDto })
   updateIngredient(
@@ -111,7 +135,7 @@ export class ProductionFormulasController {
   }
 
   @Delete(':id/ingredients/:ingredientId')
-  @Roles(Role.ADMIN, Role.MANAGER)
+  @WorkspaceRoles(WorkspaceMemberRole.OWNER, WorkspaceMemberRole.ADMIN)
   @HttpCode(HttpStatus.NO_CONTENT)
   @ApiOperation({ summary: 'Remover ingrediente da fórmula' })
   @ApiResponse({ status: 204 })

@@ -168,7 +168,7 @@ describe('Task Type Templates — flag OFF (e2e)', () => {
       await ensureBuiltinOrderTemplate(prisma);
 
       ws = await createTestWorkspace(app);
-      viewer = await createTestUser(app, ws.workspaceId, 'OPERATOR');
+      viewer = await createTestUser(app, ws.workspaceId, 'EDITOR');
       listCtx = await createTestListContext(app, ws.workspaceId);
     } catch (err) {
       dbAvailable = false;

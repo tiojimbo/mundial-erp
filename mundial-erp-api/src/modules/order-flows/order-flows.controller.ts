@@ -16,13 +16,13 @@ import {
   ApiResponse,
   ApiTags,
 } from '@nestjs/swagger';
-import { Role } from '@prisma/client';
+import { WorkspaceMemberRole } from '@prisma/client';
 import { OrderFlowsService } from './order-flows.service';
 import { CreateOrderFlowDto } from './dto/create-order-flow.dto';
 import { UpdateOrderFlowDto } from './dto/update-order-flow.dto';
 import { OrderFlowResponseDto } from './dto/order-flow-response.dto';
 import { PaginationDto } from '../../common/dtos/pagination.dto';
-import { Roles } from '../auth/decorators';
+import { WorkspaceRoles } from '../auth/decorators';
 
 @ApiTags('Order Flows')
 @ApiBearerAuth()
@@ -31,7 +31,7 @@ export class OrderFlowsController {
   constructor(private readonly orderFlowsService: OrderFlowsService) {}
 
   @Post()
-  @Roles(Role.ADMIN)
+  @WorkspaceRoles(WorkspaceMemberRole.OWNER, WorkspaceMemberRole.ADMIN)
   @ApiOperation({ summary: 'Criar fluxo de pedido (somente ADMIN)' })
   @ApiResponse({ status: 201, type: OrderFlowResponseDto })
   create(@Body() dto: CreateOrderFlowDto) {
@@ -39,14 +39,14 @@ export class OrderFlowsController {
   }
 
   @Get()
-  @Roles(Role.ADMIN, Role.MANAGER)
+  @WorkspaceRoles(WorkspaceMemberRole.OWNER, WorkspaceMemberRole.ADMIN)
   @ApiOperation({ summary: 'Listar fluxos de pedido' })
   findAll(@Query() pagination: PaginationDto) {
     return this.orderFlowsService.findAll(pagination);
   }
 
   @Get(':id')
-  @Roles(Role.ADMIN, Role.MANAGER)
+  @WorkspaceRoles(WorkspaceMemberRole.OWNER, WorkspaceMemberRole.ADMIN)
   @ApiOperation({ summary: 'Buscar fluxo de pedido por ID' })
   @ApiResponse({ status: 200, type: OrderFlowResponseDto })
   @ApiResponse({ status: 404, description: 'Fluxo de pedido não encontrado' })
@@ -55,7 +55,7 @@ export class OrderFlowsController {
   }
 
   @Patch(':id')
-  @Roles(Role.ADMIN)
+  @WorkspaceRoles(WorkspaceMemberRole.OWNER, WorkspaceMemberRole.ADMIN)
   @ApiOperation({ summary: 'Atualizar fluxo de pedido (somente ADMIN)' })
   @ApiResponse({ status: 200, type: OrderFlowResponseDto })
   update(@Param('id') id: string, @Body() dto: UpdateOrderFlowDto) {
@@ -63,7 +63,7 @@ export class OrderFlowsController {
   }
 
   @Delete(':id')
-  @Roles(Role.ADMIN)
+  @WorkspaceRoles(WorkspaceMemberRole.OWNER, WorkspaceMemberRole.ADMIN)
   @HttpCode(HttpStatus.NO_CONTENT)
   @ApiOperation({
     summary: 'Remover fluxo de pedido (soft delete, somente ADMIN)',

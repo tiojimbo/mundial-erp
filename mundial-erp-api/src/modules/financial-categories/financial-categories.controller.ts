@@ -17,13 +17,13 @@ import {
   ApiResponse,
   ApiTags,
 } from '@nestjs/swagger';
-import { Role } from '@prisma/client';
+import { WorkspaceMemberRole } from '@prisma/client';
 import { FinancialCategoriesService } from './financial-categories.service';
 import { CreateFinancialCategoryDto } from './dto/create-financial-category.dto';
 import { UpdateFinancialCategoryDto } from './dto/update-financial-category.dto';
 import { FinancialCategoryResponseDto } from './dto/financial-category-response.dto';
 import { PaginationDto } from '../../common/dtos/pagination.dto';
-import { Roles } from '../auth/decorators';
+import { WorkspaceRoles } from '../auth/decorators';
 import { WorkspaceId } from '../workspaces/decorators/workspace-id.decorator';
 
 @ApiTags('Financial Categories')
@@ -35,7 +35,7 @@ export class FinancialCategoriesController {
   ) {}
 
   @Post()
-  @Roles(Role.ADMIN, Role.MANAGER)
+  @WorkspaceRoles(WorkspaceMemberRole.OWNER, WorkspaceMemberRole.ADMIN)
   @ApiOperation({ summary: 'Criar categoria financeira' })
   @ApiResponse({ status: 201, type: FinancialCategoryResponseDto })
   create(
@@ -46,7 +46,11 @@ export class FinancialCategoriesController {
   }
 
   @Get()
-  @Roles(Role.ADMIN, Role.MANAGER, Role.OPERATOR)
+  @WorkspaceRoles(
+    WorkspaceMemberRole.OWNER,
+    WorkspaceMemberRole.ADMIN,
+    WorkspaceMemberRole.EDITOR,
+  )
   @ApiOperation({ summary: 'Listar categorias financeiras' })
   @ApiQuery({
     name: 'search',
@@ -74,7 +78,11 @@ export class FinancialCategoriesController {
   }
 
   @Get('roots')
-  @Roles(Role.ADMIN, Role.MANAGER, Role.OPERATOR)
+  @WorkspaceRoles(
+    WorkspaceMemberRole.OWNER,
+    WorkspaceMemberRole.ADMIN,
+    WorkspaceMemberRole.EDITOR,
+  )
   @ApiOperation({
     summary: 'Listar categorias raiz com subcategorias (árvore hierárquica)',
   })
@@ -86,7 +94,11 @@ export class FinancialCategoriesController {
   }
 
   @Get(':id')
-  @Roles(Role.ADMIN, Role.MANAGER, Role.OPERATOR)
+  @WorkspaceRoles(
+    WorkspaceMemberRole.OWNER,
+    WorkspaceMemberRole.ADMIN,
+    WorkspaceMemberRole.EDITOR,
+  )
   @ApiOperation({ summary: 'Buscar categoria financeira por ID' })
   @ApiResponse({ status: 200, type: FinancialCategoryResponseDto })
   @ApiResponse({
@@ -98,7 +110,7 @@ export class FinancialCategoriesController {
   }
 
   @Patch(':id')
-  @Roles(Role.ADMIN, Role.MANAGER)
+  @WorkspaceRoles(WorkspaceMemberRole.OWNER, WorkspaceMemberRole.ADMIN)
   @ApiOperation({ summary: 'Atualizar categoria financeira' })
   @ApiResponse({ status: 200, type: FinancialCategoryResponseDto })
   update(
@@ -110,7 +122,7 @@ export class FinancialCategoriesController {
   }
 
   @Delete(':id')
-  @Roles(Role.ADMIN)
+  @WorkspaceRoles(WorkspaceMemberRole.OWNER, WorkspaceMemberRole.ADMIN)
   @HttpCode(HttpStatus.NO_CONTENT)
   @ApiOperation({
     summary: 'Remover categoria financeira (soft delete, somente ADMIN)',

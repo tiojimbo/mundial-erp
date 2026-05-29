@@ -14,7 +14,7 @@ import {
   ApiResponse,
   ApiTags,
 } from '@nestjs/swagger';
-import { Role } from '@prisma/client';
+import { WorkspaceMemberRole } from '@prisma/client';
 import { FoldersService } from './folders.service';
 import { CreateFolderDto } from './dto/create-folder.dto';
 import { UpdateFolderDto } from './dto/update-folder.dto';
@@ -23,7 +23,7 @@ import { AddFolderMemberDto } from './dto/add-folder-member.dto';
 import { UpdateFolderMemberDto } from './dto/update-folder-member.dto';
 import { FolderResponseDto } from './dto/folder-response.dto';
 import { FolderStatusInheritBulkDto } from './dto/status-inherit-bulk.dto';
-import { CurrentUser, Roles } from '../auth/decorators';
+import { CurrentUser, WorkspaceRoles } from '../auth/decorators';
 import type { JwtPayload } from '../auth/decorators';
 import { WorkspaceId } from '../workspaces/decorators/workspace-id.decorator';
 import { SkipResponseTransform } from '../../common/decorators/skip-response-transform.decorator';
@@ -36,7 +36,7 @@ export class FoldersController {
 
   @Post()
   @SkipResponseTransform()
-  @Roles(Role.ADMIN, Role.MANAGER)
+  @WorkspaceRoles(WorkspaceMemberRole.OWNER, WorkspaceMemberRole.ADMIN)
   @ApiOperation({ summary: 'Criar folder' })
   @ApiResponse({ status: 201, type: FolderResponseDto })
   @ApiResponse({ status: 409, description: 'Folder com este nome já existe' })
@@ -50,7 +50,6 @@ export class FoldersController {
 
   @Get()
   @SkipResponseTransform()
-  @Roles(Role.ADMIN, Role.MANAGER, Role.OPERATOR, Role.VIEWER)
   @ApiOperation({ summary: 'Listar folders de um space' })
   findAll(
     @WorkspaceId() workspaceId: string,
@@ -60,7 +59,6 @@ export class FoldersController {
   }
 
   @Get('by-slug/:slug')
-  @Roles(Role.ADMIN, Role.MANAGER, Role.OPERATOR, Role.VIEWER)
   @ApiOperation({
     summary: 'Buscar folder por slug (com lists e dados do space)',
   })
@@ -71,7 +69,6 @@ export class FoldersController {
   }
 
   @Get(':id/process-summaries')
-  @Roles(Role.ADMIN, Role.MANAGER, Role.OPERATOR, Role.VIEWER)
   @ApiOperation({
     summary: 'Resumo consolidado de todas as lists do folder (LIST + BPM)',
   })
@@ -90,7 +87,6 @@ export class FoldersController {
 
   @Get(':id/resources')
   @SkipResponseTransform()
-  @Roles(Role.ADMIN, Role.MANAGER, Role.OPERATOR, Role.VIEWER)
   @ApiOperation({ summary: 'Metadata de filters/sortOptions do folder' })
   getResources(@WorkspaceId() workspaceId: string, @Param('id') id: string) {
     return this.foldersService.getResources(workspaceId, id);
@@ -98,7 +94,6 @@ export class FoldersController {
 
   @Get(':id/visibility')
   @SkipResponseTransform()
-  @Roles(Role.ADMIN, Role.MANAGER, Role.OPERATOR, Role.VIEWER)
   @ApiOperation({ summary: 'Visibility atual do folder' })
   getVisibility(@WorkspaceId() workspaceId: string, @Param('id') id: string) {
     return this.foldersService.getVisibility(workspaceId, id);
@@ -106,7 +101,7 @@ export class FoldersController {
 
   @Put(':id/visibility')
   @SkipResponseTransform()
-  @Roles(Role.ADMIN, Role.MANAGER)
+  @WorkspaceRoles(WorkspaceMemberRole.OWNER, WorkspaceMemberRole.ADMIN)
   @ApiOperation({ summary: 'Atualizar visibility do folder' })
   updateVisibility(
     @WorkspaceId() workspaceId: string,
@@ -122,7 +117,6 @@ export class FoldersController {
 
   @Get(':id/members')
   @SkipResponseTransform()
-  @Roles(Role.ADMIN, Role.MANAGER, Role.OPERATOR, Role.VIEWER)
   @ApiOperation({ summary: 'Listar membros do folder' })
   listMembers(@WorkspaceId() workspaceId: string, @Param('id') id: string) {
     return this.foldersService.listMembers(workspaceId, id);
@@ -130,11 +124,11 @@ export class FoldersController {
 
   @Post(':id/members')
   @SkipResponseTransform()
-  @Roles(Role.ADMIN, Role.MANAGER)
   @ApiOperation({ summary: 'Adicionar membro ao folder' })
   addMember(
     @WorkspaceId() workspaceId: string,
     @Param('id') id: string,
+    @CurrentUser() user: JwtPayload,
     @Body() dto: AddFolderMemberDto,
   ) {
     return this.foldersService.addMember(
@@ -142,17 +136,18 @@ export class FoldersController {
       id,
       dto.userId,
       dto.permission,
+      user.sub,
     );
   }
 
   @Put(':id/members/:userId')
   @SkipResponseTransform()
-  @Roles(Role.ADMIN, Role.MANAGER)
   @ApiOperation({ summary: 'Atualizar permission de membro do folder' })
   updateMember(
     @WorkspaceId() workspaceId: string,
     @Param('id') id: string,
     @Param('userId') userId: string,
+    @CurrentUser() user: JwtPayload,
     @Body() dto: UpdateFolderMemberDto,
   ) {
     return this.foldersService.updateMember(
@@ -160,24 +155,24 @@ export class FoldersController {
       id,
       userId,
       dto.permission,
+      user.sub,
     );
   }
 
   @Delete(':id/members/:userId')
   @SkipResponseTransform()
-  @Roles(Role.ADMIN, Role.MANAGER)
   @ApiOperation({ summary: 'Remover membro do folder' })
   removeMember(
     @WorkspaceId() workspaceId: string,
     @Param('id') id: string,
     @Param('userId') userId: string,
+    @CurrentUser() user: JwtPayload,
   ) {
-    return this.foldersService.removeMember(workspaceId, id, userId);
+    return this.foldersService.removeMember(workspaceId, id, userId, user.sub);
   }
 
   @Get(':id/statuses')
   @SkipResponseTransform()
-  @Roles(Role.ADMIN, Role.MANAGER, Role.OPERATOR, Role.VIEWER)
   @ApiOperation({
     summary: 'Listar statuses do folder (vazio se inheritance != CUSTOM)',
   })
@@ -187,7 +182,7 @@ export class FoldersController {
 
   @Put(':id/status')
   @SkipResponseTransform()
-  @Roles(Role.ADMIN, Role.MANAGER)
+  @WorkspaceRoles(WorkspaceMemberRole.OWNER, WorkspaceMemberRole.ADMIN)
   @ApiOperation({
     summary:
       'Atualizar statusInheritance + statuses do folder (estilo Hoppe). Inheritance != CUSTOM soft-deleta statuses.',
@@ -207,7 +202,6 @@ export class FoldersController {
 
   @Get(':id')
   @SkipResponseTransform()
-  @Roles(Role.ADMIN, Role.MANAGER, Role.OPERATOR, Role.VIEWER)
   @ApiOperation({ summary: 'Buscar folder por ID' })
   @ApiResponse({ status: 200, type: FolderResponseDto })
   @ApiResponse({ status: 404, description: 'Folder não encontrado' })
@@ -217,7 +211,7 @@ export class FoldersController {
 
   @Put(':id')
   @SkipResponseTransform()
-  @Roles(Role.ADMIN, Role.MANAGER)
+  @WorkspaceRoles(WorkspaceMemberRole.OWNER, WorkspaceMemberRole.ADMIN)
   @ApiOperation({ summary: 'Atualizar folder' })
   @ApiResponse({ status: 200, type: FolderResponseDto })
   update(
@@ -230,7 +224,7 @@ export class FoldersController {
 
   @Delete(':id')
   @SkipResponseTransform()
-  @Roles(Role.ADMIN, Role.MANAGER)
+  @WorkspaceRoles(WorkspaceMemberRole.OWNER, WorkspaceMemberRole.ADMIN)
   @ApiOperation({ summary: 'Remover folder (soft delete)' })
   @ApiResponse({ status: 200 })
   @ApiResponse({

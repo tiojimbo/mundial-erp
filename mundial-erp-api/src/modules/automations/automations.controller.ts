@@ -16,13 +16,13 @@ import {
   ApiResponse,
   ApiTags,
 } from '@nestjs/swagger';
-import { Role } from '@prisma/client';
+import { WorkspaceMemberRole } from '@prisma/client';
 import { AutomationsService } from './automations.service';
 import { CreateAutomationDto } from './dtos/create-automation.dto';
 import { UpdateAutomationDto } from './dtos/update-automation.dto';
 import { ListAutomationsQueryDto } from './dtos/list-automations-query.dto';
 import { AutomationResponseDto } from './dtos/automation-response.dto';
-import { CurrentUser, Roles } from '../auth/decorators';
+import { CurrentUser, WorkspaceRoles } from '../auth/decorators';
 import type { JwtPayload } from '../auth/decorators';
 import { WorkspaceId } from '../workspaces/decorators/workspace-id.decorator';
 import { SkipResponseTransform } from '../../common/decorators/skip-response-transform.decorator';
@@ -35,7 +35,6 @@ export class AutomationsController {
   constructor(private readonly service: AutomationsService) {}
 
   @Get('triggers')
-  @Roles(Role.ADMIN, Role.MANAGER, Role.OPERATOR, Role.VIEWER)
   @ApiOperation({ summary: 'Listar triggers disponíveis para Automations' })
   @ApiResponse({
     status: 200,
@@ -46,7 +45,6 @@ export class AutomationsController {
   }
 
   @Get('actions')
-  @Roles(Role.ADMIN, Role.MANAGER, Role.OPERATOR, Role.VIEWER)
   @ApiOperation({ summary: 'Listar actions disponíveis para Automations' })
   @ApiResponse({ status: 200, description: 'Catálogo estático com 21 actions' })
   listActions() {
@@ -54,7 +52,6 @@ export class AutomationsController {
   }
 
   @Get('statuses')
-  @Roles(Role.ADMIN, Role.MANAGER, Role.OPERATOR, Role.VIEWER)
   @ApiOperation({
     summary: 'Listar workflow statuses do workspace agrupados por escopo',
   })
@@ -67,7 +64,6 @@ export class AutomationsController {
   }
 
   @Get()
-  @Roles(Role.ADMIN, Role.MANAGER, Role.OPERATOR, Role.VIEWER)
   @ApiOperation({
     summary: 'Listar Automations do workspace (filtros por query)',
   })
@@ -80,7 +76,6 @@ export class AutomationsController {
   }
 
   @Get(':id')
-  @Roles(Role.ADMIN, Role.MANAGER, Role.OPERATOR, Role.VIEWER)
   @ApiOperation({ summary: 'Detalhe de uma Automation' })
   @ApiResponse({ status: 200, type: AutomationResponseDto })
   @ApiResponse({ status: 404, description: 'Automation não encontrada' })
@@ -89,7 +84,7 @@ export class AutomationsController {
   }
 
   @Post()
-  @Roles(Role.ADMIN, Role.MANAGER)
+  @WorkspaceRoles(WorkspaceMemberRole.OWNER, WorkspaceMemberRole.ADMIN)
   @HttpCode(HttpStatus.CREATED)
   @ApiOperation({ summary: 'Criar Automation' })
   @ApiResponse({ status: 201, type: AutomationResponseDto })
@@ -103,7 +98,7 @@ export class AutomationsController {
   }
 
   @Put(':id')
-  @Roles(Role.ADMIN, Role.MANAGER)
+  @WorkspaceRoles(WorkspaceMemberRole.OWNER, WorkspaceMemberRole.ADMIN)
   @ApiOperation({ summary: 'Atualizar Automation (PUT aceita body parcial)' })
   @ApiResponse({ status: 200, type: AutomationResponseDto })
   @ApiResponse({ status: 404, description: 'Automation não encontrada' })
@@ -116,7 +111,7 @@ export class AutomationsController {
   }
 
   @Delete(':id')
-  @Roles(Role.ADMIN, Role.MANAGER)
+  @WorkspaceRoles(WorkspaceMemberRole.OWNER, WorkspaceMemberRole.ADMIN)
   @ApiOperation({
     summary: 'Remover Automation (soft delete, retorna objeto deletado)',
   })
@@ -127,7 +122,7 @@ export class AutomationsController {
   }
 
   @Post(':id/toggle')
-  @Roles(Role.ADMIN, Role.MANAGER)
+  @WorkspaceRoles(WorkspaceMemberRole.OWNER, WorkspaceMemberRole.ADMIN)
   @HttpCode(HttpStatus.OK)
   @ApiOperation({ summary: 'Inverter isActive (body vazio)' })
   @ApiResponse({ status: 200, type: AutomationResponseDto })

@@ -23,20 +23,13 @@ export type UpdateWorkspaceFormData = z.infer<typeof updateWorkspaceSchema>;
 
 export const addMemberSchema = z.object({
   userId: z.string().min(1, 'Usuário obrigatório'),
-  role: z.enum(['OWNER', 'ADMIN', 'MEMBER', 'GUEST']),
+  role: z.enum(['OWNER', 'ADMIN', 'EDITOR', 'GUEST']),
 });
 
 export type AddMemberFormData = z.infer<typeof addMemberSchema>;
 
 export const updateMemberRoleSchema = z.object({
-  role: z.enum(['OWNER', 'ADMIN', 'MEMBER', 'GUEST']),
+  role: z.enum(['OWNER', 'ADMIN', 'EDITOR', 'GUEST']),
 });
 
 export type UpdateMemberRoleFormData = z.infer<typeof updateMemberRoleSchema>;
-
-export const createInviteSchema = z.object({
-  email: z.string().email('E-mail inválido').max(255, 'Máximo 255 caracteres'),
-  role: z.enum(['ADMIN', 'MEMBER', 'GUEST']),
-});
-
-export type CreateInviteFormData = z.infer<typeof createInviteSchema>;

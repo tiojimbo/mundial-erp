@@ -8,6 +8,7 @@ import {
 } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { Reflector } from '@nestjs/core';
+import { WorkspaceMemberRole } from '@prisma/client';
 import { PrismaService } from '../../../database/prisma.service';
 import { IS_PUBLIC_KEY } from '../../auth/decorators';
 import { SKIP_WORKSPACE_GUARD_KEY } from '../decorators/skip-workspace-guard.decorator';
@@ -15,7 +16,7 @@ import { SKIP_WORKSPACE_GUARD_KEY } from '../decorators/skip-workspace-guard.dec
 // Cache LRU evita bater no banco a cada request — TTL curto absorve mudanças
 // de membership. Bypass total quando feature flag está OFF (vide ADR-001).
 // TODO: invalidar via evento (member.removed / role.updated / workspace.deleted).
-type CacheEntry = { ts: number; ok: boolean };
+type CacheEntry = { ts: number; ok: boolean; role?: WorkspaceMemberRole };
 
 const CACHE_TTL_MS = 30_000;
 const CACHE_MAX_ENTRIES = 10_000;
@@ -101,7 +102,10 @@ export class WorkspaceGuard implements CanActivate, OnModuleInit {
     const cacheKey = `wsguard:${user.sub}:${resolvedWorkspaceId}`;
     const cached = this.getCached(cacheKey);
     if (cached !== null) {
-      if (cached) return true;
+      if (cached.ok) {
+        user.workspaceRole = cached.role;
+        return true;
+      }
       throw new ForbiddenException(
         'Usuario nao e membro deste workspace ou workspace foi removido',
       );
@@ -114,18 +118,22 @@ export class WorkspaceGuard implements CanActivate, OnModuleInit {
           userId: user.sub,
         },
       },
-      select: { id: true, workspace: { select: { deletedAt: true } } },
+      select: {
+        id: true,
+        role: true,
+        workspace: { select: { deletedAt: true } },
+      },
     });
 
-    const ok = !!member && member.workspace.deletedAt === null;
-    this.setCached(cacheKey, ok);
-
-    if (!ok) {
+    if (!member || member.workspace.deletedAt !== null) {
+      this.setCached(cacheKey, false);
       throw new ForbiddenException(
         'Usuario nao e membro deste workspace ou workspace foi removido',
       );
     }
 
+    this.setCached(cacheKey, true, member.role);
+    user.workspaceRole = member.role;
     return true;
   }
 
@@ -140,7 +148,7 @@ export class WorkspaceGuard implements CanActivate, OnModuleInit {
     return trimmed.length > 0 ? trimmed : undefined;
   }
 
-  private getCached(key: string): boolean | null {
+  private getCached(key: string): CacheEntry | null {
     const entry = this.membershipCache.get(key);
     if (!entry) return null;
 
@@ -148,10 +156,14 @@ export class WorkspaceGuard implements CanActivate, OnModuleInit {
       this.membershipCache.delete(key);
       return null;
     }
-    return entry.ok;
+    return entry;
   }
 
-  private setCached(key: string, ok: boolean): void {
+  private setCached(
+    key: string,
+    ok: boolean,
+    role?: WorkspaceMemberRole,
+  ): void {
     // LRU aproximado via ordem de inserção do Map.
     if (this.membershipCache.size >= CACHE_CLEANUP_THRESHOLD) {
       this.evictExpired();
@@ -164,7 +176,7 @@ export class WorkspaceGuard implements CanActivate, OnModuleInit {
         }
       }
     }
-    this.membershipCache.set(key, { ts: Date.now(), ok });
+    this.membershipCache.set(key, { ts: Date.now(), ok, role });
   }
 
   private evictExpired(): void {

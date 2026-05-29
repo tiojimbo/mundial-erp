@@ -292,11 +292,7 @@ describe('GET /task-type-templates (e2e)', () => {
       await enableTemplatesForWorkspace(wsB.workspaceId);
       await enableTemplatesForWorkspace(wsFresh.workspaceId);
 
-      viewerInA = await createTestUser(app, wsA.workspaceId, 'OPERATOR');
-      await prisma.user.update({
-        where: { id: viewerInA.userId },
-        data: { role: 'VIEWER' },
-      });
+      viewerInA = await createTestUser(app, wsA.workspaceId, 'GUEST');
       const refreshed = await request(app.getHttpServer())
         .post('/api/v1/auth/refresh')
         .send({ refreshToken: viewerInA.refreshToken })

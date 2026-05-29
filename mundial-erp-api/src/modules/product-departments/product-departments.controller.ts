@@ -16,13 +16,13 @@ import {
   ApiResponse,
   ApiTags,
 } from '@nestjs/swagger';
-import { Role } from '@prisma/client';
+import { WorkspaceMemberRole } from '@prisma/client';
 import { ProductDepartmentsService } from './product-departments.service';
 import { CreateProductDepartmentDto } from './dto/create-product-department.dto';
 import { UpdateProductDepartmentDto } from './dto/update-product-department.dto';
 import { ProductDepartmentResponseDto } from './dto/product-department-response.dto';
 import { PaginationDto } from '../../common/dtos/pagination.dto';
-import { Roles } from '../auth/decorators';
+import { WorkspaceRoles } from '../auth/decorators';
 
 @ApiTags('Product Departments')
 @ApiBearerAuth()
@@ -33,7 +33,7 @@ export class ProductDepartmentsController {
   ) {}
 
   @Post()
-  @Roles(Role.ADMIN, Role.MANAGER)
+  @WorkspaceRoles(WorkspaceMemberRole.OWNER, WorkspaceMemberRole.ADMIN)
   @ApiOperation({ summary: 'Criar departamento de produto' })
   @ApiResponse({ status: 201, type: ProductDepartmentResponseDto })
   @ApiResponse({ status: 409, description: 'Departamento já cadastrado' })
@@ -42,7 +42,11 @@ export class ProductDepartmentsController {
   }
 
   @Get()
-  @Roles(Role.ADMIN, Role.MANAGER, Role.OPERATOR)
+  @WorkspaceRoles(
+    WorkspaceMemberRole.OWNER,
+    WorkspaceMemberRole.ADMIN,
+    WorkspaceMemberRole.EDITOR,
+  )
   @ApiOperation({ summary: 'Listar departamentos de produto' })
   findAll(
     @Query() pagination: PaginationDto,
@@ -52,7 +56,11 @@ export class ProductDepartmentsController {
   }
 
   @Get(':id')
-  @Roles(Role.ADMIN, Role.MANAGER, Role.OPERATOR)
+  @WorkspaceRoles(
+    WorkspaceMemberRole.OWNER,
+    WorkspaceMemberRole.ADMIN,
+    WorkspaceMemberRole.EDITOR,
+  )
   @ApiOperation({ summary: 'Buscar departamento por ID' })
   @ApiResponse({ status: 200, type: ProductDepartmentResponseDto })
   @ApiResponse({ status: 404, description: 'Não encontrado' })
@@ -61,7 +69,7 @@ export class ProductDepartmentsController {
   }
 
   @Patch(':id')
-  @Roles(Role.ADMIN, Role.MANAGER)
+  @WorkspaceRoles(WorkspaceMemberRole.OWNER, WorkspaceMemberRole.ADMIN)
   @ApiOperation({ summary: 'Atualizar departamento de produto' })
   @ApiResponse({ status: 200, type: ProductDepartmentResponseDto })
   update(@Param('id') id: string, @Body() dto: UpdateProductDepartmentDto) {
@@ -69,7 +77,7 @@ export class ProductDepartmentsController {
   }
 
   @Delete(':id')
-  @Roles(Role.ADMIN)
+  @WorkspaceRoles(WorkspaceMemberRole.OWNER, WorkspaceMemberRole.ADMIN)
   @HttpCode(HttpStatus.NO_CONTENT)
   @ApiOperation({ summary: 'Remover departamento de produto (soft delete)' })
   @ApiResponse({ status: 204 })

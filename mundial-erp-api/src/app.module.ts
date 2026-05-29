@@ -49,7 +49,7 @@ import { InvoicesModule } from './modules/invoices/invoices.module';
 import { FinancialSummaryModule } from './modules/financial-summary/financial-summary.module';
 import { DashboardsModule } from './modules/dashboards/dashboards.module';
 import { ReportsModule } from './modules/reports/reports.module';
-import { RolesGuard } from './modules/auth/guards';
+import { WorkspaceRoleGuard } from './modules/workspaces/guards/workspace-role.guard';
 import { JwtOrPkAuthGuard } from './modules/personal-access-tokens/guards/jwt-or-pk-auth.guard';
 import { WorkspaceGuard } from './modules/workspaces/guards/workspace.guard';
 import { ResponseInterceptor } from './common/interceptors/response.interceptor';
@@ -321,11 +321,11 @@ import { KommoBackfillModule } from './modules/kommo-backfill/kommo-backfill.mod
     KommoBackfillModule,
   ],
   providers: [
-    // Global guards (order: Throttler → JWT Auth → Workspace → Roles)
+    // Global guards (order: Throttler → JWT Auth → Workspace → WorkspaceRole)
     { provide: APP_GUARD, useClass: ThrottlerGuard },
     { provide: APP_GUARD, useClass: JwtOrPkAuthGuard },
     { provide: APP_GUARD, useClass: WorkspaceGuard },
-    { provide: APP_GUARD, useClass: RolesGuard },
+    { provide: APP_GUARD, useClass: WorkspaceRoleGuard },
 
     // Global interceptors (order matters: RequestId first)
     { provide: APP_INTERCEPTOR, useClass: RequestIdInterceptor },

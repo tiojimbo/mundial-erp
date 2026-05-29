@@ -1,4 +1,5 @@
 import {
+  BadRequestException,
   ConflictException,
   Injectable,
   Logger,
@@ -14,8 +15,10 @@ import { UpdateUserDto } from './dto/update-user.dto';
 import { UpdateMeDto } from './dto/update-me.dto';
 import { UserResponseDto } from './dto/user-response.dto';
 import { PaginationDto } from '../../common/dtos/pagination.dto';
+import { S3AdapterService } from '../../common/adapters/s3-adapter.service';
 
 const BCRYPT_ROUNDS = 12;
+const AVATAR_MAX_BYTES = 2 * 1024 * 1024;
 
 @Injectable()
 export class UsersService {
@@ -24,6 +27,7 @@ export class UsersService {
   constructor(
     private readonly usersRepository: UsersRepository,
     private readonly membersRepository: MembersRepository,
+    private readonly s3: S3AdapterService,
   ) {}
 
   async create(dto: CreateUserDto, actorId: string): Promise<UserResponseDto> {
@@ -34,13 +38,11 @@ export class UsersService {
 
     const passwordHash = await bcrypt.hash(dto.password, BCRYPT_ROUNDS);
 
-    const dtoSpaceId = dto.spaceId ?? dto.departmentId;
     const user = await this.usersRepository.create({
       email: dto.email,
       name: dto.name,
       passwordHash,
-      role: dto.role,
-      space: dtoSpaceId ? { connect: { id: dtoSpaceId } } : undefined,
+      space: dto.spaceId ? { connect: { id: dto.spaceId } } : undefined,
     });
 
     await this.addToActorWorkspaces(user.id, actorId);
@@ -59,7 +61,7 @@ export class UsersService {
         await this.membersRepository.create({
           workspaceId,
           userId,
-          role: WorkspaceMemberRole.MEMBER,
+          role: WorkspaceMemberRole.EDITOR,
         });
       }
     } catch (error) {
@@ -104,12 +106,10 @@ export class UsersService {
     const updateData: Prisma.UserUpdateInput = {};
     if (dto.email !== undefined) updateData.email = dto.email;
     if (dto.name !== undefined) updateData.name = dto.name;
-    if (dto.role !== undefined) updateData.role = dto.role;
     if (dto.isActive !== undefined) updateData.isActive = dto.isActive;
-    const dtoSpaceId = dto.spaceId ?? dto.departmentId;
-    if (dtoSpaceId !== undefined) {
-      updateData.space = dtoSpaceId
-        ? { connect: { id: dtoSpaceId } }
+    if (dto.spaceId !== undefined) {
+      updateData.space = dto.spaceId
+        ? { connect: { id: dto.spaceId } }
         : { disconnect: true };
     }
     if (dto.password) {
@@ -126,16 +126,11 @@ export class UsersService {
       throw new NotFoundException('Usuário não encontrado');
     }
 
-    if (dto.email && dto.email !== user.email) {
-      const existing = await this.usersRepository.findByEmail(dto.email);
-      if (existing) {
-        throw new ConflictException('Email já cadastrado');
-      }
-    }
-
     const updateData: Prisma.UserUpdateInput = {};
     if (dto.fullName !== undefined) updateData.name = dto.fullName;
-    if (dto.email !== undefined) updateData.email = dto.email;
+    if (dto.avatar !== undefined) updateData.avatar = dto.avatar;
+    if (dto.themeColor !== undefined) updateData.themeColor = dto.themeColor;
+    if (dto.appearance !== undefined) updateData.appearance = dto.appearance;
 
     if (dto.password) {
       const currentValid = await bcrypt.compare(
@@ -150,6 +145,38 @@ export class UsersService {
 
     const updated = await this.usersRepository.update(userId, updateData);
     return UserResponseDto.fromEntity(updated);
+  }
+
+  async uploadAvatar(
+    userId: string,
+    imageDataUrl: string,
+  ): Promise<UserResponseDto> {
+    const match = /^data:(image\/(?:png|jpe?g|webp));base64,(.+)$/i.exec(
+      imageDataUrl,
+    );
+    if (!match) {
+      throw new BadRequestException(
+        'Imagem invalida: esperado data URL base64 (png, jpeg ou webp)',
+      );
+    }
+    const buffer = Buffer.from(match[2], 'base64');
+    if (buffer.length > AVATAR_MAX_BYTES) {
+      throw new BadRequestException('Imagem excede o limite de 2MB');
+    }
+    const key = `avatars/users/${userId}.jpg`;
+    await this.s3.putObject({ key, body: buffer, contentType: match[1] });
+    const updated = await this.usersRepository.update(userId, { avatar: key });
+    return UserResponseDto.fromEntity(updated);
+  }
+
+  async deleteAvatar(userId: string): Promise<UserResponseDto> {
+    const updated = await this.usersRepository.update(userId, { avatar: null });
+    return UserResponseDto.fromEntity(updated);
+  }
+
+  async getAvatarSignedUrl(key: string): Promise<string> {
+    const signed = await this.s3.getSignedGetUrl({ key, expiresInSeconds: 3600 });
+    return signed.url;
   }
 
   async remove(id: string): Promise<void> {

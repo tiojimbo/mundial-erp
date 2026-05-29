@@ -5,11 +5,11 @@ import {
   ApiResponse,
   ApiTags,
 } from '@nestjs/swagger';
-import { Role } from '@prisma/client';
+
 import { TaskActivitiesService } from './task-activities.service';
 import { ActivityFiltersDto } from './dtos/activity-filters.dto';
 import { ActivitiesListResponseDto } from './dtos/activity-response.dto';
-import { Roles } from '../auth/decorators';
+
 import { WorkspaceId } from '../workspaces/decorators/workspace-id.decorator';
 import { SkipResponseTransform } from '../../common/decorators/skip-response-transform.decorator';
 
@@ -21,7 +21,6 @@ export class TaskActivitiesController {
 
   @Get('tasks-activities/:taskId')
   @SkipResponseTransform()
-  @Roles(Role.ADMIN, Role.MANAGER, Role.OPERATOR, Role.VIEWER)
   @ApiOperation({
     summary:
       'Feed de atividades da tarefa (paginado, orderBy createdAt DESC, path Hoppe)',

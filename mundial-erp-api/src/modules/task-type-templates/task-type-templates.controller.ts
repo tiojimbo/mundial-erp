@@ -5,11 +5,11 @@ import {
   ApiResponse,
   ApiTags,
 } from '@nestjs/swagger';
-import { Role } from '@prisma/client';
+
 import { TaskTypeTemplatesService } from './task-type-templates.service';
 import { TaskTypeTemplatesGuard } from './task-type-templates.guard';
 import { TaskTypeTemplateResponseDto } from './dtos/task-type-template-response.dto';
-import { Roles } from '../auth/decorators';
+
 import { WorkspaceId } from '../workspaces/decorators/workspace-id.decorator';
 
 /**
@@ -35,7 +35,6 @@ export class TaskTypeTemplatesController {
   constructor(private readonly service: TaskTypeTemplatesService) {}
 
   @Get()
-  @Roles(Role.ADMIN, Role.MANAGER, Role.OPERATOR, Role.VIEWER)
   @ApiOperation({
     summary:
       'Lista templates visiveis ao workspace (builtins globais + proprios)',
@@ -52,7 +51,6 @@ export class TaskTypeTemplatesController {
   }
 
   @Get(':customTaskTypeId')
-  @Roles(Role.ADMIN, Role.MANAGER, Role.OPERATOR, Role.VIEWER)
   @ApiOperation({
     summary:
       'Busca o template (1:1) associado a um CustomTaskType. Cross-tenant -> 404.',

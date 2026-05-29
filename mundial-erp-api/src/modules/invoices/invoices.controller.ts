@@ -20,13 +20,13 @@ import {
   ApiResponse,
   ApiTags,
 } from '@nestjs/swagger';
-import { InvoiceDirection, Role } from '@prisma/client';
+import { InvoiceDirection, WorkspaceMemberRole } from '@prisma/client';
 import { InvoicesService } from './invoices.service';
 import { CreateInvoiceDto } from './dto/create-invoice.dto';
 import { UpdateInvoiceDto } from './dto/update-invoice.dto';
 import { InvoiceResponseDto } from './dto/invoice-response.dto';
 import { PaginationDto } from '../../common/dtos/pagination.dto';
-import { Roles } from '../auth/decorators';
+import { WorkspaceRoles } from '../auth/decorators';
 import { WorkspaceId } from '../workspaces/decorators/workspace-id.decorator';
 import {
   RequireIdempotencyKey,
@@ -41,7 +41,11 @@ export class InvoicesController {
   constructor(private readonly invoicesService: InvoicesService) {}
 
   @Post()
-  @Roles(Role.ADMIN, Role.MANAGER, Role.OPERATOR)
+  @WorkspaceRoles(
+    WorkspaceMemberRole.OWNER,
+    WorkspaceMemberRole.ADMIN,
+    WorkspaceMemberRole.EDITOR,
+  )
   @RequireIdempotencyKey()
   @UseGuards(IdempotencyGuard)
   @UseInterceptors(IdempotencyInterceptor)
@@ -57,7 +61,11 @@ export class InvoicesController {
   }
 
   @Get()
-  @Roles(Role.ADMIN, Role.MANAGER, Role.OPERATOR)
+  @WorkspaceRoles(
+    WorkspaceMemberRole.OWNER,
+    WorkspaceMemberRole.ADMIN,
+    WorkspaceMemberRole.EDITOR,
+  )
   @ApiOperation({
     summary: 'Listar notas fiscais (filtro direção/cliente/empresa/pedido)',
   })
@@ -83,7 +91,11 @@ export class InvoicesController {
   }
 
   @Get(':id')
-  @Roles(Role.ADMIN, Role.MANAGER, Role.OPERATOR)
+  @WorkspaceRoles(
+    WorkspaceMemberRole.OWNER,
+    WorkspaceMemberRole.ADMIN,
+    WorkspaceMemberRole.EDITOR,
+  )
   @ApiOperation({ summary: 'Buscar nota fiscal por ID' })
   @ApiResponse({ status: 200, type: InvoiceResponseDto })
   @ApiResponse({ status: 404, description: 'Nota fiscal não encontrada' })
@@ -92,7 +104,7 @@ export class InvoicesController {
   }
 
   @Patch(':id')
-  @Roles(Role.ADMIN, Role.MANAGER)
+  @WorkspaceRoles(WorkspaceMemberRole.OWNER, WorkspaceMemberRole.ADMIN)
   @ApiOperation({ summary: 'Atualizar nota fiscal' })
   @ApiResponse({ status: 200, type: InvoiceResponseDto })
   @ApiResponse({ status: 404, description: 'Nota fiscal não encontrada' })
@@ -105,7 +117,7 @@ export class InvoicesController {
   }
 
   @Post(':id/cancel')
-  @Roles(Role.ADMIN, Role.MANAGER)
+  @WorkspaceRoles(WorkspaceMemberRole.OWNER, WorkspaceMemberRole.ADMIN)
   @ApiOperation({ summary: 'Cancelar nota fiscal' })
   @ApiResponse({ status: 200, type: InvoiceResponseDto })
   @ApiResponse({ status: 404, description: 'Nota fiscal não encontrada' })
@@ -115,7 +127,7 @@ export class InvoicesController {
   }
 
   @Delete(':id')
-  @Roles(Role.ADMIN)
+  @WorkspaceRoles(WorkspaceMemberRole.OWNER, WorkspaceMemberRole.ADMIN)
   @HttpCode(HttpStatus.NO_CONTENT)
   @ApiOperation({ summary: 'Remover nota fiscal (soft delete)' })
   @ApiResponse({ status: 204 })

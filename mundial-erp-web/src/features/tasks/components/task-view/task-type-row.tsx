@@ -1,14 +1,20 @@
 'use client';
 
+import { useState } from 'react';
+import { RiMore2Line, RiDragMoveLine } from '@remixicon/react';
 import * as Dropdown from '@/components/ui/dropdown';
 import { useWorkspaceStore } from '@/stores/workspace.store';
 import { useWorkspaceTaskTypes } from '../../hooks/use-workspace-task-types';
 import { useUpdateTask } from '../../hooks/use-update-task';
 import { getIconByName } from '../icon-picker';
+import { MoveTaskDialog } from '../move-task/move-task-dialog';
 import type { TaskDetail } from '../../types/task.types';
 
 export type TaskTypeRowProps = {
-  task: Pick<TaskDetail, 'id' | 'customType' | 'customTypeId' | 'itemType'>;
+  task: Pick<
+    TaskDetail,
+    'id' | 'customType' | 'customTypeId' | 'itemType' | 'processId'
+  >;
 };
 
 export function TaskTypeRow({ task }: TaskTypeRowProps) {
@@ -16,6 +22,7 @@ export function TaskTypeRow({ task }: TaskTypeRowProps) {
   const typesQuery = useWorkspaceTaskTypes(workspaceId);
   const updateTask = useUpdateTask();
   const types = typesQuery.data ?? [];
+  const [moveOpen, setMoveOpen] = useState(false);
 
   const label =
     task.customType?.value ??
@@ -29,7 +36,7 @@ export function TaskTypeRow({ task }: TaskTypeRowProps) {
   }
 
   return (
-    <header className='flex items-center gap-2'>
+    <header className='flex items-center justify-between gap-2'>
       <Dropdown.Root>
         <Dropdown.Trigger asChild>
           <button
@@ -60,6 +67,31 @@ export function TaskTypeRow({ task }: TaskTypeRowProps) {
           })}
         </Dropdown.Content>
       </Dropdown.Root>
+
+      <Dropdown.Root>
+        <Dropdown.Trigger asChild>
+          <button
+            type='button'
+            aria-label='Ações da tarefa'
+            className='border-border/60 bg-muted/40 flex size-6 items-center justify-center rounded-lg border transition-all duration-150 hover:border-border hover:bg-muted active:scale-[0.97]'
+          >
+            <RiMore2Line className='h-3.5 w-3.5' />
+          </button>
+        </Dropdown.Trigger>
+        <Dropdown.Content align='end' className='w-48'>
+          <Dropdown.Item onSelect={() => setMoveOpen(true)}>
+            <Dropdown.ItemIcon as={RiDragMoveLine} />
+            Mover para lista
+          </Dropdown.Item>
+        </Dropdown.Content>
+      </Dropdown.Root>
+
+      <MoveTaskDialog
+        open={moveOpen}
+        onOpenChange={setMoveOpen}
+        taskIds={[task.id]}
+        sourceListId={task.processId}
+      />
     </header>
   );
 }

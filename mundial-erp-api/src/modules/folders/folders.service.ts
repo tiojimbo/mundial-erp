@@ -1,5 +1,7 @@
 import {
   BadRequestException,
+  ConflictException,
+  ForbiddenException,
   Inject,
   Injectable,
   NotFoundException,
@@ -10,6 +12,7 @@ import {
   Prisma,
   ProcessType,
   Visibility,
+  WorkspaceMemberRole,
 } from '@prisma/client';
 import { FoldersRepository } from './folders.repository';
 import { CreateFolderDto } from './dto/create-folder.dto';
@@ -319,7 +322,7 @@ export class FoldersService {
         folderId,
         userId: sm.userId,
         permission: sm.permission,
-        source: 'space' as const,
+        source: 'inherited' as const,
         inherited: true,
         user: { ...sm.user, avatar: null },
       }));
@@ -327,12 +330,62 @@ export class FoldersService {
     return [...directRows, ...inheritedRows];
   }
 
+  private async assertCanManageMembers(
+    workspaceId: string,
+    folderId: string,
+    actorId: string,
+  ): Promise<void> {
+    const wsMember = await this.prisma.workspaceMember.findUnique({
+      where: { workspaceId_userId: { workspaceId, userId: actorId } },
+    });
+    if (
+      wsMember &&
+      (wsMember.role === WorkspaceMemberRole.OWNER ||
+        wsMember.role === WorkspaceMemberRole.ADMIN)
+    ) {
+      return;
+    }
+    const fm = await this.prisma.folderMember.findUnique({
+      where: { folderId_userId: { folderId, userId: actorId } },
+    });
+    if (
+      fm &&
+      (fm.permission === MemberPermission.FULL_EDIT ||
+        fm.permission === MemberPermission.EDIT)
+    ) {
+      return;
+    }
+    const folder = await this.prisma.folder.findFirst({
+      where: { id: folderId, deletedAt: null, space: { workspaceId } },
+      select: { spaceId: true, visibility: true },
+    });
+    if (folder && folder.visibility === Visibility.PUBLIC) {
+      const sm = await this.prisma.spaceMember.findUnique({
+        where: {
+          spaceId_userId: { spaceId: folder.spaceId, userId: actorId },
+        },
+      });
+      if (
+        sm &&
+        (sm.permission === MemberPermission.FULL_EDIT ||
+          sm.permission === MemberPermission.EDIT)
+      ) {
+        return;
+      }
+    }
+    throw new ForbiddenException(
+      'Sem permissão para gerenciar membros deste folder',
+    );
+  }
+
   async addMember(
     workspaceId: string,
     folderId: string,
     userId: string,
     permission: MemberPermission,
+    actorId: string,
   ) {
+    await this.assertCanManageMembers(workspaceId, folderId, actorId);
     const folder = await this.foldersRepository.findById(workspaceId, folderId);
     if (!folder) {
       throw new NotFoundException('Folder não encontrado');
@@ -352,7 +405,7 @@ export class FoldersService {
         error instanceof Prisma.PrismaClientKnownRequestError &&
         error.code === 'P2002'
       ) {
-        throw new BadRequestException('User já é membro do folder');
+        throw new ConflictException('User já é membro do folder');
       }
       throw error;
     }
@@ -364,7 +417,9 @@ export class FoldersService {
     folderId: string,
     userId: string,
     permission: MemberPermission,
+    actorId: string,
   ) {
+    await this.assertCanManageMembers(workspaceId, folderId, actorId);
     const folder = await this.foldersRepository.findById(workspaceId, folderId);
     if (!folder) {
       throw new NotFoundException('Folder não encontrado');
@@ -382,7 +437,13 @@ export class FoldersService {
     return { folderId, userId, permission, source: 'direct', inherited: false };
   }
 
-  async removeMember(workspaceId: string, folderId: string, userId: string) {
+  async removeMember(
+    workspaceId: string,
+    folderId: string,
+    userId: string,
+    actorId: string,
+  ) {
+    await this.assertCanManageMembers(workspaceId, folderId, actorId);
     const folder = await this.foldersRepository.findById(workspaceId, folderId);
     if (!folder) {
       throw new NotFoundException('Folder não encontrado');

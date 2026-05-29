@@ -14,7 +14,7 @@ import {
   ApiResponse,
   ApiTags,
 } from '@nestjs/swagger';
-import { Role } from '@prisma/client';
+import { WorkspaceMemberRole } from '@prisma/client';
 import { SpacesService } from './spaces.service';
 import { CreateSpaceDto } from './dto/create-space.dto';
 import { UpdateSpaceDto } from './dto/update-space.dto';
@@ -24,7 +24,7 @@ import { UpdateSpaceMemberDto } from './dto/update-space-member.dto';
 import { SpaceResponseDto } from './dto/space-response.dto';
 import { StatusBulkDto } from './dto/status-bulk.dto';
 import { SidebarSpaceDto } from './dto/sidebar-space.dto';
-import { CurrentUser, Roles } from '../auth/decorators';
+import { CurrentUser, WorkspaceRoles } from '../auth/decorators';
 import type { JwtPayload } from '../auth/decorators';
 import { WorkspaceId } from '../workspaces/decorators/workspace-id.decorator';
 import { SkipResponseTransform } from '../../common/decorators/skip-response-transform.decorator';
@@ -37,7 +37,7 @@ export class SpacesController {
 
   @Post()
   @SkipResponseTransform()
-  @Roles(Role.ADMIN)
+  @WorkspaceRoles(WorkspaceMemberRole.OWNER, WorkspaceMemberRole.ADMIN)
   @ApiOperation({ summary: 'Criar space (somente ADMIN)' })
   @ApiResponse({ status: 201, type: SpaceResponseDto })
   @ApiResponse({
@@ -54,7 +54,6 @@ export class SpacesController {
 
   @Get()
   @SkipResponseTransform()
-  @Roles(Role.ADMIN, Role.MANAGER, Role.OPERATOR, Role.VIEWER)
   @ApiOperation({ summary: 'Listar spaces (array com folders e statuses)' })
   findAll(@WorkspaceId() workspaceId: string) {
     return this.spacesService.findAll(workspaceId);
@@ -62,7 +61,6 @@ export class SpacesController {
 
   @Get('shared-with-me')
   @SkipResponseTransform()
-  @Roles(Role.ADMIN, Role.MANAGER, Role.OPERATOR, Role.VIEWER)
   @ApiOperation({
     summary: 'Spaces dos quais o usuário é membro mas não criador',
   })
@@ -75,7 +73,6 @@ export class SpacesController {
   }
 
   @Get('sidebar')
-  @Roles(Role.ADMIN, Role.MANAGER, Role.OPERATOR, Role.VIEWER)
   @ApiOperation({ summary: 'Árvore de departamentos para sidebar' })
   @ApiResponse({ status: 200, type: [SidebarSpaceDto] })
   getSidebarTree(@WorkspaceId() workspaceId: string) {
@@ -83,7 +80,6 @@ export class SpacesController {
   }
 
   @Get('by-slug/:slug')
-  @Roles(Role.ADMIN, Role.MANAGER, Role.OPERATOR, Role.VIEWER)
   @ApiOperation({
     summary: 'Buscar space por slug (com folders e lists diretas)',
   })
@@ -94,7 +90,6 @@ export class SpacesController {
   }
 
   @Get(':id/process-summaries')
-  @Roles(Role.ADMIN, Role.MANAGER, Role.OPERATOR, Role.VIEWER)
   @ApiOperation({
     summary: 'Resumo consolidado de todas as lists do space (LIST + BPM)',
   })
@@ -114,7 +109,6 @@ export class SpacesController {
 
   @Get(':id/resources')
   @SkipResponseTransform()
-  @Roles(Role.ADMIN, Role.MANAGER, Role.OPERATOR, Role.VIEWER)
   @ApiOperation({ summary: 'Metadata de filters/sortOptions do space' })
   getResources(@WorkspaceId() workspaceId: string, @Param('id') id: string) {
     return this.spacesService.getResources(workspaceId, id);
@@ -122,7 +116,6 @@ export class SpacesController {
 
   @Get(':id/members')
   @SkipResponseTransform()
-  @Roles(Role.ADMIN, Role.MANAGER, Role.OPERATOR, Role.VIEWER)
   @ApiOperation({ summary: 'Listar membros do space' })
   listMembers(@WorkspaceId() workspaceId: string, @Param('id') id: string) {
     return this.spacesService.listMembers(workspaceId, id);
@@ -130,11 +123,11 @@ export class SpacesController {
 
   @Post(':id/members')
   @SkipResponseTransform()
-  @Roles(Role.ADMIN)
   @ApiOperation({ summary: 'Adicionar membro ao space' })
   addMember(
     @WorkspaceId() workspaceId: string,
     @Param('id') id: string,
+    @CurrentUser() user: JwtPayload,
     @Body() dto: AddSpaceMemberDto,
   ) {
     return this.spacesService.addMember(
@@ -142,17 +135,18 @@ export class SpacesController {
       id,
       dto.userId,
       dto.permission,
+      user.sub,
     );
   }
 
   @Put(':id/members/:userId')
   @SkipResponseTransform()
-  @Roles(Role.ADMIN)
   @ApiOperation({ summary: 'Atualizar permission de membro' })
   updateMember(
     @WorkspaceId() workspaceId: string,
     @Param('id') id: string,
     @Param('userId') userId: string,
+    @CurrentUser() user: JwtPayload,
     @Body() dto: UpdateSpaceMemberDto,
   ) {
     return this.spacesService.updateMember(
@@ -160,24 +154,24 @@ export class SpacesController {
       id,
       userId,
       dto.permission,
+      user.sub,
     );
   }
 
   @Delete(':id/members/:userId')
   @SkipResponseTransform()
-  @Roles(Role.ADMIN)
   @ApiOperation({ summary: 'Remover membro do space' })
   removeMember(
     @WorkspaceId() workspaceId: string,
     @Param('id') id: string,
     @Param('userId') userId: string,
+    @CurrentUser() user: JwtPayload,
   ) {
-    return this.spacesService.removeMember(workspaceId, id, userId);
+    return this.spacesService.removeMember(workspaceId, id, userId, user.sub);
   }
 
   @Get(':id/visibility')
   @SkipResponseTransform()
-  @Roles(Role.ADMIN, Role.MANAGER, Role.OPERATOR, Role.VIEWER)
   @ApiOperation({ summary: 'Visibility atual do space' })
   getVisibility(@WorkspaceId() workspaceId: string, @Param('id') id: string) {
     return this.spacesService.getVisibility(workspaceId, id);
@@ -185,7 +179,7 @@ export class SpacesController {
 
   @Put(':id/visibility')
   @SkipResponseTransform()
-  @Roles(Role.ADMIN)
+  @WorkspaceRoles(WorkspaceMemberRole.OWNER, WorkspaceMemberRole.ADMIN)
   @ApiOperation({ summary: 'Atualizar visibility do space' })
   updateVisibility(
     @WorkspaceId() workspaceId: string,
@@ -197,7 +191,6 @@ export class SpacesController {
 
   @Get(':id/statuses')
   @SkipResponseTransform()
-  @Roles(Role.ADMIN, Role.MANAGER, Role.OPERATOR, Role.VIEWER)
   @ApiOperation({ summary: 'Listar statuses do space (paridade Hoppe)' })
   listStatuses(@WorkspaceId() workspaceId: string, @Param('id') id: string) {
     return this.spacesService.listStatuses(workspaceId, id);
@@ -205,7 +198,7 @@ export class SpacesController {
 
   @Put(':id/status')
   @SkipResponseTransform()
-  @Roles(Role.ADMIN, Role.MANAGER)
+  @WorkspaceRoles(WorkspaceMemberRole.OWNER, WorkspaceMemberRole.ADMIN)
   @ApiOperation({
     summary:
       'Substituir lista completa de statuses do space (estilo Hoppe: items com id sao update, sem id sao create, ausentes viram soft delete)',
@@ -220,7 +213,7 @@ export class SpacesController {
 
   @Get(':id')
   @SkipResponseTransform()
-  @Roles(Role.ADMIN, Role.MANAGER)
+  @WorkspaceRoles(WorkspaceMemberRole.OWNER, WorkspaceMemberRole.ADMIN)
   @ApiOperation({ summary: 'Buscar space por ID' })
   @ApiResponse({ status: 200, type: SpaceResponseDto })
   @ApiResponse({ status: 404, description: 'Space não encontrado' })
@@ -230,7 +223,7 @@ export class SpacesController {
 
   @Put(':id')
   @SkipResponseTransform()
-  @Roles(Role.ADMIN)
+  @WorkspaceRoles(WorkspaceMemberRole.OWNER, WorkspaceMemberRole.ADMIN)
   @ApiOperation({ summary: 'Atualizar space (somente ADMIN)' })
   @ApiResponse({ status: 200, type: SpaceResponseDto })
   update(
@@ -243,7 +236,7 @@ export class SpacesController {
 
   @Delete(':id')
   @SkipResponseTransform()
-  @Roles(Role.ADMIN)
+  @WorkspaceRoles(WorkspaceMemberRole.OWNER, WorkspaceMemberRole.ADMIN)
   @ApiOperation({
     summary: 'Remover space (soft delete, somente ADMIN)',
   })

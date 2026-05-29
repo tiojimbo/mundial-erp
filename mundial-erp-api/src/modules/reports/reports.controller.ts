@@ -5,8 +5,8 @@ import {
   ApiResponse,
   ApiTags,
 } from '@nestjs/swagger';
-import { Role } from '@prisma/client';
-import { Roles } from '../auth/decorators';
+import { WorkspaceMemberRole } from '@prisma/client';
+import { WorkspaceRoles } from '../auth/decorators';
 import { WorkspaceId } from '../workspaces/decorators/workspace-id.decorator';
 import { ReportsService } from './reports.service';
 import {
@@ -28,7 +28,7 @@ export class ReportsController {
   constructor(private readonly reportsService: ReportsService) {}
 
   @Get('kpi-summary')
-  @Roles(Role.ADMIN, Role.MANAGER)
+  @WorkspaceRoles(WorkspaceMemberRole.OWNER, WorkspaceMemberRole.ADMIN)
   @ApiOperation({
     summary: 'KPI resumo — receita, despesas, margem, ticket medio',
   })
@@ -41,7 +41,7 @@ export class ReportsController {
   }
 
   @Get('sales-chart')
-  @Roles(Role.ADMIN, Role.MANAGER)
+  @WorkspaceRoles(WorkspaceMemberRole.OWNER, WorkspaceMemberRole.ADMIN)
   @ApiOperation({
     summary: 'Grafico de vendas — serie temporal agrupada por dia/semana/mes',
   })
@@ -54,7 +54,7 @@ export class ReportsController {
   }
 
   @Get('cashflow')
-  @Roles(Role.ADMIN, Role.MANAGER)
+  @WorkspaceRoles(WorkspaceMemberRole.OWNER, WorkspaceMemberRole.ADMIN)
   @ApiOperation({ summary: 'Fluxo de caixa — entradas vs saidas por periodo' })
   @ApiResponse({ status: 200, type: CashflowResponseDto })
   getCashflow(
@@ -65,7 +65,7 @@ export class ReportsController {
   }
 
   @Get('dre')
-  @Roles(Role.ADMIN, Role.MANAGER)
+  @WorkspaceRoles(WorkspaceMemberRole.OWNER, WorkspaceMemberRole.ADMIN)
   @ApiOperation({ summary: 'DRE — Demonstrativo de Resultado do Exercicio' })
   @ApiResponse({ status: 200, type: DreResponseDto })
   getDre(
@@ -76,7 +76,11 @@ export class ReportsController {
   }
 
   @Get('sales')
-  @Roles(Role.ADMIN, Role.MANAGER, Role.OPERATOR)
+  @WorkspaceRoles(
+    WorkspaceMemberRole.OWNER,
+    WorkspaceMemberRole.ADMIN,
+    WorkspaceMemberRole.EDITOR,
+  )
   @ApiOperation({
     summary: 'Relatorio de vendas — listagem paginada com totais',
   })

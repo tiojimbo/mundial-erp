@@ -16,9 +16,9 @@ import {
   ApiResponse,
   ApiTags,
 } from '@nestjs/swagger';
-import { FavoriteEntity, Role } from '@prisma/client';
+import { FavoriteEntity } from '@prisma/client';
 import { PaginationDto } from '../../common/dtos/pagination.dto';
-import { CurrentUser, Roles } from '../auth/decorators';
+import { CurrentUser } from '../auth/decorators';
 import type { JwtPayload } from '../auth/decorators';
 import { WorkspaceId } from '../workspaces/decorators/workspace-id.decorator';
 import { FavoritesService } from './favorites.service';
@@ -30,7 +30,6 @@ import { CheckFavoriteResponseDto } from './dtos/check-favorite-response.dto';
 @ApiTags('Favorites')
 @ApiBearerAuth()
 @Controller()
-@Roles(Role.ADMIN, Role.MANAGER, Role.OPERATOR, Role.VIEWER)
 export class FavoritesController {
   constructor(private readonly service: FavoritesService) {}
 

@@ -52,7 +52,6 @@ import {
   Prisma,
   ProcessStatus,
   ProcessType,
-  Role,
   StatusType,
   TaskPriority,
   WorkItemType,
@@ -149,7 +148,7 @@ const prisma = new PrismaClient({ adapter });
 
 async function ensureWorkspace(): Promise<{ id: string; ownerId: string }> {
   let owner = await prisma.user.findFirst({
-    where: { role: Role.ADMIN, isActive: true, deletedAt: null },
+    where: { isActive: true, deletedAt: null },
     orderBy: { createdAt: 'asc' },
   });
   if (!owner) {
@@ -159,7 +158,6 @@ async function ensureWorkspace(): Promise<{ id: string; ownerId: string }> {
         email: 'perf-fixture-owner@example.local',
         name: 'Perf Fixture Owner',
         passwordHash: hash,
-        role: Role.ADMIN,
       },
     });
   }
@@ -190,7 +188,10 @@ async function ensureWorkspace(): Promise<{ id: string; ownerId: string }> {
   return { id: ws.id, ownerId: owner.id };
 }
 
-async function ensureUsers(workspaceId: string, count: number): Promise<string[]> {
+async function ensureUsers(
+  workspaceId: string,
+  count: number,
+): Promise<string[]> {
   const existing = await prisma.user.findMany({
     where: { email: { startsWith: 'perf-user-' } },
     select: { id: true, email: true },
@@ -210,7 +211,6 @@ async function ensureUsers(workspaceId: string, count: number): Promise<string[]
         email: u.email,
         name: u.name,
         passwordHash: hash,
-        role: Role.OPERATOR,
       })),
       skipDuplicates: true,
     });
@@ -227,7 +227,7 @@ async function ensureUsers(workspaceId: string, count: number): Promise<string[]
     data: all.map((u) => ({
       workspaceId,
       userId: u.id,
-      role: WorkspaceMemberRole.MEMBER,
+      role: WorkspaceMemberRole.EDITOR,
     })),
     skipDuplicates: true,
   });
@@ -259,7 +259,10 @@ async function ensureDepartments(
   return ids;
 }
 
-async function ensureAreas(spaceIds: string[], count: number): Promise<string[]> {
+async function ensureAreas(
+  spaceIds: string[],
+  count: number,
+): Promise<string[]> {
   const ids: string[] = [];
   for (let i = 0; i < count; i++) {
     const slug = `perf-area-${i}`;
@@ -285,9 +288,9 @@ async function ensureAreas(spaceIds: string[], count: number): Promise<string[]>
  * Cria 4 statuses por department (NOT_STARTED, ACTIVE, DONE, CLOSED) para
  * satisfazer a FK de WorkItem.statusId. Retorna deptId -> {category -> statusId}.
  */
-async function ensureStatuses(spaceIds: string[]): Promise<
-  Map<string, Record<StatusType, string>>
-> {
+async function ensureStatuses(
+  spaceIds: string[],
+): Promise<Map<string, Record<StatusType, string>>> {
   const result = new Map<string, Record<StatusType, string>>();
   for (const spaceId of spaceIds) {
     const categories: StatusType[] = [
@@ -354,7 +357,10 @@ async function ensureProcesses(
   return result;
 }
 
-async function ensureTags(workspaceId: string, count: number): Promise<string[]> {
+async function ensureTags(
+  workspaceId: string,
+  count: number,
+): Promise<string[]> {
   const ids: string[] = [];
   for (let i = 0; i < count; i++) {
     const name = `perf-tag-${i}`;
@@ -388,7 +394,9 @@ async function cleanFixture(): Promise<void> {
     where: { slug: FIXTURE_WORKSPACE.slug },
   });
   if (!ws) {
-    console.log('[seed-tasks-perf] clean: fixture workspace nao existe, nada a fazer.');
+    console.log(
+      '[seed-tasks-perf] clean: fixture workspace nao existe, nada a fazer.',
+    );
     return;
   }
 
@@ -641,8 +649,7 @@ async function run(): Promise<void> {
             const fromId = idByTitle.get(item.title);
             if (!fromId) continue;
             for (let d = 0; d < item.dependencyCount; d++) {
-              const toId =
-                createdIds[Math.floor(rand() * createdIds.length)]!;
+              const toId = createdIds[Math.floor(rand() * createdIds.length)]!;
               if (toId === fromId) continue;
               linkRows.push({
                 fromTaskId: fromId,

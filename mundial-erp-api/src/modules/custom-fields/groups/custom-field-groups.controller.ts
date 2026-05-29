@@ -13,13 +13,13 @@ import {
   ApiResponse,
   ApiTags,
 } from '@nestjs/swagger';
-import { Role } from '@prisma/client';
+import { WorkspaceMemberRole } from '@prisma/client';
 import { Throttle } from '@nestjs/throttler';
 import { CustomFieldGroupsService } from './custom-field-groups.service';
 import { CreateCustomFieldGroupDto } from './dtos/create-custom-field-group.dto';
 import { UpdateCustomFieldGroupDto } from './dtos/update-custom-field-group.dto';
 import { CustomFieldGroupResponseDto } from './dtos/custom-field-group-response.dto';
-import { Roles } from '../../auth/decorators';
+import { WorkspaceRoles } from '../../auth/decorators';
 import { WorkspaceId } from '../../workspaces/decorators/workspace-id.decorator';
 
 @ApiTags('Custom Fields')
@@ -29,7 +29,6 @@ export class CustomFieldGroupsController {
   constructor(private readonly service: CustomFieldGroupsService) {}
 
   @Get()
-  @Roles(Role.ADMIN, Role.MANAGER, Role.OPERATOR, Role.VIEWER)
   @ApiOperation({ summary: 'Lista groups do workspace' })
   @ApiResponse({
     status: 200,
@@ -41,7 +40,6 @@ export class CustomFieldGroupsController {
   }
 
   @Get('task-type/:taskTypeId')
-  @Roles(Role.ADMIN, Role.MANAGER, Role.OPERATOR, Role.VIEWER)
   @ApiOperation({
     summary: 'Groups usados por defs ligadas a um taskType',
   })
@@ -58,7 +56,6 @@ export class CustomFieldGroupsController {
   }
 
   @Get('list/:listId')
-  @Roles(Role.ADMIN, Role.MANAGER, Role.OPERATOR, Role.VIEWER)
   @ApiOperation({
     summary: 'Groups usados por defs ligadas a uma lista',
   })
@@ -75,7 +72,6 @@ export class CustomFieldGroupsController {
   }
 
   @Get(':id')
-  @Roles(Role.ADMIN, Role.MANAGER, Role.OPERATOR, Role.VIEWER)
   @ApiOperation({ summary: 'Busca group por ID' })
   @ApiResponse({ status: 200, type: CustomFieldGroupResponseDto })
   @ApiResponse({ status: 404, description: 'Group nao encontrado' })
@@ -84,7 +80,7 @@ export class CustomFieldGroupsController {
   }
 
   @Post()
-  @Roles(Role.ADMIN, Role.MANAGER)
+  @WorkspaceRoles(WorkspaceMemberRole.OWNER, WorkspaceMemberRole.ADMIN)
   @Throttle({ default: { limit: 60, ttl: 60_000 } })
   @ApiOperation({ summary: 'Cria group' })
   @ApiResponse({ status: 201, type: CustomFieldGroupResponseDto })
@@ -96,7 +92,7 @@ export class CustomFieldGroupsController {
   }
 
   @Put(':id')
-  @Roles(Role.ADMIN, Role.MANAGER)
+  @WorkspaceRoles(WorkspaceMemberRole.OWNER, WorkspaceMemberRole.ADMIN)
   @Throttle({ default: { limit: 60, ttl: 60_000 } })
   @ApiOperation({ summary: 'Atualiza group' })
   @ApiResponse({ status: 200, type: CustomFieldGroupResponseDto })
@@ -110,7 +106,7 @@ export class CustomFieldGroupsController {
   }
 
   @Delete(':id')
-  @Roles(Role.ADMIN, Role.MANAGER)
+  @WorkspaceRoles(WorkspaceMemberRole.OWNER, WorkspaceMemberRole.ADMIN)
   @Throttle({ default: { limit: 60, ttl: 60_000 } })
   @ApiOperation({
     summary:

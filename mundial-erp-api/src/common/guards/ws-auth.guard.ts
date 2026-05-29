@@ -12,9 +12,7 @@ export class WsAuthGuard {
     private readonly configService: ConfigService,
   ) {}
 
-  authenticate(
-    client: Socket,
-  ): { sub: string; email: string; role: string } | null {
+  authenticate(client: Socket): { sub: string; email: string } | null {
     const token = client.handshake.auth?.token || client.handshake.query?.token;
     if (!token) {
       this.logger.warn(`WS connection without token: ${client.id}`);
@@ -25,7 +23,7 @@ export class WsAuthGuard {
       const payload = this.jwtService.verify(token as string, {
         secret: this.configService.get<string>('JWT_ACCESS_SECRET'),
       });
-      return { sub: payload.sub, email: payload.email, role: payload.role };
+      return { sub: payload.sub, email: payload.email };
     } catch {
       this.logger.warn(`WS invalid token: ${client.id}`);
       return null;

@@ -5,11 +5,11 @@ import {
   ApiResponse,
   ApiTags,
 } from '@nestjs/swagger';
-import { Role } from '@prisma/client';
+import { WorkspaceMemberRole } from '@prisma/client';
 import { Throttle } from '@nestjs/throttler';
 import { CnpjLookupService } from './cnpj-lookup.service';
 import { CnpjLookupResponseDto } from './dto/cnpj-lookup.response.dto';
-import { Roles } from '../../auth/decorators';
+import { WorkspaceRoles } from '../../auth/decorators';
 import { WorkspaceId } from '../../workspaces/decorators/workspace-id.decorator';
 
 @ApiTags('Task Custom Fields')
@@ -19,7 +19,11 @@ export class CnpjLookupController {
   constructor(private readonly service: CnpjLookupService) {}
 
   @Get('custom-fields/cnpj-lookup/:cnpj')
-  @Roles(Role.ADMIN, Role.MANAGER, Role.OPERATOR)
+  @WorkspaceRoles(
+    WorkspaceMemberRole.OWNER,
+    WorkspaceMemberRole.ADMIN,
+    WorkspaceMemberRole.EDITOR,
+  )
   @Throttle({ default: { limit: 30, ttl: 60_000 } })
   @ApiOperation({
     summary: 'Consulta dados públicos de um CNPJ (BrasilAPI + ReceitaWS)',

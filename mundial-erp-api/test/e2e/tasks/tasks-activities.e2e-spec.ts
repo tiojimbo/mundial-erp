@@ -106,7 +106,7 @@ describe('Task Activities (e2e)', () => {
 
       wsA = await createTestWorkspace(app);
       wsB = await createTestWorkspace(app);
-      userBInA = await createTestUser(app, wsA.workspaceId, 'OPERATOR');
+      userBInA = await createTestUser(app, wsA.workspaceId, 'EDITOR');
       processA = await createTestProcess(app, wsA.workspaceId);
       taskA = await createTestTask(app, processA, wsA.ownerUserId, {
         title: 'Task A inicial',

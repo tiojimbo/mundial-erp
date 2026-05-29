@@ -16,6 +16,7 @@ import type { INestApplication } from '@nestjs/common';
 import request from 'supertest';
 import type { App } from 'supertest/types';
 import { PrismaService } from '../../../src/database/prisma.service';
+import { WorkspaceMemberRole } from '@prisma/client';
 
 export interface TestWorkspace {
   workspaceId: string;
@@ -42,8 +43,6 @@ export interface TestProcess {
 export interface TestTask {
   taskId: string;
 }
-
-export type WorkspaceRole = 'ADMIN' | 'MANAGER' | 'OPERATOR';
 
 interface AuthTokens {
   accessToken: string;
@@ -103,7 +102,6 @@ const refreshTokens = async (
 export const createTestWorkspace = async (
   app: INestApplication<App>,
 ): Promise<TestWorkspace> => {
-  const prisma = app.get(PrismaService);
   const ownerEmail = `${uniqueId('tasks-owner')}@mundial.test`;
 
   const { userId: ownerUserId, tokens: initialTokens } = await registerAndLogin(
@@ -111,14 +109,6 @@ export const createTestWorkspace = async (
     ownerEmail,
     'Tasks Owner',
   );
-
-  // Owner precisa ter role ADMIN no nivel User para criar Department/Process
-  // depois. Ajuste via DB — ver auth/rbac: role do User e separado do
-  // WorkspaceMemberRole.
-  await prisma.user.update({
-    where: { id: ownerUserId },
-    data: { role: 'ADMIN' },
-  });
 
   const afterRoleBump = await refreshTokens(app, initialTokens.refreshToken);
 
@@ -152,25 +142,18 @@ export const createTestWorkspace = async (
 export const createTestUser = async (
   app: INestApplication<App>,
   workspaceId: string,
-  role: WorkspaceRole = 'OPERATOR',
+  role: WorkspaceMemberRole = 'EDITOR',
 ): Promise<TestUser> => {
   const prisma = app.get(PrismaService);
   const email = `${uniqueId('tasks-user')}@mundial.test`;
 
   const { userId, tokens } = await registerAndLogin(app, email, 'Tasks User');
 
-  // Role no nivel User (necessario para alguns controllers). WorkspaceMemberRole
-  // e atribuido em paralelo via tabela de join.
-  await prisma.user.update({
-    where: { id: userId },
-    data: { role },
-  });
-
   await prisma.workspaceMember.create({
     data: {
       workspaceId,
       userId,
-      role: role === 'ADMIN' ? 'ADMIN' : 'MEMBER',
+      role,
     },
   });
 

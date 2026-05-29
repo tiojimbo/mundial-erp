@@ -5,8 +5,8 @@ import {
   ApiResponse,
   ApiTags,
 } from '@nestjs/swagger';
-import { Role } from '@prisma/client';
-import { Roles } from '../auth/decorators';
+import { WorkspaceMemberRole } from '@prisma/client';
+import { WorkspaceRoles } from '../auth/decorators';
 import { WorkspaceId } from '../workspaces/decorators/workspace-id.decorator';
 import { FinancialSummaryService } from './financial-summary.service';
 import { FinancialSummaryResponseDto } from './dto/financial-summary-response.dto';
@@ -20,7 +20,11 @@ export class FinancialSummaryController {
   ) {}
 
   @Get()
-  @Roles(Role.ADMIN, Role.MANAGER, Role.OPERATOR)
+  @WorkspaceRoles(
+    WorkspaceMemberRole.OWNER,
+    WorkspaceMemberRole.ADMIN,
+    WorkspaceMemberRole.EDITOR,
+  )
   @ApiOperation({
     summary: 'Dashboard financeiro — totais, vencidos, projeção',
   })

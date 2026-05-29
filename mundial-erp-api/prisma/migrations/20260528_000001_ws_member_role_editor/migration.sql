@@ -1,0 +1,1 @@
+ALTER TYPE "WorkspaceMemberRole" RENAME VALUE 'MEMBER' TO 'EDITOR';

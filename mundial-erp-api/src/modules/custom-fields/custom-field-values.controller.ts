@@ -5,13 +5,13 @@ import {
   ApiResponse,
   ApiTags,
 } from '@nestjs/swagger';
-import { Role } from '@prisma/client';
+import { WorkspaceMemberRole } from '@prisma/client';
 import { Throttle } from '@nestjs/throttler';
 import { CustomFieldValuesService } from './custom-field-values.service';
 import { CustomFieldValueResponseDto } from './dtos/custom-field-value-response.dto';
 import { SetCustomFieldValueDto } from './dtos/set-custom-field-value.dto';
 import { SetCustomFieldValuesBulkDto } from './dtos/set-custom-field-values-bulk.dto';
-import { CurrentUser, Roles } from '../auth/decorators';
+import { CurrentUser, WorkspaceRoles } from '../auth/decorators';
 import type { JwtPayload } from '../auth/decorators';
 import { WorkspaceId } from '../workspaces/decorators/workspace-id.decorator';
 
@@ -22,7 +22,6 @@ export class CustomFieldValuesController {
   constructor(private readonly service: CustomFieldValuesService) {}
 
   @Get('tasks/:taskId/custom-fields')
-  @Roles(Role.ADMIN, Role.MANAGER, Role.OPERATOR, Role.VIEWER)
   @ApiOperation({
     summary: 'Listar valores de custom fields da tarefa (com definitions)',
   })
@@ -40,7 +39,11 @@ export class CustomFieldValuesController {
   }
 
   @Put('tasks/:taskId/custom-fields/:definitionId')
-  @Roles(Role.ADMIN, Role.MANAGER, Role.OPERATOR)
+  @WorkspaceRoles(
+    WorkspaceMemberRole.OWNER,
+    WorkspaceMemberRole.ADMIN,
+    WorkspaceMemberRole.EDITOR,
+  )
   @Throttle({ default: { limit: 60, ttl: 60_000 } })
   @ApiOperation({
     summary:
@@ -73,7 +76,11 @@ export class CustomFieldValuesController {
   }
 
   @Put('custom-fields/task/:taskId/field/:definitionId')
-  @Roles(Role.ADMIN, Role.MANAGER, Role.OPERATOR)
+  @WorkspaceRoles(
+    WorkspaceMemberRole.OWNER,
+    WorkspaceMemberRole.ADMIN,
+    WorkspaceMemberRole.EDITOR,
+  )
   @Throttle({ default: { limit: 60, ttl: 60_000 } })
   @ApiOperation({
     summary: 'Definir valor de custom field (idempotente em 5s) — path Hoppe',
@@ -96,7 +103,11 @@ export class CustomFieldValuesController {
   }
 
   @Put('custom-fields/task/:taskId/fields')
-  @Roles(Role.ADMIN, Role.MANAGER, Role.OPERATOR)
+  @WorkspaceRoles(
+    WorkspaceMemberRole.OWNER,
+    WorkspaceMemberRole.ADMIN,
+    WorkspaceMemberRole.EDITOR,
+  )
   @Throttle({ default: { limit: 60, ttl: 60_000 } })
   @ApiOperation({
     summary: 'Definir valores de varios custom fields da tarefa (bulk)',
@@ -120,7 +131,11 @@ export class CustomFieldValuesController {
   }
 
   @Delete('custom-fields/task/:taskId/field/:definitionId')
-  @Roles(Role.ADMIN, Role.MANAGER, Role.OPERATOR)
+  @WorkspaceRoles(
+    WorkspaceMemberRole.OWNER,
+    WorkspaceMemberRole.ADMIN,
+    WorkspaceMemberRole.EDITOR,
+  )
   @Throttle({ default: { limit: 60, ttl: 60_000 } })
   @ApiOperation({ summary: 'Limpar valor de um custom field na tarefa' })
   @ApiResponse({

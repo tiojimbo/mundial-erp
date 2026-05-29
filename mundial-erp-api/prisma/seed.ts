@@ -14,7 +14,7 @@
  * Run: npx ts-node prisma/seed.ts
  */
 
-import { PrismaClient, Role, OrderStatus, PersonType, PaymentStatus, ProductClassification, ProductStatus, ProductionOrderStatus } from '@prisma/client';
+import { PrismaClient, OrderStatus, PersonType, PaymentStatus, ProductClassification, ProductStatus, ProductionOrderStatus } from '@prisma/client';
 import * as bcrypt from 'bcrypt';
 
 const prisma = new PrismaClient();
@@ -81,10 +81,10 @@ async function main() {
   console.log('\n2. Users ...');
 
   const usersData = [
-    { email: 'admin@mundial.com.br',      name: 'Administrador',      password: 'Admin@123',  role: Role.ADMIN },
-    { email: 'vendedor@mundial.com.br',    name: 'Carlos Vendedor',    password: 'Vendas@123', role: Role.OPERATOR },
-    { email: 'financeiro@mundial.com.br',  name: 'Ana Financeiro',     password: 'Finan@123',  role: Role.OPERATOR },
-    { email: 'producao@mundial.com.br',    name: 'João Produção',      password: 'Prod@123',   role: Role.OPERATOR },
+    { email: 'admin@mundial.com.br', name: 'Administrador', password: 'Admin@123' },
+    { email: 'vendedor@mundial.com.br', name: 'Carlos Vendedor', password: 'Vendas@123' },
+    { email: 'financeiro@mundial.com.br', name: 'Ana Financeiro', password: 'Finan@123' },
+    { email: 'producao@mundial.com.br', name: 'João Produção', password: 'Prod@123' },
   ];
 
   const users: Record<string, string> = {};
@@ -92,11 +92,11 @@ async function main() {
     const hash = await bcrypt.hash(u.password, BCRYPT_ROUNDS);
     const user = await prisma.user.upsert({
       where: { email: u.email },
-      update: { name: u.name, passwordHash: hash, role: u.role, isActive: true, deletedAt: null },
-      create: { email: u.email, name: u.name, passwordHash: hash, role: u.role, isActive: true },
+      update: { name: u.name, passwordHash: hash, isActive: true, deletedAt: null },
+      create: { email: u.email, name: u.name, passwordHash: hash, isActive: true },
     });
     users[u.email] = user.id;
-    console.log(`  [ok] ${u.role.padEnd(8)} ${u.email}`);
+    console.log(`  [ok] ${u.email}`);
   }
 
   const adminId     = users['admin@mundial.com.br'];

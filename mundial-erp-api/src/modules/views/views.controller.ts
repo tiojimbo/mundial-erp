@@ -17,13 +17,13 @@ import {
   ApiResponse,
   ApiTags,
 } from '@nestjs/swagger';
-import { Role } from '@prisma/client';
+import { WorkspaceMemberRole } from '@prisma/client';
 import { ViewsService } from './views.service';
 import { CreateViewDto } from './dto/create-view.dto';
 import { UpdateViewDto } from './dto/update-view.dto';
 import { ViewResponseDto } from './dto/view-response.dto';
 import { ListViewsQueryDto } from './dto/list-views-query.dto';
-import { Roles } from '../auth/decorators';
+import { WorkspaceRoles } from '../auth/decorators';
 import { WorkspaceId } from '../workspaces/decorators/workspace-id.decorator';
 
 @ApiTags('Views')
@@ -33,7 +33,7 @@ export class ViewsController {
   constructor(private readonly viewsService: ViewsService) {}
 
   @Post()
-  @Roles(Role.ADMIN, Role.MANAGER)
+  @WorkspaceRoles(WorkspaceMemberRole.OWNER, WorkspaceMemberRole.ADMIN)
   @ApiOperation({ summary: 'Criar visão' })
   @ApiResponse({ status: 201, type: ViewResponseDto })
   create(@WorkspaceId() workspaceId: string, @Body() dto: CreateViewDto) {
@@ -41,7 +41,11 @@ export class ViewsController {
   }
 
   @Get()
-  @Roles(Role.ADMIN, Role.MANAGER, Role.OPERATOR)
+  @WorkspaceRoles(
+    WorkspaceMemberRole.OWNER,
+    WorkspaceMemberRole.ADMIN,
+    WorkspaceMemberRole.EDITOR,
+  )
   @ApiOperation({
     summary: 'Listar visões por escopo (?spaceId | ?folderId | ?listId)',
   })
@@ -53,7 +57,6 @@ export class ViewsController {
   }
 
   @Get(':id')
-  @Roles(Role.ADMIN, Role.MANAGER, Role.OPERATOR, Role.VIEWER)
   @ApiOperation({ summary: 'Buscar visão por ID' })
   @ApiResponse({ status: 200, type: ViewResponseDto })
   findOne(@WorkspaceId() workspaceId: string, @Param('id') id: string) {
@@ -61,7 +64,7 @@ export class ViewsController {
   }
 
   @Put(':id')
-  @Roles(Role.ADMIN, Role.MANAGER)
+  @WorkspaceRoles(WorkspaceMemberRole.OWNER, WorkspaceMemberRole.ADMIN)
   @ApiOperation({ summary: 'Atualizar visão (nome/config)' })
   @ApiResponse({ status: 200, type: ViewResponseDto })
   @ApiResponse({ status: 404, description: 'Visão não encontrada' })
@@ -75,7 +78,7 @@ export class ViewsController {
 
   @Put(':id/pin')
   @Patch(':id/pin')
-  @Roles(Role.ADMIN, Role.MANAGER)
+  @WorkspaceRoles(WorkspaceMemberRole.OWNER, WorkspaceMemberRole.ADMIN)
   @ApiOperation({
     summary: 'Fixar visão como padrão (desfixa as demais da lista)',
   })
@@ -86,7 +89,7 @@ export class ViewsController {
   }
 
   @Delete(':id')
-  @Roles(Role.ADMIN, Role.MANAGER)
+  @WorkspaceRoles(WorkspaceMemberRole.OWNER, WorkspaceMemberRole.ADMIN)
   @HttpCode(HttpStatus.NO_CONTENT)
   @ApiOperation({ summary: 'Remover visão (soft delete)' })
   @ApiResponse({ status: 204 })

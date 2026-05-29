@@ -470,7 +470,7 @@ describe('Task Type Templates - GET detail (e2e)', () => {
         data: { settings: { featureTaskTypeTemplatesEnabled: true } },
       });
 
-      viewerA = await createTestUser(app, wsA.workspaceId, 'OPERATOR');
+      viewerA = await createTestUser(app, wsA.workspaceId, 'EDITOR');
 
       const suffix = `${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
       const ownType = await prisma.customTaskType.create({

@@ -98,6 +98,22 @@ export class S3AdapterService implements OnModuleDestroy {
     return { url, expiresAt };
   }
 
+  async putObject(params: {
+    key: string;
+    body: Buffer;
+    contentType: string;
+    bucket?: string;
+  }): Promise<void> {
+    await this.client.send(
+      new PutObjectCommand({
+        Bucket: params.bucket ?? this.defaultBucket,
+        Key: params.key,
+        Body: params.body,
+        ContentType: params.contentType,
+      }),
+    );
+  }
+
   async getSignedGetUrl(params: SignedGetUrlParams): Promise<SignedUrlResult> {
     const bucket = params.bucket ?? this.defaultBucket;
     const responseContentDisposition = params.downloadFilename

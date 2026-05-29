@@ -15,7 +15,7 @@ import {
   ApiResponse,
   ApiTags,
 } from '@nestjs/swagger';
-import { Role } from '@prisma/client';
+import { WorkspaceMemberRole } from '@prisma/client';
 import { Throttle } from '@nestjs/throttler';
 import { TaskChecklistsService } from './task-checklists.service';
 import { CreateChecklistDto } from './dtos/create-checklist.dto';
@@ -23,7 +23,7 @@ import { UpdateChecklistDto } from './dtos/update-checklist.dto';
 import { CreateChecklistItemDto } from './dtos/create-checklist-item.dto';
 import { UpdateChecklistItemDto } from './dtos/update-checklist-item.dto';
 import { ChecklistResponseDto } from './dtos/checklist-response.dto';
-import { CurrentUser, Roles } from '../auth/decorators';
+import { CurrentUser, WorkspaceRoles } from '../auth/decorators';
 import type { JwtPayload } from '../auth/decorators';
 import { WorkspaceId } from '../workspaces/decorators/workspace-id.decorator';
 
@@ -40,7 +40,6 @@ export class TaskChecklistsController {
   constructor(private readonly service: TaskChecklistsService) {}
 
   @Get('checklist/task/:taskId')
-  @Roles(Role.ADMIN, Role.MANAGER, Role.OPERATOR, Role.VIEWER)
   @ApiOperation({ summary: 'Listar checklists de uma tarefa' })
   findByTask(
     @WorkspaceId() workspaceId: string,
@@ -50,7 +49,11 @@ export class TaskChecklistsController {
   }
 
   @Post('checklist/task/:taskId')
-  @Roles(Role.ADMIN, Role.MANAGER, Role.OPERATOR)
+  @WorkspaceRoles(
+    WorkspaceMemberRole.OWNER,
+    WorkspaceMemberRole.ADMIN,
+    WorkspaceMemberRole.EDITOR,
+  )
   @Throttle({ default: { limit: 30, ttl: 60_000 } })
   @ApiOperation({ summary: 'Criar checklist em uma tarefa' })
   @ApiResponse({ status: 201, type: ChecklistResponseDto })
@@ -63,7 +66,11 @@ export class TaskChecklistsController {
   }
 
   @Put('checklist/:id')
-  @Roles(Role.ADMIN, Role.MANAGER, Role.OPERATOR)
+  @WorkspaceRoles(
+    WorkspaceMemberRole.OWNER,
+    WorkspaceMemberRole.ADMIN,
+    WorkspaceMemberRole.EDITOR,
+  )
   @ApiOperation({ summary: 'Editar checklist' })
   @ApiResponse({ status: 200, type: ChecklistResponseDto })
   updateChecklist(
@@ -75,7 +82,11 @@ export class TaskChecklistsController {
   }
 
   @Delete('checklist/:id')
-  @Roles(Role.ADMIN, Role.MANAGER, Role.OPERATOR)
+  @WorkspaceRoles(
+    WorkspaceMemberRole.OWNER,
+    WorkspaceMemberRole.ADMIN,
+    WorkspaceMemberRole.EDITOR,
+  )
   @HttpCode(HttpStatus.NO_CONTENT)
   @ApiOperation({ summary: 'Remover checklist (soft delete + itens)' })
   @ApiResponse({ status: 204 })
@@ -84,7 +95,11 @@ export class TaskChecklistsController {
   }
 
   @Post('checklist/item/:checklistId')
-  @Roles(Role.ADMIN, Role.MANAGER, Role.OPERATOR)
+  @WorkspaceRoles(
+    WorkspaceMemberRole.OWNER,
+    WorkspaceMemberRole.ADMIN,
+    WorkspaceMemberRole.EDITOR,
+  )
   @Throttle({ default: { limit: 60, ttl: 60_000 } })
   @ApiOperation({ summary: 'Criar item em uma checklist' })
   createItem(
@@ -97,7 +112,11 @@ export class TaskChecklistsController {
   }
 
   @Put('checklist/:checklistId/item/:itemId')
-  @Roles(Role.ADMIN, Role.MANAGER, Role.OPERATOR)
+  @WorkspaceRoles(
+    WorkspaceMemberRole.OWNER,
+    WorkspaceMemberRole.ADMIN,
+    WorkspaceMemberRole.EDITOR,
+  )
   @ApiOperation({ summary: 'Editar item de checklist' })
   updateItem(
     @WorkspaceId() workspaceId: string,
@@ -116,7 +135,11 @@ export class TaskChecklistsController {
   }
 
   @Delete('checklist/item/:itemId')
-  @Roles(Role.ADMIN, Role.MANAGER, Role.OPERATOR)
+  @WorkspaceRoles(
+    WorkspaceMemberRole.OWNER,
+    WorkspaceMemberRole.ADMIN,
+    WorkspaceMemberRole.EDITOR,
+  )
   @HttpCode(HttpStatus.NO_CONTENT)
   @ApiOperation({ summary: 'Remover item de checklist (soft delete)' })
   @ApiResponse({ status: 204 })

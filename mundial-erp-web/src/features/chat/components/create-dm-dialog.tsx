@@ -5,7 +5,7 @@ import * as Dialog from '@radix-ui/react-dialog';
 import { RiCloseLine, RiSearchLine } from '@remixicon/react';
 import { useRouter } from 'next/navigation';
 import { useCreateDm } from '../hooks/use-channels';
-import { useWorkspaceMembers } from '@/features/workspaces/hooks/use-workspace-members';
+import { useWorkspaceUsers } from '@/features/workspaces/hooks/use-workspace-members';
 import { useWorkspaceStore } from '@/stores/workspace.store';
 import { useAuth } from '@/providers/auth-provider';
 import { useChatStore } from '@/stores/chat.store';
@@ -54,20 +54,16 @@ export function CreateDmDialog({ open, onOpenChange }: CreateDmDialogProps) {
   const router = useRouter();
 
   const workspaceId = useWorkspaceStore((s) => s.currentWorkspace?.id ?? '');
-  const { data: membersData, isLoading } = useWorkspaceMembers(workspaceId, {
+  const { data: membersData, isLoading } = useWorkspaceUsers(workspaceId, {
     limit: 100,
   });
 
   const users = useMemo(() => {
-    const rows = (membersData?.data ?? []) as Array<{
-      userId: string;
-      userName?: string;
-      userEmail?: string;
-    }>;
+    const rows = membersData?.users ?? [];
     const all = rows.map((m) => ({
-      id: m.userId,
-      name: m.userName ?? '',
-      email: m.userEmail ?? '',
+      id: m.id,
+      name: m.name ?? '',
+      email: m.email ?? '',
     }));
     const filtered = all.filter((u) => u.id !== currentUser?.id);
     if (!search.trim()) return filtered;

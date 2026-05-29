@@ -12,8 +12,8 @@ import {
   ApiResponse,
   ApiTags,
 } from '@nestjs/swagger';
-import { NotificationPreferenceType, Role } from '@prisma/client';
-import { CurrentUser, Roles } from '../../auth/decorators';
+import { NotificationPreferenceType } from '@prisma/client';
+import { CurrentUser } from '../../auth/decorators';
 import { SkipWorkspaceGuard } from '../../workspaces/decorators/skip-workspace-guard.decorator';
 import { NotificationPreferencesService } from './notification-preferences.service';
 import {
@@ -25,7 +25,6 @@ import {
 @ApiBearerAuth()
 @Controller('notifications/preferences')
 @SkipWorkspaceGuard()
-@Roles(Role.ADMIN, Role.MANAGER, Role.OPERATOR, Role.VIEWER)
 export class NotificationPreferencesController {
   constructor(private readonly service: NotificationPreferencesService) {}
 

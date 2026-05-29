@@ -29,12 +29,10 @@ import {
   SidebarOrderResponseDto,
 } from './dto/sidebar-order.dto';
 import { MyPermissionResponseDto } from './dto/my-permission-response.dto';
-import { WorkspaceUsersResponseDto } from './dto/workspace-users-response.dto';
 import {
   ChannelOrganizationResponseDto,
   UpdateChannelOrganizationDto,
 } from './dto/channel-organization.dto';
-import { WorkspaceMemberRole } from '@prisma/client';
 import { PaginationDto } from '../../common/dtos/pagination.dto';
 import { CurrentUser } from '../auth/decorators';
 import type { JwtPayload } from '../auth/decorators';
@@ -120,22 +118,6 @@ export class WorkspacesController {
     // Defesa em profundidade (ADR-002 #3): service revalida na $transaction.
     await this.workspacesService.assertMembership(workspaceId, user.sub);
     return this.authService.selectWorkspace(user.sub, workspaceId);
-  }
-
-  @Get(':id/users')
-  @SkipWorkspaceGuard()
-  @ApiOperation({
-    summary:
-      'Listar usuarios do workspace com permission + flags (Hoppe-style)',
-  })
-  @ApiResponse({ status: 200, type: WorkspaceUsersResponseDto })
-  listUsers(
-    @Param('id') id: string,
-    @CurrentUser('sub') userId: string,
-    @Query() pagination: PaginationDto,
-    @Query('role') role?: WorkspaceMemberRole,
-  ) {
-    return this.workspacesService.listUsers(id, userId, pagination, role);
   }
 
   @Get(':id/my-permission')

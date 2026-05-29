@@ -19,8 +19,10 @@ const mockUser = {
   name: 'Test User',
   passwordHash: 'hashed-password',
   refreshToken: 'hashed-refresh-token',
-  role: 'OPERATOR' as const,
   isActive: true,
+  avatar: null,
+  themeColor: null,
+  appearance: 'AUTO' as const,
   spaceId: null,
   lastAccessedWorkspaceId: null,
   createdAt: new Date(),
@@ -336,7 +338,7 @@ describe('AuthService', () => {
         },
         {
           id: 'm-b',
-          role: 'MEMBER',
+          role: 'EDITOR',
           workspace: wsB,
           joinedAt: new Date('2026-02-01'),
         },
@@ -355,7 +357,7 @@ describe('AuthService', () => {
       });
       prismaMock.workspaceMember.findUnique.mockResolvedValue({
         id: 'm-b',
-        role: 'MEMBER',
+        role: 'EDITOR',
         workspace: wsB,
       });
 

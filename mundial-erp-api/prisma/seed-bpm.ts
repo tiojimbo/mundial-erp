@@ -9,7 +9,7 @@
  */
 
 import 'dotenv/config';
-import { PrismaClient, Role, OrderStatus, ProcessStatus, ProcessType, StatusType } from '@prisma/client';
+import { PrismaClient, OrderStatus, ProcessStatus, ProcessType, StatusType } from '@prisma/client';
 import { PrismaPg } from '@prisma/adapter-pg';
 
 const adapter = new PrismaPg({ connectionString: process.env.DATABASE_URL! });
@@ -236,7 +236,7 @@ async function main() {
     processSlug: string;
     slug: string;
     name: string;
-    ownerRole: Role;
+    ownerRole: string;
     inputDescription: string;
     outputDescription: string;
     slaMinutes: number | null;
@@ -252,7 +252,7 @@ async function main() {
       processSlug: 'processo-pedidos',
       slug: 'criar-pedido-elaborar-orcamento',
       name: 'Criar pedido e montar proposta',
-      ownerRole: Role.OPERATOR,
+      ownerRole: 'OPERATOR',
       inputDescription: 'Cliente identificado (cadastrado ou novo) + demanda verbalizada',
       outputDescription: 'Pedido com status EM_ORCAMENTO. Pode gerar PDF Proposta de Venda',
       slaMinutes: 120,
@@ -275,7 +275,7 @@ async function main() {
       processSlug: 'processo-pedidos',
       slug: 'fechar-negocio-enviar-faturamento',
       name: 'Registrar fechamento e pagamento inicial',
-      ownerRole: Role.OPERATOR,
+      ownerRole: 'OPERATOR',
       inputDescription: 'Pedido em EM_ORCAMENTO + aceite do cliente',
       outputDescription: 'Pedido com status FATURAR + comprovante de pagamento 50%',
       slaMinutes: 240,
@@ -296,7 +296,7 @@ async function main() {
       processSlug: 'cadastro-manutencao-clientes',
       slug: 'cadastrar-cliente',
       name: 'Cadastrar novo cliente no sistema',
-      ownerRole: Role.OPERATOR,
+      ownerRole: 'OPERATOR',
       inputDescription: 'Solicitação de cadastro (vinda do processo de Orçamento ou Pedidos)',
       outputDescription: 'Cliente cadastrado com todos os campos obrigatórios preenchidos',
       slaMinutes: 60,
@@ -319,7 +319,7 @@ async function main() {
       processSlug: 'gestao-produtos-processo',
       slug: 'cadastrar-produto-wizard',
       name: 'Cadastrar novo produto no catálogo',
-      ownerRole: Role.OPERATOR,
+      ownerRole: 'OPERATOR',
       inputDescription: 'Necessidade de novo produto (demanda de vendas ou produção)',
       outputDescription: 'Produto com status ACTIVE, disponível para venda',
       slaMinutes: 240,
@@ -340,7 +340,7 @@ async function main() {
       processSlug: 'gestao-produtos-processo',
       slug: 'manter-tabela-precos',
       name: 'Atualizar tabela de preços',
-      ownerRole: Role.MANAGER,
+      ownerRole: 'MANAGER',
       inputDescription: 'Alteração de custos ou decisão comercial de repricing',
       outputDescription: 'Tabela de preços atualizada e vigente',
       slaMinutes: 1440,
@@ -360,7 +360,7 @@ async function main() {
       processSlug: 'cotacao-compra-mp',
       slug: 'solicitar-cotacao',
       name: 'Solicitar cotação a fornecedores',
-      ownerRole: Role.OPERATOR,
+      ownerRole: 'OPERATOR',
       inputDescription: 'Estoque abaixo do mínimo ou demanda de produção',
       outputDescription: 'Cotação vencedora selecionada',
       slaMinutes: 2880,
@@ -380,7 +380,7 @@ async function main() {
       processSlug: 'cotacao-compra-mp',
       slug: 'efetivar-compra',
       name: 'Efetivar pedido de compra ao fornecedor',
-      ownerRole: Role.MANAGER,
+      ownerRole: 'MANAGER',
       inputDescription: 'Cotação vencedora selecionada e aprovada',
       outputDescription: 'Pedido de compra emitido → AccountPayable criado automaticamente',
       slaMinutes: 240,
@@ -399,7 +399,7 @@ async function main() {
       processSlug: 'producao-pedido-processo',
       slug: 'aceitar-pedido-iniciar-producao',
       name: 'Aceitar pedido e iniciar processos paralelos',
-      ownerRole: Role.MANAGER,
+      ownerRole: 'MANAGER',
       inputDescription: 'Pedido em PRODUZIR. ProductionOrder + SeparationOrder criadas automaticamente',
       outputDescription: 'Matéria-prima separada, pedido em EM_PRODUCAO, produção e separação em paralelo',
       slaMinutes: 240,
@@ -420,7 +420,7 @@ async function main() {
       processSlug: 'producao-pedido-processo',
       slug: 'executar-producao',
       name: 'Executar produção conforme fórmula',
-      ownerRole: Role.OPERATOR,
+      ownerRole: 'OPERATOR',
       inputDescription: 'Matéria-prima separada, ProductionOrder em andamento',
       outputDescription: 'Produto(s) fabricado(s) com consumo real registrado. ProductionOrder COMPLETED',
       slaMinutes: null,
@@ -440,7 +440,7 @@ async function main() {
       processSlug: 'producao-pedido-processo',
       slug: 'separar-itens-revenda',
       name: 'Separar itens de revenda/estoque',
-      ownerRole: Role.OPERATOR,
+      ownerRole: 'OPERATOR',
       inputDescription: 'SeparationOrder criada automaticamente (se pedido tem itens revenda)',
       outputDescription: 'Itens de revenda separados e etiquetados. SeparationOrder SEPARATED',
       slaMinutes: 240,
@@ -460,7 +460,7 @@ async function main() {
       processSlug: 'producao-pedido-processo',
       slug: 'controlar-qualidade-finalizar',
       name: 'Verificar qualidade e finalizar produção',
-      ownerRole: Role.MANAGER,
+      ownerRole: 'MANAGER',
       inputDescription: 'ProductionOrders COMPLETED + SeparationOrder SEPARATED (se existir)',
       outputDescription: 'Pedido PRODUZIDO → notifica conferência/entrega',
       slaMinutes: 120,
@@ -481,7 +481,7 @@ async function main() {
       processSlug: 'conferencia-entrega-processo',
       slug: 'conferir-entregar-pedido',
       name: 'Conferir itens e entregar ao cliente',
-      ownerRole: Role.OPERATOR,
+      ownerRole: 'OPERATOR',
       inputDescription: 'Pedido com status PRODUZIDO + todos os itens e insumos prontos',
       outputDescription: 'Pedido com status ENTREGUE (final) → 2ª parcela AR registrada como PAID',
       slaMinutes: null,
@@ -502,7 +502,7 @@ async function main() {
       processSlug: 'conciliacao-faturamento-processo',
       slug: 'conciliar-pagamento',
       name: 'Conciliar pagamento do pedido',
-      ownerRole: Role.OPERATOR,
+      ownerRole: 'OPERATOR',
       inputDescription: 'Pedido com status FATURAR + comprovante de pagamento (50%)',
       outputDescription: 'Pedido com status FATURADO → 1ª parcela do AR PAID → handoff para Produção',
       slaMinutes: 480,
@@ -523,7 +523,7 @@ async function main() {
       processSlug: 'conciliacao-faturamento-processo',
       slug: 'gerar-nfe',
       name: 'Gerar nota fiscal eletrônica',
-      ownerRole: Role.OPERATOR,
+      ownerRole: 'OPERATOR',
       inputDescription: 'Pedido FATURADO ou PRODUZIDO',
       outputDescription: 'NF-e autorizada com chave de acesso vinculada ao pedido',
       slaMinutes: 240,
@@ -543,7 +543,7 @@ async function main() {
       processSlug: 'contas-receber-processo',
       slug: 'acompanhar-recebimento',
       name: 'Acompanhar recebimento de parcelas',
-      ownerRole: Role.OPERATOR,
+      ownerRole: 'OPERATOR',
       inputDescription: 'AccountReceivable criado ao mover pedido para FATURAR (2 parcelas)',
       outputDescription: 'Parcela(s) com status PAID ou OVERDUE',
       slaMinutes: null,
@@ -563,7 +563,7 @@ async function main() {
       processSlug: 'contas-pagar-processo',
       slug: 'executar-pagamento',
       name: 'Executar pagamento a fornecedor',
-      ownerRole: Role.OPERATOR,
+      ownerRole: 'OPERATOR',
       inputDescription: 'AccountPayable com vencimento próximo ou no dia',
       outputDescription: 'Parcela com status PAID + comprovante registrado',
       slaMinutes: null,
@@ -583,7 +583,7 @@ async function main() {
       processSlug: 'controle-analise-financeira',
       slug: 'reconciliar-caixa',
       name: 'Reconciliar caixa diário',
-      ownerRole: Role.MANAGER,
+      ownerRole: 'MANAGER',
       inputDescription: 'CashRegister aberto + movimentações do dia',
       outputDescription: 'Caixa fechado e reconciliado',
       slaMinutes: null,

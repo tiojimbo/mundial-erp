@@ -16,13 +16,13 @@ import {
   ApiResponse,
   ApiTags,
 } from '@nestjs/swagger';
-import { Role } from '@prisma/client';
+import { WorkspaceMemberRole } from '@prisma/client';
 import { OrderModelsService } from './order-models.service';
 import { CreateOrderModelDto } from './dto/create-order-model.dto';
 import { UpdateOrderModelDto } from './dto/update-order-model.dto';
 import { OrderModelResponseDto } from './dto/order-model-response.dto';
 import { PaginationDto } from '../../common/dtos/pagination.dto';
-import { Roles } from '../auth/decorators';
+import { WorkspaceRoles } from '../auth/decorators';
 
 @ApiTags('Order Models')
 @ApiBearerAuth()
@@ -31,7 +31,7 @@ export class OrderModelsController {
   constructor(private readonly orderModelsService: OrderModelsService) {}
 
   @Post()
-  @Roles(Role.ADMIN)
+  @WorkspaceRoles(WorkspaceMemberRole.OWNER, WorkspaceMemberRole.ADMIN)
   @ApiOperation({ summary: 'Criar modelo de pedido (somente ADMIN)' })
   @ApiResponse({ status: 201, type: OrderModelResponseDto })
   create(@Body() dto: CreateOrderModelDto) {
@@ -39,14 +39,14 @@ export class OrderModelsController {
   }
 
   @Get()
-  @Roles(Role.ADMIN, Role.MANAGER)
+  @WorkspaceRoles(WorkspaceMemberRole.OWNER, WorkspaceMemberRole.ADMIN)
   @ApiOperation({ summary: 'Listar modelos de pedido' })
   findAll(@Query() pagination: PaginationDto) {
     return this.orderModelsService.findAll(pagination);
   }
 
   @Get(':id')
-  @Roles(Role.ADMIN, Role.MANAGER)
+  @WorkspaceRoles(WorkspaceMemberRole.OWNER, WorkspaceMemberRole.ADMIN)
   @ApiOperation({ summary: 'Buscar modelo de pedido por ID' })
   @ApiResponse({ status: 200, type: OrderModelResponseDto })
   @ApiResponse({ status: 404, description: 'Modelo de pedido não encontrado' })
@@ -55,7 +55,7 @@ export class OrderModelsController {
   }
 
   @Patch(':id')
-  @Roles(Role.ADMIN)
+  @WorkspaceRoles(WorkspaceMemberRole.OWNER, WorkspaceMemberRole.ADMIN)
   @ApiOperation({ summary: 'Atualizar modelo de pedido (somente ADMIN)' })
   @ApiResponse({ status: 200, type: OrderModelResponseDto })
   update(@Param('id') id: string, @Body() dto: UpdateOrderModelDto) {
@@ -63,7 +63,7 @@ export class OrderModelsController {
   }
 
   @Delete(':id')
-  @Roles(Role.ADMIN)
+  @WorkspaceRoles(WorkspaceMemberRole.OWNER, WorkspaceMemberRole.ADMIN)
   @HttpCode(HttpStatus.NO_CONTENT)
   @ApiOperation({
     summary: 'Remover modelo de pedido (soft delete, somente ADMIN)',

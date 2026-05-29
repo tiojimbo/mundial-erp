@@ -15,9 +15,11 @@ import * as Tooltip from '@/components/ui/tooltip';
 import { AutomationsModal } from '@/features/automations/components/automations-modal';
 import { useAuth } from '@/providers/auth-provider';
 import { useSidebarStore } from '@/stores/sidebar.store';
+import { getAvatarUrl } from '@/lib/api';
 
 export function Header() {
   const { user, logout } = useAuth();
+  const avatarSrc = getAvatarUrl(user?.avatar);
   const { toggleMobileSidebar } = useSidebarStore();
   const [automationsOpen, setAutomationsOpen] = useState(false);
 
@@ -85,8 +87,8 @@ export function Header() {
               className='rounded-full ring-offset-2 focus:ring-2 focus:ring-primary-base'
             >
               <Avatar.Root size='32' color='gray'>
-                {user?.avatarUrl ? (
-                  <Avatar.Image src={user.avatarUrl} alt={user.name} />
+                {avatarSrc ? (
+                  <Avatar.Image src={avatarSrc} alt={user?.name ?? 'Avatar'} />
                 ) : (
                   (user?.name?.[0] ?? 'U')
                 )}

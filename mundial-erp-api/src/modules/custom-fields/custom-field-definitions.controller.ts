@@ -14,7 +14,7 @@ import {
   ApiResponse,
   ApiTags,
 } from '@nestjs/swagger';
-import { Role } from '@prisma/client';
+import { WorkspaceMemberRole } from '@prisma/client';
 import { Throttle } from '@nestjs/throttler';
 import { CustomFieldDefinitionsService } from './custom-field-definitions.service';
 import { CreateCustomFieldDefinitionDto } from './dtos/create-custom-field-definition.dto';
@@ -28,7 +28,7 @@ import {
   AddCustomFieldLocationDto,
   RemoveCustomFieldLocationQueryDto,
 } from './dtos/custom-field-location.dto';
-import { CurrentUser, Roles } from '../auth/decorators';
+import { CurrentUser, WorkspaceRoles } from '../auth/decorators';
 import type { JwtPayload } from '../auth/decorators';
 import { WorkspaceId } from '../workspaces/decorators/workspace-id.decorator';
 
@@ -39,7 +39,6 @@ export class CustomFieldDefinitionsController {
   constructor(private readonly service: CustomFieldDefinitionsService) {}
 
   @Get()
-  @Roles(Role.ADMIN, Role.MANAGER, Role.OPERATOR, Role.VIEWER)
   @ApiOperation({
     summary: 'Listar custom fields agrupados por escopo (filtros opcionais)',
   })
@@ -52,7 +51,6 @@ export class CustomFieldDefinitionsController {
   }
 
   @Get('manager')
-  @Roles(Role.ADMIN, Role.MANAGER, Role.OPERATOR, Role.VIEWER)
   @ApiOperation({
     summary:
       'Vista de gerenciamento: custom fields enriquecidos com usageCount, locations, taskTypes',
@@ -75,7 +73,6 @@ export class CustomFieldDefinitionsController {
   }
 
   @Get(':id')
-  @Roles(Role.ADMIN, Role.MANAGER, Role.OPERATOR, Role.VIEWER)
   @ApiOperation({ summary: 'Buscar custom field definition por ID' })
   @ApiResponse({ status: 200, type: CustomFieldDefinitionResponseDto })
   @ApiResponse({ status: 404, description: 'Definition nao encontrada' })
@@ -84,7 +81,7 @@ export class CustomFieldDefinitionsController {
   }
 
   @Post('location')
-  @Roles(Role.ADMIN, Role.MANAGER)
+  @WorkspaceRoles(WorkspaceMemberRole.OWNER, WorkspaceMemberRole.ADMIN)
   @Throttle({ default: { limit: 60, ttl: 60_000 } })
   @ApiOperation({
     summary: 'Vincular/mover campo existente a um local (list/folder/space)',
@@ -99,7 +96,7 @@ export class CustomFieldDefinitionsController {
   }
 
   @Post()
-  @Roles(Role.ADMIN, Role.MANAGER)
+  @WorkspaceRoles(WorkspaceMemberRole.OWNER, WorkspaceMemberRole.ADMIN)
   @Throttle({ default: { limit: 60, ttl: 60_000 } })
   @ApiOperation({ summary: 'Criar custom field definition para o workspace' })
   @ApiResponse({ status: 201, type: CustomFieldDefinitionResponseDto })
@@ -116,7 +113,7 @@ export class CustomFieldDefinitionsController {
   }
 
   @Put(':id')
-  @Roles(Role.ADMIN, Role.MANAGER)
+  @WorkspaceRoles(WorkspaceMemberRole.OWNER, WorkspaceMemberRole.ADMIN)
   @Throttle({ default: { limit: 60, ttl: 60_000 } })
   @ApiOperation({ summary: 'Atualizar custom field definition' })
   @ApiResponse({ status: 200, type: CustomFieldDefinitionResponseDto })
@@ -134,7 +131,7 @@ export class CustomFieldDefinitionsController {
   }
 
   @Delete(':customFieldId/location')
-  @Roles(Role.ADMIN, Role.MANAGER)
+  @WorkspaceRoles(WorkspaceMemberRole.OWNER, WorkspaceMemberRole.ADMIN)
   @Throttle({ default: { limit: 60, ttl: 60_000 } })
   @ApiOperation({
     summary: 'Desvincular campo de um local (list/folder/space)',
@@ -155,7 +152,7 @@ export class CustomFieldDefinitionsController {
   }
 
   @Delete(':id')
-  @Roles(Role.ADMIN, Role.MANAGER)
+  @WorkspaceRoles(WorkspaceMemberRole.OWNER, WorkspaceMemberRole.ADMIN)
   @Throttle({ default: { limit: 60, ttl: 60_000 } })
   @ApiOperation({ summary: 'Soft-delete e retorna o objeto deletado' })
   @ApiResponse({ status: 200, type: CustomFieldDefinitionResponseDto })

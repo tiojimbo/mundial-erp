@@ -18,7 +18,7 @@ import {
   ApiResponse,
   ApiTags,
 } from '@nestjs/swagger';
-import { ProductionOrderStatus, Role } from '@prisma/client';
+import { ProductionOrderStatus, WorkspaceMemberRole } from '@prisma/client';
 import * as express from 'express';
 import { ProductionOrdersService } from './production-orders.service';
 import { CreateProductionOrderDto } from './dto/create-production-order.dto';
@@ -33,7 +33,7 @@ import {
   ProductionLossResponseDto,
 } from './dto/production-order-response.dto';
 import { PaginationDto } from '../../common/dtos/pagination.dto';
-import { Roles } from '../auth/decorators';
+import { WorkspaceRoles } from '../auth/decorators';
 import { ProductionOrderPdfService } from '../orders/pdf/production-order-pdf.service';
 
 @ApiTags('Production Orders')
@@ -48,7 +48,11 @@ export class ProductionOrdersController {
   // --- CRUD ---
 
   @Post()
-  @Roles(Role.ADMIN, Role.MANAGER, Role.OPERATOR)
+  @WorkspaceRoles(
+    WorkspaceMemberRole.OWNER,
+    WorkspaceMemberRole.ADMIN,
+    WorkspaceMemberRole.EDITOR,
+  )
   @ApiOperation({ summary: 'Criar ordem de produção' })
   @ApiResponse({ status: 201, type: ProductionOrderResponseDto })
   create(@Body() dto: CreateProductionOrderDto) {
@@ -56,7 +60,11 @@ export class ProductionOrdersController {
   }
 
   @Get()
-  @Roles(Role.ADMIN, Role.MANAGER, Role.OPERATOR)
+  @WorkspaceRoles(
+    WorkspaceMemberRole.OWNER,
+    WorkspaceMemberRole.ADMIN,
+    WorkspaceMemberRole.EDITOR,
+  )
   @ApiOperation({ summary: 'Listar ordens de produção' })
   @ApiQuery({ name: 'search', required: false })
   @ApiQuery({ name: 'orderId', required: false })
@@ -76,7 +84,11 @@ export class ProductionOrdersController {
   }
 
   @Get(':id')
-  @Roles(Role.ADMIN, Role.MANAGER, Role.OPERATOR)
+  @WorkspaceRoles(
+    WorkspaceMemberRole.OWNER,
+    WorkspaceMemberRole.ADMIN,
+    WorkspaceMemberRole.EDITOR,
+  )
   @ApiOperation({ summary: 'Buscar ordem de produção por ID' })
   @ApiResponse({ status: 200, type: ProductionOrderResponseDto })
   @ApiResponse({ status: 404, description: 'Ordem de produção não encontrada' })
@@ -85,7 +97,11 @@ export class ProductionOrdersController {
   }
 
   @Patch(':id')
-  @Roles(Role.ADMIN, Role.MANAGER, Role.OPERATOR)
+  @WorkspaceRoles(
+    WorkspaceMemberRole.OWNER,
+    WorkspaceMemberRole.ADMIN,
+    WorkspaceMemberRole.EDITOR,
+  )
   @ApiOperation({ summary: 'Atualizar ordem de produção' })
   @ApiResponse({ status: 200, type: ProductionOrderResponseDto })
   update(@Param('id') id: string, @Body() dto: UpdateProductionOrderDto) {
@@ -93,7 +109,7 @@ export class ProductionOrdersController {
   }
 
   @Delete(':id')
-  @Roles(Role.ADMIN, Role.MANAGER)
+  @WorkspaceRoles(WorkspaceMemberRole.OWNER, WorkspaceMemberRole.ADMIN)
   @HttpCode(HttpStatus.NO_CONTENT)
   @ApiOperation({ summary: 'Remover ordem de produção (soft delete)' })
   @ApiResponse({ status: 204 })
@@ -104,7 +120,11 @@ export class ProductionOrdersController {
   // --- Status Transitions ---
 
   @Patch(':id/start')
-  @Roles(Role.ADMIN, Role.MANAGER, Role.OPERATOR)
+  @WorkspaceRoles(
+    WorkspaceMemberRole.OWNER,
+    WorkspaceMemberRole.ADMIN,
+    WorkspaceMemberRole.EDITOR,
+  )
   @ApiOperation({ summary: 'Iniciar produção (PENDING → IN_PROGRESS)' })
   @ApiResponse({ status: 200, type: ProductionOrderResponseDto })
   start(@Param('id') id: string) {
@@ -112,7 +132,11 @@ export class ProductionOrdersController {
   }
 
   @Patch(':id/complete')
-  @Roles(Role.ADMIN, Role.MANAGER, Role.OPERATOR)
+  @WorkspaceRoles(
+    WorkspaceMemberRole.OWNER,
+    WorkspaceMemberRole.ADMIN,
+    WorkspaceMemberRole.EDITOR,
+  )
   @ApiOperation({ summary: 'Concluir produção (IN_PROGRESS → COMPLETED)' })
   @ApiResponse({ status: 200, type: ProductionOrderResponseDto })
   complete(@Param('id') id: string) {
@@ -120,7 +144,7 @@ export class ProductionOrdersController {
   }
 
   @Patch(':id/cancel')
-  @Roles(Role.ADMIN, Role.MANAGER)
+  @WorkspaceRoles(WorkspaceMemberRole.OWNER, WorkspaceMemberRole.ADMIN)
   @ApiOperation({
     summary: 'Cancelar ordem de produção (PENDING/IN_PROGRESS → CANCELLED)',
   })
@@ -132,7 +156,11 @@ export class ProductionOrdersController {
   // --- PDF ---
 
   @Get(':id/pdf')
-  @Roles(Role.ADMIN, Role.MANAGER, Role.OPERATOR)
+  @WorkspaceRoles(
+    WorkspaceMemberRole.OWNER,
+    WorkspaceMemberRole.ADMIN,
+    WorkspaceMemberRole.EDITOR,
+  )
   @ApiOperation({
     summary: 'Gerar PDF Ficha da Ordem de Produção (PLANO 4.2d)',
   })
@@ -150,7 +178,11 @@ export class ProductionOrdersController {
   // --- Consumptions ---
 
   @Post(':id/consumptions')
-  @Roles(Role.ADMIN, Role.MANAGER, Role.OPERATOR)
+  @WorkspaceRoles(
+    WorkspaceMemberRole.OWNER,
+    WorkspaceMemberRole.ADMIN,
+    WorkspaceMemberRole.EDITOR,
+  )
   @ApiOperation({ summary: 'Adicionar consumo à ordem de produção' })
   @ApiResponse({ status: 201, type: ProductionConsumptionResponseDto })
   addConsumption(@Param('id') id: string, @Body() dto: CreateConsumptionDto) {
@@ -158,7 +190,11 @@ export class ProductionOrdersController {
   }
 
   @Patch(':id/consumptions/:consumptionId')
-  @Roles(Role.ADMIN, Role.MANAGER, Role.OPERATOR)
+  @WorkspaceRoles(
+    WorkspaceMemberRole.OWNER,
+    WorkspaceMemberRole.ADMIN,
+    WorkspaceMemberRole.EDITOR,
+  )
   @ApiOperation({ summary: 'Atualizar consumo da ordem de produção' })
   @ApiResponse({ status: 200, type: ProductionConsumptionResponseDto })
   updateConsumption(
@@ -174,7 +210,7 @@ export class ProductionOrdersController {
   }
 
   @Delete(':id/consumptions/:consumptionId')
-  @Roles(Role.ADMIN, Role.MANAGER)
+  @WorkspaceRoles(WorkspaceMemberRole.OWNER, WorkspaceMemberRole.ADMIN)
   @HttpCode(HttpStatus.NO_CONTENT)
   @ApiOperation({ summary: 'Remover consumo da ordem de produção' })
   @ApiResponse({ status: 204 })
@@ -188,7 +224,11 @@ export class ProductionOrdersController {
   // --- Outputs ---
 
   @Post(':id/outputs')
-  @Roles(Role.ADMIN, Role.MANAGER, Role.OPERATOR)
+  @WorkspaceRoles(
+    WorkspaceMemberRole.OWNER,
+    WorkspaceMemberRole.ADMIN,
+    WorkspaceMemberRole.EDITOR,
+  )
   @ApiOperation({ summary: 'Adicionar saída/produção à ordem' })
   @ApiResponse({ status: 201, type: ProductionOutputResponseDto })
   addOutput(@Param('id') id: string, @Body() dto: CreateOutputDto) {
@@ -196,7 +236,11 @@ export class ProductionOrdersController {
   }
 
   @Patch(':id/outputs/:outputId')
-  @Roles(Role.ADMIN, Role.MANAGER, Role.OPERATOR)
+  @WorkspaceRoles(
+    WorkspaceMemberRole.OWNER,
+    WorkspaceMemberRole.ADMIN,
+    WorkspaceMemberRole.EDITOR,
+  )
   @ApiOperation({ summary: 'Atualizar saída/produção da ordem' })
   @ApiResponse({ status: 200, type: ProductionOutputResponseDto })
   updateOutput(
@@ -208,7 +252,7 @@ export class ProductionOrdersController {
   }
 
   @Delete(':id/outputs/:outputId')
-  @Roles(Role.ADMIN, Role.MANAGER)
+  @WorkspaceRoles(WorkspaceMemberRole.OWNER, WorkspaceMemberRole.ADMIN)
   @HttpCode(HttpStatus.NO_CONTENT)
   @ApiOperation({ summary: 'Remover saída/produção da ordem' })
   @ApiResponse({ status: 204 })
@@ -219,7 +263,11 @@ export class ProductionOrdersController {
   // --- Losses ---
 
   @Post(':id/losses')
-  @Roles(Role.ADMIN, Role.MANAGER, Role.OPERATOR)
+  @WorkspaceRoles(
+    WorkspaceMemberRole.OWNER,
+    WorkspaceMemberRole.ADMIN,
+    WorkspaceMemberRole.EDITOR,
+  )
   @ApiOperation({ summary: 'Registrar perda na ordem de produção' })
   @ApiResponse({ status: 201, type: ProductionLossResponseDto })
   addLoss(@Param('id') id: string, @Body() dto: CreateLossDto) {
@@ -227,7 +275,11 @@ export class ProductionOrdersController {
   }
 
   @Patch(':id/losses/:lossId')
-  @Roles(Role.ADMIN, Role.MANAGER, Role.OPERATOR)
+  @WorkspaceRoles(
+    WorkspaceMemberRole.OWNER,
+    WorkspaceMemberRole.ADMIN,
+    WorkspaceMemberRole.EDITOR,
+  )
   @ApiOperation({ summary: 'Atualizar perda da ordem de produção' })
   @ApiResponse({ status: 200, type: ProductionLossResponseDto })
   updateLoss(
@@ -239,7 +291,7 @@ export class ProductionOrdersController {
   }
 
   @Delete(':id/losses/:lossId')
-  @Roles(Role.ADMIN, Role.MANAGER)
+  @WorkspaceRoles(WorkspaceMemberRole.OWNER, WorkspaceMemberRole.ADMIN)
   @HttpCode(HttpStatus.NO_CONTENT)
   @ApiOperation({ summary: 'Remover perda da ordem de produção' })
   @ApiResponse({ status: 204 })
