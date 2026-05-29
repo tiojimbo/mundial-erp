@@ -4,6 +4,9 @@ set -e
 echo "Migrating ChannelType enum (old -> new values)..."
 node prisma/fix-channel-type-enum.js
 
+echo "Migrating WorkspaceMemberRole enum (MEMBER -> EDITOR)..."
+node prisma/fix-workspace-member-role-enum.js
+
 echo "Pushing Prisma schema to database..."
 npx prisma db push --url "$DATABASE_URL" --accept-data-loss
 
