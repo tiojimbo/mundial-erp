@@ -6,6 +6,7 @@ import {
   Logger,
   NotFoundException,
   Optional,
+  UnprocessableEntityException,
   forwardRef,
 } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
@@ -38,6 +39,7 @@ import { TagsSyncService } from './services/tags-sync.service';
 import { diffWorkItem } from './helpers/diff-work-item';
 import { TaskEventsPublisher } from '../automations/events/task-events.publisher';
 import { OrderCodeService } from './order-code.service';
+import { sanitizeDescriptionHtml } from './description-html.util';
 
 /**
  * Envelope canonico `{data, meta}` retornado por todas as rotas deste modulo.
@@ -214,10 +216,17 @@ export class TasksService {
       );
       templateApplied = resolved.templateApplied;
 
+      const resolvedDescription = await this.resolveDescriptionWithTemplate(
+        tx,
+        dto.description ?? undefined,
+        customTypeId ?? undefined,
+        workspaceId,
+      );
+
       const created = await this.repository.createTask(tx, {
         listId,
         title,
-        description: dto.description ?? null,
+        description: resolvedDescription,
         markdownContent: resolved.markdown,
         statusId,
         priority: dto.priority,
@@ -987,7 +996,14 @@ export class TasksService {
     const data: Prisma.WorkItemUncheckedUpdateInput = {};
 
     if (dto.title !== undefined) data.title = dto.title;
-    if (dto.description !== undefined) data.description = dto.description;
+    if (dto.description !== undefined) {
+      data.description = await this.resolveDescriptionWithTemplate(
+        this.prisma,
+        dto.description ?? undefined,
+        dto.customTypeId ?? existing.customTypeId ?? undefined,
+        workspaceId,
+      );
+    }
     if (dto.markdownContent !== undefined)
       data.markdownContent = dto.markdownContent;
     if (dto.statusId !== undefined) data.statusId = dto.statusId;
@@ -1572,6 +1588,47 @@ export class TasksService {
       }
       frontier = nextFrontier;
     }
+  }
+
+  private async resolveDescriptionWithTemplate(
+    tx: Prisma.TransactionClient | PrismaService,
+    clientHtml: string | undefined,
+    customTypeId: string | undefined,
+    workspaceId: string,
+  ): Promise<string | null> {
+    void tx;
+    const clean = sanitizeDescriptionHtml(clientHtml);
+
+    if (!customTypeId) {
+      if (clean) {
+        throw new UnprocessableEntityException(
+          'Apenas tasks com tipo podem ter descricao',
+        );
+      }
+      return null;
+    }
+
+    if (!this.taskTypeTemplatesRepository) return clean;
+
+    const template =
+      await this.taskTypeTemplatesRepository.findByCustomTaskTypeId(
+        customTypeId,
+        workspaceId,
+      );
+
+    const allowed = template?.hasDescription === true;
+
+    if (!allowed && clean) {
+      throw new UnprocessableEntityException(
+        `Tipo ${customTypeId} nao comporta descricao`,
+      );
+    }
+
+    if (allowed && !clean && template?.defaultDescriptionHtml) {
+      return sanitizeDescriptionHtml(template.defaultDescriptionHtml);
+    }
+
+    return allowed ? clean : null;
   }
 
   /**
