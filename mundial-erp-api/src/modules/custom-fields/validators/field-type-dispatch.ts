@@ -393,7 +393,8 @@ export function validateValue(
         if (!Array.isArray(rawValue)) {
           return {
             valid: false,
-            reason: 'RELATIONSHIP withQuantity espera array de {taskId, quantity}',
+            reason:
+              'RELATIONSHIP withQuantity espera array de {taskId, quantity}',
           };
         }
         if (rawValue.length === 0 && definition.required) {

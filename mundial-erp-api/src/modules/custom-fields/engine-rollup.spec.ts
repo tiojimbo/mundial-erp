@@ -75,9 +75,7 @@ const termDefEntity = {
 };
 
 interface HarnessOpts {
-  triggerDefinition:
-    | typeof relationshipDef
-    | typeof costDef;
+  triggerDefinition: typeof relationshipDef | typeof costDef;
   insumoCosts?: Map<string, number>;
   relationshipItems?: { taskId: string; quantity: number }[];
   previousRollup?: number | null;
@@ -85,7 +83,11 @@ interface HarnessOpts {
 }
 
 function buildHarness(opts: HarnessOpts) {
-  const upserts: { definitionId: string; taskId: string; value: number | null }[] = [];
+  const upserts: {
+    definitionId: string;
+    taskId: string;
+    value: number | null;
+  }[] = [];
   const txMock = {
     customFieldValue: {
       findMany: jest.fn(
@@ -123,10 +125,14 @@ function buildHarness(opts: HarnessOpts) {
       findUnique: jest.fn(
         async (args: {
           where: {
-            workItemId_definitionId: { workItemId: string; definitionId: string };
+            workItemId_definitionId: {
+              workItemId: string;
+              definitionId: string;
+            };
           };
         }) => {
-          const { workItemId, definitionId } = args.where.workItemId_definitionId;
+          const { workItemId, definitionId } =
+            args.where.workItemId_definitionId;
           if (
             definitionId === REL_DEF_ID &&
             workItemId === PRODUCT_TASK &&
@@ -148,39 +154,37 @@ function buildHarness(opts: HarnessOpts) {
       upsert: jest.fn(
         async (args: {
           where: {
-            workItemId_definitionId: { workItemId: string; definitionId: string };
+            workItemId_definitionId: {
+              workItemId: string;
+              definitionId: string;
+            };
           };
           update?: { valueNumber?: number | null };
           create: { valueNumber?: number | null };
         }) => {
           const { workItemId, definitionId } =
             args.where.workItemId_definitionId;
-          const value = args.update?.valueNumber ?? args.create.valueNumber ?? null;
+          const value =
+            args.update?.valueNumber ?? args.create.valueNumber ?? null;
           upserts.push({ taskId: workItemId, definitionId, value });
           return undefined;
         },
       ),
     },
     customFieldDefinition: {
-      findFirst: jest.fn(
-        async (args: { where: { id: string } }) => {
-          if (args.where.id === ROLLUP_DEF_ID) return rollupDefEntity;
-          return null;
-        },
-      ),
-      findMany: jest.fn(
-        async (args: {
-          where: { type?: CustomFieldType };
-        }) => {
-          if (args.where.type === CustomFieldType.ROLLUP) {
-            return [rollupDefEntity];
-          }
-          if (args.where.type === CustomFieldType.CURRENCY) {
-            return [cashDefEntity, termDefEntity];
-          }
-          return [];
-        },
-      ),
+      findFirst: jest.fn(async (args: { where: { id: string } }) => {
+        if (args.where.id === ROLLUP_DEF_ID) return rollupDefEntity;
+        return null;
+      }),
+      findMany: jest.fn(async (args: { where: { type?: CustomFieldType } }) => {
+        if (args.where.type === CustomFieldType.ROLLUP) {
+          return [rollupDefEntity];
+        }
+        if (args.where.type === CustomFieldType.CURRENCY) {
+          return [cashDefEntity, termDefEntity];
+        }
+        return [];
+      }),
     },
     taskOutboxEvent: { create: jest.fn(async () => undefined) },
   };
@@ -189,7 +193,11 @@ function buildHarness(opts: HarnessOpts) {
     workItem: {
       findFirst: jest.fn(async () => ({
         listId: 'list-1',
-        list: { folderId: 'folder-1', spaceId: 'space-1', folder: { spaceId: 'space-1' } },
+        list: {
+          folderId: 'folder-1',
+          spaceId: 'space-1',
+          folder: { spaceId: 'space-1' },
+        },
       })),
       count: jest.fn(async () => opts.relationshipItems?.length ?? 0),
     },
@@ -225,7 +233,11 @@ function buildHarness(opts: HarnessOpts) {
   };
 
   Logger.overrideLogger([
-    { log: () => undefined, warn: () => undefined, error: () => undefined } as never,
+    {
+      log: () => undefined,
+      warn: () => undefined,
+      error: () => undefined,
+    } as never,
   ]);
 
   const service = new CustomFieldValuesService(

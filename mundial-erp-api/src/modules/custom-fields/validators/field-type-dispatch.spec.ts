@@ -400,11 +400,7 @@ describe('validateValue — tipos Hoppe (Sprint 2)', () => {
       });
 
       it('aceita lista vazia quando nao obrigatorio', () => {
-        const result = validateValue(
-          CustomFieldType.RELATIONSHIP,
-          [],
-          withQty,
-        );
+        const result = validateValue(CustomFieldType.RELATIONSHIP, [], withQty);
         expect(result.valid).toBe(true);
         expect(result.normalized).toEqual({ items: [], taskIds: [] });
       });
