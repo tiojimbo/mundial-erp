@@ -19,6 +19,7 @@ import { useCreateTask } from '../hooks/use-create-task';
 import { useCustomTaskTypes } from '../hooks/use-custom-task-types';
 import { useProcess } from '@/features/settings/hooks/use-processes';
 import { useTaskTypeTemplate } from '../hooks/use-task-type-template';
+import { TaskDescription } from './task-view/task-description';
 import {
   createTaskFormSchema,
   type CreateTaskFormData,
@@ -485,35 +486,33 @@ export function CreateTaskDialog({
               </div>
 
               {/* Description */}
-              <div className='space-y-1.5'>
-                <label
-                  htmlFor='create-task-description'
-                  className='text-label-sm text-text-strong-950'
-                >
-                  Descricao{' '}
-                  <span className='text-text-soft-400'>(opcional)</span>
-                </label>
-                <textarea
-                  id='create-task-description'
-                  rows={4}
-                  placeholder='Contexto, links, criterios de aceite...'
-                  aria-invalid={Boolean(errors.description)}
-                  {...register('description')}
-                  className={cn(
-                    'w-full resize-none rounded-lg border bg-bg-white-0 px-3 py-2 text-paragraph-sm text-text-strong-950 shadow-regular-xs outline-none transition-colors',
-                    'placeholder:text-text-soft-400',
-                    'focus-visible:ring-2',
-                    errors.description
-                      ? 'focus-visible:ring-error-base/30 border-error-base focus-visible:border-error-base'
-                      : 'focus-visible:ring-stroke-strong-950/30 border-stroke-soft-200 hover:bg-bg-weak-50 focus-visible:border-stroke-strong-950',
+              {typeTemplate?.hasDescription === true && (
+                <div className='space-y-1.5'>
+                  <label
+                    htmlFor='create-task-description'
+                    className='text-label-sm text-text-strong-950'
+                  >
+                    Descricao{' '}
+                    <span className='text-text-soft-400'>(opcional)</span>
+                  </label>
+                  <Controller
+                    control={control}
+                    name='description'
+                    render={({ field }) => (
+                      <TaskDescription
+                        value={field.value ?? ''}
+                        onChange={field.onChange}
+                        aria-label='Descricao da nova tarefa'
+                      />
+                    )}
+                  />
+                  {errors.description && (
+                    <p className='text-paragraph-xs text-error-base'>
+                      {errors.description.message}
+                    </p>
                   )}
-                />
-                {errors.description && (
-                  <p className='text-paragraph-xs text-error-base'>
-                    {errors.description.message}
-                  </p>
-                )}
-              </div>
+                </div>
+              )}
 
               {/* Priority + DueDate */}
               <div className='grid grid-cols-2 gap-3'>
@@ -783,7 +782,9 @@ function CustomTypeTemplatePreview({
   const fieldsCount = template.fields.length;
   const categories = template.attachmentCategories ?? [];
   const requiredCategories = categories.filter((c) => c.required).length;
-  const hasDefaultDescription = Boolean(template.defaultDescriptionBlocks);
+  const hasDefaultDescription =
+    template.hasDescription === true &&
+    Boolean(template.defaultDescriptionHtml);
 
   return (
     <section

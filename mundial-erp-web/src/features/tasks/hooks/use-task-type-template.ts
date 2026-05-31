@@ -58,6 +58,8 @@ export interface TaskTypeTemplate {
   customTaskTypeId: string;
   attachmentCategories: TaskTypeTemplateAttachmentCategory[] | null;
   defaultDescriptionBlocks: Record<string, unknown> | null;
+  hasDescription: boolean;
+  defaultDescriptionHtml: string | null;
   fields: TaskTypeTemplateField[];
   createdAt: string;
   updatedAt: string;
