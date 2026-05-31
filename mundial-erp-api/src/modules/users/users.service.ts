@@ -8,6 +8,7 @@ import {
 } from '@nestjs/common';
 import { Prisma, WorkspaceMemberRole } from '@prisma/client';
 import * as bcrypt from 'bcrypt';
+import sharp from 'sharp';
 import { UsersRepository } from './users.repository';
 import { MembersRepository } from '../workspaces/members/members.repository';
 import { CreateUserDto } from './dto/create-user.dto';
@@ -159,12 +160,16 @@ export class UsersService {
         'Imagem invalida: esperado data URL base64 (png, jpeg ou webp)',
       );
     }
-    const buffer = Buffer.from(match[2], 'base64');
-    if (buffer.length > AVATAR_MAX_BYTES) {
+    const inputBuffer = Buffer.from(match[2], 'base64');
+    if (inputBuffer.length > AVATAR_MAX_BYTES) {
       throw new BadRequestException('Imagem excede o limite de 2MB');
     }
+    const buffer = await sharp(inputBuffer)
+      .resize(300, 300, { fit: 'cover' })
+      .jpeg({ quality: 85 })
+      .toBuffer();
     const key = `avatars/users/${userId}.jpg`;
-    await this.s3.putObject({ key, body: buffer, contentType: match[1] });
+    await this.s3.putObject({ key, body: buffer, contentType: 'image/jpeg' });
     const updated = await this.usersRepository.update(userId, { avatar: key });
     return UserResponseDto.fromEntity(updated);
   }
@@ -175,7 +180,10 @@ export class UsersService {
   }
 
   async getAvatarSignedUrl(key: string): Promise<string> {
-    const signed = await this.s3.getSignedGetUrl({ key, expiresInSeconds: 3600 });
+    const signed = await this.s3.getSignedGetUrl({
+      key,
+      expiresInSeconds: 3600,
+    });
     return signed.url;
   }
 

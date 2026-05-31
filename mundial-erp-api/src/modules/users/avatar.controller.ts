@@ -21,6 +21,7 @@ export class AvatarController {
     const url = await this.usersService.getAvatarSignedUrl(
       `avatars/users/${file}`,
     );
+    res.setHeader('Cross-Origin-Resource-Policy', 'cross-origin');
     res.redirect(302, url);
   }
 }
