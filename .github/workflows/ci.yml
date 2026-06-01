@@ -186,6 +186,10 @@ jobs:
     if: github.ref == 'refs/heads/main' && github.event_name == 'push'
 
     steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 2
+
       - name: Detect changed paths
         id: changes
         run: |
@@ -195,10 +199,6 @@ jobs:
           echo "api=${API_CHANGED}" >> $GITHUB_OUTPUT
           echo "web=${WEB_CHANGED}" >> $GITHUB_OUTPUT
           echo "root=${ROOT_CHANGED}" >> $GITHUB_OUTPUT
-
-      - uses: actions/checkout@v4
-        with:
-          fetch-depth: 2
 
       - name: Deploy API to Coolify
         if: steps.changes.outputs.api != '0' || steps.changes.outputs.root != '0'
