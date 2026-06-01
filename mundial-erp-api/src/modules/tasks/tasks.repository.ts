@@ -644,27 +644,44 @@ export class TasksRepository {
     });
   }
 
-  /**
-   * Primeiro `Status` com `type=NOT_STARTED` do departamento do
-   * process. Usado quando o caller de `create` nao informa `statusId`.
-   * Budget: 2 queries (process -> department, status).
-   */
   async findFirstStatusForProcess(
     listId: string,
     tx?: Prisma.TransactionClient,
   ) {
     const db = this.client(tx);
-    const process = await db.list.findUnique({
+    const list = await db.list.findUnique({
       where: { id: listId },
-      select: { spaceId: true },
-    });
-    if (!process?.spaceId) return null;
-    return db.status.findFirst({
-      where: {
-        spaceId: process.spaceId,
-        type: 'NOT_STARTED',
-        deletedAt: null,
+      select: {
+        spaceId: true,
+        folderId: true,
+        statusInheritance: true,
+        folder: {
+          select: {
+            spaceId: true,
+            statusInheritance: true,
+          },
+        },
       },
+    });
+    if (!list) return null;
+
+    let scopeWhere: Prisma.StatusWhereInput;
+    if (list.statusInheritance === 'CUSTOM') {
+      scopeWhere = { listId };
+    } else if (list.statusInheritance === 'SPACE') {
+      scopeWhere = { spaceId: list.spaceId, folderId: null, listId: null };
+    } else if (list.folder?.statusInheritance === 'CUSTOM' && list.folderId) {
+      scopeWhere = { folderId: list.folderId, listId: null };
+    } else {
+      scopeWhere = {
+        spaceId: list.folder?.spaceId ?? list.spaceId,
+        folderId: null,
+        listId: null,
+      };
+    }
+
+    return db.status.findFirst({
+      where: { ...scopeWhere, type: 'NOT_STARTED', deletedAt: null },
       orderBy: [{ position: 'asc' }, { createdAt: 'asc' }],
       select: { id: true },
     });
