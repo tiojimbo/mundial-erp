@@ -1,11 +1,13 @@
 'use client';
 
+import { useState } from 'react';
 import dynamic from 'next/dynamic';
 
 export type TaskDescriptionProps = {
   value: string;
   onChange?: (next: string) => void;
   readOnly?: boolean;
+  autoFocus?: boolean;
   'aria-label'?: string;
 };
 
@@ -36,13 +38,32 @@ const TaskDescriptionEditor = dynamic(
   },
 );
 
+function isEmpty(html: string | undefined): boolean {
+  if (!html) return true;
+  return html.replace(/<[^>]+>/g, '').trim().length === 0;
+}
+
 export function TaskDescription(props: TaskDescriptionProps) {
+  const [editing, setEditing] = useState(() => !isEmpty(props.value));
+
+  if (!editing && !props.readOnly) {
+    return (
+      <button
+        type='button'
+        onClick={() => setEditing(true)}
+        className='text-paragraph-sm block w-full cursor-text px-0 py-2 text-left text-text-soft-400 transition-colors hover:text-text-sub-600'
+      >
+        Adicione uma descricao
+      </button>
+    );
+  }
+
   return (
     <>
       <noscript>
         <TaskDescriptionFallback {...props} />
       </noscript>
-      <TaskDescriptionEditor {...props} />
+      <TaskDescriptionEditor {...props} autoFocus={editing && !props.autoFocus ? true : props.autoFocus} />
     </>
   );
 }
