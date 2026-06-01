@@ -203,31 +203,41 @@ jobs:
       - name: Deploy API to Coolify
         if: steps.changes.outputs.api != '0' || steps.changes.outputs.root != '0'
         run: |
-          echo "Triggering API deploy..."
-          curl -f -s \
-            -H "Authorization: Bearer ${{ secrets.COOLIFY_API_TOKEN }}" \
-            "${{ secrets.COOLIFY_URL }}/api/v1/deploy?uuid=m9wm9vcwuq26cfs40r2ndyo8&force=false"
-          echo "API deploy triggered."
-
-      - name: Wait for API health
-        if: steps.changes.outputs.api != '0' || steps.changes.outputs.root != '0'
-        run: |
-          echo "Waiting for API to become healthy..."
-          for i in $(seq 1 30); do
-            if curl -sf http://m9wm9vcwuq26cfs40r2ndyo8.193.203.183.176.sslip.io/health 2>/dev/null; then
-              echo "API is healthy!"
-              exit 0
-            fi
-            echo "Attempt $i/30 - waiting 10s..."
+          RESP=$(curl -fsS -H "Authorization: Bearer ${{ secrets.COOLIFY_API_TOKEN }}" \
+            "${{ secrets.COOLIFY_URL }}/api/v1/deploy?uuid=m9wm9vcwuq26cfs40r2ndyo8&force=false")
+          echo "$RESP"
+          DUUID=$(echo "$RESP" | python3 -c "import sys,json;print(json.load(sys.stdin)['deployments'][0]['deployment_uuid'])")
+          echo "API deployment $DUUID em andamento; aguardando finalizar (build serial)..."
+          for i in $(seq 1 60); do
+            ST=$(curl -fsS -H "Authorization: Bearer ${{ secrets.COOLIFY_API_TOKEN }}" \
+              "${{ secrets.COOLIFY_URL }}/api/v1/deployments/$DUUID" \
+              | python3 -c "import sys,json;print(json.load(sys.stdin).get('status',''))")
+            echo "  $i/60 -> $ST"
+            case "$ST" in
+              finished|success) echo "API deploy OK"; exit 0;;
+              failed|error|cancelled|exited) echo "API deploy FALHOU ($ST)"; exit 1;;
+            esac
             sleep 10
           done
-          echo "WARNING: API health check timed out, continuing with web deploy"
+          echo "API deploy timeout"; exit 1
 
       - name: Deploy Web to Coolify
         if: steps.changes.outputs.web != '0' || steps.changes.outputs.root != '0'
         run: |
-          echo "Triggering Web deploy..."
-          curl -f -s \
-            -H "Authorization: Bearer ${{ secrets.COOLIFY_API_TOKEN }}" \
-            "${{ secrets.COOLIFY_URL }}/api/v1/deploy?uuid=vb1nzc8vb1r1ekltraurxgbb&force=false"
-          echo "Web deploy triggered."
+          RESP=$(curl -fsS -H "Authorization: Bearer ${{ secrets.COOLIFY_API_TOKEN }}" \
+            "${{ secrets.COOLIFY_URL }}/api/v1/deploy?uuid=vb1nzc8vb1r1ekltraurxgbb&force=false")
+          echo "$RESP"
+          DUUID=$(echo "$RESP" | python3 -c "import sys,json;print(json.load(sys.stdin)['deployments'][0]['deployment_uuid'])")
+          echo "Web deployment $DUUID em andamento; aguardando finalizar..."
+          for i in $(seq 1 60); do
+            ST=$(curl -fsS -H "Authorization: Bearer ${{ secrets.COOLIFY_API_TOKEN }}" \
+              "${{ secrets.COOLIFY_URL }}/api/v1/deployments/$DUUID" \
+              | python3 -c "import sys,json;print(json.load(sys.stdin).get('status',''))")
+            echo "  $i/60 -> $ST"
+            case "$ST" in
+              finished|success) echo "Web deploy OK"; exit 0;;
+              failed|error|cancelled|exited) echo "Web deploy FALHOU ($ST)"; exit 1;;
+            esac
+            sleep 10
+          done
+          echo "Web deploy timeout"; exit 1
