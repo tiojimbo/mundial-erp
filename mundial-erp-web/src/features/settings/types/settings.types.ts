@@ -43,7 +43,7 @@ export type User = {
   id: string;
   name: string;
   email: string;
-  avatarUrl: string | null;
+  avatar: string | null;
   isActive: boolean;
   createdAt: string;
   updatedAt: string;

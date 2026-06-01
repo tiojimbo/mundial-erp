@@ -295,7 +295,9 @@ export class FoldersService {
 
     const direct = await this.prisma.folderMember.findMany({
       where: { folderId },
-      include: { user: { select: { id: true, name: true, email: true } } },
+      include: {
+        user: { select: { id: true, name: true, email: true, avatar: true } },
+      },
     });
 
     const directRows = direct.map((m) => ({
@@ -304,7 +306,7 @@ export class FoldersService {
       permission: m.permission,
       source: 'direct' as const,
       inherited: false,
-      user: { ...m.user, avatar: null },
+      user: m.user,
     }));
 
     if (folder.visibility !== Visibility.PUBLIC) {
@@ -314,7 +316,9 @@ export class FoldersService {
     const directIds = new Set(direct.map((m) => m.userId));
     const spaceMembers = await this.prisma.spaceMember.findMany({
       where: { spaceId: folder.spaceId },
-      include: { user: { select: { id: true, name: true, email: true } } },
+      include: {
+        user: { select: { id: true, name: true, email: true, avatar: true } },
+      },
     });
     const inheritedRows = spaceMembers
       .filter((sm) => !directIds.has(sm.userId))
@@ -324,7 +328,7 @@ export class FoldersService {
         permission: sm.permission,
         source: 'inherited' as const,
         inherited: true,
-        user: { ...sm.user, avatar: null },
+        user: sm.user,
       }));
 
     return [...directRows, ...inheritedRows];

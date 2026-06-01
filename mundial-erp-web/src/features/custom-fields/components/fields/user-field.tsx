@@ -6,6 +6,7 @@ import { Command } from 'cmdk';
 import { Search, UserPlus, X } from 'lucide-react';
 
 import { cn } from '@/lib/cn';
+import { UserAvatar } from '@/components/ui/user-avatar';
 import { useWorkspaceStore } from '@/stores/workspace.store';
 import { useWorkspaceUsers } from '@/features/workspaces/hooks/use-workspace-members';
 import type { BaseFieldProps } from './field-base';
@@ -16,31 +17,8 @@ type NormalizedMember = {
   id: string;
   name: string;
   email: string;
-  avatarUrl?: string | null;
+  avatar?: string | null;
 };
-
-function initialsOf(name: string): string {
-  const parts = name.trim().split(/\s+/);
-  if (parts.length === 0) return '?';
-  if (parts.length === 1) return parts[0].slice(0, 2).toUpperCase();
-  return (parts[0][0] + parts[parts.length - 1][0]).toUpperCase();
-}
-
-const AVATAR_COLORS = [
-  { bg: 'rgb(217, 119, 6)', fg: 'rgb(255, 255, 255)' },
-  { bg: 'rgb(220, 38, 38)', fg: 'rgb(255, 255, 255)' },
-  { bg: 'rgb(124, 58, 237)', fg: 'rgb(255, 255, 255)' },
-  { bg: 'rgb(37, 99, 235)', fg: 'rgb(255, 255, 255)' },
-  { bg: 'rgb(5, 150, 105)', fg: 'rgb(255, 255, 255)' },
-  { bg: 'rgb(219, 39, 119)', fg: 'rgb(255, 255, 255)' },
-];
-
-function colorOf(id: string) {
-  let hash = 0;
-  for (let i = 0; i < id.length; i += 1)
-    hash = (hash * 31 + id.charCodeAt(i)) | 0;
-  return AVATAR_COLORS[Math.abs(hash) % AVATAR_COLORS.length];
-}
 
 export function UserField({
   definition,
@@ -60,7 +38,7 @@ export function UserField({
         id: m.id,
         name: m.name ?? '',
         email: m.email ?? '',
-        avatarUrl: m.avatar,
+        avatar: m.avatar,
       })),
     [members],
   );
@@ -193,25 +171,5 @@ export function UserField({
 }
 
 function Avatar({ member }: { member: NormalizedMember }) {
-  const c = colorOf(member.id);
-  if (member.avatarUrl) {
-    return (
-      <span className='relative flex h-6 w-6 shrink-0 overflow-hidden rounded-full'>
-        {/* eslint-disable-next-line @next/next/no-img-element */}
-        <img
-          src={member.avatarUrl}
-          alt={member.name}
-          className='h-full w-full object-cover'
-        />
-      </span>
-    );
-  }
-  return (
-    <span
-      className='relative flex h-6 w-6 shrink-0 items-center justify-center rounded-full text-[10px] font-semibold'
-      style={{ backgroundColor: c.bg, color: c.fg }}
-    >
-      {initialsOf(member.name)}
-    </span>
-  );
+  return <UserAvatar user={member} size='24' />;
 }

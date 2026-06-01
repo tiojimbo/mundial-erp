@@ -29,6 +29,9 @@ export class TaskListAssigneeDto {
   @ApiPropertyOptional({ nullable: true })
   userName!: string | null;
 
+  @ApiPropertyOptional({ nullable: true })
+  userAvatar!: string | null;
+
   @ApiProperty()
   isPrimary!: boolean;
 }
@@ -171,12 +174,13 @@ export class TaskResponseDto {
         | Array<{
             userId: string;
             isPrimary: boolean;
-            user: { name: string | null } | null;
+            user: { name: string | null; avatar: string | null } | null;
           }>
         | undefined) ?? [];
     dto.assignees = assigneeRows.map((a) => ({
       userId: a.userId,
       userName: a.user?.name ?? null,
+      userAvatar: a.user?.avatar ?? null,
       isPrimary: a.isPrimary,
     }));
     dto.creatorId = row.creatorId as string;

@@ -3,6 +3,7 @@
 import { useMemo, useState } from 'react';
 import { UserPlus } from 'lucide-react';
 
+import { UserAvatar } from '@/components/ui/user-avatar';
 import type { TaskAssignee } from '../../types/task.types';
 
 /**
@@ -21,14 +22,6 @@ export type AssigneeMultiPickerProps = {
 };
 
 const VISIBLE_MAX = 3;
-
-function initials(name: string | null): string {
-  if (!name) return '?';
-  const parts = name.trim().split(/\s+/);
-  const first = parts[0]?.[0] ?? '';
-  const last = parts.length > 1 ? parts[parts.length - 1][0] : '';
-  return (first + last).toUpperCase();
-}
 
 export function AssigneeMultiPicker({
   assignees,
@@ -70,13 +63,12 @@ export function AssigneeMultiPicker({
         className='flex items-center -space-x-1.5 rounded-md px-1 py-0.5 transition-colors hover:bg-muted'
       >
         {visible.map((a) => (
-          <span
+          <UserAvatar
             key={a.userId}
-            className='flex h-6 w-6 items-center justify-center rounded-full bg-muted text-[10px] font-medium text-foreground ring-2 ring-card'
-            title={a.userName ?? a.userId}
-          >
-            {initials(a.userName)}
-          </span>
+            user={{ id: a.userId, name: a.userName, avatar: a.userAvatar }}
+            size='24'
+            className='ring-2 ring-card'
+          />
         ))}
         {overflow > 0 && (
           <span className='flex h-6 min-w-[24px] items-center justify-center rounded-full bg-muted px-1 text-[10px] font-medium text-muted-foreground ring-2 ring-card'>

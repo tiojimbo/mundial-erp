@@ -292,7 +292,7 @@ export class SpacesService {
     const direct = await this.prisma.spaceMember.findMany({
       where: { spaceId },
       include: {
-        user: { select: { id: true, name: true, email: true } },
+        user: { select: { id: true, name: true, email: true, avatar: true } },
       },
     });
 
@@ -302,7 +302,7 @@ export class SpacesService {
       permission: m.permission,
       source: 'direct' as const,
       inherited: false,
-      user: { ...m.user, avatar: null },
+      user: m.user,
     }));
 
     if (space.visibility !== Visibility.PUBLIC) {
@@ -313,7 +313,7 @@ export class SpacesService {
     const wsMembers = await this.prisma.workspaceMember.findMany({
       where: { workspaceId },
       include: {
-        user: { select: { id: true, name: true, email: true } },
+        user: { select: { id: true, name: true, email: true, avatar: true } },
       },
     });
     const inheritedRows = wsMembers
@@ -324,7 +324,7 @@ export class SpacesService {
         permission: MemberPermission.EDIT,
         source: 'inherited' as const,
         inherited: true,
-        user: { ...wm.user, avatar: null },
+        user: wm.user,
       }));
 
     return [...directRows, ...inheritedRows];

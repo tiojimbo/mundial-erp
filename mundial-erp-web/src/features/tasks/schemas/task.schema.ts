@@ -84,6 +84,7 @@ export const taskStatusSchema = z.object({
 export const taskAssigneeSchema = z.object({
   userId: z.string().uuid(),
   userName: z.string().nullable(),
+  userAvatar: z.string().nullable().optional(),
   isPrimary: z.boolean(),
 });
 

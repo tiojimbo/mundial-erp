@@ -36,7 +36,7 @@ export const TASK_LIST_SELECT = {
     select: {
       userId: true,
       isPrimary: true,
-      user: { select: { name: true } },
+      user: { select: { name: true, avatar: true } },
     },
     orderBy: [{ isPrimary: 'desc' }, { assignedAt: 'asc' }],
   },
@@ -327,7 +327,7 @@ export class TasksRepository {
         userId: true,
         isPrimary: true,
         assignedAt: true,
-        user: { select: { id: true, name: true, email: true } },
+        user: { select: { id: true, name: true, email: true, avatar: true } },
       },
       orderBy: [{ isPrimary: 'desc' }, { assignedAt: 'asc' }],
     });
@@ -351,7 +351,7 @@ export class TasksRepository {
       where: { workItemId: taskId },
       select: {
         userId: true,
-        user: { select: { id: true, name: true, email: true } },
+        user: { select: { id: true, name: true, email: true, avatar: true } },
       },
       orderBy: { addedAt: 'asc' },
     });

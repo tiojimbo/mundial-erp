@@ -11,6 +11,7 @@ import {
 } from '@remixicon/react';
 import { useChannelMembers, useAddMembers } from '../../hooks/use-channels';
 import { useUsers } from '@/features/settings/hooks/use-users';
+import { UserAvatar } from '@/components/ui/user-avatar';
 import { useAuth } from '@/providers/auth-provider';
 import type { ChannelMember } from '../../types/chat.types';
 
@@ -21,33 +22,6 @@ type MembersPopoverProps = {
 
 type Tab = 'followers' | 'access';
 type Mode = 'list' | 'add';
-
-const AVATAR_COLORS = [
-  '#7c3aed',
-  '#ec4899',
-  '#2563eb',
-  '#16a34a',
-  '#f97316',
-  '#0891b2',
-  '#dc2626',
-  '#9333ea',
-];
-
-function getAvatarColor(id: string) {
-  let hash = 0;
-  for (let i = 0; i < id.length; i++)
-    hash = id.charCodeAt(i) + ((hash << 5) - hash);
-  return AVATAR_COLORS[Math.abs(hash) % AVATAR_COLORS.length];
-}
-
-function getInitials(name: string) {
-  return name
-    .split(' ')
-    .map((w) => w[0])
-    .join('')
-    .substring(0, 2)
-    .toUpperCase();
-}
 
 export function MembersPopover({ channelId, children }: MembersPopoverProps) {
   const [open, setOpen] = useState(false);
@@ -247,12 +221,7 @@ export function MembersPopover({ channelId, children }: MembersPopoverProps) {
                       disabled={isAdding}
                       className='flex w-full items-center gap-3 rounded-lg px-2 py-1.5 text-left transition-colors hover:bg-bg-weak-50 disabled:opacity-50'
                     >
-                      <span
-                        className='flex size-8 shrink-0 items-center justify-center rounded-full text-[11px] font-semibold text-white'
-                        style={{ backgroundColor: getAvatarColor(u.id) }}
-                      >
-                        {getInitials(u.name)}
-                      </span>
+                      <UserAvatar user={u} size='32' />
                       <div className='min-w-0 flex-1'>
                         <p className='truncate text-[14px] text-text-strong-950'>
                           {u.name}
@@ -302,14 +271,7 @@ export function MembersPopover({ channelId, children }: MembersPopoverProps) {
                         className='flex items-center justify-between rounded-lg px-2 py-1.5'
                       >
                         <div className='flex items-center gap-3'>
-                          <span
-                            className='flex size-8 shrink-0 items-center justify-center rounded-full text-[11px] font-semibold text-white'
-                            style={{
-                              backgroundColor: getAvatarColor(member.userId),
-                            }}
-                          >
-                            {getInitials(member.user.name)}
-                          </span>
+                          <UserAvatar user={member.user} size='32' />
                           <span className='text-[14px] text-text-strong-950'>
                             {member.user.name}
                             {isYou && (

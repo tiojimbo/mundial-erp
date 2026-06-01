@@ -958,6 +958,7 @@ export class TasksService {
         (a): TaskListAssigneeDto => ({
           userId: a.userId,
           userName: a.user.name,
+          userAvatar: a.user.avatar ?? null,
           isPrimary: a.isPrimary,
         }),
       );

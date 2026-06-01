@@ -16,6 +16,7 @@ import {
 import * as Table from '@/components/ui/table';
 import * as Badge from '@/components/ui/badge';
 import * as Button from '@/components/ui/button';
+import { UserAvatar } from '@/components/ui/user-avatar';
 import { useWorkspaceStore } from '@/stores/workspace.store';
 import { useWorkspaceUsers } from '../hooks/use-workspace-members';
 import { useBulkAddUsers } from '../hooks/use-add-member';
@@ -46,29 +47,6 @@ function badgeColor(role: WorkspaceRole) {
   }
 }
 
-const AVATAR_COLORS = [
-  'rgb(217, 119, 6)',
-  'rgb(220, 38, 38)',
-  'rgb(124, 58, 237)',
-  'rgb(37, 99, 235)',
-  'rgb(5, 150, 105)',
-  'rgb(219, 39, 119)',
-];
-
-function colorOf(id: string): string {
-  let hash = 0;
-  for (let i = 0; i < id.length; i += 1)
-    hash = (hash * 31 + id.charCodeAt(i)) | 0;
-  return AVATAR_COLORS[Math.abs(hash) % AVATAR_COLORS.length];
-}
-
-function initialsOf(name: string): string {
-  const parts = name.trim().split(/\s+/).filter(Boolean);
-  if (parts.length === 0) return '?';
-  if (parts.length === 1) return parts[0].slice(0, 2).toUpperCase();
-  return (parts[0][0] + parts[parts.length - 1][0]).toUpperCase();
-}
-
 function parseEmails(raw: string): string[] {
   const seen = new Set<string>();
   const out: string[] = [];
@@ -80,18 +58,6 @@ function parseEmails(raw: string): string[] {
     out.push(email);
   }
   return out;
-}
-
-function Avatar({ user }: { user: WorkspaceUser }) {
-  const label = user.name || user.email || '?';
-  return (
-    <span
-      className='flex size-7 shrink-0 items-center justify-center rounded-full text-label-xs font-medium text-static-white'
-      style={{ backgroundColor: colorOf(user.id) }}
-    >
-      {initialsOf(label)}
-    </span>
-  );
 }
 
 export function WorkspacePeople() {
@@ -272,7 +238,7 @@ export function WorkspacePeople() {
                     </Table.Cell>
                     <Table.Cell>
                       <div className='flex items-center gap-2.5'>
-                        <Avatar user={user} />
+                        <UserAvatar user={user} size='32' />
                         <span className='text-label-sm text-text-strong-950'>
                           {user.name || '—'}
                         </span>

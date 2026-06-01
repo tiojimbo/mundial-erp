@@ -225,7 +225,9 @@ export class ListsService {
 
     const direct = await this.prisma.listMember.findMany({
       where: { listId },
-      include: { user: { select: { id: true, name: true, email: true } } },
+      include: {
+        user: { select: { id: true, name: true, email: true, avatar: true } },
+      },
     });
 
     const directRows = direct.map((m) => ({
@@ -234,7 +236,7 @@ export class ListsService {
       permission: m.permission,
       source: 'direct' as const,
       inherited: false,
-      user: { ...m.user, avatar: null },
+      user: m.user,
     }));
 
     if (list.visibility !== Visibility.PUBLIC) {
@@ -246,7 +248,9 @@ export class ListsService {
     if (list.folderId) {
       const folderMembers = await this.prisma.folderMember.findMany({
         where: { folderId: list.folderId },
-        include: { user: { select: { id: true, name: true, email: true } } },
+        include: {
+          user: { select: { id: true, name: true, email: true, avatar: true } },
+        },
       });
       const inheritedRows = folderMembers
         .filter((fm) => !directIds.has(fm.userId))
@@ -256,7 +260,7 @@ export class ListsService {
           permission: fm.permission,
           source: 'inherited' as const,
           inherited: true,
-          user: { ...fm.user, avatar: null },
+          user: fm.user,
         }));
       return [...directRows, ...inheritedRows];
     }
@@ -264,7 +268,9 @@ export class ListsService {
     if (list.spaceId) {
       const spaceMembers = await this.prisma.spaceMember.findMany({
         where: { spaceId: list.spaceId },
-        include: { user: { select: { id: true, name: true, email: true } } },
+        include: {
+          user: { select: { id: true, name: true, email: true, avatar: true } },
+        },
       });
       const inheritedRows = spaceMembers
         .filter((sm) => !directIds.has(sm.userId))
@@ -274,7 +280,7 @@ export class ListsService {
           permission: sm.permission,
           source: 'inherited' as const,
           inherited: true,
-          user: { ...sm.user, avatar: null },
+          user: sm.user,
         }));
       return [...directRows, ...inheritedRows];
     }

@@ -123,7 +123,9 @@ export class ChannelsRepository {
       take: params.limit + 1,
       ...(params.cursor && { cursor: { id: params.cursor }, skip: 1 }),
       orderBy: { createdAt: 'asc' },
-      include: { user: { select: { id: true, name: true, email: true } } },
+      include: {
+        user: { select: { id: true, name: true, email: true, avatar: true } },
+      },
     });
     const hasMore = items.length > params.limit;
     if (hasMore) items.pop();
@@ -139,7 +141,9 @@ export class ChannelsRepository {
       take: params.limit + 1,
       ...(params.cursor && { cursor: { id: params.cursor }, skip: 1 }),
       orderBy: { createdAt: 'asc' },
-      include: { user: { select: { id: true, name: true, email: true } } },
+      include: {
+        user: { select: { id: true, name: true, email: true, avatar: true } },
+      },
     });
     const hasMore = items.length > params.limit;
     if (hasMore) items.pop();

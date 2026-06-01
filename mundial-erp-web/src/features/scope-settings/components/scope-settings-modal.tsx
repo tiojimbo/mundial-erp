@@ -20,6 +20,7 @@ import * as Modal from '@/components/ui/modal';
 import * as Select from '@/components/ui/select';
 import * as Tooltip from '@/components/ui/tooltip';
 import { cn } from '@/lib/cn';
+import { UserAvatar } from '@/components/ui/user-avatar';
 import { useUsers } from '@/features/settings/hooks/use-users';
 import {
   useScopeVisibility,
@@ -68,31 +69,6 @@ const PERMISSION_DEFS: Record<Permission, PermissionDef> = {
 };
 
 const PERMISSIONS: Permission[] = ['VIEW', 'COMMENT', 'EDIT', 'FULL_EDIT'];
-
-const COLOR_PALETTE = [
-  '#7C3AED',
-  '#E11D48',
-  '#D97706',
-  '#059669',
-  '#2563EB',
-  '#DB2777',
-];
-
-function initialsOf(name: string | null | undefined, email: string): string {
-  if (name && name.trim().length > 0) {
-    const parts = name.trim().split(/\s+/);
-    return (parts[0][0] + (parts[1]?.[0] ?? '')).toUpperCase();
-  }
-  return email.slice(0, 2).toUpperCase();
-}
-
-function colorFor(seed: string): string {
-  let hash = 0;
-  for (let i = 0; i < seed.length; i += 1) {
-    hash = (hash * 31 + seed.charCodeAt(i)) >>> 0;
-  }
-  return COLOR_PALETTE[hash % COLOR_PALETTE.length];
-}
 
 export type ScopeSettingsModalProps = {
   open: boolean;
@@ -201,7 +177,7 @@ export function ScopeSettingsModal({
                     disabled={addMember.isPending}
                     className='text-sm flex w-full items-center gap-2 px-3 py-2 text-left hover:bg-accent disabled:opacity-50'
                   >
-                    <Initials seed={u.id} label={initialsOf(u.name, u.email)} />
+                    <UserAvatar user={u} size='24' />
                     <div className='min-w-0 flex-1'>
                       <p className='truncate font-medium'>{u.name}</p>
                       <p className='text-xs truncate text-muted-foreground'>
@@ -338,10 +314,7 @@ function MemberRow({
 }) {
   return (
     <div className='hover:bg-muted/50 group flex items-center gap-3 rounded-md px-1 py-2'>
-      <Initials
-        seed={member.userId}
-        label={initialsOf(member.user.name, member.user.email)}
-      />
+      <UserAvatar user={member.user} size='24' />
       <div className='min-w-0 flex-1'>
         <div className='flex items-center gap-1.5'>
           <span className='text-sm block truncate font-medium'>
@@ -460,17 +433,6 @@ function InfoTooltip({ children }: { children: React.ReactNode }) {
       </Tooltip.Trigger>
       <Tooltip.Content side='top'>{children}</Tooltip.Content>
     </Tooltip.Root>
-  );
-}
-
-function Initials({ seed, label }: { seed: string; label: string }) {
-  return (
-    <span
-      className='text-xs flex size-8 shrink-0 items-center justify-center rounded-full font-semibold text-white'
-      style={{ backgroundColor: colorFor(seed) }}
-    >
-      {label}
-    </span>
   );
 }
 

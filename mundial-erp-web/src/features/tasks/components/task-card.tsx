@@ -5,8 +5,8 @@ import { format, isPast, isToday, parseISO } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { RiCalendarLine, RiFlagLine, RiPriceTag3Line } from '@remixicon/react';
 import { cn } from '@/lib/cn';
-import * as Avatar from '@/components/ui/avatar';
 import * as AvatarGroup from '@/components/ui/avatar-group';
+import { UserAvatar } from '@/components/ui/user-avatar';
 import type { Task, TaskPriority } from '../types/task.types';
 
 type TaskCardProps = {
@@ -159,11 +159,15 @@ export function TaskCard({
         {task.assignees.length > 0 && (
           <AvatarGroup.Root size='24'>
             {task.assignees.slice(0, 3).map((assignee) => (
-              <Avatar.Root key={assignee.userId} size='24'>
-                <span aria-hidden>
-                  {assignee.userName?.slice(0, 1).toUpperCase() ?? '?'}
-                </span>
-              </Avatar.Root>
+              <UserAvatar
+                key={assignee.userId}
+                user={{
+                  id: assignee.userId,
+                  name: assignee.userName,
+                  avatar: assignee.userAvatar,
+                }}
+                size='24'
+              />
             ))}
             {task.assignees.length > 3 && (
               <AvatarGroup.Overflow>

@@ -9,42 +9,12 @@ import { useWorkspaceUsers } from '@/features/workspaces/hooks/use-workspace-mem
 import { useWorkspaceStore } from '@/stores/workspace.store';
 import { useAuth } from '@/providers/auth-provider';
 import { useChatStore } from '@/stores/chat.store';
+import { UserAvatar } from '@/components/ui/user-avatar';
 
 type CreateDmDialogProps = {
   open: boolean;
   onOpenChange: (open: boolean) => void;
 };
-
-const AVATAR_COLORS = [
-  '#7c3aed',
-  '#e11d48',
-  '#0891b2',
-  '#059669',
-  '#d97706',
-  '#2563eb',
-  '#db2777',
-  '#9333ea',
-  '#16a34a',
-  '#dc2626',
-];
-
-function getAvatarColor(id: string): string {
-  let hash = 0;
-  for (let i = 0; i < id.length; i++) {
-    hash = (hash * 31 + id.charCodeAt(i)) >>> 0;
-  }
-  return AVATAR_COLORS[hash % AVATAR_COLORS.length]!;
-}
-
-function getInitials(name: string): string {
-  return name
-    .trim()
-    .split(/\s+/)
-    .map((w) => w[0])
-    .join('')
-    .substring(0, 2)
-    .toUpperCase();
-}
 
 export function CreateDmDialog({ open, onOpenChange }: CreateDmDialogProps) {
   const [search, setSearch] = useState('');
@@ -146,14 +116,7 @@ export function CreateDmDialog({ open, onOpenChange }: CreateDmDialogProps) {
                     disabled={isPending}
                     className='flex w-full items-center gap-3 rounded-md px-3 py-2 text-left transition-colors hover:bg-[oklch(0.97_0_0)] disabled:cursor-not-allowed disabled:opacity-50'
                   >
-                    <span className='relative flex size-8 shrink-0 overflow-hidden rounded-full'>
-                      <span
-                        className='flex size-full items-center justify-center rounded-full text-[12px] font-semibold text-white'
-                        style={{ backgroundColor: getAvatarColor(u.id) }}
-                      >
-                        {getInitials(u.name)}
-                      </span>
-                    </span>
+                    <UserAvatar user={u} size='32' />
                     <div className='flex min-w-0 flex-1 flex-col'>
                       <span className='truncate text-[14px] font-medium'>
                         {u.name}
