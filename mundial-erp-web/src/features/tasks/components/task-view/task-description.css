@@ -16,8 +16,10 @@
   padding: 0;
 }
 
-.cu-desc-editor-wrap [data-placeholder]::before {
-  color: rgb(131, 131, 131);
-  font-size: 14px;
-  font-style: normal;
+.cu-desc-editor-wrap .bn-block-content::after,
+.cu-desc-editor-wrap .bn-block-content::before,
+.cu-desc-editor-wrap [data-placeholder]::before,
+.cu-desc-editor-wrap [data-placeholder]::after {
+  color: rgb(131, 131, 131) !important;
+  font-style: normal !important;
 }
