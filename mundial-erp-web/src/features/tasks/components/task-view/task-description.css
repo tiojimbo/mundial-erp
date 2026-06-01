@@ -1,0 +1,23 @@
+.cu-desc-editor-wrap .bn-container.bn-mantine {
+  background: transparent;
+  border: none;
+  box-shadow: none;
+}
+
+.cu-desc-editor-wrap .bn-editor {
+  padding: 0;
+  margin: 0;
+  font-size: 16px;
+  line-height: 24px;
+  color: rgb(32, 32, 32);
+}
+
+.cu-desc-editor-wrap .bn-block-content {
+  padding: 0;
+}
+
+.cu-desc-editor-wrap [data-placeholder]::before {
+  color: rgb(131, 131, 131);
+  font-size: 14px;
+  font-style: normal;
+}
