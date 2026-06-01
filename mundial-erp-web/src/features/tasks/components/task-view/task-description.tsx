@@ -51,7 +51,7 @@ export function TaskDescription(props: TaskDescriptionProps) {
       <button
         type='button'
         onClick={() => setEditing(true)}
-        className='text-paragraph-sm block w-full cursor-text px-0 py-2 text-left text-text-soft-400 transition-colors hover:text-text-sub-600'
+        className='cu-desc-editor-wrap text-paragraph-sm block w-full cursor-text px-0 text-left text-text-soft-400 transition-colors hover:text-text-sub-600'
       >
         Adicione uma descricao
       </button>
