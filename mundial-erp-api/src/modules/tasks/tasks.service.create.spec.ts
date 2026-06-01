@@ -312,6 +312,22 @@ describe('TasksService.create', () => {
     expect(h.watchers.syncWatchers).not.toHaveBeenCalled();
   });
 
+  it('list CUSTOM sem statusId: createTask recebe o status do escopo da list, nao do Space', async () => {
+    const LIST_STATUS = 'status-list-custom-1';
+    const h = buildHarness({ defaultStatus: { id: LIST_STATUS } });
+
+    await h.service.create(WS, dto(), ACTOR);
+
+    expect(h.repository.findFirstStatusForProcess).toHaveBeenCalledWith(
+      PROCESS,
+    );
+    const arg = h.repository.createTask.mock.calls[0][1] as {
+      statusId: string;
+    };
+    expect(arg.statusId).toBe(LIST_STATUS);
+    expect(arg.statusId).not.toBe(DEFAULT_STATUS);
+  });
+
   it('statusId informado no dto: findFirstStatusForProcess nao e chamado', async () => {
     const h = buildHarness();
 
