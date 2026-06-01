@@ -3226,6 +3226,8 @@ model TaskTypeTemplate {
   customTaskTypeId         String    @unique @map("custom_task_type_id")
   attachmentCategories     Json?     @map("attachment_categories")
   defaultDescriptionBlocks Json?     @map("default_description_blocks")
+  hasDescription           Boolean   @default(false) @map("has_description")
+  defaultDescriptionHtml   String?   @map("default_description_html") @db.Text
   createdAt                DateTime  @default(now()) @map("created_at")
   updatedAt                DateTime  @updatedAt @map("updated_at")
   deletedAt                DateTime? @map("deleted_at")

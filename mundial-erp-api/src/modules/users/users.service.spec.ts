@@ -4,6 +4,7 @@ import * as bcrypt from 'bcrypt';
 import { UsersService } from './users.service';
 import { UsersRepository } from './users.repository';
 import { MembersRepository } from '../workspaces/members/members.repository';
+import { S3AdapterService } from '../../common/adapters/s3-adapter.service';
 import { PaginationDto } from '../../common/dtos/pagination.dto';
 
 jest.mock('bcrypt');
@@ -49,6 +50,14 @@ describe('UsersService', () => {
           useValue: {
             findWorkspaceIdsByUser: jest.fn().mockResolvedValue([]),
             create: jest.fn(),
+          },
+        },
+        {
+          provide: S3AdapterService,
+          useValue: {
+            putObject: jest.fn(),
+            getSignedGetUrl: jest.fn(),
+            deleteObject: jest.fn(),
           },
         },
       ],

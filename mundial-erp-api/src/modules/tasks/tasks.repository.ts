@@ -371,6 +371,7 @@ export class TasksRepository {
         listId: true,
         statusId: true,
         mergedIntoId: true,
+        customTypeId: true,
       },
     });
   }

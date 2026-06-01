@@ -15,6 +15,8 @@ export interface TaskTypeTemplateWithFields {
   customTaskTypeId: string;
   attachmentCategories: Prisma.JsonValue | null;
   defaultDescriptionBlocks: Prisma.JsonValue | null;
+  hasDescription: boolean;
+  defaultDescriptionHtml: string | null;
   createdAt: Date;
   updatedAt: Date;
   fields: Array<{
@@ -80,6 +82,8 @@ export class TaskTypeTemplatesRepository {
         customTaskTypeId: true,
         attachmentCategories: true,
         defaultDescriptionBlocks: true,
+        hasDescription: true,
+        defaultDescriptionHtml: true,
         createdAt: true,
         updatedAt: true,
         fields: {
@@ -137,6 +141,8 @@ export class TaskTypeTemplatesRepository {
         customTaskTypeId: true,
         attachmentCategories: true,
         defaultDescriptionBlocks: true,
+        hasDescription: true,
+        defaultDescriptionHtml: true,
         createdAt: true,
         updatedAt: true,
         fields: {

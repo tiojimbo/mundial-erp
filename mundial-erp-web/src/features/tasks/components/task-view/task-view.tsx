@@ -179,16 +179,18 @@ export function TaskView({ taskId }: TaskViewProps) {
           <TaskTypeRow task={task as TaskDetail} />
           <TaskTitle taskId={task.id} initialValue={task.title} />
           <TaskPropertyGrid task={task as TaskDetail} />
-          <TaskDescription
-            value={task.markdownContent ?? task.description ?? ''}
-            aria-label='Descricao da tarefa'
-            onChange={(next) =>
-              updateTask.mutate({
-                taskId: task.id,
-                payload: { markdownContent: next, description: next },
-              })
-            }
-          />
+          {template?.hasDescription === true && (
+            <TaskDescription
+              value={task.description ?? ''}
+              aria-label='Descricao da tarefa'
+              onChange={(next) =>
+                updateTask.mutate({
+                  taskId: task.id,
+                  payload: { description: next },
+                })
+              }
+            />
+          )}
 
           <CustomFieldsSection
             taskId={task.id}

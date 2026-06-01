@@ -111,6 +111,18 @@ export class TaskTypeTemplateResponseDto {
   })
   defaultDescriptionBlocks!: Record<string, unknown> | null;
 
+  @ApiProperty({
+    description: 'Tipo permite descricao rica no drawer da task.',
+  })
+  hasDescription!: boolean;
+
+  @ApiPropertyOptional({
+    description:
+      'HTML default aplicado quando o cliente cria task sem descricao.',
+    nullable: true,
+  })
+  defaultDescriptionHtml!: string | null;
+
   @ApiProperty({ type: [TaskTypeTemplateFieldDto] })
   fields!: TaskTypeTemplateFieldDto[];
 
@@ -131,6 +143,8 @@ export class TaskTypeTemplateResponseDto {
     customTaskTypeId: string;
     attachmentCategories: unknown;
     defaultDescriptionBlocks: unknown;
+    hasDescription: boolean;
+    defaultDescriptionHtml: string | null;
     createdAt: Date;
     updatedAt: Date;
     fields: Array<{
@@ -156,6 +170,8 @@ export class TaskTypeTemplateResponseDto {
       entity.attachmentCategories,
     );
     dto.defaultDescriptionBlocks = parseRecord(entity.defaultDescriptionBlocks);
+    dto.hasDescription = entity.hasDescription;
+    dto.defaultDescriptionHtml = entity.defaultDescriptionHtml;
     dto.createdAt = entity.createdAt;
     dto.updatedAt = entity.updatedAt;
     dto.fields = entity.fields.map((f) => {
