@@ -10,6 +10,7 @@ import {
   forwardRef,
 } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
+import { EventEmitter2 } from '@nestjs/event-emitter';
 import { Prisma, TaskPriority } from '@prisma/client';
 import type Redis from 'ioredis';
 import { PrismaService } from '../../database/prisma.service';
@@ -128,6 +129,8 @@ export class TasksService {
     private readonly templatesMetrics?: TaskTypeTemplatesMetrics,
     @Optional()
     private readonly automationEvents?: TaskEventsPublisher,
+    @Optional()
+    private readonly events?: EventEmitter2,
     @Optional()
     private readonly orderCode?: OrderCodeService,
   ) {}
@@ -1092,6 +1095,15 @@ export class TasksService {
     });
 
     this.emitAutomationDiffs(workspaceId, taskId, actorId, data, updated);
+
+    if (this.events && Object.keys(data).length > 0) {
+      this.events.emit('task.realtime', {
+        workspaceId,
+        taskId,
+        listId: String((updated as Record<string, unknown>)?.listId ?? ''),
+        action: 'UPDATED',
+      });
+    }
 
     return {
       data: TaskResponseDto.fromRow(
