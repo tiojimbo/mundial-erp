@@ -71,11 +71,12 @@ const registerAndLogin = async (
     .send({ email, name, password: 'senha12345' })
     .expect(201);
 
+  const tokens = res.body.data.tokens ?? res.body.data;
   return {
     userId: res.body.data.user.id as string,
     tokens: {
-      accessToken: res.body.data.accessToken as string,
-      refreshToken: res.body.data.refreshToken as string,
+      accessToken: tokens.accessToken as string,
+      refreshToken: tokens.refreshToken as string,
     },
   };
 };
@@ -89,9 +90,10 @@ const refreshTokens = async (
     .send({ refreshToken })
     .expect(200);
 
+  const tokens = res.body.data.tokens ?? res.body.data;
   return {
-    accessToken: res.body.data.accessToken as string,
-    refreshToken: res.body.data.refreshToken as string,
+    accessToken: tokens.accessToken as string,
+    refreshToken: tokens.refreshToken as string,
   };
 };
 
