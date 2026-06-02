@@ -1,4 +1,4 @@
-import { render, screen } from '@testing-library/react';
+import { fireEvent, render, screen } from '@testing-library/react';
 import { describe, expect, it, vi } from 'vitest';
 
 import type { TaskComment } from '../../../../types/task.types';
@@ -8,6 +8,11 @@ vi.mock('../comment-reactions', () => ({
   CommentReactions: ({ commentId }: { commentId: string }) => (
     <div data-testid='comment-reactions' data-comment-id={commentId} />
   ),
+}));
+
+vi.mock('@/lib/api', () => ({
+  getAvatarUrl: (key?: string | null) =>
+    key ? `http://api.test/${key.replace(/^\//, '')}` : null,
 }));
 
 const TASK_ID = '11111111-1111-1111-1111-111111111111';
@@ -34,7 +39,7 @@ describe('CommentItem', () => {
     expect(screen.getByText('Samuel Miranda')).toBeInTheDocument();
   });
 
-  it('renderiza avatar quadrado arredondado 20px com iniciais', () => {
+  it('renderiza avatar quadrado arredondado 20px com iniciais quando sem foto', () => {
     const { container } = render(
       <CommentItem comment={makeComment()} taskId={TASK_ID} />,
     );
@@ -42,6 +47,55 @@ describe('CommentItem', () => {
     expect(avatar?.textContent).toBe('SM');
     expect(avatar?.className).toContain('rounded-[5px]');
     expect(avatar?.className).toContain('size-5');
+    expect(container.querySelector('img')).toBeNull();
+  });
+
+  it('renderiza img quadrada 20px com src da foto quando author.avatar existe', () => {
+    const { container } = render(
+      <CommentItem
+        comment={makeComment({
+          author: {
+            id: AUTHOR_ID,
+            name: 'Samuel Miranda',
+            email: 's@x.com',
+            avatar: 'avatars/users/abc.jpg',
+          },
+        })}
+        taskId={TASK_ID}
+      />,
+    );
+    const img = container.querySelector('img');
+    expect(img).not.toBeNull();
+    expect(img?.getAttribute('src')).toBe(
+      'http://api.test/avatars/users/abc.jpg',
+    );
+    expect(img?.getAttribute('alt')).toBe('Samuel Miranda');
+    expect(img?.className).toContain('rounded-[5px]');
+    expect(img?.className).toContain('size-5');
+    expect(img?.className).toContain('object-cover');
+    expect(container.querySelector('span[aria-hidden="true"]')).toBeNull();
+  });
+
+  it('cai pras iniciais quando a imagem do avatar falha ao carregar', () => {
+    const { container } = render(
+      <CommentItem
+        comment={makeComment({
+          author: {
+            id: AUTHOR_ID,
+            name: 'Samuel Miranda',
+            email: 's@x.com',
+            avatar: 'avatars/users/abc.jpg',
+          },
+        })}
+        taskId={TASK_ID}
+      />,
+    );
+    const img = container.querySelector('img');
+    expect(img).not.toBeNull();
+    fireEvent.error(img as HTMLImageElement);
+    expect(container.querySelector('img')).toBeNull();
+    const avatar = container.querySelector('span[aria-hidden="true"]');
+    expect(avatar?.textContent).toBe('SM');
   });
 
   it('renderiza timestamp no formato longo', () => {
@@ -69,7 +123,10 @@ describe('CommentItem', () => {
 
   it('nao renderiza corpo quando content vazio', () => {
     const { container } = render(
-      <CommentItem comment={makeComment({ content: '<p></p>' })} taskId={TASK_ID} />,
+      <CommentItem
+        comment={makeComment({ content: '<p></p>' })}
+        taskId={TASK_ID}
+      />,
     );
     expect(container.querySelector('.prose')).toBeNull();
   });
