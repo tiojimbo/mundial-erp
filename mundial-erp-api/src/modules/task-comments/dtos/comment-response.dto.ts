@@ -5,6 +5,7 @@ export interface CommentUserShape {
   id: string;
   name: string;
   email: string;
+  avatar?: string | null;
 }
 
 export interface CommentReactionShape {
@@ -42,6 +43,9 @@ export class CommentUserDto {
 
   @ApiProperty()
   email!: string;
+
+  @ApiPropertyOptional({ nullable: true })
+  avatar?: string | null;
 }
 
 export class CommentReactionDto {

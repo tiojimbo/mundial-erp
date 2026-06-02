@@ -2,6 +2,9 @@
 
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
+import { useState } from 'react';
+
+import { getAvatarUrl } from '@/lib/api';
 
 import { sanitizeCommentHtml } from '../../../lib';
 import type { TaskComment } from '../../../types/task.types';
@@ -64,16 +67,30 @@ export function CommentItem({ comment, taskId }: CommentItemProps) {
   const seed = comment.author?.id || comment.authorId || label;
   const hasBody = !isEmptyComment(comment.content);
 
+  const avatarUrl = getAvatarUrl(comment.author?.avatar);
+  const [avatarFailed, setAvatarFailed] = useState(false);
+  const showImage = Boolean(avatarUrl) && !avatarFailed;
+
   return (
-    <li className='rounded-lg border border-stroke-soft-200 bg-bg-white-0 p-3 space-y-2'>
+    <li className='space-y-2 rounded-lg border border-stroke-soft-200 bg-bg-white-0 p-3'>
       <div className='grid grid-cols-[20px_1fr_auto] items-start gap-2'>
-        <span
-          className='flex size-5 items-center justify-center rounded-[5px] text-[10px] font-medium leading-none text-static-white'
-          style={{ backgroundColor: colorOf(seed) }}
-          aria-hidden='true'
-        >
-          {initialsOf(label)}
-        </span>
+        {showImage ? (
+          // eslint-disable-next-line @next/next/no-img-element
+          <img
+            src={avatarUrl as string}
+            alt={label}
+            className='size-5 rounded-[5px] object-cover'
+            onError={() => setAvatarFailed(true)}
+          />
+        ) : (
+          <span
+            className='flex size-5 items-center justify-center rounded-[5px] text-[10px] font-medium leading-none text-static-white'
+            style={{ backgroundColor: colorOf(seed) }}
+            aria-hidden='true'
+          >
+            {initialsOf(label)}
+          </span>
+        )}
         <div className='flex min-w-0 flex-col'>
           <span className='text-label-xs font-medium text-text-strong-950'>
             {label}
@@ -94,7 +111,7 @@ export function CommentItem({ comment, taskId }: CommentItemProps) {
 
       {hasBody ? (
         <div
-          className='text-paragraph-sm prose max-w-none text-text-sub-600'
+          className='prose max-w-none text-paragraph-sm text-text-sub-600'
           dangerouslySetInnerHTML={{
             __html: sanitizeCommentHtml(comment.content),
           }}

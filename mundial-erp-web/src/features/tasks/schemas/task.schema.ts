@@ -260,6 +260,7 @@ export const commentUserSchema = z.object({
   id: z.string().cuid(),
   name: z.string(),
   email: z.string().nullable().optional(),
+  avatar: z.string().nullable().optional(),
 });
 
 export const taskCommentSchema = z.object({

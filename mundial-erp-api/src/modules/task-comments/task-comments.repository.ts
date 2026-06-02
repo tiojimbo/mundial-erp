@@ -6,6 +6,7 @@ const USER_PUBLIC_SELECT = {
   id: true,
   name: true,
   email: true,
+  avatar: true,
 } as const;
 
 const COMMENT_SELECT = {
