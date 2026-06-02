@@ -47,10 +47,12 @@ export function ActivityFeed({
 
   const commentsById = useMemo(() => {
     const raw = commentsQuery.data as
-      | { items?: TaskComment[] }
+      | { items?: TaskComment[]; data?: TaskComment[] }
       | TaskComment[]
       | undefined;
-    const list: TaskComment[] = Array.isArray(raw) ? raw : (raw?.items ?? []);
+    const list: TaskComment[] = Array.isArray(raw)
+      ? raw
+      : (raw?.data ?? raw?.items ?? []);
     const map = new Map<string, TaskComment>();
     for (const c of list) map.set(c.id, c);
     return map;
