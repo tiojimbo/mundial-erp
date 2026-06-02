@@ -22,8 +22,15 @@ import type {
 /** Prefixo canonico do canal EventEmitter2 por task. */
 const CHANNEL_PREFIX = 'task.sse';
 
+/** Prefixo canonico do canal EventEmitter2 por list. */
+const LIST_CHANNEL_PREFIX = 'task.sse.list';
+
 function channelKey(taskId: string): string {
   return `${CHANNEL_PREFIX}.${taskId}`;
+}
+
+function listChannelKey(listId: string): string {
+  return `${LIST_CHANNEL_PREFIX}.${listId}`;
 }
 
 @Injectable()
@@ -54,6 +61,27 @@ export class LocalEmitterBus implements TaskSseBus {
       const msg = err instanceof Error ? err.message : String(err);
       this.logger.warn(
         `LocalEmitterBus.publish falhou para taskId=${taskId} eventType=${event.type}: ${msg}`,
+      );
+    }
+  }
+
+  subscribeList(listId: string, handler: TaskSseHandler): () => void {
+    const key = listChannelKey(listId);
+    const listener = (payload: TaskSseServerEvent): void => handler(payload);
+    this.emitter.on(key, listener);
+    return () => {
+      this.emitter.off(key, listener);
+    };
+  }
+
+  publishList(listId: string, event: TaskSseServerEvent): void {
+    const key = listChannelKey(listId);
+    try {
+      this.emitter.emit(key, event);
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : String(err);
+      this.logger.warn(
+        `LocalEmitterBus.publishList falhou para listId=${listId} eventType=${event.type}: ${msg}`,
       );
     }
   }

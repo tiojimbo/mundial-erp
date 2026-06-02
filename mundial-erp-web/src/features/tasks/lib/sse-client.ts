@@ -23,6 +23,7 @@ export const TASK_SSE_EVENT_TYPES = [
   'task.deleted',
   'comment.created',
   'attachment.scan_completed',
+  'status.changed',
 ] as const;
 
 export type TaskSseEventType = (typeof TASK_SSE_EVENT_TYPES)[number];
@@ -225,6 +226,157 @@ export class TaskSSEClient {
     if (this.pollingTimer) {
       clearInterval(this.pollingTimer);
       this.pollingTimer = null;
+    }
+  }
+}
+
+export type ListSseClientOptions = {
+  listId: string;
+  baseUrl?: string;
+  token?: string;
+  onEvent: (event: TaskSseEvent) => void;
+  onError?: (error: Error) => void;
+  onOpen?: () => void;
+  onClose?: () => void;
+};
+
+export class ListSSEClient {
+  private readonly listId: string;
+
+  private readonly baseUrl: string;
+
+  private readonly token: string | undefined;
+
+  private readonly handlers: Required<Pick<ListSseClientOptions, 'onEvent'>> &
+    Pick<ListSseClientOptions, 'onError' | 'onOpen' | 'onClose'>;
+
+  private eventSource: EventSource | null = null;
+
+  private reconnectTimer: ReturnType<typeof setTimeout> | null = null;
+
+  private lastEventId: string | null = null;
+
+  private attempts = 0;
+
+  private closed = false;
+
+  private registered = false;
+
+  constructor(options: ListSseClientOptions) {
+    this.listId = options.listId;
+    this.baseUrl = resolveBaseUrl(options.baseUrl);
+    this.token = options.token;
+    this.handlers = {
+      onEvent: options.onEvent,
+      onError: options.onError,
+      onOpen: options.onOpen,
+      onClose: options.onClose,
+    };
+  }
+
+  connect(): void {
+    if (this.closed) return;
+
+    const store = useTasksStore.getState();
+    if (!this.registered) {
+      const admitted = store.registerSseConnection(this.listId);
+      if (!admitted) return;
+      this.registered = true;
+    }
+
+    if (typeof window === 'undefined' || typeof EventSource === 'undefined') {
+      return;
+    }
+
+    try {
+      const url = this.buildStreamUrl();
+      const source = new EventSource(url, { withCredentials: false });
+      this.eventSource = source;
+
+      source.onopen = () => {
+        this.attempts = 0;
+        this.handlers.onOpen?.();
+      };
+
+      const onMessage = (event: MessageEvent, type?: TaskSseEventType) => {
+        if (event.lastEventId) this.lastEventId = event.lastEventId;
+        const resolvedType =
+          type ?? ((event as MessageEvent).type as TaskSseEventType);
+        let parsed: unknown = event.data;
+        if (typeof event.data === 'string') {
+          try {
+            parsed = JSON.parse(event.data);
+          } catch {
+            parsed = event.data;
+          }
+        }
+        this.handlers.onEvent({
+          id: event.lastEventId || undefined,
+          type: resolvedType,
+          data: parsed,
+        });
+      };
+
+      for (const type of TASK_SSE_EVENT_TYPES) {
+        source.addEventListener(type, (e) =>
+          onMessage(e as MessageEvent, type),
+        );
+      }
+
+      source.onerror = () => {
+        this.handlers.onError?.(new Error(`SSE error on list ${this.listId}`));
+        this.teardownEventSource();
+        if (this.closed) return;
+        this.scheduleReconnect();
+      };
+    } catch (err) {
+      this.handlers.onError?.(
+        err instanceof Error ? err : new Error(String(err)),
+      );
+      this.scheduleReconnect();
+    }
+  }
+
+  close(): void {
+    this.closed = true;
+    this.teardownEventSource();
+    if (this.reconnectTimer) {
+      clearTimeout(this.reconnectTimer);
+      this.reconnectTimer = null;
+    }
+    if (this.registered) {
+      useTasksStore.getState().unregisterSseConnection(this.listId);
+      this.registered = false;
+    }
+    this.handlers.onClose?.();
+  }
+
+  private buildStreamUrl(): string {
+    const url = new URL(`${this.baseUrl}/tasks/lists/${this.listId}/events`);
+    if (this.lastEventId) url.searchParams.set('lastEventId', this.lastEventId);
+    if (this.token) url.searchParams.set('token', this.token);
+    return url.toString();
+  }
+
+  private scheduleReconnect(): void {
+    const step =
+      BACKOFF_STEPS_MS[Math.min(this.attempts, BACKOFF_STEPS_MS.length - 1)];
+    this.attempts += 1;
+    const delay = jitter(step);
+    this.reconnectTimer = setTimeout(() => {
+      this.reconnectTimer = null;
+      this.connect();
+    }, delay);
+  }
+
+  private teardownEventSource(): void {
+    if (this.eventSource) {
+      try {
+        this.eventSource.close();
+      } catch {
+        // ignore
+      }
+      this.eventSource = null;
     }
   }
 }

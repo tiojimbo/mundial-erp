@@ -56,6 +56,20 @@ export class TaskActivitiesRepository {
     });
   }
 
+  async findListInWorkspace(
+    workspaceId: string,
+    listId: string,
+  ): Promise<{ id: string } | null> {
+    return this.prisma.list.findFirst({
+      where: {
+        id: listId,
+        deletedAt: null,
+        space: { workspaceId },
+      },
+      select: { id: true },
+    });
+  }
+
   async findByTask(
     workspaceId: string,
     taskId: string,

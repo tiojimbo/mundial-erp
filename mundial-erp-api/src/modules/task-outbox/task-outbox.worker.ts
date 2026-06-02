@@ -149,6 +149,7 @@ interface PayloadShape {
   tagId?: string;
   mergedIntoWorkItemId?: string;
   title?: string;
+  listId?: string;
   [key: string]: unknown;
 }
 
@@ -405,7 +406,52 @@ export class TaskOutboxWorker extends WorkerHost {
 
     // Publish pos-commit: se a tx der rollback, activityRow seria undefined
     // e este ponto nao executaria (throw no await acima).
-    return this.publishToSse('STATUS_CHANGED', aggregateId, activityRow);
+    const ssePublished = this.publishToSse(
+      'STATUS_CHANGED',
+      aggregateId,
+      activityRow,
+    );
+
+    if (payload.listId) {
+      this.publishStatusChangedToList(
+        payload.listId,
+        aggregateId,
+        payload,
+        activityRow.createdAt,
+      );
+    }
+
+    return ssePublished;
+  }
+
+  /**
+   * Fan-out do STATUS_CHANGED no canal de list (board/list views). Best-effort:
+   * falha de bus nunca derruba o handler do outbox.
+   */
+  private publishStatusChangedToList(
+    listId: string,
+    aggregateId: string,
+    payload: PayloadShape,
+    createdAt: Date,
+  ): void {
+    if (!this.sseBus) return;
+    try {
+      this.sseBus.publishList(listId, {
+        id: createdAt.toISOString(),
+        type: 'status.changed',
+        data: {
+          taskId: aggregateId,
+          listId,
+          from: payload.from,
+          to: payload.to,
+        },
+      });
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : String(err);
+      this.logger.debug(
+        `task-outbox: SSE publishList falhou (listId=${listId} aggregateId=${aggregateId}): ${msg}`,
+      );
+    }
   }
 
   /**

@@ -192,6 +192,10 @@ export class TaskOutboxService {
               `task-outbox: falha ao publicar SSE sync-dev (eventId=${row.id}): ${msg}`,
             );
           }
+          this.publishStatusChangedToList(
+            input,
+            activity.createdAt.toISOString(),
+          );
         });
       }
       return row.id;
@@ -207,6 +211,34 @@ export class TaskOutboxService {
     });
 
     return row.id;
+  }
+
+  private publishStatusChangedToList(
+    input: EnqueueInput,
+    eventId: string,
+  ): void {
+    if (!this.sseBus) return;
+    if (input.eventType !== 'STATUS_CHANGED') return;
+    const listId =
+      typeof input.payload.listId === 'string' ? input.payload.listId : null;
+    if (!listId) return;
+    try {
+      this.sseBus.publishList(listId, {
+        id: eventId,
+        type: 'status.changed',
+        data: {
+          taskId: input.aggregateId,
+          listId,
+          from: input.payload.from,
+          to: input.payload.to,
+        },
+      });
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : String(err);
+      this.logger.debug(
+        `task-outbox: SSE publishList sync-dev falhou (listId=${listId} aggregateId=${input.aggregateId}): ${msg}`,
+      );
+    }
   }
 
   private async publishJob(
