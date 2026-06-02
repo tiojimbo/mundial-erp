@@ -39,6 +39,7 @@ import {
   ApiTags,
 } from '@nestjs/swagger';
 import { Observable } from 'rxjs';
+import { SkipResponseTransform } from '../../../common/decorators/skip-response-transform.decorator';
 import { AllowQueryToken } from '../../auth/decorators';
 import { SseJwtGuard } from '../../auth/guards/sse-jwt.guard';
 import { WorkspaceId } from '../../workspaces/decorators/workspace-id.decorator';
@@ -55,6 +56,7 @@ export class TasksEventsController {
   ) {}
 
   @Sse(':taskId/events')
+  @SkipResponseTransform()
   @AllowQueryToken()
   @UseGuards(SseJwtGuard, WorkspaceGuard)
   @Throttle({ default: { limit: 10, ttl: 60_000 } })
@@ -89,6 +91,7 @@ export class TasksEventsController {
   }
 
   @Sse('lists/:listId/events')
+  @SkipResponseTransform()
   @AllowQueryToken()
   @UseGuards(SseJwtGuard, WorkspaceGuard)
   @Throttle({ default: { limit: 10, ttl: 60_000 } })
