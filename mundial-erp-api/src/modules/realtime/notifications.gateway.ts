@@ -14,6 +14,13 @@ type NotificationCreatedPayload = {
   notification: unknown;
 };
 
+type TaskRealtimePayload = {
+  workspaceId?: string;
+  taskId: string;
+  listId?: string;
+  action: string;
+};
+
 @WebSocketGateway({ namespace: '/notifications' })
 export class NotificationsGateway
   implements OnGatewayConnection, OnGatewayDisconnect
@@ -31,6 +38,9 @@ export class NotificationsGateway
     }
     client.data.user = user;
     void client.join(`user:${user.sub}`);
+    if (user.workspaceId) {
+      void client.join(`workspace:${user.workspaceId}`);
+    }
     this.logger.log(`WS /notifications connected: ${user.email}`);
   }
 
@@ -46,5 +56,19 @@ export class NotificationsGateway
     this.server
       .to(`user:${payload.userId}`)
       .emit('notification', payload.notification);
+  }
+
+  @OnEvent('task.realtime')
+  handleTaskRealtime(payload: TaskRealtimePayload) {
+    if (!payload.workspaceId) return;
+    const room = `workspace:${payload.workspaceId}`;
+    this.server.to(room).emit('task:updated', {
+      taskId: payload.taskId,
+      listId: payload.listId,
+    });
+    this.server.to(room).emit('task:mutated', {
+      taskId: payload.taskId,
+      action: payload.action,
+    });
   }
 }
