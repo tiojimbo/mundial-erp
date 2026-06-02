@@ -7,6 +7,7 @@
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 
+import { sanitizeCommentHtml } from '../../../lib';
 import {
   formatActivity,
   type ActivityLookups,
@@ -27,6 +28,11 @@ export type ActivityItemProps = {
   taskId?: string;
   commentsById?: Map<string, TaskComment>;
 };
+
+function isEmptyComment(html: string | null | undefined): boolean {
+  if (!html) return true;
+  return html.replace(/<[^>]+>/g, '').trim().length === 0;
+}
 
 function readCommentIdFromPayload(payload: unknown): string | null {
   if (payload && typeof payload === 'object' && 'commentId' in payload) {
@@ -102,6 +108,16 @@ export function ActivityItem({
           <span className='text-[11px] leading-relaxed text-muted-foreground'>
             {text}
           </span>
+          {activity.type === 'COMMENT_ADDED' &&
+          comment &&
+          !isEmptyComment(comment.content) ? (
+            <div
+              className='text-paragraph-xs prose mt-1 max-w-none text-text-sub-600'
+              dangerouslySetInnerHTML={{
+                __html: sanitizeCommentHtml(comment.content),
+              }}
+            />
+          ) : null}
           {comment && taskId ? (
             <CommentReactions
               taskId={taskId}
