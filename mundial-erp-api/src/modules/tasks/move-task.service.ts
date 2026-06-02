@@ -230,6 +230,7 @@ export class MoveTaskService {
               to: toStatusId,
               actorId,
               workspaceId,
+              listId: targetList.id,
             },
             workspaceId,
           });

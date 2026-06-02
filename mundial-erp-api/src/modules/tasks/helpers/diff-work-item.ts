@@ -39,6 +39,7 @@ export type WorkItemDiffRow = {
   points: number | null;
   archived: boolean;
   customTypeId: string | null;
+  listId: string;
 };
 
 /**
@@ -154,6 +155,7 @@ export function diffWorkItem(
           to: value,
           actorId,
           workspaceId,
+          listId: before.listId,
         },
       });
     }

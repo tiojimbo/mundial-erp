@@ -128,6 +128,85 @@ export class TasksEventsService {
     });
   }
 
+  streamList(listId: string, workspaceId: string): Observable<MessageEvent> {
+    return new Observable<MessageEvent>((subscriber) => {
+      let cleanup: (() => void) | null = null;
+      let active = true;
+
+      void (async () => {
+        try {
+          const list = await this.activitiesRepository.findListInWorkspace(
+            workspaceId,
+            listId,
+          );
+          if (!list) {
+            subscriber.error(new NotFoundException('List nao encontrada'));
+            return;
+          }
+
+          if (!active) return;
+
+          const live$ = this.liveListObservable(listId, (off) => {
+            cleanup = off;
+          });
+          const heartbeat$ = interval(HEARTBEAT_INTERVAL_MS).pipe(
+            map<number, MessageEvent>(() => ({
+              type: 'heartbeat',
+              data: '',
+            })),
+          );
+
+          const inner = merge(live$, heartbeat$)
+            .pipe(
+              finalize(() => {
+                if (cleanup) {
+                  cleanup();
+                  cleanup = null;
+                }
+              }),
+            )
+            .subscribe({
+              next: (event) => subscriber.next(event),
+              error: (err: unknown) => subscriber.error(err),
+              complete: () => subscriber.complete(),
+            });
+
+          return () => inner.unsubscribe();
+        } catch (err) {
+          subscriber.error(err);
+        }
+      })();
+
+      return () => {
+        active = false;
+        if (cleanup) {
+          cleanup();
+          cleanup = null;
+        }
+      };
+    });
+  }
+
+  private liveListObservable(
+    listId: string,
+    setCleanup: (off: () => void) => void,
+  ): Observable<MessageEvent> {
+    return new Observable<MessageEvent>((subscriber) => {
+      const off = this.bus.subscribeList(
+        listId,
+        (event: TaskSseServerEvent) => {
+          subscriber.next({
+            id: event.id,
+            type: event.type,
+            data: event.data,
+          });
+        },
+      );
+      setCleanup(off);
+      return () => off();
+    });
+  }
+
   /**
    * Reconstroi eventos perdidos desde `lastEventId` (ISO 8601 timestamp do
    * createdAt da ultima activity conhecida pelo cliente). Hardcap 200 rows.

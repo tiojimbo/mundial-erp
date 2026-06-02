@@ -423,6 +423,7 @@ export class TasksRepository {
     points: number | null;
     archived: boolean;
     customTypeId: string | null;
+    listId: string;
   } | null> {
     const row = await this.client(tx).workItem.findFirst({
       where: {
@@ -442,6 +443,7 @@ export class TasksRepository {
         points: true,
         archived: true,
         customTypeId: true,
+        listId: true,
       },
     });
     if (!row) return null;

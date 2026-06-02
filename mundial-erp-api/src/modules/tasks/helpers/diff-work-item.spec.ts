@@ -26,6 +26,7 @@ const baseBefore = (): WorkItemDiffRow => ({
   points: 3,
   archived: false,
   customTypeId: null,
+  listId: 'list-1',
 });
 
 type Patch = Prisma.WorkItemUncheckedUpdateInput;
@@ -140,6 +141,7 @@ describe('diffWorkItem (unit)', () => {
           to: 'status-doing',
           actorId: ACTOR_ID,
           workspaceId: WS_ID,
+          listId: 'list-1',
         },
       });
     });

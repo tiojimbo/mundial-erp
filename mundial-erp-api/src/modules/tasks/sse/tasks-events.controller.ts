@@ -85,4 +85,34 @@ export class TasksEventsController {
     }
     return this.service.stream(taskId, workspaceId, lastEventId);
   }
+
+  @Sse('lists/:listId/events')
+  @UseGuards(SseJwtGuard, WorkspaceGuard)
+  @Throttle({ default: { limit: 10, ttl: 60_000 } })
+  @ApiOperation({
+    summary: 'Stream SSE de mudancas de status das tasks de uma list',
+  })
+  @ApiParam({ name: 'listId', format: 'uuid' })
+  @ApiQuery({
+    name: 'lastEventId',
+    required: false,
+    description: 'ISO 8601 do ultimo evento visto',
+  })
+  @ApiQuery({
+    name: 'token',
+    required: false,
+    description: 'JWT access token (EventSource nao aceita header)',
+  })
+  streamList(
+    @Param('listId', ParseUUIDPipe) listId: string,
+    @WorkspaceId() workspaceId: string,
+    @Query('lastEventId') lastEventId?: string,
+  ): Observable<MessageEvent> {
+    void lastEventId;
+    const enabled = this.config.get<boolean>('TASKS_SSE_ENABLED');
+    if (enabled === false) {
+      throw new NotImplementedException('SSE desabilitado');
+    }
+    return this.service.streamList(listId, workspaceId);
+  }
 }

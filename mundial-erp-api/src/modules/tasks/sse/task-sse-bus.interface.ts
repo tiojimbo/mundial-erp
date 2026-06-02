@@ -27,7 +27,8 @@ export type TaskSseServerEventType =
   | 'task.updated'
   | 'task.deleted'
   | 'comment.created'
-  | 'attachment.scan_completed';
+  | 'attachment.scan_completed'
+  | 'status.changed';
 
 /**
  * Envelope transportado pelo bus e emitido como `MessageEvent` pelo controller.
@@ -57,4 +58,13 @@ export interface TaskSseBus {
 
   /** Publica `event` para todos os handlers inscritos em `taskId`. */
   publish(taskId: string, event: TaskSseServerEvent): void;
+
+  /**
+   * Inscreve `handler` em eventos de `listId` (fan-out por list). Retorna
+   * funcao de unsubscribe que DEVE ser chamada no teardown do Observable SSE.
+   */
+  subscribeList(listId: string, handler: TaskSseHandler): () => void;
+
+  /** Publica `event` para todos os handlers inscritos em `listId`. */
+  publishList(listId: string, event: TaskSseServerEvent): void;
 }

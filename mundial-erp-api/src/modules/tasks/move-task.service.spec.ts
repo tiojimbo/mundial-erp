@@ -160,6 +160,10 @@ describe('MoveTaskService.moveToList', () => {
     const enqueuedTypes = outbox.enqueue.mock.calls.map((c) => c[1].eventType);
     expect(enqueuedTypes).toContain('MOVED_TO_LIST');
     expect(enqueuedTypes).toContain('STATUS_CHANGED');
+    const statusChanged = outbox.enqueue.mock.calls.find(
+      (c) => c[1].eventType === 'STATUS_CHANGED',
+    );
+    expect(statusChanged?.[1].payload).toMatchObject({ listId: TARGET_LIST });
     expect(events.emitTaskMovedToList).toHaveBeenCalledTimes(1);
   });
 
