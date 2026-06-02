@@ -7,7 +7,7 @@ import {
 import { Reflector } from '@nestjs/core';
 import { AuthGuard } from '@nestjs/passport';
 import type { Request } from 'express';
-import { IS_PUBLIC_KEY } from '../../auth/decorators';
+import { ALLOW_QUERY_TOKEN_KEY, IS_PUBLIC_KEY } from '../../auth/decorators';
 import type { JwtPayload } from '../../auth/decorators';
 import { UsersRepository } from '../../users/users.repository';
 import { PersonalAccessTokensRepository } from '../personal-access-tokens.repository';
@@ -38,6 +38,18 @@ export class JwtOrPkAuthGuard extends AuthGuard('jwt') {
     const request = ctx
       .switchToHttp()
       .getRequest<Request & { user?: JwtPayload }>();
+
+    const allowQueryToken = this.reflector.getAllAndOverride<boolean>(
+      ALLOW_QUERY_TOKEN_KEY,
+      [ctx.getHandler(), ctx.getClass()],
+    );
+    if (allowQueryToken && !request.headers?.authorization) {
+      const queryToken = request.query?.token;
+      if (typeof queryToken === 'string' && queryToken) {
+        request.headers.authorization = `Bearer ${queryToken}`;
+      }
+    }
+
     const header = request.headers?.authorization;
     const token = this.extractBearer(
       typeof header === 'string' ? header : undefined,
