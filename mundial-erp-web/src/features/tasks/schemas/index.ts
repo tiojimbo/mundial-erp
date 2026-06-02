@@ -18,6 +18,7 @@ export {
   taskLinkTypeSchema,
   taskWatcherSchema,
   taskAttachmentSchema,
+  commentUserSchema,
   taskCommentSchema,
   taskActivitySchema,
   taskTemplateSchema,

@@ -252,19 +252,34 @@ export const taskAttachmentSchema = z.object({
 
 export const commentReactionSchema = z.object({
   emoji: z.string(),
-  userId: z.string().uuid(),
+  userId: z.string().cuid(),
   createdAt: z.string().datetime(),
 });
 
+export const commentUserSchema = z.object({
+  id: z.string().cuid(),
+  name: z.string(),
+  email: z.string().nullable().optional(),
+});
+
 export const taskCommentSchema = z.object({
-  id: z.string().uuid(),
-  taskId: z.string().uuid(),
-  authorId: z.string().uuid(),
-  authorName: z.string().nullable(),
+  id: z.string().cuid(),
+  workItemId: z.string().optional(),
+  taskId: z.string().optional(),
+  authorId: z.string().cuid(),
+  author: commentUserSchema.nullable().optional(),
+  authorName: z.string().nullable().optional(),
   content: z.string(),
   contentBlocks: z.unknown().nullable(),
-  editedAt: z.string().datetime().nullable(),
+  parentId: z.string().nullable().optional(),
+  mentions: z.array(z.string()).nullable().optional(),
+  assigneeId: z.string().nullable().optional(),
+  assignedById: z.string().nullable().optional(),
+  assignee: commentUserSchema.nullable().optional(),
+  assignedBy: commentUserSchema.nullable().optional(),
+  editedAt: z.string().datetime().nullable().optional(),
   createdAt: z.string().datetime(),
+  updatedAt: z.string().datetime().optional(),
   reactions: z.array(commentReactionSchema).default([]),
 });
 
