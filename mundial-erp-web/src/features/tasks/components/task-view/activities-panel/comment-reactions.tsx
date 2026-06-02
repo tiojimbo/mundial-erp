@@ -71,9 +71,9 @@ export function CommentReactions({
           disabled={toggle.isPending}
           aria-pressed={g.reacted}
           className={cn(
-            'inline-flex h-6 items-center gap-1 rounded-full border px-2 text-[11px] transition-colors',
+            'inline-flex h-[23px] items-center gap-1 rounded-full border px-1.5 py-0.5 text-[11px] leading-none transition-colors',
             g.reacted
-              ? 'border-primary/40 bg-primary/10 text-primary'
+              ? 'border-stroke-strong-950 bg-bg-strong-950 text-static-white'
               : 'border-stroke-soft-200 bg-bg-white-0 text-text-sub-600 hover:bg-bg-weak-50',
             toggle.isPending && 'opacity-60',
           )}
@@ -87,7 +87,7 @@ export function CommentReactions({
         <button
           type='button'
           onClick={() => setPickerOpen((v) => !v)}
-          className='inline-flex h-6 items-center gap-1 rounded-full border border-dashed border-stroke-soft-200 px-2 text-[11px] text-text-sub-600 hover:bg-bg-weak-50'
+          className='inline-flex h-[23px] items-center gap-1 rounded-full border border-dashed border-stroke-soft-200 px-1.5 py-0.5 text-[11px] leading-none text-text-sub-600 hover:bg-bg-weak-50'
           aria-label='Adicionar reacao'
         >
           + 😀

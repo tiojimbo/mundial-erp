@@ -7,13 +7,12 @@
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 
-import { sanitizeCommentHtml } from '../../../lib';
 import {
   formatActivity,
   type ActivityLookups,
 } from '../../../lib/format-activity';
 import type { TaskActivity, TaskComment } from '../../../types/task.types';
-import { CommentReactions } from './comment-reactions';
+import { CommentItem } from './comment-item';
 
 /**
  * Sprint 5 (TSK-160) — Item individual do feed.
@@ -28,11 +27,6 @@ export type ActivityItemProps = {
   taskId?: string;
   commentsById?: Map<string, TaskComment>;
 };
-
-function isEmptyComment(html: string | null | undefined): boolean {
-  if (!html) return true;
-  return html.replace(/<[^>]+>/g, '').trim().length === 0;
-}
 
 function readCommentIdFromPayload(payload: unknown): string | null {
   if (payload && typeof payload === 'object' && 'commentId' in payload) {
@@ -81,6 +75,10 @@ export function ActivityItem({
   const comment =
     commentId && commentsById ? commentsById.get(commentId) : undefined;
 
+  if (activity.type === 'COMMENT_ADDED' && comment && taskId) {
+    return <CommentItem comment={comment} taskId={taskId} />;
+  }
+
   return (
     <li
       className={`flex items-start justify-between gap-3 ${isNew ? 'animate-[fade-slide-in_150ms_cubic-bezier(.4,0,.2,1)]' : ''}`}
@@ -108,23 +106,6 @@ export function ActivityItem({
           <span className='text-[11px] leading-relaxed text-muted-foreground'>
             {text}
           </span>
-          {activity.type === 'COMMENT_ADDED' &&
-          comment &&
-          !isEmptyComment(comment.content) ? (
-            <div
-              className='text-paragraph-xs prose mt-1 max-w-none text-text-sub-600'
-              dangerouslySetInnerHTML={{
-                __html: sanitizeCommentHtml(comment.content),
-              }}
-            />
-          ) : null}
-          {comment && taskId ? (
-            <CommentReactions
-              taskId={taskId}
-              commentId={comment.id}
-              reactions={comment.reactions ?? []}
-            />
-          ) : null}
         </div>
       </div>
       <time

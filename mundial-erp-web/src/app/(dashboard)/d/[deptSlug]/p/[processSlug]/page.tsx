@@ -15,6 +15,7 @@ import { useSidebarTree } from '@/features/navigation/hooks/use-sidebar-tree';
 import { useAuth } from '@/providers/auth-provider';
 import { useDeleteProcessView } from '@/features/process-views/hooks/use-delete-process-view';
 import { useTasksGrouped } from '@/features/tasks/hooks/use-tasks-grouped';
+import { useTasksRealtime } from '@/features/tasks/hooks/use-tasks-realtime';
 import { ProcessCardListBody } from '@/features/processes/components/process-card-list-body';
 import { ProcessToolbar } from '@/features/processes/components/process-toolbar';
 import { CreateTaskDialog } from '@/features/tasks/components/create-task-dialog';
@@ -128,6 +129,7 @@ export default function GenericProcessPage() {
   const { data: groupedData, isLoading: isDataLoading } = useTasksGrouped(
     match?.process.id ?? null,
   );
+  useTasksRealtime(match?.process.id ?? '');
 
   const { data: customViews } = useProcessViews(match?.process.id);
   const deleteView = useDeleteProcessView(match?.process.id);
