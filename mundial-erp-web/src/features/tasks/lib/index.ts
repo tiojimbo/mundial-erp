@@ -4,6 +4,7 @@ export {
   CUSTOM_TASK_TYPES_STALE_TIME_MS,
 } from './query-keys';
 export { useWorkspaceId } from './use-workspace-id';
+export { sanitizeCommentHtml } from './sanitize-comment-html';
 export {
   TaskSSEClient,
   TASK_SSE_EVENT_TYPES,
