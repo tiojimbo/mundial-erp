@@ -79,12 +79,12 @@ export function CommentItem({ comment, taskId }: CommentItemProps) {
           <img
             src={avatarUrl as string}
             alt={label}
-            className='size-5 rounded-[5px] object-cover'
+            className='size-5 rounded-full object-cover'
             onError={() => setAvatarFailed(true)}
           />
         ) : (
           <span
-            className='flex size-5 items-center justify-center rounded-[5px] text-[10px] font-medium leading-none text-static-white'
+            className='flex size-5 items-center justify-center rounded-full text-[10px] font-medium leading-none text-static-white'
             style={{ backgroundColor: colorOf(seed) }}
             aria-hidden='true'
           >

@@ -47,7 +47,7 @@ describe('CommentItem', () => {
     );
     const avatar = container.querySelector('span[aria-hidden="true"]');
     expect(avatar?.textContent).toBe('SM');
-    expect(avatar?.className).toContain('rounded-[5px]');
+    expect(avatar?.className).toContain('rounded-full');
     expect(avatar?.className).toContain('size-5');
     expect(container.querySelector('img')).toBeNull();
   });
@@ -72,7 +72,7 @@ describe('CommentItem', () => {
       'http://api.test/avatars/users/abc.jpg',
     );
     expect(img?.getAttribute('alt')).toBe('Samuel Miranda');
-    expect(img?.className).toContain('rounded-[5px]');
+    expect(img?.className).toContain('rounded-full');
     expect(img?.className).toContain('size-5');
     expect(img?.className).toContain('object-cover');
     expect(container.querySelector('span[aria-hidden="true"]')).toBeNull();
