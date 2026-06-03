@@ -97,7 +97,7 @@ export function CommentItem({ comment, taskId }: CommentItemProps) {
           </span>
           <time
             dateTime={comment.createdAt}
-            className='text-paragraph-xs text-text-soft-400'
+            className='text-[10px] text-text-soft-400'
           >
             {formatLong(comment.createdAt)}
           </time>
