@@ -29,6 +29,8 @@ function buildRedisOptions(config: ConfigService): RedisOptions {
   };
 }
 
+const RECONNECT_ON_ERROR_PATTERNS = ['READONLY', 'ECONNRESET'] as const;
+
 function createBullConnection(config: ConfigService): Redis {
   const logger = new Logger('QueueModule');
   const opts = buildRedisOptions(config);
@@ -40,21 +42,34 @@ function createBullConnection(config: ConfigService): Redis {
     lazyConnect: true,
     enableOfflineQueue: true,
     retryStrategy(times: number) {
-      if (times > 2) {
-        logger.warn(`BullMQ Redis: giving up after ${times} retries`);
-        return null;
+      const delay = Math.min(times * 1000, 10000);
+      if (times === 1 || times % 10 === 0) {
+        logger.warn(
+          `BullMQ Redis: reconnect attempt ${times}, retrying in ${delay}ms`,
+        );
       }
-      return Math.min(2 ** times * 500, 3000);
+      return delay;
+    },
+    reconnectOnError(err: Error) {
+      return RECONNECT_ON_ERROR_PATTERNS.some((pattern) =>
+        err.message.includes(pattern),
+      );
     },
   });
 
   connection.on('error', (err) => {
     logger.warn(`BullMQ Redis: ${err.message}`);
   });
+  connection.on('ready', () => {
+    logger.log('BullMQ Redis: ready');
+  });
+  connection.on('reconnecting', () => {
+    logger.warn('BullMQ Redis: reconnecting');
+  });
 
   connection.connect().catch((err) => {
     logger.warn(
-      `BullMQ Redis unavailable: ${err.message}. Queues will be offline.`,
+      `BullMQ Redis unavailable: ${err.message}. Queues will retry until ready.`,
     );
   });
 

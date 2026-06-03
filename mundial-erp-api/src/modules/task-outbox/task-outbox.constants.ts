@@ -71,3 +71,7 @@ export const TASK_OUTBOX_DEFAULT_CONCURRENCY = 5 as const;
 
 /** Truncagem de payload em logs (ADR-003 observabilidade). */
 export const TASK_OUTBOX_LOG_PAYLOAD_MAX_CHARS = 500 as const;
+
+export const POLL_INTERVAL_MS = 30_000 as const;
+export const POLL_BATCH_SIZE = 100 as const;
+export const POLL_MIN_AGE_MS = 15_000 as const;

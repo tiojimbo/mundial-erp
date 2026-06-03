@@ -116,3 +116,76 @@ describe('ActivityFeed - parsing do envelope de comentarios', () => {
     expect(screen.queryByTestId('comment-reactions')).toBeNull();
   });
 });
+
+function descChange(id: string, actorId: string, createdAt: string): TaskActivity {
+  return {
+    id,
+    taskId: TASK_ID,
+    type: 'DESCRIPTION_CHANGED',
+    actorId,
+    actorName: 'Claude Code',
+    payload: {},
+    createdAt,
+  };
+}
+
+function statusChange(id: string, createdAt: string): TaskActivity {
+  return {
+    id,
+    taskId: TASK_ID,
+    type: 'STATUS_CHANGED',
+    actorId: 'user-1',
+    actorName: 'Claude Code',
+    payload: {},
+    createdAt,
+  };
+}
+
+describe('ActivityFeed - coalescing de DESCRIPTION_CHANGED', () => {
+  beforeEach(() => {
+    useActivitiesMock.mockReset();
+    useCommentsMock.mockReset();
+    useActivitiesMock.mockReturnValue({
+      data: undefined,
+      isLoading: false,
+      isError: false,
+    });
+    useCommentsMock.mockReturnValue({ data: { data: [] } });
+  });
+
+  it('coalesce DESCRIPTION_CHANGED adjacentes do mesmo ator em janela curta', () => {
+    const activities = [
+      descChange('d1', 'user-1', '2026-06-02T12:00:00.000Z'),
+      descChange('d2', 'user-1', '2026-06-02T12:00:10.000Z'),
+      descChange('d3', 'user-1', '2026-06-02T12:00:20.000Z'),
+    ];
+
+    render(<ActivityFeed taskId={TASK_ID} activities={activities} />);
+
+    const items = screen.getAllByRole('listitem');
+    expect(items).toHaveLength(1);
+  });
+
+  it('nao coalesce atores diferentes nem janela longa', () => {
+    const activities = [
+      descChange('d1', 'user-1', '2026-06-02T12:00:00.000Z'),
+      descChange('d2', 'user-2', '2026-06-02T12:00:05.000Z'),
+      descChange('d3', 'user-1', '2026-06-02T12:05:00.000Z'),
+    ];
+
+    render(<ActivityFeed taskId={TASK_ID} activities={activities} />);
+
+    expect(screen.getAllByRole('listitem')).toHaveLength(3);
+  });
+
+  it('nao coalesce STATUS_CHANGED', () => {
+    const activities = [
+      statusChange('s1', '2026-06-02T12:00:00.000Z'),
+      statusChange('s2', '2026-06-02T12:00:05.000Z'),
+    ];
+
+    render(<ActivityFeed taskId={TASK_ID} activities={activities} />);
+
+    expect(screen.getAllByRole('listitem')).toHaveLength(2);
+  });
+});

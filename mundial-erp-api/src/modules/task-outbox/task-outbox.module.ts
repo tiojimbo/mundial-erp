@@ -25,6 +25,7 @@ import {
   QUEUE_TASK_OUTBOX_DLQ,
 } from './task-outbox.constants';
 import { TaskOutboxCleanupService } from './task-outbox-cleanup.service';
+import { TaskOutboxPollerService } from './task-outbox-poller.service';
 import { TaskOutboxRepository } from './task-outbox.repository';
 import { TaskOutboxService } from './task-outbox.service';
 import { TaskOutboxWorker } from './task-outbox.worker';
@@ -47,6 +48,7 @@ import { TaskOutboxWorker } from './task-outbox.worker';
     TaskOutboxService,
     TaskOutboxWorker,
     TaskOutboxCleanupService,
+    TaskOutboxPollerService,
   ],
   exports: [TaskOutboxService],
 })

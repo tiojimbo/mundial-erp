@@ -103,14 +103,14 @@ export function ActivityItem({
           />
         )}
         <div className='flex min-w-0 flex-1 flex-col'>
-          <span className='text-[11px] leading-relaxed text-muted-foreground'>
+          <span className='text-paragraph-xs leading-relaxed text-muted-foreground'>
             {text}
           </span>
         </div>
       </div>
       <time
         dateTime={activity.createdAt}
-        className='text-muted-foreground/60 whitespace-nowrap text-[10px]'
+        className='text-muted-foreground/60 whitespace-nowrap text-paragraph-xs'
       >
         {formatRelative(activity.createdAt)}
       </time>
