@@ -7,6 +7,7 @@ import {
 import { InjectQueue } from '@nestjs/bullmq';
 import { Interval } from '@nestjs/schedule';
 import { Queue } from 'bullmq';
+import { ConfigService } from '@nestjs/config';
 import { TaskOutboxRepository } from './task-outbox.repository';
 import {
   POLL_BATCH_SIZE,
@@ -31,14 +32,27 @@ export class TaskOutboxPollerService implements OnApplicationBootstrap {
     @Optional()
     @InjectQueue(QUEUE_TASK_OUTBOX)
     private readonly queue?: Queue<OutboxJobData>,
+    @Optional()
+    private readonly config?: ConfigService,
   ) {}
 
+  private isEnabled(): boolean {
+    return this.config?.get<string>('TASKS_OUTBOX_POLLER_ENABLED') === 'true';
+  }
+
   async onApplicationBootstrap(): Promise<void> {
+    if (!this.isEnabled()) {
+      this.logger.warn(
+        'task-outbox poller DESABILITADO (TASKS_OUTBOX_POLLER_ENABLED != true); pulando drain no boot.',
+      );
+      return;
+    }
     await this.drainStuck();
   }
 
   @Interval('task-outbox-poller', POLL_INTERVAL_MS)
   async poll(): Promise<void> {
+    if (!this.isEnabled()) return;
     await this.drainStuck();
   }
 
