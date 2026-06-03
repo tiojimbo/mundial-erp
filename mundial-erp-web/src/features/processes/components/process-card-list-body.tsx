@@ -24,7 +24,10 @@ import { formatShortDate } from '@/lib/formatters';
 import { useTasksSelectionStore } from '@/stores/tasks-selection.store';
 import { useProcessViews } from '@/features/process-views/hooks/use-process-views';
 import { useCustomFieldDefinitions } from '@/features/custom-fields/hooks/use-custom-field-definitions';
-import type { CustomFieldDefinition } from '@/features/custom-fields/types/custom-field.types';
+import type {
+  CustomFieldDefinition,
+  CustomFieldsGroupedResponse,
+} from '@/features/custom-fields/types/custom-field.types';
 import type {
   ProcessSummaryList,
   StatusGroupSummary,
@@ -42,6 +45,29 @@ const COLUMN_HEADERS = [
   { col: 'COMMENTS', label: 'Comentários', width: 150, resizable: false },
 ] as const;
 
+const CF_BUCKET_ORDER = [
+  'taskType',
+  'list',
+  'folder',
+  'space',
+  'workspace',
+] as const;
+
+export function flattenInheritedFields(
+  grouped: CustomFieldsGroupedResponse,
+): CustomFieldDefinition[] {
+  const seen = new Set<string>();
+  const out: CustomFieldDefinition[] = [];
+  for (const bucket of CF_BUCKET_ORDER) {
+    for (const def of grouped[bucket] ?? []) {
+      if (seen.has(def.id)) continue;
+      seen.add(def.id);
+      out.push(def);
+    }
+  }
+  return out;
+}
+
 type ProcessCardListBodyProps = {
   process: ProcessSummaryList;
 };
@@ -52,26 +78,18 @@ export function ProcessCardListBody({ process }: ProcessCardListBodyProps) {
   const definitionsQuery = useCustomFieldDefinitions({ listId: process.id });
 
   const customColumns = useMemo<CustomFieldDefinition[]>(() => {
+    const grouped = definitionsQuery.data;
+    if (!grouped) return [];
+    const inherited = flattenInheritedFields(grouped);
     const listView = (viewsQuery.data ?? []).find((v) => v.viewType === 'LIST');
     const cfg = listView?.config as
       | { visibleCustomFields?: string[] }
       | undefined;
-    const visibleIds = Array.isArray(cfg?.visibleCustomFields)
-      ? cfg!.visibleCustomFields
-      : [];
-    if (visibleIds.length === 0) return [];
-    const grouped = definitionsQuery.data;
-    if (!grouped) return [];
-    const all = [
-      ...grouped.taskType,
-      ...grouped.list,
-      ...grouped.folder,
-      ...grouped.space,
-      ...(grouped.workspace ?? []),
-    ] as CustomFieldDefinition[];
-    const byId = new Map(all.map((d) => [d.id, d]));
-    return visibleIds
-      .map((id) => byId.get(id))
+    const hasExplicitConfig = Array.isArray(cfg?.visibleCustomFields);
+    if (!hasExplicitConfig) return inherited;
+    const byId = new Map(inherited.map((d) => [d.id, d]));
+    return cfg!
+      .visibleCustomFields!.map((id) => byId.get(id))
       .filter((d): d is CustomFieldDefinition => Boolean(d));
   }, [viewsQuery.data, definitionsQuery.data]);
 
