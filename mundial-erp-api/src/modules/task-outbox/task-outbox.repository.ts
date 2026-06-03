@@ -115,6 +115,31 @@ export class TaskOutboxRepository {
     return rows;
   }
 
+  async findStuckForRepublish(
+    limit: number,
+    minAgeMs: number,
+  ): Promise<PendingEventRow[]> {
+    const take = Math.min(Math.max(1, Math.floor(limit)), 100);
+    const threshold = new Date(Date.now() - minAgeMs);
+    const rows = await this.prisma.taskOutboxEvent.findMany({
+      where: {
+        status: { in: [OutboxEventStatus.PENDING, OutboxEventStatus.FAILED] },
+        createdAt: { lt: threshold },
+      },
+      orderBy: { createdAt: 'asc' },
+      take,
+      select: {
+        id: true,
+        aggregateId: true,
+        eventType: true,
+        payload: true,
+        attempts: true,
+        createdAt: true,
+      },
+    });
+    return rows;
+  }
+
   async findById(id: string): Promise<TaskOutboxEvent | null> {
     return this.prisma.taskOutboxEvent.findUnique({ where: { id } });
   }

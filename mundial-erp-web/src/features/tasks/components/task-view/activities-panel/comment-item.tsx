@@ -72,7 +72,7 @@ export function CommentItem({ comment, taskId }: CommentItemProps) {
   const showImage = Boolean(avatarUrl) && !avatarFailed;
 
   return (
-    <li className='space-y-2 rounded-lg border border-stroke-soft-200 bg-bg-white-0 p-3'>
+    <li className='space-y-2 rounded-[10px] border border-stroke-soft-200 bg-bg-white-0 p-3'>
       <div className='grid grid-cols-[20px_1fr_auto] items-start gap-2'>
         {showImage ? (
           // eslint-disable-next-line @next/next/no-img-element
@@ -111,7 +111,7 @@ export function CommentItem({ comment, taskId }: CommentItemProps) {
 
       {hasBody ? (
         <div
-          className='prose max-w-none text-paragraph-sm text-text-sub-600'
+          className='prose min-w-0 max-w-none break-words text-paragraph-sm leading-[21px] text-text-sub-600 [overflow-wrap:anywhere]'
           dangerouslySetInnerHTML={{
             __html: sanitizeCommentHtml(comment.content),
           }}

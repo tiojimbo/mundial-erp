@@ -1,12 +1,11 @@
 'use client';
 
-import { useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { useCreateBlockNote } from '@blocknote/react';
 import { BlockNoteView } from '@blocknote/mantine';
 import '@blocknote/mantine/style.css';
 import { ChevronDown, ChevronUp, Clock, Maximize2 } from 'lucide-react';
 
-import { useDebouncedCallback } from '@/hooks/use-debounced-callback';
 import type { TaskDescriptionProps } from './task-description';
 import { ptBrErp } from './blocknote-ptbr';
 import './task-description.css';
@@ -51,11 +50,23 @@ export default function TaskDescriptionEditor({
     return () => clearInterval(id);
   }, []);
 
-  const persist = useDebouncedCallback(async () => {
-    if (!onChange) return;
+  const dirtyRef = useRef(false);
+
+  const flush = useCallback(async () => {
+    if (!dirtyRef.current || !onChange) return;
+    dirtyRef.current = false;
     const html = await editor.blocksToHTMLLossy(editor.document);
     onChange(html);
-  }, 300);
+  }, [editor, onChange]);
+
+  const flushRef = useRef(flush);
+  flushRef.current = flush;
+
+  useEffect(() => {
+    return () => {
+      void flushRef.current();
+    };
+  }, []);
 
   const collapsed = needsCollapse && !expanded;
 
@@ -85,11 +96,16 @@ export default function TaskDescriptionEditor({
             ? { maxHeight: COLLAPSED_MAX_HEIGHT, overflow: 'hidden' }
             : undefined
         }
+        onBlur={() => {
+          void flush();
+        }}
       >
         <BlockNoteView
           editor={editor}
           editable={!readOnly}
-          onChange={persist}
+          onChange={() => {
+            dirtyRef.current = true;
+          }}
           aria-label={ariaLabel}
         />
       </div>

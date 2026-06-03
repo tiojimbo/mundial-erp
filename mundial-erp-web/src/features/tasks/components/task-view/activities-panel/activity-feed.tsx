@@ -21,6 +21,35 @@ import { ActivityItem } from './activity-item';
  * e passado como prop (Storybook, testes), cai no modo controlado.
  */
 
+const COALESCE_TYPE = 'DESCRIPTION_CHANGED';
+const COALESCE_WINDOW_MS = 60_000;
+
+function coalesceDescriptionChanges(items: TaskActivity[]): TaskActivity[] {
+  const result: TaskActivity[] = [];
+  for (const item of items) {
+    const prev = result[result.length - 1];
+    if (
+      prev &&
+      prev.type === COALESCE_TYPE &&
+      item.type === COALESCE_TYPE &&
+      prev.actorId === item.actorId &&
+      Math.abs(
+        new Date(item.createdAt).getTime() -
+          new Date(prev.createdAt).getTime(),
+      ) <= COALESCE_WINDOW_MS
+    ) {
+      result[result.length - 1] =
+        new Date(item.createdAt).getTime() >=
+        new Date(prev.createdAt).getTime()
+          ? item
+          : prev;
+      continue;
+    }
+    result.push(item);
+  }
+  return result;
+}
+
 export type ActivityFeedProps = {
   taskId: string;
   /** Modo controlado (tests/Storybook). Se ausente, usa `useActivities`. */
@@ -44,6 +73,11 @@ export function ActivityFeed({
     if (controlled !== undefined) return controlled;
     return (query.data as ActivitiesListResponse | undefined)?.items ?? [];
   }, [controlled, query.data]);
+
+  const coalesced = useMemo(
+    () => coalesceDescriptionChanges(activities),
+    [activities],
+  );
 
   const commentsById = useMemo(() => {
     const raw = commentsQuery.data as
@@ -113,7 +147,7 @@ export function ActivityFeed({
       aria-label='Linha do tempo de atividades'
       className='flex-1 space-y-2 overflow-y-auto px-4 py-3'
     >
-      {activities.map((a) => (
+      {coalesced.map((a) => (
         <ActivityItem
           key={a.id}
           activity={a}

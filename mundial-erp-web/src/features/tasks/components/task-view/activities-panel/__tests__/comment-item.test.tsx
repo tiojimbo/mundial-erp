@@ -128,6 +128,22 @@ describe('CommentItem', () => {
     expect(body?.textContent).toContain('Depois');
   });
 
+  it('aplica quebra de palavra no corpo pra URL/texto longo nao estourar', () => {
+    const { container } = render(
+      <CommentItem
+        comment={makeComment({
+          content:
+            '<p>https://exemplo.com/um-link-absurdamente-longo-que-nao-quebra-sozinho-no-bloco</p>',
+        })}
+        taskId={TASK_ID}
+      />,
+    );
+    const body = container.querySelector('.prose');
+    expect(body?.className).toContain('break-words');
+    expect(body?.className).toContain('[overflow-wrap:anywhere]');
+    expect(body?.className).toContain('min-w-0');
+  });
+
   it('nao renderiza corpo quando content vazio', () => {
     const { container } = render(
       <CommentItem
