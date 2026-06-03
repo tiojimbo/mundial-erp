@@ -5,11 +5,9 @@ import { cn } from '@/lib/cn';
 import * as Badge from '@/components/ui/badge';
 import { RiEyeLine, RiEyeOffLine } from '@remixicon/react';
 import { useTasksGrouped } from '@/features/tasks/hooks/use-tasks-grouped';
-import { useListSse } from '@/features/tasks/hooks/use-list-sse';
+import { useTasksRealtime } from '@/features/tasks/hooks/use-tasks-realtime';
 import { TaskCard } from './task-card-v2';
 import type { TasksGroupedItem } from '../services/tasks.service';
-
-const SSE_ENABLED = process.env.NEXT_PUBLIC_TASKS_SSE_ENABLED !== 'false';
 
 function columnBorderColor(label: TasksGroupedItem['group']['label']): string {
   const map: Record<TasksGroupedItem['group']['label'], string> = {
@@ -58,7 +56,7 @@ function BoardColumn({ entry }: { entry: TasksGroupedItem }) {
 export function TaskBoardView({ processId }: { processId: string }) {
   const [showClosed, setShowClosed] = useState(false);
   const { data, isLoading } = useTasksGrouped(processId);
-  useListSse(processId, { enabled: SSE_ENABLED });
+  useTasksRealtime(processId);
 
   if (isLoading) {
     return (

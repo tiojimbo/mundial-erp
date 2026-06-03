@@ -7,13 +7,11 @@ import * as Table from '@/components/ui/table';
 import * as Badge from '@/components/ui/badge';
 import { RiArrowDownSLine, RiEyeLine, RiEyeOffLine } from '@remixicon/react';
 import { useTasksGrouped } from '@/features/tasks/hooks/use-tasks-grouped';
-import { useListSse } from '@/features/tasks/hooks/use-list-sse';
+import { useTasksRealtime } from '@/features/tasks/hooks/use-tasks-realtime';
 import { StatusIcon } from '@/features/processes/components/status-icon';
 import { StatusIconPopover } from '@/features/processes/components/status-icon-popover';
 import type { Task } from '../types/task.types';
 import type { TasksGroupedItem } from '../services/tasks.service';
-
-const SSE_ENABLED = process.env.NEXT_PUBLIC_TASKS_SSE_ENABLED !== 'false';
 
 function isOverdue(dueDate: string): boolean {
   return new Date(dueDate) < new Date();
@@ -168,7 +166,7 @@ function GroupSection({
 export function TaskListView({ processId }: { processId: string }) {
   const [showClosed, setShowClosed] = useState(false);
   const { data, isLoading } = useTasksGrouped(processId);
-  useListSse(processId, { enabled: SSE_ENABLED });
+  useTasksRealtime(processId);
 
   if (isLoading) {
     return (

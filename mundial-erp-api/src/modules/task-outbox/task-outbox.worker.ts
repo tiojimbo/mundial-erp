@@ -25,6 +25,7 @@
 
 import { Processor, WorkerHost, InjectQueue } from '@nestjs/bullmq';
 import { Inject, Injectable, Logger, Optional } from '@nestjs/common';
+import { EventEmitter2 } from '@nestjs/event-emitter';
 import { Job, Queue } from 'bullmq';
 import {
   NotificationCategory,
@@ -176,6 +177,7 @@ export class TaskOutboxWorker extends WorkerHost {
     private readonly prisma: PrismaService,
     private readonly repo: TaskOutboxRepository,
     private readonly notifications: NotificationsService,
+    private readonly events: EventEmitter2,
     @Optional()
     @InjectQueue(QUEUE_TASK_OUTBOX_DLQ)
     private readonly dlq?: Queue,
@@ -227,6 +229,12 @@ export class TaskOutboxWorker extends WorkerHost {
     try {
       const ssePublished = await this.dispatch(eventType, aggregateId, payload);
       await this.repo.markCompleted(eventId);
+      this.events.emit('task.realtime', {
+        workspaceId: workspaceId ?? payload.workspaceId,
+        taskId: aggregateId,
+        listId: payload.listId,
+        action: eventType,
+      });
       const durationMs = Date.now() - startedAt;
       this.logger.log({
         message: 'task-outbox processed',
