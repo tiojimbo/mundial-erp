@@ -621,8 +621,7 @@ function SidebarContent({
                     renamingAreaId={renamingAreaId}
                     onStartRenameArea={(id) => setRenamingAreaId(id)}
                     onCancelRenameArea={() => setRenamingAreaId(null)}
-                    onDeleteArea={(id, name, isDefault) => {
-                      if (isDefault) return;
+                    onDeleteArea={(id, name) => {
                       setDeleteTarget({ type: 'area', id, name });
                     }}
                     renamingProcessId={renamingProcessId}
@@ -1770,7 +1769,6 @@ function AreaItem({
                 onOpenCustomTaskTypes={onOpenCustomTaskTypes}
                 onOpenCustomFields={onOpenCustomFields}
                 onDelete={onDelete}
-                deleteDisabled={area.isDefault}
                 onOpenSettings={() => setSettingsOpen(true)}
                 defaultTaskType={{
                   scope: 'folders',
@@ -1922,7 +1920,7 @@ function DeptItem({
   renamingAreaId: string | null;
   onStartRenameArea: (id: string) => void;
   onCancelRenameArea: () => void;
-  onDeleteArea: (id: string, name: string, isDefault: boolean) => void;
+  onDeleteArea: (id: string, name: string) => void;
   renamingProcessId: string | null;
   onStartRenameProcess: (id: string) => void;
   onCancelRenameProcess: () => void;
@@ -2192,9 +2190,7 @@ function DeptItem({
                 isRenaming={renamingAreaId === area.id}
                 onStartRename={() => onStartRenameArea(area.id)}
                 onCancelRename={onCancelRenameArea}
-                onDelete={() =>
-                  onDeleteArea(area.id, area.name, area.isDefault)
-                }
+                onDelete={() => onDeleteArea(area.id, area.name)}
                 renamingProcessId={renamingProcessId}
                 onStartRenameProcess={onStartRenameProcess}
                 onCancelRenameProcess={onCancelRenameProcess}

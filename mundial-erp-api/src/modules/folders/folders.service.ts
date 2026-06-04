@@ -468,9 +468,6 @@ export class FoldersService {
     if (!entity) {
       throw new NotFoundException('Folder não encontrado');
     }
-    if (entity.isDefault) {
-      throw new BadRequestException('Não é possível excluir um folder padrão');
-    }
     await this.foldersRepository.softDelete(workspaceId, id);
     return { message: 'Folder deleted successfully' };
   }
